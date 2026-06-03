@@ -1,0 +1,80 @@
+title: Start
+tags: 
+speaker: Imoen
+colorID: 0
+position: 109,311
+---
+<<if $ImoenIntroduced == true >>
+Don't keep Mr. G waiting now. C'mon you, get going!
+<<else>>
+I'm surprised that stuffy ol' Gorion let you away from your studies and chores. That ol' fiddle faddle. I snuck off too. Old Puffguts Winthrop was looking for me, but I've got all day to do his chores. You have time for a story today? No, I can tell you don't. What have ya been up to?
+
+[[I'm afraid I cannot chat today, little one. My foster father wishes me to prepare for a journey, but will not say to where.|Hurry]]
+[[I am sorry, child, but I am not to tell anyone what I am doing. I must go. You should not tarry about either. Winthrop will want the beds turned down after you are done in the stables.|CantTell]]
+[[Leave me be! I've no time to waste on you today, child!|LeaveMeBe]]
+<<endif>>
+
+===
+title: LeaveMeBe
+tags: 
+speaker: Imoen
+colorID: 5
+position: 114,593
+---
+If that's the way you want it, then fine. Get lost, you smelly ol' gully napper!
+
+<<set $ImoenIntroduced = true>>
+===
+title: Hurry
+tags: 
+speaker: Imoen
+colorID: 2
+position: -87,38
+---
+Little one? I'm not much younger than you, though you sure got tall fast. Relatively, anyway. A journey, eh? I never get to travel. Wish I could go with ya. Yep, I reall wish I could. Yes, sir. Really do.
+
+[[All right, all right. I get the message. I'll ask if you can go with us.|GoWithUs]]
+[[There is no way you can come. Gorion would never allow it.|NotAllowed]]
+[[You would only slow us down. Stay here where you are useful.|RudeToImoen]]
+===
+title: RudeToImoen
+tags: 
+speaker: Imoen
+colorID: 5
+position: 316,-269
+---
+Well, that was certainly rude, you rumduke. Fine, I'll stay here and mind my own beeswax. You better get going... don't want to keep Mr. G waiting.
+
+<<set $ImoenIntroduced = true>>
+===
+title: CantTell
+tags: 
+speaker: Imoen
+colorID: 2
+position: 290,36
+---
+If you say so. You sure picked up a lot from old Gorion. He never tells it straight neither. Good luck on your trip... er... I mean, good luck with whatever you are doing.
+
+[[Wait! What do you know of my journey? Gorion has said little to me and less to anyone else!|NotAllowed]]
+[[Sounds like you've been nosing around where you shouldn't have! Stay out of my business, if you please|RudeToImoen]]
+===
+title: NotAllowed
+tags: 
+speaker: Imoen
+colorID: 5
+position: 82,-264
+---
+Oh, I know. Old stick-in-the-mud that he is, all worried about nothing, I'm sure. Better go now, 'cause you've got a long ways to travel... Not... not that I would know, especially since I didn't peek at old Mr. G's private letters. No, sire. Better go now, bye-bye.
+
+<<set $ImoenIntroduced = true>>
+===
+title: GoWithUs
+tags: 
+speaker: Imoen
+colorID: 5
+position: -149,-264
+---
+Oh, don't be silly, Gorion would never even let you finish the sentence. Especially after what that letter of his said... er... did I say that? No, of course I didn't. Never saw no letter. Nope. I'll just get back to work now. You had better go. Gorion is waiting.
+
+<<set $ImoenIntroduced = true>>
+===

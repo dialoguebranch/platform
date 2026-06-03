@@ -1,0 +1,39 @@
+title: Start
+tags: 
+speaker: Martin McOwl
+colorID: 2
+position: 758,-148
+---
+This is a perfectly fine Node.
+
+[[A perfectly normal reply option.|Node2]]
+[[And another fine reply option.|End]]
+===
+title: End
+tags: 
+speaker: 
+colorID: 5
+position: 752,255
+---
+
+===
+title: Node2
+tags: 
+asf dfls;l dsf;dss
+---
+This node has errors in its header, but is otherwise fine.
+===
+---
+===
+---
+---
+===
+---
+---
+---
+===
+title: NodeWithoutEnd
+speaker: Martin McOwl
+position: 300,300
+---
+This node is perfectly fine, except it doesn't have its ending specified.

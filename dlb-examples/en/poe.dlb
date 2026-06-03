@@ -1,0 +1,347 @@
+title: Start
+tags: 
+speaker: Caravan Master Odema
+colorID: 1
+position: 56,227
+---
+<em>The caravan master finishes addressing the group, his bushy red mustache and sagging jowls quivering as if for emphasis.</em>
+
+[[Intro2]]
+===
+title: Intro2
+tags: 
+speaker: Caravan Master Odema
+colorID: 0
+position: 335,227
+---
+"Everybody stays close to the wagons, got it? Stay outta the woods, and Beasts take you if you were planning a stroll through those ruins up there." <em>He nods toward a looming black mass on the hillside.</em>
+
+[[Intro3]]
+===
+title: Intro3
+tags: 
+speaker: Caravan Master Odema
+colorID: 0
+position: 612,224
+---
+"Whole area's crawling with hut-dwelling types who'd be happy to stick an axe in you for trespassing. So mind that you don't track mud on their sacred blazing rocks."
+
+[[Intro4]]
+===
+title: Intro4
+tags: 
+speaker: Caravan Master Odema
+colorID: 0
+position: 899,223
+---
+"Tonight everybody stays put and in the morning we'll get the path cleared. Gilded Vale's less than a day out. Understood?"
+
+<em>At last, the caravan master turns to you, frowning as he looks you over.</em>
+
+[[Intro5]]
+===
+title: Intro5
+tags: 
+speaker: Caravan Master Odema
+colorID: 0
+position: 1174,221
+---
+"Touch of the Rumbling Rot, could be. There's a stinging beetle 'round here, carries it. You'll be fine once it passes your innards. 'Less you don't drink water, course, which case you'll be dead in a day."
+
+[[Intro6]]
+===
+title: Intro6
+tags: 
+speaker: Caravan Master Odema
+colorID: 0
+position: 1470,216
+---
+"There's a berry grows in these parts, small and pink. Called a springberry. 'Bout the size of a fingernail. Give you cramps if you eat it, but the frontiersmen make a tea from it, calms the insides. Should get you through the night. You might check around, see if you can find some. Meanwhile I'll see if we can scare you up some water."
+
+[[Intro7]]
+===
+title: Intro7
+tags: 
+speaker: Caravan Master Odema
+colorID: 0
+position: 1771,211
+---
+<em>Odema looks over his shoulder at his assistant, a lanky, intense man named Sparfel, who carries an old sun-bleached bow.</em>
+
+"I know you wanna hunt before it gets much darker, but see about refilling our water first. Got a sick one here." <em>He nods in your direction.</em>
+
+<em>Sparfel nods and slides the worn bow over his shoulder.</em>
+
+[[Where would I find these berries?|WhereBerries]]
+[[What are those ruins?|WhatRuins]]
+<<if $replyUnlockedWhoRuins>>
+    [[Who DID build the ruins?|WhoRuins]]
+<<endif>>
+[[Is it dangerous out here?|Danger]]
+<<if $replyUnlockedWhatWeather>>
+    [[What kind of weather do they get out here?|WhatWeather]]
+<<endif>>
+[[What are these huge rocks coming up out of the ground?|HugeRocks]]
+[[I'll go see about those berries, then.|Leave]]
+===
+title: WhereBerries
+tags: 
+speaker: Caravan Master Odema
+colorID: 0
+position: 2102,48
+---
+They grow on a bush that's common 'round here. Kinda funny looking. You'll know it when you see it. Doubt you'd have to go far off the road to find one.
+
+[[Where would I find these berries?|WhereBerries]]
+[[What are those ruins?|WhatRuins]]
+<<if $replyUnlockedWhoRuins>>
+    [[Who DID build the ruins?|WhoRuins]]
+<<endif>>
+[[Is it dangerous out here?|Danger]]
+<<if $replyUnlockedWhatWeather>>
+    [[What kind of weather do they get out here?|WhatWeather]]
+<<endif>>
+[[What are these huge rocks coming up out of the ground?|HugeRocks]]
+[[I'll go see about those berries, then.|Leave]]
+
+===
+title: WhatRuins
+tags: 
+speaker: Caravan Master Odema
+colorID: 0
+position: 2103,294
+---
+Nothing you won't see on half the hills of Eir Glanfath. Money to be made selling their knickknacks in Defiance Bay, if you don't mind getting stuck with Glanfathan arrows now and again. They didn't build 'em but I'll be the Effigy if they don't watch 'em like a mother bear.
+
+[[WhatRuins2]]
+===
+title: WhatRuins2
+tags: 
+speaker: Caravan Master Odema
+colorID: 0
+position: 2391,293
+---
+<<set $replyUnlockedWhoRuins = true>>
+
+Course all the ones 'round here been ransacked ten times over, got nothing left worth half a pand.
+
+<em>He adds, with a wink,</em> So I hear.
+
+[[Where would I find these berries?|WhereBerries]]
+[[What are those ruins?|WhatRuins]]
+<<if $replyUnlockedWhoRuins>>
+    [[Who DID build the ruins?|WhoRuins]]
+<<endif>>
+[[Is it dangerous out here?|Danger]]
+<<if $replyUnlockedWhatWeather>>
+    [[What kind of weather do they get out here?|WhatWeather]]
+<<endif>>
+[[What are these huge rocks coming up out of the ground?|HugeRocks]]
+[[I'll go see about those berries, then.|Leave]]
+===
+title: WhoRuins
+tags: 
+speaker: Caravan Master Odema
+colorID: 0
+position: 2392,551
+---
+<em>Odema shrugs.</em> Got different names for 'em. Settlers call 'em Engwithans.
+
+Nobody that liked them enough to stop them becoming ruins, tell you that much.
+
+[[Where would I find these berries?|WhereBerries]]
+[[What are those ruins?|WhatRuins]]
+<<if $replyUnlockedWhoRuins>>
+    [[Who DID build the ruins?|WhoRuins]]
+<<endif>>
+[[Is it dangerous out here?|Danger]]
+<<if $replyUnlockedWhatWeather>>
+    [[What kind of weather do they get out here?|WhatWeather]]
+<<endif>>
+[[What are these huge rocks coming up out of the ground?|HugeRocks]]
+[[I'll go see about those berries, then.|Leave]]
+===
+title: Danger
+tags: 
+speaker: Caravan Master Odema
+colorID: 0
+position: 2131,839
+---
+Not if you hurry about your business.
+
+[[Danger2]]
+===
+title: Danger2
+tags: 
+speaker: Caravan Master Odema
+colorID: 0
+position: 2397,833
+---
+<<set $replyUnlockedWhatWeather = true>>
+
+...And not if the weather holds up. <em>There is concern in his tone, but he does not elaborate.</em>
+
+[[Where would I find these berries?|WhereBerries]]
+[[What are those ruins?|WhatRuins]]
+<<if $replyUnlockedWhoRuins>>
+    [[Who DID build the ruins?|WhoRuins]]
+<<endif>>
+[[Is it dangerous out here?|Danger]]
+<<if $replyUnlockedWhatWeather>>
+    [[What kind of weather do they get out here?|WhatWeather]]
+<<endif>>
+[[What are these huge rocks coming up out of the ground?|HugeRocks]]
+[[I'll go see about those berries, then.|Leave]]
+===
+title: WhatWeather
+tags: 
+speaker: Caravan Master Odema
+colorID: 0
+position: 2142,1092
+---
+This time of year? Rain mostly... and wind. But there's a different kind of wind out here, time to time. Locals call it a bîawac. Born outta the ether - the spirit's path. Never seen it myself, never care to.
+
+[[Where would I find these berries?|WhereBerries]]
+[[What are those ruins?|WhatRuins]]
+<<if $replyUnlockedWhoRuins>>
+    [[Who DID build the ruins?|WhoRuins]]
+<<endif>>
+[[Is it dangerous out here?|Danger]]
+<<if $replyUnlockedWhatWeather>>
+    [[What kind of weather do they get out here?|WhatWeather]]
+<<endif>>
+[[What are these huge rocks coming up out of the ground?|HugeRocks]]
+[[I'll go see about those berries, then.|Leave]]
+===
+title: HugeRocks
+tags: 
+speaker: Caravan Master Odema
+colorID: 0
+position: 2140,1373
+---
+<em>Odema frowns.</em> They don't got adra where you come from?
+
+Well, it just grows up outta the ground like this. Goes deep, like tree roots. Some of it all the way to the heart of the world, you believe the stories.
+
+[[HugeRocks2]]
+===
+title: HugeRocks2
+tags: 
+speaker: Caravan Master Odema
+colorID: 0
+position: 2403,1370
+---
+It's more like a shell than a proper rock. Easier to work, if you're a mason.
+
+Got all kinds of strange properties. Seems to have some kind of life of its own. Dies if it gets dug up. Loses its luster. Folks think it probably grew at one point or another, but not these days.
+
+[[HugeRocks3]]
+===
+title: HugeRocks3
+tags: 
+speaker: Caravan Master Odema
+colorID: 0
+position: 2671,1370
+---
+The soul butchers in Defiance Bay use it for different things. I've heard tell it can hold a man's soul, but I don't care to see it. Got enough to worry about without seeing something like that.
+
+[[Where would I find these berries?|WhereBerries]]
+[[What are those ruins?|WhatRuins]]
+<<if $replyUnlockedWhoRuins>>
+    [[Who DID build the ruins?|WhoRuins]]
+<<endif>>
+[[Is it dangerous out here?|Danger]]
+<<if $replyUnlockedWhatWeather>>
+    [[What kind of weather do they get out here?|WhatWeather]]
+<<endif>>
+[[What are these huge rocks coming up out of the ground?|HugeRocks]]
+[[I'll go see about those berries, then.|Leave]]
+===
+title: Leave
+tags: 
+speaker: Caravan Master Odema
+colorID: 0
+position: 1776,-361
+---
+Hold on. Take someone with you. I know you're not some helpless tenderfoot - not like most of this lot. But you drop dead I don't wanna be looking for the body. Got a schedule to keep.
+
+<em>He scans over the travelers, resting his eyes at length on a sturdy, armor-clad woman who has spent the journey's nights sleeping on uneven ground without blanket or pillow.</em>
+
+[[Leave2]]
+===
+title: Leave2
+tags: 
+speaker: Caravan Master Odema
+colorID: 0
+position: 2072,-365
+---
+Calisca. Calisca!
+
+<em>The woman looks up on her own time.</em>
+
+[[Leave3]]
+===
+title: Leave3
+tags: 
+speaker: Caravan Master Odema
+colorID: 0
+position: 2359,-368
+---
+He needs to find some springberries. Whatch that he doesn't drop dead.
+
+[[Leave4]]
+===
+title: Leave4
+tags: 
+speaker: Calisca
+colorID: 0
+position: 2653,-373
+---
+No promises.
+
+[[Leave5]]
+===
+title: Leave5
+tags: 
+speaker: Caravan Master Odema
+colorID: 0
+position: 2964,-371
+---
+What kind of a guide says something like that?
+
+[[Leave6]]
+===
+title: Leave6
+tags: 
+speaker: Calisca
+colorID: 0
+position: 3282,-366
+---
+Kind you can afford.
+
+[[Leave7]]
+===
+title: Leave7
+tags: 
+speaker: Caravan Master Odema
+colorID: 0
+position: 3596,-370
+---
+<em>Odema chuckles and shakes his head. He looks at you.</em> Don't listen to her. You're in good hands.
+
+<em>He casts a sidelong glance at her.</em> And I pay too well if anything.
+
+[[Leave8]]
+===
+title: Leave8
+tags: 
+speaker: Caravan Master Odema
+colorID: 0
+position: 3886,-370
+---
+<em>Odema's small grin recedes beneath his mustache, and he is stern once more.</em>
+
+Off with you. Heodan should have supplies. See that you're equipped before you head out. We're in harsh country.
+
+Get your berries and hurry back. And if you get so much as a tickle of wind, you drop everything and you run. Something in the air tonight. If it's a bîawac, we'll shelter in the ruins, hut-dwellers be damned.
+===
