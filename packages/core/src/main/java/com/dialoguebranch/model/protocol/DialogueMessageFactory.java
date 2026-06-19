@@ -37,8 +37,18 @@ import com.dialoguebranch.model.command.ActionCommand;
 import com.dialoguebranch.model.command.InputCommand;
 import com.dialoguebranch.model.nodepointer.InternalNodePointer;
 
+/**
+ * Factory that converts an executed {@link com.dialoguebranch.execution.ExecuteNodeResult} into a
+ * {@link DialogueMessage} suitable for sending to the client via the web-service protocol.
+ *
+ * @author Dennis Hofs
+ */
 public class DialogueMessageFactory {
-	
+
+	/** Utility class — no instances. */
+	private DialogueMessageFactory() {
+	}
+
 	/**
 	 * Generates a DialogueMessage based on the given executed node. Since the
 	 * node has already been executed, it should not contain variables or "if"

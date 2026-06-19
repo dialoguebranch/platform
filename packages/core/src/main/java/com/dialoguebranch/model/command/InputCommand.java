@@ -50,11 +50,17 @@ import java.util.Set;
  * @author Dennis Hofs
  */
 public abstract class InputCommand extends AttributesCommand {
+	/** Input type identifier for e-mail address input. */
 	public static final String TYPE_EMAIL = "email";
+	/** Input type identifier for short text input. */
 	public static final String TYPE_TEXT = "text";
+	/** Input type identifier for long (multi-line) text input. */
 	public static final String TYPE_LONGTEXT = "longtext";
+	/** Input type identifier for numeric input. */
 	public static final String TYPE_NUMERIC = "numeric";
+	/** Input type identifier for a selection set (multiple-choice) input. */
 	public static final String TYPE_SET = "set";
+	/** Input type identifier for time-of-day input. */
 	public static final String TYPE_TIME = "time";
 
 	private static final List<String> VALID_TYPES = Arrays.asList(TYPE_EMAIL,
@@ -63,10 +69,20 @@ public abstract class InputCommand extends AttributesCommand {
 	private String type;
 	private String description = null;
 
+	/**
+	 * Creates an {@link InputCommand} of the given {@code type}.
+	 *
+	 * @param type the input type; one of the {@code TYPE_*} constants defined in this class.
+	 */
 	public InputCommand(String type) {
 		this.type = type;
 	}
 
+	/**
+	 * Creates a copy of the given {@link InputCommand}.
+	 *
+	 * @param other the command to copy.
+	 */
 	public InputCommand(InputCommand other) {
 		this.type = other.type;
 		this.description = other.description;
@@ -148,6 +164,16 @@ public abstract class InputCommand extends AttributesCommand {
 	public void getNodePointers(Set<NodePointer> pointers) {
 	}
 
+	/**
+	 * Parses an {@link InputCommand} from the token stream. Dispatches to the appropriate
+	 * subclass parser based on the {@code type} attribute.
+	 *
+	 * @param cmdStartToken the command-start token.
+	 * @param tokens the token iterator, positioned after the command-start token.
+	 * @param nodeState the current node parse state.
+	 * @return the parsed {@link InputCommand}.
+	 * @throws LineNumberParseException if the command is malformed.
+	 */
 	public static InputCommand parse(BodyToken cmdStartToken,
 									 CurrentIterator<BodyToken> tokens, NodeState nodeState)
 			throws LineNumberParseException {
@@ -190,6 +216,12 @@ public abstract class InputCommand extends AttributesCommand {
 		return result;
 	}
 
+	/**
+	 * Returns the opening part of the command string ({@code <<input type="..."} plus optional
+	 * description). Subclasses append their own attributes before closing with {@code >>}.
+	 *
+	 * @return the partial command string prefix.
+	 */
 	protected String toStringStart() {
 		String result = "<<input type=\"" + type + "\"";
 		if (description != null) {

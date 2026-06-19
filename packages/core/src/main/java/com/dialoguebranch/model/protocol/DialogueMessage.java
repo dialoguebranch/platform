@@ -42,6 +42,11 @@ import java.util.List;
  * @author Dennis Hofs
  */
 public class DialogueMessage {
+
+	/** Creates an empty {@link DialogueMessage}. Required for JSON deserialization. */
+	public DialogueMessage() {
+	}
+
 	private String dialogue;
 	private String node;
 	private String loggedDialogueId;
@@ -50,62 +55,122 @@ public class DialogueMessage {
 	private DialogueStatement statement;
 	private List<ReplyMessage> replies = new ArrayList<>();
 
+	/**
+	 * Returns the name of the dialogue that produced this message.
+	 * @return the dialogue name.
+	 */
 	public String getDialogue() {
 		return dialogue;
 	}
 
+	/**
+	 * Sets the name of the dialogue that produced this message.
+	 * @param dialogue the dialogue name.
+	 */
 	public void setDialogue(String dialogue) {
 		this.dialogue = dialogue;
 	}
 
+	/**
+	 * Returns the name of the node that produced this message.
+	 * @return the node name.
+	 */
 	public String getNode() {
 		return node;
 	}
 
+	/**
+	 * Sets the name of the node that produced this message.
+	 * @param node the node name.
+	 */
 	public void setNode(String node) {
 		this.node = node;
 	}
 
+	/**
+	 * Returns the identifier of the logged dialogue session, or {@code null} if not logged.
+	 * @return the logged dialogue session identifier.
+	 */
 	public String getLoggedDialogueId() {
 		return loggedDialogueId;
 	}
 
+	/**
+	 * Sets the identifier of the logged dialogue session.
+	 * @param loggedDialogueId the logged dialogue session identifier.
+	 */
 	public void setLoggedDialogueId(String loggedDialogueId) {
 		this.loggedDialogueId = loggedDialogueId;
 	}
 
+	/**
+	 * Returns the index of the logged interaction within the dialogue session.
+	 * @return the logged interaction index.
+	 */
 	public int getLoggedInteractionIndex() {
 		return loggedInteractionIndex;
 	}
 
+	/**
+	 * Sets the index of the logged interaction within the dialogue session.
+	 * @param loggedInteractionIndex the logged interaction index.
+	 */
 	public void setLoggedInteractionIndex(int loggedInteractionIndex) {
 		this.loggedInteractionIndex = loggedInteractionIndex;
 	}
 
+	/**
+	 * Returns the name of the agent (speaker) delivering this message.
+	 * @return the speaker name.
+	 */
 	public String getSpeaker() {
 		return speaker;
 	}
 
+	/**
+	 * Sets the name of the agent (speaker) delivering this message.
+	 * @param speaker the speaker name.
+	 */
 	public void setSpeaker(String speaker) {
 		this.speaker = speaker;
 	}
 
+	/**
+	 * Returns the {@link DialogueStatement} that makes up the body of this message.
+	 * @return the dialogue statement.
+	 */
 	public DialogueStatement getStatement() {
 		return statement;
 	}
 
+	/**
+	 * Sets the {@link DialogueStatement} that makes up the body of this message.
+	 * @param statement the dialogue statement.
+	 */
 	public void setStatement(DialogueStatement statement) {
 		this.statement = statement;
 	}
 
+	/**
+	 * Returns the list of reply options presented to the user for this message.
+	 * @return the list of reply messages.
+	 */
 	public List<ReplyMessage> getReplies() {
 		return replies;
 	}
 
+	/**
+	 * Sets the list of reply options for this message.
+	 * @param replies the list of reply messages.
+	 */
 	public void setReplies(List<ReplyMessage> replies) {
 		this.replies = replies;
 	}
-	
+
+	/**
+	 * Adds a reply option to this message.
+	 * @param reply the reply to add.
+	 */
 	public void addReply(ReplyMessage reply) {
 		replies.add(reply);
 	}

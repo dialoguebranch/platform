@@ -40,13 +40,26 @@ import com.dialoguebranch.parser.BodyToken;
 
 import java.util.*;
 
+/**
+ * Models the {@code <<input type="set" ...>>} command in Dialogue Branch. This command presents
+ * the user with a set of labelled options, each backed by a boolean Dialogue Branch variable that
+ * records whether the user selected that option.
+ *
+ * @author Harm op den Akker
+ */
 public class InputSetCommand extends InputCommand {
 	private List<Option> options = new ArrayList<>();
 
+	/** Creates an empty {@link InputSetCommand}. */
 	public InputSetCommand() {
 		super(TYPE_SET);
 	}
 
+	/**
+	 * Creates a deep copy of the given {@link InputSetCommand}.
+	 *
+	 * @param other the command to copy.
+	 */
 	public InputSetCommand(InputSetCommand other) {
 		super(other);
 		for (Option option : other.options) {
@@ -54,10 +67,18 @@ public class InputSetCommand extends InputCommand {
 		}
 	}
 
+	/**
+	 * Returns the list of selectable options for this input command.
+	 * @return the list of options.
+	 */
 	public List<Option> getOptions() {
 		return options;
 	}
 
+	/**
+	 * Sets the list of selectable options for this input command.
+	 * @param options the list of options.
+	 */
 	public void setOptions(List<Option> options) {
 		this.options = options;
 	}
@@ -135,6 +156,15 @@ public class InputSetCommand extends InputCommand {
 		return new InputSetCommand(this);
 	}
 
+	/**
+	 * Parses an {@link InputSetCommand} from the given pre-parsed attribute map, reading
+	 * {@code value1}/{@code option1}, {@code value2}/{@code option2}, … pairs.
+	 *
+	 * @param cmdStartToken the command-start token, used for error location.
+	 * @param attrs the parsed attribute map.
+	 * @return the constructed {@link InputSetCommand}.
+	 * @throws LineNumberParseException if a value/option pair is incomplete or invalid.
+	 */
 	public static InputSetCommand parse(BodyToken cmdStartToken,
 										Map<String, BodyToken> attrs) throws LineNumberParseException {
 		InputSetCommand result = new InputSetCommand();
@@ -165,31 +195,57 @@ public class InputSetCommand extends InputCommand {
 		}
 	}
 
+	/**
+	 * Represents a single selectable option in an {@link InputSetCommand}. Each option has a
+	 * backing Dialogue Branch variable (set to {@code true} when selected) and a display label.
+	 */
 	public static class Option {
 		private String variableName = null;
 		private VariableString text = null;
 
+		/** Creates an empty {@link Option}. */
 		public Option() {
 		}
 
+		/**
+		 * Creates a copy of the given {@link Option}.
+		 *
+		 * @param other the option to copy.
+		 */
 		public Option(Option other) {
 			this.variableName = other.variableName;
 			if (other.text != null)
 				this.text = new VariableString(other.text);
 		}
 
+		/**
+		 * Returns the name of the Dialogue Branch variable that stores whether this option was selected.
+		 * @return the variable name.
+		 */
 		public String getVariableName() {
 			return variableName;
 		}
 
+		/**
+		 * Sets the name of the Dialogue Branch variable that stores whether this option was selected.
+		 * @param variableName the variable name.
+		 */
 		public void setVariableName(String variableName) {
 			this.variableName = variableName;
 		}
 
+		/**
+		 * Returns the display label of this option as a {@link VariableString}.
+		 * @return the display label.
+		 */
 		public VariableString getText() {
 			return text;
 		}
 
+		/**
+		 * Sets the display label of this option.
+		 * @param text the display label.
+		 */
 		public void setText(VariableString text) {
 			this.text = text;
 		}

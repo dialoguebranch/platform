@@ -40,7 +40,17 @@ import com.dialoguebranch.parser.BodyToken;
 import java.io.IOException;
 import java.io.StringReader;
 
+/**
+ * Base class for Dialogue Branch commands whose body consists of an expression (e.g. {@code <<if>>},
+ * {@code <<set>>}). Provides shared helpers for reading, tokenizing, and parsing command content.
+ *
+ * @author Dennis Hofs
+ */
 public abstract class ExpressionCommand extends Command {
+
+	/** Creates an instance of an {@link ExpressionCommand}. */
+	protected ExpressionCommand() {
+	}
 
 	/**
 	 * Reads the content of a command as a code string. When this method
@@ -76,10 +86,18 @@ public abstract class ExpressionCommand extends Command {
 		return result;
 	}
 	
+	/** Holds the raw text content read from a command body together with its source position. */
 	protected static class ReadContentResult {
+		/** The raw text content of the command body. */
 		public String content;
+		/** The source line number of the first content token. */
 		public int lineNum;
+		/** The source column number of the first content token. */
 		public int colNum;
+
+		/** Creates an empty {@link ReadContentResult}. */
+		public ReadContentResult() {
+		}
 	}
 	
 	/**
@@ -232,8 +250,15 @@ public abstract class ExpressionCommand extends Command {
 		return new LineNumberParseException(message, exLineNum, exColNum);
 	}
 
+	/** Holds the parsed command name and optional expression extracted from a command body. */
 	protected static class ParseContentResult {
+		/** The command name token (e.g. {@code "if"}, {@code "set"}). */
 		public String name;
+		/** The expression following the command name, or {@code null} if none was present. */
 		public Expression expression;
+
+		/** Creates an empty {@link ParseContentResult}. */
+		public ParseContentResult() {
+		}
 	}
 }

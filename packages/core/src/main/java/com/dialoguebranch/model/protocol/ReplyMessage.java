@@ -58,6 +58,11 @@ import java.util.List;
  * @author Dennis Hofs
  */
 public class ReplyMessage {
+
+	/** Creates an empty {@link ReplyMessage}. Required for JSON deserialization. */
+	public ReplyMessage() {
+	}
+
 	private int replyId;
 	private DialogueStatement statement = null;
 	private List<DialogueAction> actions = new ArrayList<>();

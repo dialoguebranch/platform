@@ -84,14 +84,23 @@ import java.util.*;
  * </ul>
  * 
  * @author Dennis Hofs
+ * @author Harm op den Akker
  */
 public class NodeBody {
 	private List<Segment> segments = new ArrayList<>();
 	private List<Reply> replies = new ArrayList<>();
 
+	/**
+	 * Creates an empty {@link NodeBody} with no segments and no replies.
+	 */
 	public NodeBody() {
 	}
 
+	/**
+	 * Creates a deep copy of the given {@link NodeBody}, cloning all segments and replies.
+	 *
+	 * @param other the {@link NodeBody} to copy.
+	 */
 	public NodeBody(NodeBody other) {
 		for (Segment segment : other.segments) {
 			this.segments.add(segment.clone());
@@ -110,6 +119,13 @@ public class NodeBody {
 		return Collections.unmodifiableList(segments);
 	}
 
+	/**
+	 * Appends the given {@link Segment} to this body. If the new segment and the current last
+	 * segment are both {@link TextSegment}s, they are merged into a single segment to maintain
+	 * the normalized invariant.
+	 *
+	 * @param segment the {@link Segment} to append.
+	 */
 	public void addSegment(Segment segment) {
 		Segment lastSegment = null;
 		if (!segments.isEmpty())
@@ -129,6 +145,9 @@ public class NodeBody {
 		}
 	}
 
+	/**
+	 * Removes all segments from this {@link NodeBody}.
+	 */
 	public void clearSegments() {
 		segments.clear();
 	}
@@ -148,10 +167,22 @@ public class NodeBody {
 		}
 	}
 
+	/**
+	 * Returns the live list of {@link Reply} objects attached to this body.
+	 *
+	 * @return the list of replies.
+	 */
 	public List<Reply> getReplies() {
 		return replies;
 	}
-	
+
+	/**
+	 * Searches this body and all nested command segments for a {@link Reply} with the given
+	 * {@code replyId}.
+	 *
+	 * @param replyId the reply identifier to look up.
+	 * @return the matching {@link Reply}, or {@code null} if not found.
+	 */
 	public Reply findReplyById(int replyId) {
 		for (Reply reply : replies) {
 			if (reply.getReplyId() == replyId)
@@ -165,6 +196,11 @@ public class NodeBody {
 		return null;
 	}
 
+	/**
+	 * Appends the given {@link Reply} to this body's reply list.
+	 *
+	 * @param reply the {@link Reply} to add.
+	 */
 	public void addReply(Reply reply) {
 		replies.add(reply);
 	}
@@ -225,6 +261,13 @@ public class NodeBody {
 		}
 	}
 	
+	/**
+	 * Returns a sorted list of all {@link NodePointer}s found in this body's command segments and
+	 * reply list. Internal pointers are listed before external ones; within each group they are
+	 * sorted alphabetically.
+	 *
+	 * @return a sorted list of node pointers.
+	 */
 	public List<NodePointer> getNodePointers() {
 		Set<NodePointer> set = new HashSet<>();
 		getNodePointers(set);
@@ -252,6 +295,12 @@ public class NodeBody {
 		}
 	}
 	
+	/**
+	 * Collects all {@link NodePointer}s from this body's command segments and replies into the
+	 * given {@code pointers} set.
+	 *
+	 * @param pointers the set to which node pointers are added.
+	 */
 	public void getNodePointers(Set<NodePointer> pointers) {
 		for (Segment segment : segments) {
 			if (!(segment instanceof CommandSegment))
@@ -319,19 +368,36 @@ public class NodeBody {
 		segment.command.executeBodyCommand(variables, processedBody);
 	}
 
+	/**
+	 * Removes leading and trailing whitespace from this body's segment list.
+	 */
 	public void trimWhitespace() {
 		trimWhitespace(segments);
 	}
 
+	/**
+	 * Removes leading and trailing whitespace from the given list of {@link Segment}s.
+	 *
+	 * @param segments the segment list to trim.
+	 */
 	public static void trimWhitespace(List<NodeBody.Segment> segments) {
 		removeLeadingWhitespace(segments);
 		removeTrailingWhitespace(segments);
 	}
 
+	/**
+	 * Removes leading whitespace from this body's segment list.
+	 */
 	public void removeLeadingWhitespace() {
 		removeLeadingWhitespace(segments);
 	}
 
+	/**
+	 * Removes leading whitespace {@link TextSegment}s (or the leading whitespace within the first
+	 * text segment) from the given segment list.
+	 *
+	 * @param segments the segment list to trim.
+	 */
 	public static void removeLeadingWhitespace(List<NodeBody.Segment> segments) {
 		while (!segments.isEmpty()) {
 			Segment segment = segments.get(0);
@@ -346,10 +412,19 @@ public class NodeBody {
 		}
 	}
 
+	/**
+	 * Removes trailing whitespace from this body's segment list.
+	 */
 	public void removeTrailingWhitespace() {
 		removeTrailingWhitespace(segments);
 	}
 
+	/**
+	 * Removes trailing whitespace {@link TextSegment}s (or the trailing whitespace within the last
+	 * text segment) from the given segment list.
+	 *
+	 * @param segments the segment list to trim.
+	 */
 	public static void removeTrailingWhitespace(List<NodeBody.Segment> segments) {
 		while (!segments.isEmpty()) {
 			Segment segment = segments.get(segments.size() - 1);
@@ -378,7 +453,17 @@ public class NodeBody {
 		return builder.toString();
 	}
 
+	/**
+	 * Abstract base for the two kinds of content elements that can appear in a {@link NodeBody}:
+	 * {@link TextSegment} (plain text with optional variables) and {@link CommandSegment} (an
+	 * embedded {@link Command}).
+	 */
 	public static abstract class Segment implements Cloneable {
+
+		/**
+		 * Creates a new {@link Segment}. Exists for use by concrete subclasses.
+		 */
+		public Segment() { }
 		/**
 		 * Tries to find a reply with the specified ID within this segment. If
 		 * no such reply is found, this method returns null.
@@ -413,21 +498,45 @@ public class NodeBody {
 		public abstract Segment clone();
 	}
 	
+	/**
+	 * A {@link Segment} that holds a {@link VariableString} — plain text that may contain
+	 * variable references.
+	 */
 	public static class TextSegment extends Segment {
 		private VariableString text;
-		
+
+		/**
+		 * Creates a {@link TextSegment} with the given {@link VariableString}.
+		 *
+		 * @param text the text content, possibly containing variable references.
+		 */
 		public TextSegment(VariableString text) {
 			this.text = text;
 		}
 
+		/**
+		 * Creates a deep copy of the given {@link TextSegment}.
+		 *
+		 * @param other the {@link TextSegment} to copy.
+		 */
 		public TextSegment(TextSegment other) {
 			this.text = new VariableString(other.text);
 		}
 
+		/**
+		 * Returns the {@link VariableString} held by this segment.
+		 *
+		 * @return the text content.
+		 */
 		public VariableString getText() {
 			return text;
 		}
 
+		/**
+		 * Sets the {@link VariableString} held by this segment.
+		 *
+		 * @param text the new text content.
+		 */
 		public void setText(VariableString text) {
 			this.text = text;
 		}
@@ -457,17 +566,36 @@ public class NodeBody {
 		}
 	}
 	
+	/**
+	 * A {@link Segment} that wraps a {@link Command} embedded in the node body (e.g. an
+	 * {@code <<if>>}, {@code <<set>>}, or {@code <<action>>} command).
+	 */
 	public static class CommandSegment extends Segment {
 		private Command command;
-		
+
+		/**
+		 * Creates a {@link CommandSegment} wrapping the given {@link Command}.
+		 *
+		 * @param command the {@link Command} embedded in this segment.
+		 */
 		public CommandSegment(Command command) {
 			this.command = command;
 		}
 
+		/**
+		 * Creates a deep copy of the given {@link CommandSegment}, cloning its command.
+		 *
+		 * @param other the {@link CommandSegment} to copy.
+		 */
 		public CommandSegment(CommandSegment other) {
 			this.command = other.command.clone();
 		}
 
+		/**
+		 * Returns the {@link Command} wrapped by this segment.
+		 *
+		 * @return the embedded command.
+		 */
 		public Command getCommand() {
 			return command;
 		}

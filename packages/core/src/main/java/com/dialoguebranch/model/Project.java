@@ -54,8 +54,16 @@ public class Project {
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
 
+	/**
+	 * Creates an empty {@link Project} with no metadata, dialogues, or translations.
+	 */
 	public Project() { }
 
+	/**
+	 * Creates a {@link Project} with the given {@link ProjectMetaData}.
+	 *
+	 * @param metaData the metadata describing this project.
+	 */
 	public Project(ProjectMetaData metaData) {
 		this.metaData = metaData;
 	}

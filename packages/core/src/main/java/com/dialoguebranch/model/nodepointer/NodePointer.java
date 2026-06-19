@@ -54,8 +54,11 @@ public abstract class NodePointer implements Cloneable {
 	// -------------------------------------------------------- //
 	
 	/**
-	 * Creates an instance of a {@link NodePointer} with given {@code targetNodeId}.
+	 * Creates an instance of a {@link NodePointer} with given {@code originNodeId} and
+	 * {@code targetNodeId}.
 	 *
+	 * @param originNodeId the unique identifier of the {@link Node} from which this pointer
+	 *                     originates.
 	 * @param targetNodeId the unique identifier of the {@link Node} that this NodePointer refers
 	 *                     to.
 	 */

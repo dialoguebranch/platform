@@ -28,7 +28,16 @@
 
 package com.dialoguebranch.model;
 
+/**
+ * Identifies the originator of a logged interaction — either the human end-user or the
+ * conversational agent.
+ *
+ * @author Dennis Hofs
+ * @author Harm op den Akker
+ */
 public enum MessageSource {
+	/** The message originated from the human end-user. */
 	USER,
+	/** The message originated from the conversational agent. */
 	AGENT;
 }

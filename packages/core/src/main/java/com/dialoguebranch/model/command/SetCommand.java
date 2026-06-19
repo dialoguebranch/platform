@@ -55,18 +55,36 @@ import com.dialoguebranch.parser.BodyToken;
 public class SetCommand extends ExpressionCommand {
 	private AssignExpression expression;
 	
+	/**
+	 * Creates a {@link SetCommand} that evaluates the given assignment expression.
+	 *
+	 * @param expression the assignment expression to execute.
+	 */
 	public SetCommand(AssignExpression expression) {
 		this.expression = expression;
 	}
 
+	/**
+	 * Creates a copy of the given {@link SetCommand}.
+	 *
+	 * @param other the command to copy.
+	 */
 	public SetCommand(SetCommand other) {
 		this.expression = other.expression;
 	}
 
+	/**
+	 * Returns the assignment expression contained in this command.
+	 * @return the assignment expression.
+	 */
 	public AssignExpression getExpression() {
 		return expression;
 	}
 
+	/**
+	 * Sets the assignment expression for this command.
+	 * @param expression the assignment expression.
+	 */
 	public void setExpression(AssignExpression expression) {
 		this.expression = expression;
 	}
@@ -106,6 +124,15 @@ public class SetCommand extends ExpressionCommand {
 		return new SetCommand(this);
 	}
 
+	/**
+	 * Parses a {@link SetCommand} from the token stream.
+	 *
+	 * @param cmdStartToken the token that started the {@code <<set>>} command.
+	 * @param tokens the token iterator, positioned after the command-start token.
+	 * @param nodeState the current node parse state.
+	 * @return the parsed {@link SetCommand}.
+	 * @throws LineNumberParseException if the command body is not a valid assignment expression.
+	 */
 	public static SetCommand parse(BodyToken cmdStartToken,
 								   CurrentIterator<BodyToken> tokens, NodeState nodeState)
 			throws LineNumberParseException {

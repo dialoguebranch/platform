@@ -44,6 +44,10 @@ import com.dialoguebranch.model.NodeBody;
  */
 public abstract class Command implements Cloneable {
 
+	/** Creates an instance of a {@link Command}. */
+	protected Command() {
+	}
+
 	/**
 	 * Tries to find a reply with the specified ID within this command. If no such reply is found,
 	 * this method returns {@code null}.

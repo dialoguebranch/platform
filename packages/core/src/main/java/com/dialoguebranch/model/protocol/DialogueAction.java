@@ -46,9 +46,16 @@ public class DialogueAction {
 	private String value;
 	private Map<String,String> parameters = new LinkedHashMap<>();
 	
+	/** Creates an empty {@link DialogueAction}. Required for JSON deserialization. */
 	public DialogueAction() {
 	}
-	
+
+	/**
+	 * Creates a {@link DialogueAction} from the given {@link ActionCommand}, resolving all
+	 * variable references in the command's value and parameters.
+	 *
+	 * @param actionCommand the action command with variables already resolved.
+	 */
 	public DialogueAction(ActionCommand actionCommand) {
 		type = actionCommand.getType();
 		value = actionCommand.getValue().evaluate(null);
@@ -60,26 +67,51 @@ public class DialogueAction {
 		}
 	}
 
+	/**
+	 * Returns the action type (e.g. {@code "image"}, {@code "video"}, {@code "link"}, or
+	 * {@code "generic"}).
+	 * @return the action type.
+	 */
 	public String getType() {
 		return type;
 	}
 
+	/**
+	 * Sets the action type.
+	 * @param type the action type.
+	 */
 	public void setType(String type) {
 		this.type = type;
 	}
 
+	/**
+	 * Returns the resolved value of this action (e.g. a URL for a link action).
+	 * @return the action value.
+	 */
 	public String getValue() {
 		return value;
 	}
 
+	/**
+	 * Sets the resolved value of this action.
+	 * @param value the action value.
+	 */
 	public void setValue(String value) {
 		this.value = value;
 	}
 
+	/**
+	 * Returns the map of optional parameters for this action (key → resolved string value).
+	 * @return the parameters map.
+	 */
 	public Map<String,String> getParameters() {
 		return parameters;
 	}
 
+	/**
+	 * Sets the optional parameters for this action.
+	 * @param parameters the parameters map.
+	 */
 	public void setParameters(Map<String,String> parameters) {
 		this.parameters = parameters;
 	}

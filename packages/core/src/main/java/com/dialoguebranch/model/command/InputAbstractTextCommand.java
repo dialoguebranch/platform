@@ -40,6 +40,13 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Abstract base for text-based input commands ({@link InputTextCommand},
+ * {@link InputLongtextCommand}, {@link InputEmailCommand}). Captures the common set of text
+ * input options such as length constraints and capitalisation hints.
+ *
+ * @author Harm op den Akker
+ */
 public abstract class InputAbstractTextCommand extends InputCommand {
 	private String variableName;
 	private Integer min = null;
@@ -54,11 +61,23 @@ public abstract class InputAbstractTextCommand extends InputCommand {
 	private Boolean forceCapWords = Boolean.FALSE;
 	private Boolean forceCapSentences = Boolean.FALSE;
 
+	/**
+	 * Creates an {@link InputAbstractTextCommand} of the given {@code type} that stores the
+	 * user's input in the dialogue variable named {@code variableName}.
+	 *
+	 * @param type the input command type (one of the {@code TYPE_*} constants in {@link InputCommand}).
+	 * @param variableName the Dialogue Branch variable name in which to store the input.
+	 */
 	public InputAbstractTextCommand(String type, String variableName) {
 		super(type);
 		this.variableName = variableName;
 	}
 
+	/**
+	 * Creates a deep copy of the given {@link InputAbstractTextCommand}.
+	 *
+	 * @param other the command to copy.
+	 */
 	public InputAbstractTextCommand(InputAbstractTextCommand other) {
 		super(other);
 		this.variableName = other.variableName;
@@ -75,10 +94,18 @@ public abstract class InputAbstractTextCommand extends InputCommand {
 		this.forceCapSentences = other.forceCapSentences;
 	}
 
+	/**
+	 * Returns the name of the Dialogue Branch variable in which the user's input is stored.
+	 * @return the variable name.
+	 */
 	public String getVariableName() {
 		return variableName;
 	}
 
+	/**
+	 * Sets the name of the Dialogue Branch variable in which the user's input is stored.
+	 * @param variableName the variable name.
+	 */
 	public void setVariableName(String variableName) {
 		this.variableName = variableName;
 	}
@@ -373,6 +400,15 @@ public abstract class InputAbstractTextCommand extends InputCommand {
 		return result;
 	}
 
+	/**
+	 * Parses all optional text-input attributes from the attribute token map and applies them to
+	 * the given {@code command}.
+	 *
+	 * @param command the command to configure.
+	 * @param cmdStartToken the command-start token, used for error location.
+	 * @param attrs the parsed attribute map.
+	 * @throws LineNumberParseException if any attribute value is invalid.
+	 */
 	public static void parseAttributes(InputAbstractTextCommand command,
 									   BodyToken cmdStartToken, Map<String, BodyToken> attrs)
 			throws LineNumberParseException {

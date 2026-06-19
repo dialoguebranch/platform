@@ -40,23 +40,48 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Models the {@code <<input type="email" ...>>} command in Dialogue Branch, which prompts the
+ * user to enter a valid e-mail address that is stored in a dialogue variable.
+ *
+ * @author Harm op den Akker
+ */
 public class InputEmailCommand extends InputCommand {
 	private String variableName;
 
+	/**
+	 * Creates an {@link InputEmailCommand} that stores the user's e-mail input in
+	 * {@code variableName}.
+	 *
+	 * @param variableName the Dialogue Branch variable name in which to store the input.
+	 */
 	public InputEmailCommand(String variableName) {
 		super(TYPE_EMAIL);
 		this.variableName = variableName;
 	}
 
+	/**
+	 * Creates a deep copy of the given {@link InputEmailCommand}.
+	 *
+	 * @param other the command to copy.
+	 */
 	public InputEmailCommand(InputEmailCommand other) {
 		super(other);
 		this.variableName = other.variableName;
 	}
 
+	/**
+	 * Returns the name of the Dialogue Branch variable in which the user's e-mail input is stored.
+	 * @return the variable name.
+	 */
 	public String getVariableName() {
 		return variableName;
 	}
 
+	/**
+	 * Sets the name of the Dialogue Branch variable in which the user's e-mail input is stored.
+	 * @param variableName the variable name.
+	 */
 	public void setVariableName(String variableName) {
 		this.variableName = variableName;
 	}
@@ -102,6 +127,14 @@ public class InputEmailCommand extends InputCommand {
 		return result;
 	}
 
+	/**
+	 * Parses an {@link InputEmailCommand} from the given pre-parsed attribute map.
+	 *
+	 * @param cmdStartToken the command-start token, used for error location.
+	 * @param attrs the parsed attribute map.
+	 * @return the constructed {@link InputEmailCommand}.
+	 * @throws LineNumberParseException if the required {@code value} attribute is missing.
+	 */
 	public static InputCommand parse(BodyToken cmdStartToken,
 									 Map<String, BodyToken> attrs) throws LineNumberParseException {
 		String variableName = readVariableAttr("value", attrs, cmdStartToken,

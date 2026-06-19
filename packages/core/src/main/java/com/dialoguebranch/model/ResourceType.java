@@ -28,8 +28,16 @@
 
 package com.dialoguebranch.model;
 
+/**
+ * Classifies a Dialogue Branch resource file by its role within the project.
+ *
+ * @author Harm op den Akker
+ */
 public enum ResourceType {
+	/** A Dialogue Branch script file ({@code .dlb}). */
 	SCRIPT,
+	/** A Dialogue Branch translation file ({@code .json}). */
 	TRANSLATION,
+	/** A directory (folder) within the project structure. */
 	FOLDER
 }

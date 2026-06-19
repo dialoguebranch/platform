@@ -39,10 +39,22 @@ package com.dialoguebranch.model.nodepointer;
  */
 public class InternalNodePointer extends NodePointer {
 	
+	/**
+	 * Creates an {@link InternalNodePointer} from {@code originNodeId} to {@code targetNodeId}
+	 * within the same Dialogue Branch script.
+	 *
+	 * @param originNodeId the identifier of the node from which this pointer originates.
+	 * @param targetNodeId the identifier of the node to which this pointer points.
+	 */
 	public InternalNodePointer(String originNodeId, String targetNodeId) {
 		super(originNodeId, targetNodeId);
 	}
 
+	/**
+	 * Creates a copy of the given {@link InternalNodePointer}.
+	 *
+	 * @param other the pointer to copy.
+	 */
 	public InternalNodePointer(InternalNodePointer other) {
 		super(other);
 	}

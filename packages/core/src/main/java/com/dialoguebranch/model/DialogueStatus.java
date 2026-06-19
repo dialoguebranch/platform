@@ -28,8 +28,17 @@
 
 package com.dialoguebranch.model;
 
+/**
+ * Represents the lifecycle status of a Dialogue Branch dialogue session.
+ *
+ * @author Dennis Hofs
+ * @author Harm op den Akker
+ */
 public enum DialogueStatus {
+	/** The dialogue has not yet been started. */
 	NOT_STARTED,
+	/** The dialogue has been started but not yet completed. */
 	STARTED,
+	/** The dialogue has been completed. */
 	COMPLETED
 }

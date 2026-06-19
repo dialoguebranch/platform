@@ -30,6 +30,15 @@ package com.dialoguebranch.model;
 
 import com.dialoguebranch.execution.ActiveDialogue;
 
+/**
+ * Captures the full runtime state of an in-progress dialogue session. It bundles together the
+ * static dialogue definition ({@link FileDescriptor} and {@link Dialogue}), the persistent
+ * execution log ({@link LoggedDialogue} and the current interaction index), and the live
+ * {@link ActiveDialogue} wrapper that drives execution.
+ *
+ * @author Dennis Hofs
+ * @author Harm op den Akker
+ */
 public class DialogueState {
 
 	private final FileDescriptor dialogueDescription;
@@ -38,6 +47,16 @@ public class DialogueState {
 	private final int loggedInteractionIndex;
 	private final ActiveDialogue activeDialogue;
 
+	/**
+	 * Creates a fully populated {@link DialogueState}.
+	 *
+	 * @param dialogueDescription   the {@link FileDescriptor} identifying the dialogue file.
+	 * @param dialogueDefinition    the parsed {@link Dialogue} definition.
+	 * @param loggedDialogue        the {@link LoggedDialogue} tracking the session history.
+	 * @param loggedInteractionIndex the index into the logged interaction list pointing to the
+	 *                               current step.
+	 * @param activeDialogue        the {@link ActiveDialogue} managing live execution state.
+	 */
 	public DialogueState(FileDescriptor dialogueDescription,
 						 Dialogue dialogueDefinition, LoggedDialogue loggedDialogue,
 						 int loggedInteractionIndex, ActiveDialogue activeDialogue) {
@@ -48,22 +67,50 @@ public class DialogueState {
 		this.activeDialogue = activeDialogue;
 	}
 
+	/**
+	 * Returns the {@link FileDescriptor} that identifies the dialogue file associated with this
+	 * state.
+	 *
+	 * @return the dialogue file descriptor.
+	 */
 	public FileDescriptor getDialogueDescription() {
 		return dialogueDescription;
 	}
 
+	/**
+	 * Returns the parsed {@link Dialogue} definition associated with this state.
+	 *
+	 * @return the dialogue definition.
+	 */
 	public Dialogue getDialogueDefinition() {
 		return dialogueDefinition;
 	}
 
+	/**
+	 * Returns the {@link LoggedDialogue} that records the interaction history for this session.
+	 *
+	 * @return the logged dialogue.
+	 */
 	public LoggedDialogue getLoggedDialogue() {
 		return loggedDialogue;
 	}
 
+	/**
+	 * Returns the index into the {@link LoggedDialogue}'s interaction list pointing to the current
+	 * step in the conversation.
+	 *
+	 * @return the current logged interaction index.
+	 */
 	public int getLoggedInteractionIndex() {
 		return loggedInteractionIndex;
 	}
 
+	/**
+	 * Returns the {@link ActiveDialogue} that manages the live execution state of the current
+	 * dialogue session.
+	 *
+	 * @return the active dialogue.
+	 */
 	public ActiveDialogue getActiveDialogue() {
 		return activeDialogue;
 	}

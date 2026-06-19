@@ -68,22 +68,43 @@ import java.util.Map;
  * @author Harm op den Akker
  */
 public class DialogueStatement {
+
+	/** Creates an empty {@link DialogueStatement} with no segments. */
+	public DialogueStatement() {
+	}
+
 	private List<Segment> segments = new ArrayList<>();
-	
+
+	/**
+	 * Returns the ordered list of segments making up this statement.
+	 * @return the segment list.
+	 */
 	public List<Segment> getSegments() {
 		return segments;
 	}
 
+	/**
+	 * Sets the ordered list of segments making up this statement.
+	 * @param segments the segment list.
+	 */
 	public void setSegments(List<Segment> segments) {
 		this.segments = segments;
 	}
-	
+
+	/**
+	 * Appends a plain-text segment with the given {@code text} to this statement.
+	 * @param text the text content.
+	 */
 	public void addTextSegment(String text) {
 		TextSegment segment = new TextSegment();
 		segment.setText(text);
 		segments.add(segment);
 	}
 	
+	/**
+	 * Appends an input segment derived from the given {@link InputCommand} to this statement.
+	 * @param inputCommand the resolved input command.
+	 */
 	public void addInputSegment(InputCommand inputCommand) {
 		InputSegment segment = new InputSegment();
 		segment.setInputType(inputCommand.getType());
@@ -92,48 +113,76 @@ public class DialogueStatement {
 		segments.add(segment);
 	}
 	
+	/**
+	 * Appends an action segment derived from the given {@link ActionCommand} to this statement.
+	 * @param actionCommand the resolved action command.
+	 */
 	public void addActionSegment(ActionCommand actionCommand) {
 		ActionSegment segment = new ActionSegment();
 		segment.setAction(new DialogueAction(actionCommand));
 		segments.add(segment);
 	}
 
+	/** Distinguishes the three kinds of segment that a {@link DialogueStatement} may contain. */
 	public enum SegmentType {
+		/** A plain-text segment. */
 		TEXT,
+		/** An input-command segment. */
 		INPUT,
+		/** An action-command segment. */
 		ACTION
 	}
 
+	/** Base type for the three kinds of segment in a {@link DialogueStatement}. */
 	@JsonDeserialize(using=SegmentDeserializer.class)
 	public static abstract class Segment {
 		private final SegmentType segmentType;
-		
+
+		/**
+		 * Creates a {@link Segment} of the given type.
+		 * @param segmentType the type of this segment.
+		 */
 		protected Segment(SegmentType segmentType) {
 			this.segmentType = segmentType;
 		}
-		
+
+		/**
+		 * Returns the type of this segment.
+		 * @return the segment type.
+		 */
 		public SegmentType getSegmentType() {
 			return segmentType;
 		}
 	}
-	
+
+	/** A segment containing plain text (with all variables already resolved). */
 	@JsonDeserialize(using=JsonDeserializer.None.class)
 	public static class TextSegment extends Segment {
 		private String text;
 
+		/** Creates an empty {@link TextSegment}. */
 		public TextSegment() {
 			super(SegmentType.TEXT);
 		}
 
+		/**
+		 * Returns the plain-text content of this segment.
+		 * @return the text content.
+		 */
 		public String getText() {
 			return text;
 		}
 
+		/**
+		 * Sets the plain-text content of this segment.
+		 * @param text the text content.
+		 */
 		public void setText(String text) {
 			this.text = text;
 		}
 	}
 	
+	/** A segment representing an input command whose parameters have already been resolved. */
 	@JsonDeserialize(using=InputSegmentDeserializer.class)
 	@JsonSerialize(using=InputSegmentSerializer.class)
 	public static class InputSegment extends Segment {
@@ -141,6 +190,7 @@ public class DialogueStatement {
 		private String description = null;
 		private Map<String,?> parameters = new LinkedHashMap<>();
 
+		/** Creates an empty {@link InputSegment}. */
 		public InputSegment() {
 			super(SegmentType.INPUT);
 		}
@@ -210,23 +260,37 @@ public class DialogueStatement {
 		}
 	}
 	
+	/** A segment containing a resolved {@link DialogueAction}. */
 	@JsonDeserialize(using=JsonDeserializer.None.class)
 	public static class ActionSegment extends Segment {
 		private DialogueAction action;
-		
+
+		/** Creates an empty {@link ActionSegment}. */
 		public ActionSegment() {
 			super(SegmentType.ACTION);
 		}
 
+		/**
+		 * Returns the {@link DialogueAction} contained in this segment.
+		 * @return the dialogue action.
+		 */
 		public DialogueAction getAction() {
 			return action;
 		}
 
+		/**
+		 * Sets the {@link DialogueAction} for this segment.
+		 * @param action the dialogue action.
+		 */
 		public void setAction(DialogueAction action) {
 			this.action = action;
 		}
 	}
-	
+
+	/**
+	 * Jackson deserializer that dispatches to the correct {@link Segment} subclass based on the
+	 * {@code segmentType} field.
+	 */
 	public static class SegmentDeserializer extends JsonDeserializer<Segment> {
 		@Override
 		public Segment deserialize(JsonParser p, DeserializationContext ctxt)
@@ -266,6 +330,7 @@ public class DialogueStatement {
 		}
 	}
 
+	/** Jackson serializer that flattens {@link InputSegment} parameters into the JSON object. */
 	public static class InputSegmentSerializer extends
 			JsonSerializer<InputSegment> {
 		@Override
@@ -283,6 +348,7 @@ public class DialogueStatement {
 		}
 	}
 
+	/** Jackson deserializer that reconstructs an {@link InputSegment} from a flat JSON object. */
 	public static class InputSegmentDeserializer extends
 			JsonDeserializer<InputSegment> {
 		@Override

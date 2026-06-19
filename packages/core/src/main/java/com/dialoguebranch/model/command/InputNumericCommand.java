@@ -40,16 +40,34 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Models the {@code <<input type="numeric" ...>>} command in Dialogue Branch, which prompts the
+ * user to enter a number (optionally constrained by a minimum and/or maximum value) that is
+ * stored in a dialogue variable.
+ *
+ * @author Harm op den Akker
+ */
 public class InputNumericCommand extends InputCommand {
 	private String variableName;
 	private Integer min = null;
 	private Integer max = null;
 
+	/**
+	 * Creates an {@link InputNumericCommand} that stores the user's numeric input in
+	 * {@code variableName}.
+	 *
+	 * @param variableName the Dialogue Branch variable name in which to store the input.
+	 */
 	public InputNumericCommand(String variableName) {
 		super(TYPE_NUMERIC);
 		this.variableName = variableName;
 	}
 
+	/**
+	 * Creates a deep copy of the given {@link InputNumericCommand}.
+	 *
+	 * @param other the command to copy.
+	 */
 	public InputNumericCommand(InputNumericCommand other) {
 		super(other);
 		this.variableName = other.variableName;
@@ -57,26 +75,50 @@ public class InputNumericCommand extends InputCommand {
 		this.max = other.max;
 	}
 
+	/**
+	 * Returns the name of the Dialogue Branch variable in which the user's numeric input is stored.
+	 * @return the variable name.
+	 */
 	public String getVariableName() {
 		return variableName;
 	}
 
+	/**
+	 * Sets the name of the Dialogue Branch variable in which the user's numeric input is stored.
+	 * @param variableName the variable name.
+	 */
 	public void setVariableName(String variableName) {
 		this.variableName = variableName;
 	}
 
+	/**
+	 * Returns the minimum numeric value allowed, or {@code null} if no minimum is set.
+	 * @return the minimum value, or {@code null}.
+	 */
 	public Integer getMin() {
 		return min;
 	}
 
+	/**
+	 * Sets the minimum numeric value allowed, or {@code null} for no minimum.
+	 * @param min the minimum value, or {@code null}.
+	 */
 	public void setMin(Integer min) {
 		this.min = min;
 	}
 
+	/**
+	 * Returns the maximum numeric value allowed, or {@code null} if no maximum is set.
+	 * @return the maximum value, or {@code null}.
+	 */
 	public Integer getMax() {
 		return max;
 	}
 
+	/**
+	 * Sets the maximum numeric value allowed, or {@code null} for no maximum.
+	 * @param max the maximum value, or {@code null}.
+	 */
 	public void setMax(Integer max) {
 		this.max = max;
 	}
@@ -129,6 +171,15 @@ public class InputNumericCommand extends InputCommand {
 		return new InputNumericCommand(this);
 	}
 
+	/**
+	 * Parses an {@link InputNumericCommand} from the given pre-parsed attribute map.
+	 *
+	 * @param cmdStartToken the command-start token, used for error location.
+	 * @param attrs the parsed attribute map.
+	 * @return the constructed {@link InputNumericCommand}.
+	 * @throws LineNumberParseException if the required {@code value} attribute is missing or
+	 *         an optional range attribute has an invalid value.
+	 */
 	public static InputCommand parse(BodyToken cmdStartToken,
 									 Map<String, BodyToken> attrs) throws LineNumberParseException {
 		String variableName = readVariableAttr("value", attrs, cmdStartToken,

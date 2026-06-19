@@ -53,9 +53,15 @@ public class IfCommand extends ExpressionCommand {
 	private List<Clause> ifClauses = new ArrayList<>();
 	private NodeBody elseClause = null;
 
+	/** Creates an empty {@link IfCommand} with no clauses set. */
 	public IfCommand() {
 	}
 
+	/**
+	 * Creates a deep copy of the given {@link IfCommand}.
+	 *
+	 * @param other the {@link IfCommand} to copy.
+	 */
 	public IfCommand(IfCommand other) {
 		for (Clause ifClause : other.ifClauses) {
 			this.ifClauses.add(new Clause(ifClause));
@@ -192,6 +198,16 @@ public class IfCommand extends ExpressionCommand {
 		return result.toString();
 	}
 
+	/**
+	 * Parses an {@link IfCommand} from the token stream, consuming tokens from the opening
+	 * {@code <<if>>} through the closing {@code <<endif>>}.
+	 *
+	 * @param cmdStartToken the token that started the {@code <<if>>} command.
+	 * @param tokens the token iterator, positioned after the command-start token.
+	 * @param nodeState the current node parse state.
+	 * @return the parsed {@link IfCommand}.
+	 * @throws LineNumberParseException if the command is malformed or unterminated.
+	 */
 	public static IfCommand parse(BodyToken cmdStartToken,
 								  CurrentIterator<BodyToken> tokens, NodeState nodeState)
 			throws LineNumberParseException {
@@ -291,6 +307,11 @@ public class IfCommand extends ExpressionCommand {
 			this.statement = statement;
 		}
 
+		/**
+		 * Creates a copy of the given {@link Clause}.
+		 *
+		 * @param other the {@link Clause} to copy.
+		 */
 		public Clause(Clause other) {
 			this.expression = other.expression;
 			this.statement = new NodeBody(other.statement);

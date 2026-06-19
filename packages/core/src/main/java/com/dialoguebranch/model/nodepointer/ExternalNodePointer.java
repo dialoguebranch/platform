@@ -64,6 +64,18 @@ public class ExternalNodePointer extends NodePointer {
 	/** The absolute path (e.g. "/folder/folder/dialogue" to the target dialogue */
 	private final String absoluteTargetDialogue;
 	
+	/**
+	 * Creates an {@link ExternalNodePointer} from the given origin dialogue and node to the
+	 * referenced target dialogue and node. The absolute path of the target dialogue is derived
+	 * from the reference relative to the origin.
+	 *
+	 * @param originDialogueName the full name (including path) of the origin dialogue.
+	 * @param originNodeId the identifier of the node from which this pointer originates.
+	 * @param targetDialogueReference the dialogue reference as written in the script
+	 *                                (may contain relative path components such as {@code ../}).
+	 * @param targetNodeId the identifier of the target node.
+	 * @throws ParseException if the target dialogue reference is malformed.
+	 */
 	public ExternalNodePointer(String originDialogueName,
 							   String originNodeId,
 							   String targetDialogueReference,
@@ -76,6 +88,11 @@ public class ExternalNodePointer extends NodePointer {
 				targetDialogueReference);
 	}
 
+	/**
+	 * Creates a copy of the given {@link ExternalNodePointer}.
+	 *
+	 * @param other the pointer to copy.
+	 */
 	public ExternalNodePointer(ExternalNodePointer other) {
 		super(other);
 		this.originDialogueName = other.getOriginDialogueName();
@@ -96,10 +113,19 @@ public class ExternalNodePointer extends NodePointer {
 		return this.absoluteTargetDialogue;
 	}
 
+	/**
+	 * Returns the full name (including path) of the origin dialogue.
+	 * @return the origin dialogue name.
+	 */
 	public String getOriginDialogueName() {
 		return this.originDialogueName;
 	}
 
+	/**
+	 * Returns the target dialogue reference as written in the script, which may contain relative
+	 * path components (e.g. {@code ../folder/dialogueName}).
+	 * @return the target dialogue reference.
+	 */
 	public String getTargetDialogueReference() {
 		return this.targetDialogueReference;
 	}

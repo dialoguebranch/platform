@@ -27,7 +27,19 @@
  */
 package com.dialoguebranch.model;
 
+/**
+ * Defines the string constants used throughout the Dialogue Branch platform, covering script
+ * syntax delimiters, reserved node identifiers, file extensions, and reserved header tag names.
+ *
+ * @author Dennis Hofs
+ * @author Harm op den Akker
+ */
 public class Constants {
+
+	/**
+	 * Private constructor; this class is a constants holder and is not meant to be instantiated.
+	 */
+	private Constants() { }
 
     /** The String constants that defines how individual nodes are separated from each other in the
      * source code of a Dialogue Branch script */

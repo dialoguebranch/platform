@@ -91,6 +91,12 @@ public class Reply {
 		this.nodePointer = nodePointer;
 	}
 
+	/**
+	 * Creates a deep copy of the given {@link Reply}, cloning its statement body, node pointer,
+	 * and all commands.
+	 *
+	 * @param other the {@link Reply} to copy.
+	 */
 	public Reply(Reply other) {
 		this.replyId = other.replyId;
 		if (other.statement != null)

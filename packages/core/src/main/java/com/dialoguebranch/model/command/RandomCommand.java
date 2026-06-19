@@ -51,9 +51,15 @@ public class RandomCommand extends AttributesCommand {
 
 	private List<Clause> clauses = new ArrayList<>();
 
+	/** Creates an empty {@link RandomCommand} with no clauses. */
 	public RandomCommand() {
 	}
 
+	/**
+	 * Creates a deep copy of the given {@link RandomCommand}.
+	 *
+	 * @param other the command to copy.
+	 */
 	public RandomCommand(RandomCommand other) {
 		for (Clause clause : other.clauses) {
 			this.clauses.add(new Clause(clause));
@@ -160,6 +166,16 @@ public class RandomCommand extends AttributesCommand {
 		return result.toString();
 	}
 
+	/**
+	 * Parses a {@link RandomCommand} from the token stream, consuming tokens from the opening
+	 * {@code <<random>>} through the closing {@code <<endrandom>>}.
+	 *
+	 * @param cmdStartToken the token that started the {@code <<random>>} command.
+	 * @param tokens the token iterator, positioned after the command-start token.
+	 * @param nodeState the current node parse state.
+	 * @return the parsed {@link RandomCommand}.
+	 * @throws LineNumberParseException if the command is malformed or unterminated.
+	 */
 	public static RandomCommand parse(BodyToken cmdStartToken,
 									  CurrentIterator<BodyToken> tokens, NodeState nodeState)
 			throws LineNumberParseException {
@@ -223,6 +239,11 @@ public class RandomCommand extends AttributesCommand {
 			this.statement = statement;
 		}
 
+		/**
+		 * Creates a copy of the given {@link Clause}.
+		 *
+		 * @param other the clause to copy.
+		 */
 		public Clause(Clause other) {
 			this.weight = other.weight;
 			this.statement = new NodeBody(other.statement);

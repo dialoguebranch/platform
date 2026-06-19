@@ -233,6 +233,13 @@ public class ActionCommand extends AttributesCommand {
 				processedCommand));
 	}
 
+	/**
+	 * Executes this {@link ActionCommand} against the given variable map, returning a new
+	 * {@link ActionCommand} with all variable references resolved to their current values.
+	 *
+	 * @param variables the variable map used to resolve variable references.
+	 * @return a new {@link ActionCommand} with all variables resolved.
+	 */
 	public ActionCommand executeReplyCommand(Map<String,Object> variables) {
 		ActionCommand processedCommand = new ActionCommand(type,
 				value.execute(variables));
@@ -260,6 +267,15 @@ public class ActionCommand extends AttributesCommand {
 		return result.toString();
 	}
 	
+	/**
+	 * Parses an {@link ActionCommand} from the token stream.
+	 *
+	 * @param cmdStartToken the token that started the {@code <<action>>} command.
+	 * @param tokens the token iterator, positioned after the command-start token.
+	 * @param nodeState the current node parse state.
+	 * @return the parsed {@link ActionCommand}.
+	 * @throws LineNumberParseException if the command is malformed.
+	 */
 	public static ActionCommand parse(BodyToken cmdStartToken,
 									  CurrentIterator<BodyToken> tokens, NodeState nodeState)
 			throws LineNumberParseException {

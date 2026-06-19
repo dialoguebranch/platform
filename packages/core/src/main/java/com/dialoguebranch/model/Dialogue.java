@@ -44,6 +44,7 @@ import com.dialoguebranch.model.nodepointer.ExternalNodePointer;
  * and an (unordered) list of {@link Node}s. One of these {@link Node}s should have as title
  * "Start".
  * 
+ * @author Dennis Hofs
  * @author Harm op den Akker
  */
 public class Dialogue {
@@ -122,6 +123,13 @@ public class Dialogue {
 		return Collections.unmodifiableList(new ArrayList<>(nodes.values()));
 	}
 
+	/**
+	 * Adds the given {@link Node} to this {@link Dialogue}. Registers the node's speaker,
+	 * collects variable names read and written by the node body, and records any external dialogue
+	 * references found in the node's node-pointers.
+	 *
+	 * @param node the {@link Node} to add.
+	 */
 	public void addNode(Node node) {
 		nodes.put(node.getTitle().toLowerCase(), node);
 		if (node.getHeader().getSpeaker() != null)
@@ -138,20 +146,44 @@ public class Dialogue {
 		}
 	}
 	
+	/**
+	 * Returns an unmodifiable {@link Set} of all unique speaker names present in this
+	 * {@link Dialogue}.
+	 *
+	 * @return an unmodifiable set of speaker names.
+	 */
 	public Set<String> getSpeakers() {
 		return Collections.unmodifiableSet(speakers);
 	}
-	
+
+	/**
+	 * Returns an unmodifiable, alphabetically sorted {@link List} of all unique speaker names
+	 * present in this {@link Dialogue}.
+	 *
+	 * @return a sorted, unmodifiable list of speaker names.
+	 */
 	public List<String> getSpeakersList() {
 		List<String> speakersList = new ArrayList<>(speakers);
 		Collections.sort(speakersList);
 		return Collections.unmodifiableList(speakersList);
 	}
 
+	/**
+	 * Returns an unmodifiable {@link Set} of all variable names that are <em>read</em> during
+	 * execution of this {@link Dialogue}.
+	 *
+	 * @return an unmodifiable set of variable names read by this dialogue.
+	 */
 	public Set<String> getVariablesNeeded() {
 		return Collections.unmodifiableSet(variablesNeeded);
 	}
-	
+
+	/**
+	 * Returns an unmodifiable {@link Set} of all variable names that are <em>written</em> during
+	 * execution of this {@link Dialogue}.
+	 *
+	 * @return an unmodifiable set of variable names written by this dialogue.
+	 */
 	public Set<String> getVariablesWritten() {
 		return Collections.unmodifiableSet(variablesWritten);
 	}
@@ -182,6 +214,13 @@ public class Dialogue {
 	// -------------------- Functions -------------------- //
 	// --------------------------------------------------- //
 	
+	/**
+	 * Returns {@code true} if a node with the given {@code nodeId} (case-insensitive) exists in
+	 * this {@link Dialogue}.
+	 *
+	 * @param nodeId the node title/identifier to look up.
+	 * @return {@code true} if the node exists, {@code false} otherwise.
+	 */
 	public boolean nodeExists(String nodeId) {
 		return nodes.containsKey(nodeId.toLowerCase());
 	}

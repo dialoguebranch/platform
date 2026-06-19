@@ -37,7 +37,19 @@ import nl.rrd.utils.exception.LineNumberParseException;
 import com.dialoguebranch.model.VariableString;
 import com.dialoguebranch.parser.BodyToken;
 
+/**
+ * Base class for Dialogue Branch commands that specify key="value" attribute pairs between
+ * &lt;&lt;...&gt;&gt; delimiters. Subclasses call the protected static helpers to read individual
+ * attributes from the parsed token map.
+ *
+ * @author Dennis Hofs
+ * @author Harm op den Akker
+ */
 public abstract class AttributesCommand extends Command {
+
+	/** Creates an instance of an {@link AttributesCommand}. */
+	protected AttributesCommand() {
+	}
 
 	/**
 	 * Parses a command that is formatted like:<br />
@@ -121,6 +133,16 @@ public abstract class AttributesCommand extends Command {
 				cmdStartToken.getLineNumber(), cmdStartToken.getColNumber());
 	}
 	
+	/**
+	 * Reads an attribute value as a {@link VariableString} from the parsed attribute map.
+	 *
+	 * @param name the attribute name to look up.
+	 * @param attrs the parsed attribute map produced by {@link #parseAttributesCommand}.
+	 * @param cmdStartToken the command-start token, used for error location.
+	 * @param require {@code true} if the attribute is mandatory.
+	 * @return the attribute value, or {@code null} if absent and {@code require} is {@code false}.
+	 * @throws LineNumberParseException if the attribute is required but absent.
+	 */
 	protected static VariableString readAttr(String name,
                                              Map<String, BodyToken> attrs, BodyToken cmdStartToken,
                                              boolean require) throws LineNumberParseException {
@@ -135,6 +157,17 @@ public abstract class AttributesCommand extends Command {
 		return (VariableString)token.getValue();
 	}
 	
+	/**
+	 * Reads an attribute value that must be plain text (no variable references).
+	 *
+	 * @param name the attribute name to look up.
+	 * @param attrs the parsed attribute map produced by {@link #parseAttributesCommand}.
+	 * @param cmdStartToken the command-start token, used for error location.
+	 * @param require {@code true} if the attribute is mandatory.
+	 * @return the plain-text value, or {@code null} if absent and {@code require} is {@code false}.
+	 * @throws LineNumberParseException if the attribute is required but absent, or if its value
+	 *         contains variable references.
+	 */
 	protected static String readPlainTextAttr(String name,
                                               Map<String, BodyToken> attrs, BodyToken cmdStartToken,
                                               boolean require) throws LineNumberParseException {
@@ -152,6 +185,16 @@ public abstract class AttributesCommand extends Command {
 		return varStr.evaluate(null);
 	}
 	
+	/**
+	 * Reads an attribute whose value must be a single variable reference (e.g. {@code "$varName"}).
+	 *
+	 * @param name the attribute name to look up.
+	 * @param attrs the parsed attribute map produced by {@link #parseAttributesCommand}.
+	 * @param cmdStartToken the command-start token, used for error location.
+	 * @param require {@code true} if the attribute is mandatory.
+	 * @return the variable name, or {@code null} if absent and {@code require} is {@code false}.
+	 * @throws LineNumberParseException if the value is not a single variable reference.
+	 */
 	protected static String readVariableAttr(String name,
                                              Map<String, BodyToken> attrs, BodyToken cmdStartToken,
                                              boolean require) throws LineNumberParseException {
@@ -173,6 +216,18 @@ public abstract class AttributesCommand extends Command {
 		return segment.getVariableName();
 	}
 	
+	/**
+	 * Reads an attribute value as an {@link Integer}, with optional range validation.
+	 *
+	 * @param name the attribute name to look up.
+	 * @param attrs the parsed attribute map produced by {@link #parseAttributesCommand}.
+	 * @param cmdStartToken the command-start token, used for error location.
+	 * @param require {@code true} if the attribute is mandatory.
+	 * @param min inclusive lower bound, or {@code null} for no minimum.
+	 * @param max inclusive upper bound, or {@code null} for no maximum.
+	 * @return the integer value, or {@code null} if absent and {@code require} is {@code false}.
+	 * @throws LineNumberParseException if the value is not a valid integer or is out of range.
+	 */
 	protected static Integer readIntAttr(String name,
                                          Map<String, BodyToken> attrs, BodyToken cmdStartToken,
                                          boolean require, Integer min, Integer max)
@@ -202,6 +257,18 @@ public abstract class AttributesCommand extends Command {
 		return result;
 	}
 
+	/**
+	 * Reads an attribute value as a {@link Float}, with optional range validation.
+	 *
+	 * @param name the attribute name to look up.
+	 * @param attrs the parsed attribute map produced by {@link #parseAttributesCommand}.
+	 * @param cmdStartToken the command-start token, used for error location.
+	 * @param require {@code true} if the attribute is mandatory.
+	 * @param min inclusive lower bound, or {@code null} for no minimum.
+	 * @param max inclusive upper bound, or {@code null} for no maximum.
+	 * @return the float value, or {@code null} if absent and {@code require} is {@code false}.
+	 * @throws LineNumberParseException if the value is not a valid float or is out of range.
+	 */
 	protected static Float readFloatAttr(String name,
                                          Map<String, BodyToken> attrs, BodyToken cmdStartToken,
                                          boolean require, Float min, Float max)
@@ -231,6 +298,16 @@ public abstract class AttributesCommand extends Command {
 		return result;
 	}
 
+	/**
+	 * Reads an attribute value as a {@link Boolean} ({@code "true"} or {@code "false"}).
+	 *
+	 * @param name the attribute name to look up.
+	 * @param attrs the parsed attribute map produced by {@link #parseAttributesCommand}.
+	 * @param cmdStartToken the command-start token, used for error location.
+	 * @param require {@code true} if the attribute is mandatory.
+	 * @return the boolean value, or {@code null} if absent and {@code require} is {@code false}.
+	 * @throws LineNumberParseException if the value is neither {@code "true"} nor {@code "false"}.
+	 */
 	protected static Boolean readBooleanAttr(String name,
                                              Map<String, BodyToken> attrs, BodyToken cmdStartToken,
                                              boolean require) throws LineNumberParseException {
