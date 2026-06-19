@@ -36,7 +36,16 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import java.io.File;
 import java.io.IOException;
 
+/**
+ * Utility class that serialises an {@link EditableTranslation} back to its source JSON file using
+ * Jackson's pretty-printer.
+ *
+ * @author Harm op den Akker
+ */
 public class EditableTranslationWriter {
+
+    /** Utility class — no instances. */
+    private EditableTranslationWriter() {}
 
     /**
      * Writes the given {@link EditableTranslation} to its source file.

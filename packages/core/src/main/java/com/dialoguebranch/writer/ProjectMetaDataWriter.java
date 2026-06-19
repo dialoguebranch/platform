@@ -36,13 +36,24 @@ import nl.rrd.utils.xml.XMLWriter;
 
 import java.io.IOException;
 
+/**
+ * Utility class that serialises a {@link ProjectMetaData} object to XML using an
+ * {@link XMLWriter}.
+ *
+ * @author Harm op den Akker
+ */
 public class ProjectMetaDataWriter {
 
+    /** Utility class — no instances. */
+    private ProjectMetaDataWriter() {}
+
     /**
-     * Writes this {@link ProjectMetaData} to file using the given {@link XMLWriter}.
+     * Writes the given {@link ProjectMetaData} to an XML file using the supplied {@link XMLWriter}.
+     * The writer is closed when this method returns.
      *
-     * @param writer the XML writer
-     * @throws IOException if a writing error occurs
+     * @param writer the XML writer to write to.
+     * @param projectMetaData the project metadata to serialise.
+     * @throws IOException if a writing error occurs.
      */
     public static void writeToXMLFile(XMLWriter writer, ProjectMetaData projectMetaData) throws IOException {
         writer.writeStartElement("dlb-project");
@@ -59,6 +70,14 @@ public class ProjectMetaDataWriter {
         writer.close();
     }
 
+    /**
+     * Writes the given {@link LanguageMap} as a {@code <language-map>} XML element containing
+     * one {@code <language-set>} child per entry.
+     *
+     * @param writer the XML writer to write to.
+     * @param languageMap the language map to serialise.
+     * @throws IOException if a writing error occurs.
+     */
     public static void writeLanguageMapXML(XMLWriter writer, LanguageMap languageMap) throws IOException {
         writer.writeStartElement("language-map");
 
@@ -69,6 +88,15 @@ public class ProjectMetaDataWriter {
         writer.writeEndElement(); // language-map
     }
 
+    /**
+     * Writes the given {@link LanguageSet} as a {@code <language-set>} XML element containing
+     * a {@code <source-language>} child and one {@code <translation-language>} child per
+     * translation language.
+     *
+     * @param writer the XML writer to write to.
+     * @param languageSet the language set to serialise.
+     * @throws IOException if a writing error occurs.
+     */
     public static void writeLanguageSetXML(XMLWriter writer, LanguageSet languageSet) throws IOException {
         writer.writeStartElement("language-set");
 

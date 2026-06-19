@@ -35,8 +35,26 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
+/**
+ * Utility class that serialises an {@link EditableScript} back to its source {@code .dlb} file.
+ * Each node is written in the standard Dialogue Branch format: header source, {@code ---}
+ * separator, body source, and {@code ===} node separator.
+ *
+ * @author Harm op den Akker
+ */
 public class EditableScriptWriter {
 
+    /** Utility class — no instances. */
+    private EditableScriptWriter() {}
+
+    /**
+     * Writes the given {@link EditableScript} to the file indicated by its
+     * {@link FileStorageSource}. If the storage source is not a {@link FileStorageSource}, this
+     * method does nothing.
+     *
+     * @param editableScript the script to write.
+     * @throws IOException if a write error occurs.
+     */
     public static void write(EditableScript editableScript) throws IOException {
 
         StorageSource storageSource = editableScript.getStorageSource();
