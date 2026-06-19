@@ -178,6 +178,12 @@ public class Variable {
 		}
 	}
 
+	/**
+	 * Returns a human-readable representation of this {@link Variable}, listing its name, value,
+	 * last-updated epoch timestamp, and last-updated time zone.
+	 *
+	 * @return a string representation of this {@link Variable}
+	 */
 	@Override
 	public String toString() {
 		return "Variable{" +

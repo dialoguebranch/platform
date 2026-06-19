@@ -32,5 +32,19 @@ import com.dialoguebranch.model.Dialogue;
 import com.dialoguebranch.model.LoggedDialogue;
 import com.dialoguebranch.model.Node;
 
+/**
+ * An immutable value object returned after executing a node in an {@link ActiveDialogue}. It
+ * bundles together the four pieces of state that callers typically need after a node execution step.
+ *
+ * @param dialogue         the {@link Dialogue} definition that was being executed
+ * @param node             the {@link Node} that was executed and returned to the client
+ * @param loggedDialogue   the {@link LoggedDialogue} entry recording this interaction in the
+ *                         dialogue history
+ * @param interactionIndex the zero-based index of this interaction within the
+ *                         {@code loggedDialogue}
+ *
+ * @author Harm op den Akker
+ * @author Dennis Hofs
+ */
 public record ExecuteNodeResult(Dialogue dialogue, Node node,
                                 LoggedDialogue loggedDialogue, int interactionIndex) { }

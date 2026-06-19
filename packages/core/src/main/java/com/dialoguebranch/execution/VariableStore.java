@@ -117,6 +117,13 @@ public class VariableStore {
 	 * @param changes one or multiple {@link VariableStoreChange}s representing a modification
 	 *                to this {@link VariableStore}.
 	 */
+	/**
+	 * Notifies all registered {@link VariableStoreOnChangeListener}s of one or more changes to
+	 * this {@link VariableStore}. Listeners are snapshot-copied before iteration so that
+	 * listeners added or removed during notification do not affect the current dispatch.
+	 *
+	 * @param changes one or more {@link VariableStoreChange}s describing what was modified
+	 */
 	private void notifyOnChange(VariableStoreChange... changes) {
 		List<VariableStoreOnChangeListener> listeners;
 		synchronized (onChangeListeners) {
@@ -431,6 +438,14 @@ public class VariableStore {
 		// -------------------- Modification Methods -------------------- //
 		// -------------------------------------------------------------- //
 
+		/**
+		 * Stores {@code value} under {@code key} in the enclosing {@link VariableStore}, notifying
+		 * observers if configured to do so, and returns the previous value for that key.
+		 *
+		 * @param key   the variable name
+		 * @param value the new variable value
+		 * @return the previous value associated with {@code key}, or {@code null} if none
+		 */
 		@Override
 		public Object put(String key, Object value) {
 			Object result = get(key);
@@ -438,6 +453,13 @@ public class VariableStore {
 			return result;
 		}
 
+		/**
+		 * Removes the variable identified by {@code key} from the enclosing {@link VariableStore},
+		 * notifying observers if configured to do so.
+		 *
+		 * @param key the variable name to remove
+		 * @return the value that was associated with {@code key}, or {@code null} if not present
+		 */
 		@Override
 		public Object remove(Object key) {
 			Variable result = removeByName((String)key, notifyObservers, eventTime, source);
@@ -445,11 +467,21 @@ public class VariableStore {
 			else return null;
 		}
 
+		/**
+		 * Adds all entries from the given map to the enclosing {@link VariableStore}, delegating
+		 * to {@link VariableStore#addAll}.
+		 *
+		 * @param variablesToAdd a map of variable names to values to add
+		 */
 		@Override
 		public void putAll(Map<? extends String, ?> variablesToAdd) {
 			addAll(variablesToAdd,notifyObservers,eventTime, source);
 		}
 
+		/**
+		 * Removes all variables from the enclosing {@link VariableStore} and notifies observers
+		 * with a {@link VariableStoreChange.Clear} event if configured to do so.
+		 */
 		@Override
 		public void clear() {
 			synchronized (variables) {
@@ -463,6 +495,11 @@ public class VariableStore {
 		// -------------------- Retrieval Methods -------------------- //
 		// ----------------------------------------------------------- //
 
+		/**
+		 * Returns the number of variables currently held in the enclosing {@link VariableStore}.
+		 *
+		 * @return the number of stored variables
+		 */
 		@Override
 		public int size() {
 			synchronized (variables) {
@@ -470,6 +507,11 @@ public class VariableStore {
 			}
 		}
 
+		/**
+		 * Returns {@code true} if the enclosing {@link VariableStore} contains no variables.
+		 *
+		 * @return {@code true} if the store is empty, {@code false} otherwise
+		 */
 		@Override
 		public boolean isEmpty() {
 			synchronized (variables) {
@@ -477,6 +519,13 @@ public class VariableStore {
 			}
 		}
 
+		/**
+		 * Returns {@code true} if the enclosing {@link VariableStore} contains a variable with
+		 * the given {@code key} as its name.
+		 *
+		 * @param key the variable name to look up
+		 * @return {@code true} if a variable with that name exists, {@code false} otherwise
+		 */
 		@Override
 		public boolean containsKey(Object key) {
 			synchronized (variables) {
@@ -484,6 +533,13 @@ public class VariableStore {
 			}
 		}
 
+		/**
+		 * Returns the value of the variable named {@code key}, or {@code null} if no such variable
+		 * exists in the enclosing {@link VariableStore}.
+		 *
+		 * @param key the variable name
+		 * @return the variable's value, or {@code null}
+		 */
 		@Override
 		public Object get(Object key) {
 			synchronized (variables) {
@@ -493,6 +549,13 @@ public class VariableStore {
 			}
 		}
 
+		/**
+		 * Returns {@code true} if any variable in the enclosing {@link VariableStore} holds
+		 * the given {@code value}.
+		 *
+		 * @param value the value to search for
+		 * @return {@code true} if at least one variable has this value, {@code false} otherwise
+		 */
 		@Override
 		public boolean containsValue(Object value) {
 			synchronized (variables) {
@@ -503,6 +566,12 @@ public class VariableStore {
 			}
 		}
 
+		/**
+		 * Returns the set of all variable names currently held in the enclosing
+		 * {@link VariableStore}.
+		 *
+		 * @return the set of variable names
+		 */
 		@Override
 		public Set<String> keySet() {
 			synchronized (variables) {
@@ -510,6 +579,12 @@ public class VariableStore {
 			}
 		}
 
+		/**
+		 * Returns a collection of all variable values currently held in the enclosing
+		 * {@link VariableStore}.
+		 *
+		 * @return a collection of variable values
+		 */
 		@Override
 		public Collection<Object> values() {
 			Collection<Object> objectCollection = new ArrayList<>();
@@ -524,6 +599,12 @@ public class VariableStore {
 			return objectCollection;
 		}
 
+		/**
+		 * Returns a set of all name-value entries in the enclosing {@link VariableStore}, with each
+		 * entry's value being the raw variable value (not the {@link Variable} wrapper).
+		 *
+		 * @return a set of map entries from variable name to variable value
+		 */
 		@Override
 		public Set<Entry<String, Object>> entrySet() {
 			Set<Entry<String,Object>> resultSet = new HashSet<>();

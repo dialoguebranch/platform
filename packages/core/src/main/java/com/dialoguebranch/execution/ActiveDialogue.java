@@ -53,9 +53,16 @@ import java.util.Map;
  */
 public class ActiveDialogue {
 
+	/** Metadata describing the file from which the dialogue definition was loaded. */
 	private final FileDescriptor dialogueFileDescription;
+
+	/** The static dialogue definition containing all nodes and their content. */
 	private final Dialogue dialogueDefinition;
+
+	/** The node currently being presented to the user, or {@code null} if not yet started. */
 	private Node currentNode;
+
+	/** The variable store used to read and write Dialogue Branch variables during execution. */
 	private VariableStore variableStore;
 
 	// -------------------------------------------------------- //
