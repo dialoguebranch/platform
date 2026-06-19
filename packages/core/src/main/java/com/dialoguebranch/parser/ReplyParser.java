@@ -41,17 +41,40 @@ import nl.rrd.utils.CurrentIterator;
 import nl.rrd.utils.exception.LineNumberParseException;
 import nl.rrd.utils.exception.ParseException;
 
+/**
+ * Parses a single reply construct ({@code [[ ... ]]}) from a Dialogue Branch node body into a
+ * {@link Reply} model object. A reply consists of up to three pipe-separated sections: an optional
+ * statement, a mandatory node-pointer, and an optional command section. The parser delegates
+ * command parsing to {@link CommandParser}.
+ *
+ * @author Dennis Hofs
+ * @author Harm op den Akker
+ */
 public class ReplyParser {
 	private NodeState nodeState;
-	
+
 	private ReplySection statementSection;
 	private ReplySection nodePointerSection;
 	private ReplySection commandSection;
-	
+
+	/**
+	 * Creates a {@link ReplyParser} that uses the given node state for reply-ID generation and
+	 * node-pointer tracking.
+	 * @param nodeState the state of the node currently being parsed.
+	 */
 	public ReplyParser(NodeState nodeState) {
 		this.nodeState = nodeState;
 	}
-	
+
+	/**
+	 * Parses the next reply from the given token stream. The iterator must be positioned at the
+	 * {@link BodyToken.Type#REPLY_START} token. When this method returns, the iterator will be
+	 * positioned after the corresponding {@link BodyToken.Type#REPLY_END} token.
+	 *
+	 * @param tokens the token iterator.
+	 * @return the parsed {@link Reply}.
+	 * @throws LineNumberParseException if a parse error is encountered.
+	 */
 	public Reply parse(CurrentIterator<BodyToken> tokens)
 			throws LineNumberParseException {
 		readSections(tokens);

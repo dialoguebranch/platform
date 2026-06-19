@@ -167,9 +167,21 @@ public class BodyParser {
 		return false;
 	}
 
+	/**
+	 * Return type of {@link BodyParser#parseUntilCommandClause}. Contains the parsed body up to
+	 * the encountered command clause (or the end of the token stream), together with information
+	 * about the clause token that caused parsing to stop.
+	 */
 	public static class ParseUntilCommandClauseResult {
+
+		/** Creates an empty {@link ParseUntilCommandClauseResult}. */
+		public ParseUntilCommandClauseResult() {}
+
+		/** The node body parsed up to the command clause or end of tokens. */
 		public NodeBody body;
+		/** The {@link BodyToken} at which the command clause started, or {@code null}. */
 		public BodyToken cmdClauseStartToken = null;
+		/** The name of the command clause that was encountered, or {@code null}. */
 		public String cmdClauseName = null;
 	}
 	

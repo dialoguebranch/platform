@@ -43,8 +43,24 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+/**
+ * Utility class that parses a Dialogue Branch project metadata XML file into a
+ * {@link ProjectMetaData} object.
+ *
+ * @author Harm op den Akker
+ */
 public class ProjectMetaDataParser {
 
+    /** Utility class — no instances. */
+    private ProjectMetaDataParser() {}
+
+    /**
+     * Parses the given project metadata XML file.
+     * @param metaDataFile the project metadata ({@code .xml}) file.
+     * @return the parsed {@link ProjectMetaData}.
+     * @throws ParseException if the XML content is invalid.
+     * @throws IOException if the file cannot be read.
+     */
     public static ProjectMetaData parse(File metaDataFile) throws ParseException, IOException {
         SimpleSAXHandler<ProjectMetaData> xmlHandler = new ProjectMetaDataXMLHandler();
         SimpleSAXParser<ProjectMetaData> parser = new SimpleSAXParser<>(xmlHandler);

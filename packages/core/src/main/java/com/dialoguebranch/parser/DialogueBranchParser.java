@@ -39,32 +39,76 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+/**
+ * Parses a Dialogue Branch script file ({@code .dlb}) into a {@link Dialogue} model object.
+ * The parser validates node structure, header fields, command names, and node pointers; any
+ * problems are collected and returned in a {@link ParserResult} rather than thrown immediately so
+ * that callers can accumulate all errors in a single pass.
+ *
+ * <p>Instances implement {@link AutoCloseable} and should be used in a try-with-resources
+ * block to ensure the underlying reader is closed.</p>
+ *
+ * @author Dennis Hofs
+ * @author Harm op den Akker
+ */
 public class DialogueBranchParser implements AutoCloseable {
+
+	/** Regular expression that matches a valid Dialogue Branch node name. */
 	public static final String NODE_NAME_REGEX = "[A-Za-z0-9_-]+";
+
+	/** Regular expression that matches a valid Dialogue Branch dialogue name (slash-separated
+	 *  path segments). */
 	public static final String DIALOGUE_NAME_REGEX =
 			"(" + NODE_NAME_REGEX + "/)*" + NODE_NAME_REGEX;
+
+	/** Regular expression that matches a valid external node pointer of the form
+	 *  {@code [path/]dialogueName.nodeName}. */
 	public static final String EXTERNAL_NODE_POINTER_REGEX =
 			"/?" + "((..)|(" + NODE_NAME_REGEX + ")/)*" + NODE_NAME_REGEX +
 			"\\." + NODE_NAME_REGEX;
-	
+
 	private String dialogueName;
 	private LineColumnNumberReader reader;
-	
+
 	private Dialogue dialogue = null;
 	private List<NodeState.NodePointerToken> nodePointerTokens = null;
-	
+
+	/**
+	 * Creates a {@link DialogueBranchParser} that reads from the file at the given path. The
+	 * dialogue name is derived from the file name (without extension).
+	 * @param filename the path to the {@code .dlb} file.
+	 * @throws FileNotFoundException if the file does not exist.
+	 */
 	public DialogueBranchParser(String filename) throws FileNotFoundException {
 		this(new File(filename));
 	}
-	
+
+	/**
+	 * Creates a {@link DialogueBranchParser} that reads from the given file. The dialogue name
+	 * is derived from the file name (without extension).
+	 * @param file the {@code .dlb} file.
+	 * @throws FileNotFoundException if the file does not exist.
+	 */
 	public DialogueBranchParser(File file) throws FileNotFoundException {
 		init(file);
 	}
-	
+
+	/**
+	 * Creates a {@link DialogueBranchParser} that reads from the given input stream using the
+	 * specified dialogue name.
+	 * @param dialogueName the name to assign to the parsed dialogue.
+	 * @param input the input stream to read from.
+	 */
 	public DialogueBranchParser(String dialogueName, InputStream input) {
 		init(dialogueName, input);
 	}
-	
+
+	/**
+	 * Creates a {@link DialogueBranchParser} that reads from the given reader using the specified
+	 * dialogue name.
+	 * @param dialogueName the name to assign to the parsed dialogue.
+	 * @param reader the reader to read from.
+	 */
 	public DialogueBranchParser(String dialogueName, Reader reader) {
 		init(dialogueName, new LineColumnNumberReader(reader));
 	}
@@ -94,6 +138,10 @@ public class DialogueBranchParser implements AutoCloseable {
 		}
 	}
 
+	/**
+	 * Closes the underlying reader, releasing any associated resources.
+	 * @throws IOException if an I/O error occurs while closing.
+	 */
 	@Override
 	public void close() throws IOException {
 		reader.close();
@@ -416,6 +464,11 @@ public class DialogueBranchParser implements AutoCloseable {
 		System.out.println("    Print this usage message");
 	}
 
+	/**
+	 * Command-line entry point. Accepts a single {@code .dlb} file path, parses it, and prints a
+	 * summary of the resulting dialogue to standard output. Exits with status 1 on error.
+	 * @param args the command-line arguments; use {@code -h} / {@code --help} for usage.
+	 */
 	public static void main(String[] args) {
 		String filename = null;
 		int i = 0;

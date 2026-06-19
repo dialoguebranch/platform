@@ -46,6 +46,9 @@ public class BodyTokenizer {
 
 	private final BodyState bodyState = new BodyState();
 
+	/** Creates a new {@link BodyTokenizer}. */
+	public BodyTokenizer() {}
+
 	/**
 	 * Reads the body tokens from the specified line. The line should end with a newline (\n)
 	 * character.

@@ -39,6 +39,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * A {@link FileLoader} implementation that discovers and opens Dialogue Branch resource files
+ * (scripts and translations) based on a Dialogue Branch project metadata XML file. The metadata
+ * file describes the project name, version, and the supported language mappings; this loader uses
+ * that information to enumerate all files under the project's base directory.
+ *
+ * @author Harm op den Akker
+ */
 public class ProjectFileLoader implements FileLoader {
 
 	private final File projectMetadataFile;
@@ -122,6 +130,14 @@ public class ProjectFileLoader implements FileLoader {
 	// -------------------- Other Functions -------------------- //
 	// --------------------------------------------------------- //
 
+	/**
+	 * Parses the given Dialogue Branch project metadata XML file and returns the resulting
+	 * {@link ProjectMetaData} object.
+	 * @param metaDataFile the project metadata ({@code .xml}) file.
+	 * @return the parsed {@link ProjectMetaData}.
+	 * @throws IOException if the file cannot be read.
+	 * @throws ParseException if the file content is invalid.
+	 */
 	public static ProjectMetaData loadProjectMetaDataFile(File metaDataFile)
 			throws IOException, ParseException {
 		return ProjectMetaDataParser.parse(metaDataFile);

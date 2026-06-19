@@ -56,16 +56,22 @@ import java.util.List;
  */
 public class BodyToken {
 
+	/** Enumerates the possible token types produced by the {@link BodyTokenizer}. */
 	public enum Type {
 		/**
 		 * Value: text with escaped characters resolved
 		 */
 		TEXT,
 	
+		/** Marks the opening {@code <<} of a command block. */
 		COMMAND_START,
+		/** Marks the closing {@code >>} of a command block. */
 		COMMAND_END,
+		/** Marks the opening {@code [[} of a reply block. */
 		REPLY_START,
+		/** Marks the closing {@code ]]} of a reply block. */
 		REPLY_END,
+		/** Marks the {@code |} separator between sections within a reply block. */
 		REPLY_SEPARATOR,
 		
 		/**

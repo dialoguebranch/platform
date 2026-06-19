@@ -84,6 +84,11 @@ public class ProjectParserResult {
 		return fileLoader;
 	}
 
+	/**
+	 * Sets the {@link FileLoader} implementation that was used for generating this
+	 * {@link ProjectParserResult}.
+	 * @param fileLoader the {@link FileLoader} implementation.
+	 */
 	public void setFileLoader(FileLoader fileLoader) {
 		this.fileLoader = fileLoader;
 	}

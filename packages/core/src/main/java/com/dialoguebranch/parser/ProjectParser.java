@@ -85,6 +85,14 @@ public class ProjectParser {
 	// -------------------- Other Methods -------------------- //
 	// ------------------------------------------------------- //
 
+	/**
+	 * Parses the complete Dialogue Branch project (all script and translation files provided by
+	 * the {@link FileLoader}) and returns a {@link ProjectParserResult} containing either the
+	 * fully assembled {@link com.dialoguebranch.model.Project} or a map of per-file parse errors.
+	 *
+	 * @return the result of parsing the project.
+	 * @throws IOException if a file cannot be read.
+	 */
 	public ProjectParserResult parse() throws IOException {
 		ProjectParserResult projectParserResult = new ProjectParserResult(fileLoader);
 

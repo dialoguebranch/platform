@@ -34,11 +34,25 @@ import com.dialoguebranch.model.command.*;
 import nl.rrd.utils.CurrentIterator;
 import nl.rrd.utils.exception.LineNumberParseException;
 
+/**
+ * Parses a single Dialogue Branch command token sequence into the appropriate {@link Command}
+ * subclass. A {@link CommandParser} is configured with a list of command names that are
+ * valid in the current parse context; encountering any other command name causes a parse
+ * exception.
+ *
+ * @author Dennis Hofs
+ * @author Harm op den Akker
+ */
 public class CommandParser {
 
 	private final List<String> validCommands;
 	private final NodeState nodeState;
-	
+
+	/**
+	 * Creates a {@link CommandParser} that accepts the given set of command names.
+	 * @param validCommands the command names that are valid in the current context.
+	 * @param nodeState the state of the node currently being parsed.
+	 */
 	public CommandParser(List<String> validCommands, NodeState nodeState) {
 		this.validCommands = validCommands;
 		this.nodeState = nodeState;
