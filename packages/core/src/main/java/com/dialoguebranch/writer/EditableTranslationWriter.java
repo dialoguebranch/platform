@@ -1,6 +1,6 @@
 /*
  *
- *                Copyright (c) 2023-2025 Fruit Tree Labs (www.fruittreelabs.com)
+ *                 Copyright (c) 2023-2026 Dialogue Branch (www.dialoguebranch.com)
  *
  *
  *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
@@ -8,7 +8,7 @@
  *
  *                                            ----------
  *
- * Copyright (c) 2023-2025 Fruit Tree Labs (www.fruittreelabs.com)
+ * Copyright (c) 2023-2026 Dialogue Branch (www.dialoguebranch.com)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
  * associated documentation files (the "Software"), to deal in the Software without restriction,
