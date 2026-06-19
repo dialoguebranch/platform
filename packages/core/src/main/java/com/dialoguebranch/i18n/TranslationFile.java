@@ -29,6 +29,7 @@
 package com.dialoguebranch.i18n;
 
 import com.dialoguebranch.model.Constants;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
@@ -212,7 +213,8 @@ public class TranslationFile {
 	 */
 	public void readFromFile(File file) throws IOException {
 		ObjectMapper mapper = new ObjectMapper();
-		this.contentMap = mapper.readValue(file, HashMap.class);
+		this.contentMap = mapper.readValue(file,
+				new TypeReference<HashMap<String, Map<String, String>>>() {});
 	}
 
 }
