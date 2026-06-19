@@ -76,9 +76,9 @@ public class UserService {
 	// dialogueLanguageMap: map from dialogue name -> language -> dialogue description
 	protected Map<String, Map<String, FileDescriptor>> dialogueLanguageMap = new LinkedHashMap<>();
 
-	// --------------------------------------------------------
-	// -------------------- Constructor(s) --------------------
-	// --------------------------------------------------------
+	// -------------------------------------------------------- //
+	// -------------------- Constructor(s) -------------------- //
+	// -------------------------------------------------------- //
 	
 	/**
 	 * Instantiates a {@link UserService} for a given {@link User}. The UserService creates a {@link
@@ -129,9 +129,9 @@ public class UserService {
 	}
 
 
-	// -----------------------------------------------------------
-	// -------------------- Getters & Setters --------------------
-	// -----------------------------------------------------------
+	// ----------------------------------------------------------- //
+	// -------------------- Getters & Setters -------------------- //
+	// ----------------------------------------------------------- //
 	
 	/**
 	 * Returns the {@link User} which this {@link UserService} is serving.
@@ -187,9 +187,9 @@ public class UserService {
 		return loggedDialogueStore;
 	}
 
-	// ---------------------------------------------------------------------------
-	// -------------------- Other Methods: Dialogue Execution --------------------
-	// ---------------------------------------------------------------------------
+	// --------------------------------------------------------------------------- //
+	// -------------------- Other Methods: Dialogue Execution -------------------- //
+	// --------------------------------------------------------------------------- //
 
 	/**
 	 * Starts a dialogue session with the given {@code dialogueId} and preferred language, returning
@@ -301,9 +301,9 @@ public class UserService {
 					"dialogue could be found.", dialogueBranchUser.getId(), loggedDialogueId);
 	}
 
-	// --------------------------------------------------------------------------
-	// -------------------- Other Methods: Variable Handling --------------------
-	// --------------------------------------------------------------------------
+	// -------------------------------------------------------------------------- //
+	// -------------------- Other Methods: Variable Handling -------------------- //
+	// -------------------------------------------------------------------------- //
 
 	/**
 	 * Stores a given set of variables that have been set as part of a user's reply in a dialogue in

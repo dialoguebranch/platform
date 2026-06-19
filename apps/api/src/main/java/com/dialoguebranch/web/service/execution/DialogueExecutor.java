@@ -59,9 +59,9 @@ public class DialogueExecutor {
 	private final Logger logger = AppComponents.getLogger(getClass().getSimpleName());
 	protected UserService userService;
 
-	// --------------------------------------------------------
-	// -------------------- Constructor(s) --------------------
-	// --------------------------------------------------------
+	// -------------------------------------------------------- //
+	// -------------------- Constructor(s) -------------------- //
+	// -------------------------------------------------------- //
 
 	/**
 	 * Creates an instance of a {@link DialogueExecutor} for a given {@code userService}.
@@ -71,9 +71,9 @@ public class DialogueExecutor {
 		this.userService = userService;
 	}
 
-	// -------------------------------------------------------
-	// -------------------- Other Methods --------------------
-	// -------------------------------------------------------
+	// ------------------------------------------------------- //
+	// -------------------- Other Methods -------------------- //
+	// ------------------------------------------------------- //
 
 	/**
 	 * Starts the dialogue for the specified dialogue definition. If you specify a node ID, it will

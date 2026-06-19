@@ -56,9 +56,9 @@ public class KeycloakTokenResponse extends JsonObject {
     @JsonProperty("scope")
     private String scope;
 
-    // ----------------------------------------------------------- //
-    // -------------------- Constructor(s) ----------------------- //
-    // ----------------------------------------------------------- //
+    // -------------------------------------------------------- //
+    // -------------------- Constructor(s) -------------------- //
+    // -------------------------------------------------------- //
 
     public KeycloakTokenResponse(String accessToken, String tokenType, Integer expiresIn,
                                  String refreshToken, Integer refreshExpiresIn,

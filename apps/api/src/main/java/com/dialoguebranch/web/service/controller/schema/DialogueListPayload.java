@@ -45,9 +45,9 @@ public class DialogueListPayload extends JsonObject {
             example = "[dialogue1,dialogue2]")
     private String[] dialogueNames;
 
-    // --------------------------------------------------------
-    // -------------------- Constructor(s) --------------------
-    // --------------------------------------------------------
+    // -------------------------------------------------------- //
+    // -------------------- Constructor(s) -------------------- //
+    // -------------------------------------------------------- //
 
     /**
      * Creates an empty instance of a {@link DialogueListPayload} object.
@@ -64,9 +64,9 @@ public class DialogueListPayload extends JsonObject {
         this.dialogueNames = sortDialogueNames(dialogueNames);
     }
 
-    // -----------------------------------------------------------
-    // -------------------- Getters & Setters --------------------
-    // -----------------------------------------------------------
+    // ----------------------------------------------------------- //
+    // -------------------- Getters & Setters -------------------- //
+    // ----------------------------------------------------------- //
 
     /**
      * Returns an array of dialogue names in this {@link DialogueListPayload}.

@@ -128,9 +128,9 @@ public class LoggedDialogueStore {
 		}
 	}
 
-	// --------------------------------------- //
-	// ---------- Public Operations ---------- //
-	// --------------------------------------- //
+	// ----------------------------------------------------------- //
+	// -------------------- Public Operations -------------------- //
+	// ----------------------------------------------------------- //
 
 	public ServerLoggedDialogue findLoggedDialogue(String id)
 			throws DatabaseException, IOException {
@@ -213,9 +213,9 @@ public class LoggedDialogueStore {
 		return new ArrayList<>();
 	}
 
-	// -------------------------------------------------- //
-	// ---------- Private Read & Write Methods ---------- //
-	// -------------------------------------------------- //
+	// ---------------------------------------------------------------------- //
+	// -------------------- Private Read & Write Methods -------------------- //
+	// ---------------------------------------------------------------------- //
 
 	private void saveToSession(String sessionId, long sessionStartTime,
 									  List<ServerLoggedDialogue> dialogues) throws IOException {

@@ -59,11 +59,13 @@ public class Configuration extends LinkedHashMap<String,String> {
 
 	private static Configuration instance = null;
 
-	// -------------------------------------------------------------
-	// -------------------- Known property keys --------------------
-	// -------------------------------------------------------------
+	// ------------------------------------------------------------- //
+	// -------------------- Known property keys -------------------- //
+	// ------------------------------------------------------------- //
 
-	// ---------- General
+	// ------------------------------------------------- //
+	// -------------------- General -------------------- //
+	// ------------------------------------------------- //
 
 	/** Name of the config parameter that defines the Web Service's version (as a String) */
 	public static final String VERSION = "version";
@@ -77,7 +79,9 @@ public class Configuration extends LinkedHashMap<String,String> {
 	/** Name of the config parameter that defines the data directory for the Web Service */
 	public static final String DATA_DIR = "dataDir";
 
-	// ---------- Settings
+	// -------------------------------------------------- //
+	// -------------------- Settings -------------------- //
+	// -------------------------------------------------- //
 
 	/**
 	 * Name of the config parameter indicating whether the service allows the creation of anonymous
@@ -85,7 +89,9 @@ public class Configuration extends LinkedHashMap<String,String> {
 	 */
 	public static final String ALLOW_ANONYMOUS_USERS = "allowAnonymousUsers";
 
-	// ---------- Database Configuration
+	// ---------------------------------------------------------------- //
+	// -------------------- Database Configuration -------------------- //
+	// ---------------------------------------------------------------- //
 
 	public static final String MARIADB_HOST = "mariadbHost";
 
@@ -97,7 +103,9 @@ public class Configuration extends LinkedHashMap<String,String> {
 
 	public static final String MARIADB_DATABASE = "mariadbDatabase";
 
-	// ---------- Authentication Configuration
+	// ---------------------------------------------------------------------- //
+	// -------------------- Authentication Configuration -------------------- //
+	// ---------------------------------------------------------------------- //
 
 	/**
 	 * Name of the config parameter indicating the authentication service to use, which can be set
@@ -159,7 +167,9 @@ public class Configuration extends LinkedHashMap<String,String> {
 	 */
 	public static final String AUTH_NATIVE_REFRESH_TOKEN_EXPIRATION_SECONDS = "authNativeRefreshTokenExpirationSeconds";
 
-	// ---------- External Variable Service
+	// ------------------------------------------------------------------- //
+	// -------------------- External Variable Service -------------------- //
+	// ------------------------------------------------------------------- //
 
 	/**
 	 * Name of the config parameter that defines whether an External Variable Service should be used
@@ -186,7 +196,9 @@ public class Configuration extends LinkedHashMap<String,String> {
 	 */
 	public static final String EXTERNAL_VARIABLE_SERVICE_API_KEY = "externalVariableServiceAPIKey";
 
-	// ---------- Azure Data Lake
+	// --------------------------------------------------------- //
+	// -------------------- Azure Data Lake -------------------- //
+	// --------------------------------------------------------- //
 
 	/**
 	 * Name of the config parameter that defines whether synchronizing log files to an Azure Data
@@ -216,9 +228,9 @@ public class Configuration extends LinkedHashMap<String,String> {
 	/** Name of the config parameter that defines the Azure Data Lake File System name */
 	public static final String AZURE_DATA_LAKE_FILE_SYSTEM_NAME = "azureDataLakeFileSystemName";
 
-	// --------------------------------------------------------------
-	// -------------------- Hardcoded parameters --------------------
-	// --------------------------------------------------------------
+	// -------------------------------------------------------------- //
+	// -------------------- Hardcoded parameters -------------------- //
+	// -------------------------------------------------------------- //
 
 	/** Hardcoded folder name to use for storing the general Web Service log files */
 	public static final String DIRECTORY_NAME_APPLICATION_LOGS = "logs";
@@ -229,9 +241,9 @@ public class Configuration extends LinkedHashMap<String,String> {
 	/** Hardcoded folder name for storing the user-specific Variable Stores */
 	public static final String DIRECTORY_NAME_VARIABLES = "variables";
 
-	// -------------------------------------------------------------------------
-	// -------------------- Constructor(s) & Initialization --------------------
-	// -------------------------------------------------------------------------
+	// ------------------------------------------------------------------------- //
+	// -------------------- Constructor(s) & Initialization -------------------- //
+	// ------------------------------------------------------------------------- //
 
 	/**
 	 * Returns the configuration. At startup of the service it should be initialized with
@@ -273,9 +285,9 @@ public class Configuration extends LinkedHashMap<String,String> {
 	// ----- retrieved by using this.get("parameterName") however, using the getters below we can
 	// ----- add some robustness (e.g. null checking), and some convenience (readability) for devs
 
-	// ----------------------------------------------------------
-	// -------------------- Getters: General --------------------
-	// ----------------------------------------------------------
+	// ---------------------------------------------------------- //
+	// -------------------- Getters: General -------------------- //
+	// ---------------------------------------------------------- //
 
 	/**
 	 * Returns the application version identifier (e.g. "1.0.0") as a String.
@@ -318,9 +330,9 @@ public class Configuration extends LinkedHashMap<String,String> {
 		else return get(DATA_DIR);
 	}
 
-	// ----------------------------------------------------------
-	// -------------------- Getters: Settings -------------------
-	// ----------------------------------------------------------
+	// ----------------------------------------------------------- //
+	// -------------------- Getters: Settings -------------------- //
+	// ----------------------------------------------------------- //
 
 	/**
 	 * Returns whether this Web Service allows the creation of Anonymous User accounts.
@@ -331,9 +343,9 @@ public class Configuration extends LinkedHashMap<String,String> {
 		return Boolean.parseBoolean(get(ALLOW_ANONYMOUS_USERS));
 	}
 
-	// -------------------------------------------------------------------------
-	// -------------------- Getters: Database Configuration --------------------
-	// -------------------------------------------------------------------------
+	// ------------------------------------------------------------------------- //
+	// -------------------- Getters: Database Configuration -------------------- //
+	// ------------------------------------------------------------------------- //
 
 	public String getMariadbHost() {
 		if (get(MARIADB_HOST) == null) return "";
@@ -443,9 +455,9 @@ public class Configuration extends LinkedHashMap<String,String> {
 		}
 	}
 
-	// ----------------------------------------------------------------------------
-	// -------------------- Getters: External Variable Service --------------------
-	// ----------------------------------------------------------------------------
+	// ---------------------------------------------------------------------------- //
+	// -------------------- Getters: External Variable Service -------------------- //
+	// ---------------------------------------------------------------------------- //
 
 	/**
 	 * Returns whether an "External DialogueBranch Variable Service" has been configured to be used.
@@ -492,9 +504,9 @@ public class Configuration extends LinkedHashMap<String,String> {
 		else return get(EXTERNAL_VARIABLE_SERVICE_API_KEY);
 	}
 
-	// ------------------------------------------------------------------
-	// -------------------- Getters: Azure Data Lake --------------------
-	// ------------------------------------------------------------------
+	// ------------------------------------------------------------------ //
+	// -------------------- Getters: Azure Data Lake -------------------- //
+	// ------------------------------------------------------------------ //
 
 	/**
 	 * Returns whether the Azure Data Lake is enabled.
@@ -567,9 +579,9 @@ public class Configuration extends LinkedHashMap<String,String> {
 		else return get(AZURE_DATA_LAKE_FILE_SYSTEM_NAME);
 	}
 
-	// -----------------------------------------------------------------------
-	// -------------------- Getters: Hardcoded parameters --------------------
-	// -----------------------------------------------------------------------
+	// ----------------------------------------------------------------------- //
+	// -------------------- Getters: Hardcoded parameters -------------------- //
+	// ----------------------------------------------------------------------- //
 
 	/**
 	 * Returns the name of the folder used for storing the application logs.

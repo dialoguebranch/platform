@@ -280,7 +280,9 @@ public class ApplicationManager {
 		return activeUserServices.remove(userService);
 	}
 	
-	// ---------- Dialogue Management:
+	// ------------------------------------------------------------- //
+	// -------------------- Dialogue Management -------------------- //
+	// ------------------------------------------------------------- //
 
 	public Dialogue getDialogueDefinition(FileDescriptor dialogueDescription,
                                           TranslationContext translationContext)
