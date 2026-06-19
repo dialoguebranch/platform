@@ -7,3 +7,4 @@ secrets.properties
 
 # Ignore Gradle project-specific cache directory
 .gradle
+.vscode/settings.json

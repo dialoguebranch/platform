@@ -4,10 +4,16 @@ plugins {
 	id 'java-library'
 	id 'application'
 	id 'distribution'
+	id 'maven-publish'
+	id 'signing'
+	// Plugins for Publishing to the Sonatype Central Portal
+	// See: https://gradleup.com/nmcp/
+	id 'com.gradleup.nmcp' version '1.5.0'
+	id 'com.gradleup.nmcp.aggregation' version '1.5.0'
 }
 
 group = 'com.dialoguebranch'
-version = '1.2.5'
+version = '1.3.0'
 
 base {
 	archivesName = 'dlb-core-java'
@@ -66,3 +72,66 @@ distributions {
 }
 
 [distZip, distTar, installDist]*.dependsOn jar
+
+publishing {
+	publications {
+		maven(MavenPublication) {
+			from components.java
+			pom {
+				name = 'Dialogue Branch Core Java Library'
+				description = 'Dialogue Branch gives you creative freedom to write engaging interactive conversations...'
+				url = 'https://www.dialoguebranch.com'
+				packaging = 'jar'
+
+				licenses {
+					license {
+						name = 'MIT License'
+						url = 'https://opensource.org/licenses/MIT'
+					}
+				}
+				developers {
+					developer {
+						id = 'hopdenakker'
+						name = 'Harm op den Akker'
+						email = 'hopdenakker@fruittreelabs.com'
+						organizationUrl = 'https://dialoguebranch.com/'
+					}
+					developer {
+						id = 'dhofs'
+						name = 'Dennis Hofs'
+						email = 'dennis.hofs@cube.nl'
+						organizationUrl = 'https://cube.nl'
+					}
+				}
+				scm {
+					url = 'https://github.com/dialoguebranch/dlb-core-java/tree/main'
+					connection = 'scm:git:git://github.com/dialoguebranch/dlb-core-java.git'
+					developerConnection = 'scm:git:ssh://github.com:dialoguebranch/dlb-core-java.git'
+				}
+			}
+		}
+	}
+}
+
+signing {
+	sign publishing.publications.maven
+}
+
+tasks.register('publishToMaven') {
+	dependsOn 'publishAggregationToCentralPortal'
+	group = 'publishing'
+	description = 'Publishes this library to Maven Central via the Sonatype Central Portal.'
+}
+
+// use Gradle task 'publishToMaven'
+nmcpAggregation {
+	centralPortal {
+		username = providers.gradleProperty('centralPortal.username')
+		password = providers.gradleProperty('centralPortal.password')
+		publishingType = 'AUTOMATIC'
+	}
+}
+
+dependencies {
+	nmcpAggregation project(path)
+}
