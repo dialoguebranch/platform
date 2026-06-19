@@ -36,7 +36,7 @@ java {
 
 javadoc {
 	source = sourceSets.main.allJava
-	destinationDir = reporting.file("javadoc")
+	destinationDir = reporting.baseDirectory.dir("javadoc").get().asFile
 	include 'com/dialoguebranch/**'
 	options.source = "17"
 	options.addStringOption('Xmaxwarns', '1000')
