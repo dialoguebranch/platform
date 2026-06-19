@@ -30,19 +30,37 @@ package com.dialoguebranch.script.model;
 
 import java.io.File;
 
+/**
+ * A {@link StorageSource} implementation backed by a {@link File} on the local filesystem. The
+ * descriptor returned by {@link #getDescriptor()} is the file's absolute path.
+ *
+ * @author Harm op den Akker
+ */
 public class FileStorageSource extends StorageSource {
 
     File sourceFile;
 
+    /**
+     * Creates a {@link FileStorageSource} that points to the given file.
+     * @param sourceFile the source file.
+     */
     public FileStorageSource(File sourceFile) {
         super();
         this.sourceFile = sourceFile;
     }
 
+    /**
+     * Returns the source file for this {@link FileStorageSource}.
+     * @return the source file.
+     */
     public File getSourceFile() {
         return this.sourceFile;
     }
 
+    /**
+     * Returns the absolute path of the source file.
+     * @return the absolute file path.
+     */
     @Override
     public String getDescriptor() {
         return this.sourceFile.getAbsolutePath();

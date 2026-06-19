@@ -40,13 +40,28 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 
+/**
+ * Utility class that reads an {@link EditableTranslation} from a {@link StorageSource} within an
+ * {@link EditableProject}.
+ *
+ * @author Harm op den Akker
+ */
 public class EditableTranslationParser {
 
+    /** Utility class — no instances. */
+    private EditableTranslationParser() {}
+
     /**
-     * Read an editable translation as part of the given editableProject and in the given language.
-     * @param editableProject
-     * @param storageSource
-     * @return
+     * Reads an {@link EditableTranslation} for the given {@code language} from the given
+     * {@code storageSource} within the given {@code editableProject}. Dispatches to the
+     * appropriate overload based on the concrete type of {@code storageSource}.
+     *
+     * @param editableProject the project this translation belongs to.
+     * @param language the language of this translation.
+     * @param storageSource the storage location of the translation file.
+     * @return the parsed {@link EditableTranslation}, or {@code null} for unsupported sources.
+     * @throws FileSystemException if the file is outside the project or in the wrong language folder.
+     * @throws IOException if the file cannot be read.
      */
     public static EditableTranslation read(EditableProject editableProject,
                                            Language language,
@@ -59,6 +74,18 @@ public class EditableTranslationParser {
         }
     }
 
+    /**
+     * Reads an {@link EditableTranslation} from a {@link FileStorageSource}. Validates that the
+     * source file is located within the project's base path and the correct language folder before
+     * reading.
+     *
+     * @param editableProject the project this translation belongs to.
+     * @param language the language of this translation.
+     * @param fileStorageSource the file-backed storage source of the translation.
+     * @return the parsed {@link EditableTranslation}, or {@code null} (work in progress).
+     * @throws IOException if the file cannot be read.
+     * @throws FileSystemException if the file is outside the project or in the wrong language folder.
+     */
     public static EditableTranslation read(EditableProject editableProject,
                                            Language language,
                                            FileStorageSource fileStorageSource)

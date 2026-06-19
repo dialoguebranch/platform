@@ -75,6 +75,12 @@ public class EditableTranslation {
     // -------------------- Constructor(s) -------------------- //
     // -------------------------------------------------------- //
 
+    /**
+     * Creates an empty {@link EditableTranslation} for the dialogue with the given name, associated
+     * with the given storage source.
+     * @param dialogueName the name of the dialogue to which these translations belong.
+     * @param storageSource the storage location of the translation file.
+     */
     public EditableTranslation(String dialogueName, StorageSource storageSource) {
         this.dialogueName = dialogueName;
         this.storageSource = storageSource;
@@ -85,14 +91,27 @@ public class EditableTranslation {
     // -------------------- Getters & Setters -------------------- //
     // ----------------------------------------------------------- //
 
+    /**
+     * Returns the name of the dialogue to which these translations belong.
+     * @return the dialogue name.
+     */
     public String getDialogueName() {
         return dialogueName;
     }
 
+    /**
+     * Returns the {@link StorageSource} indicating where this translation file is stored.
+     * @return the storage source.
+     */
     public StorageSource getStorageSource() {
         return storageSource;
     }
 
+    /**
+     * Returns the complete translation map: a mapping from speaker name to a map of
+     * {@code {term, translation}} pairs.
+     * @return the translations map.
+     */
     public Map<String, Map<String, String>> getTranslations() {
         return translations;
     }
@@ -101,6 +120,13 @@ public class EditableTranslation {
     // -------------------- Public Methods -------------------- //
     // -------------------------------------------------------- //
 
+    /**
+     * Adds a single term-translation pair for the given speaker. If an entry for the speaker
+     * already exists, the new pair is added to the existing map; otherwise a new entry is created.
+     * @param speakerName the name of the speaker (or {@link com.dialoguebranch.i18n.SourceTranslatable#USER} for replies).
+     * @param term the source term to translate.
+     * @param translation the translated text.
+     */
     public void addTerm(String speakerName, String term, String translation) {
         if(translations.containsKey(speakerName)) {
             Map<String,String> terms = translations.get(speakerName);

@@ -36,7 +36,18 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * A fault-tolerant parser that performs a basic analysis of an {@link EditableBody}'s source code,
+ * extracting reply options and recording any structural issues as {@link
+ * com.dialoguebranch.script.warning.ParserWarning}s. This parser is intended for use by editing
+ * tools rather than production execution.
+ *
+ * @author Harm op den Akker
+ */
 public class EditableBodyParser {
+
+    /** Creates a new {@link EditableBodyParser}. */
+    public EditableBodyParser() {}
 
     Logger logger = LoggerFactory.getLogger(EditableBodyParser.class);
 

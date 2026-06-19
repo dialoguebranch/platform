@@ -46,6 +46,9 @@ import java.util.List;
  */
 public class EditableScriptParser {
 
+    /** Utility class — no instances. */
+    private EditableScriptParser() {}
+
     /**
      * Attempts to create a {@link EditableScript} from the given {@link File} and with the
      * {@code languageCode} provided. The file must have the correct file extension, as defined in
@@ -84,6 +87,14 @@ public class EditableScriptParser {
         return editableScript;
     }
 
+    /**
+     * Replaces the contents of the given {@link EditableScript} by splitting the provided list of
+     * lines on the {@link Constants#DLB_NODE_SEPARATOR} and creating an {@link EditableNode} for
+     * each segment.
+     *
+     * @param lines the source-code lines to parse into nodes.
+     * @param editableScript the script whose contents should be replaced.
+     */
     public static void setContents(List<String> lines, EditableScript editableScript) {
         List<String> linesBuffer = new ArrayList<>();
 

@@ -46,6 +46,18 @@ import java.util.*;
  */
 public class EditableProjectParser {
 
+    /** Utility class — no instances. */
+    private EditableProjectParser() {}
+
+    /**
+     * Reads an {@link EditableProject} from the given project metadata XML file, discovering all
+     * available script and translation files relative to the file's parent directory.
+     *
+     * @param metaDataFile the project metadata ({@code .xml}) file.
+     * @return the assembled {@link EditableProject}.
+     * @throws IOException if the metadata file or any discovered script file cannot be read.
+     * @throws ParseException if the metadata XML is invalid.
+     */
     public static EditableProject read(File metaDataFile) throws IOException, ParseException {
 
         ProjectMetaData projectMetaData = ProjectMetaDataParser.parse(metaDataFile);

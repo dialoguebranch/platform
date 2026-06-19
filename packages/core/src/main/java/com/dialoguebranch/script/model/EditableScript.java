@@ -93,6 +93,7 @@ public class EditableScript extends Editable implements PropertyChangeListener  
      *
      * @param dialogueName the name of this {@link EditableScript}.
      * @param languageCode the language code for this {@link EditableScript}.
+     * @param storageSource the {@link StorageSource} indicating where this script is stored.
      */
     public EditableScript(String dialogueName, String languageCode, StorageSource storageSource) {
         // Set the dialogue name, or use the default value
@@ -128,6 +129,7 @@ public class EditableScript extends Editable implements PropertyChangeListener  
      *
      * @param dialogueName the name of this {@link EditableScript}.
      * @param languageCode the language code for this {@link EditableScript}.
+     * @param storageSource the {@link StorageSource} indicating where this script is stored.
      * @param nodes the {@link EditableNode}s that make up this {@link EditableScript}.
      */
     public EditableScript(String dialogueName, String languageCode, StorageSource storageSource,
@@ -271,6 +273,12 @@ public class EditableScript extends Editable implements PropertyChangeListener  
     // -------------------- Other Methods -------------------- //
     // ------------------------------------------------------- //
 
+    /**
+     * Returns the complete source code of this {@link EditableScript} as a single {@link String},
+     * with each node serialised in Dialogue Branch format (header, {@code ---} separator, body,
+     * {@code ===} node separator).
+     * @return the complete source code.
+     */
     public String getCompleteCode() {
         StringBuilder codeBuilder = new StringBuilder();
         for(EditableNode node : nodes) {
@@ -309,6 +317,12 @@ public class EditableScript extends Editable implements PropertyChangeListener  
         this.setModified(true);
     }
 
+    /**
+     * Returns a list of all {@link EditableNode}s in this script whose title matches the given
+     * {@code title} string (exact match). An empty list is returned if no such node exists.
+     * @param title the node title to search for.
+     * @return the list of matching nodes (may be empty).
+     */
     public List<EditableNode> getNodesByTitle(String title) {
         List<EditableNode> foundNodes = new ArrayList<>();
         for(EditableNode node : nodes) {
@@ -335,6 +349,11 @@ public class EditableScript extends Editable implements PropertyChangeListener  
         }
     }
 
+    /**
+     * Removes the given {@link EditableNode} from this script's node list and unregisters its
+     * property-change listener. Does nothing if {@code node} is {@code null} or not present.
+     * @param node the {@link EditableNode} to remove.
+     */
     public void removeNode(EditableNode node) {
         if(node != null) {
             List<EditableNode> oldNodes = new ArrayList<>(this.nodes);

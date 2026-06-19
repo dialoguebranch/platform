@@ -45,6 +45,7 @@ import java.util.List;
  */
 public abstract class Editable {
 
+    /** Creates a new {@link Editable} with an empty list of parser warnings. */
     public Editable() {
         parserWarnings = new ArrayList<>();
     }

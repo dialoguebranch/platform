@@ -28,28 +28,57 @@
 
 package com.dialoguebranch.script.warning;
 
+/**
+ * Represents a non-fatal warning produced by a fault-tolerant parser (such as
+ * {@link com.dialoguebranch.script.parser.EditableHeaderParser} or
+ * {@link com.dialoguebranch.script.parser.EditableBodyParser}). A warning carries the line number
+ * at which the issue was detected and a human-readable message describing it.
+ *
+ * @author Harm op den Akker
+ */
 public class ParserWarning {
 
     private int lineNumber;
     private String message;
 
+    /**
+     * Creates a {@link ParserWarning} with the given line number and message.
+     * @param lineNumber the line number at which the issue was detected (1-based; 0 if unknown).
+     * @param message a human-readable description of the warning.
+     */
     public ParserWarning(int lineNumber, String message) {
         this.lineNumber = lineNumber;
         this.message = message;
     }
 
+    /**
+     * Returns the line number at which the issue was detected.
+     * @return the 1-based line number, or 0 if unknown.
+     */
     public int getLineNumber() {
         return lineNumber;
     }
 
+    /**
+     * Sets the line number at which the issue was detected.
+     * @param lineNumber the 1-based line number.
+     */
     public void setLineNumber(int lineNumber) {
         this.lineNumber = lineNumber;
     }
 
+    /**
+     * Returns the human-readable description of this warning.
+     * @return the warning message.
+     */
     public String getMessage() {
         return message;
     }
 
+    /**
+     * Sets the human-readable description of this warning.
+     * @param message the warning message.
+     */
     public void setMessage(String message) {
         this.message = message;
     }

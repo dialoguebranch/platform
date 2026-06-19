@@ -179,20 +179,39 @@ public class EditableProject extends Editable implements PropertyChangeListener 
     // -------------------- Other Methods -------------------- //
     // ------------------------------------------------------- //
 
+    /**
+     * Adds the given {@link EditableScript} to the map of active scripts and registers this project
+     * as a property-change listener on the script.
+     * @param editableScript the script to activate.
+     */
     public void addActiveScript(EditableScript editableScript) {
         activeScripts.put(editableScript.getDialogueName(),editableScript);
         editableScript.addPropertyChangeListener(this);
     }
 
+    /**
+     * Removes the given {@link EditableScript} from the map of active scripts and unregisters the
+     * project's property-change listener.
+     * @param editableScript the script to deactivate.
+     */
     public void removeActiveScript(EditableScript editableScript) {
         editableScript.removePropertyChangeListener(this);
         activeScripts.remove(editableScript.getDialogueName());
     }
 
+    /**
+     * Returns whether the contents of this project has been modified (true), or not (false).
+     * @return {@code true} if the project has unsaved changes.
+     */
     public boolean isModified() {
         return this.isModified;
     }
 
+    /**
+     * Sets whether the contents of this project has been modified. If set to {@code false}, all
+     * active {@link EditableScript}s are also marked as unmodified.
+     * @param isModified {@code true} if the project has unsaved changes.
+     */
     public void setModified(boolean isModified) {
         boolean oldValue = this.isModified;
         this.isModified = isModified;
@@ -207,6 +226,10 @@ public class EditableProject extends Editable implements PropertyChangeListener 
                 .firePropertyChange(PROPERTY_IS_MODIFIED,oldValue,isModified);
     }
 
+    /**
+     * Returns all currently active {@link EditableScript}s that have unsaved modifications.
+     * @return the list of modified scripts; empty if none are modified.
+     */
     public List<EditableScript> getModifiedScripts() {
         List<EditableScript> result = new ArrayList<>();
         for(EditableScript script : activeScripts.values()) {
@@ -227,8 +250,8 @@ public class EditableProject extends Editable implements PropertyChangeListener 
      * @param translationLanguageTree the translation language tree in which to generate translation
      *                                scripts
      * @return the number of actually generated scripts
-     * @throws ScriptParseException
-     * @throws IOException
+     * @throws DialogueBranchException if a script file cannot be created on the filesystem.
+     * @throws IOException if a read or write error occurs.
      */
     public int generateTranslationFiles(ScriptTreeNode sourceLanguageTree,
                                         ScriptTreeNode translationLanguageTree)
@@ -310,6 +333,13 @@ public class EditableProject extends Editable implements PropertyChangeListener 
         return generatedScriptCount;
     }
 
+    /**
+     * Parses the given Dialogue Branch script file and generates a corresponding empty translation
+     * JSON file at the given location, with one entry per translatable term.
+     * @param dialogueBranchScript the source {@code .dlb} script file.
+     * @param translationFile the target translation {@code .json} file.
+     * @throws IOException if the script cannot be read or the translation file cannot be written.
+     */
     public void generateTranslationFile(File dialogueBranchScript, File translationFile) throws IOException {
         DialogueBranchParser dialogueBranchParser = new DialogueBranchParser(dialogueBranchScript);
         ParserResult parserResult = dialogueBranchParser.readDialogue();
@@ -341,11 +371,11 @@ public class EditableProject extends Editable implements PropertyChangeListener 
     }
 
     /**
-     * Create an EditableTranslationSet from all EditableTranslation scripts referenced in the given
-     * {@code translationTree}.
+     * Creates an {@link EditableTranslationSet} from all {@link EditableTranslation} scripts
+     * referenced in the given {@code translationTree}.
      *
-     * @param translationTree
-     * @return
+     * @param translationTree the root of the translation script tree.
+     * @return the assembled {@link EditableTranslationSet}, or {@code null} (work in progress).
      */
     public EditableTranslationSet getEditableTranslationSet(ScriptTreeNode translationTree) {
         if(translationTree.isLeaf()) {
@@ -358,6 +388,12 @@ public class EditableProject extends Editable implements PropertyChangeListener 
         return null;
     }
 
+    /**
+     * Recursively traverses the given {@code translationTree} and, for every leaf translation file,
+     * generates a corresponding TSV file in the same directory.
+     * @param translationTree the root of the translation script tree to process.
+     * @throws IOException if a translation file cannot be read or a TSV file cannot be written.
+     */
     public void generateTranslationTSVs(ScriptTreeNode translationTree) throws IOException {
         if(translationTree.isLeaf()) {
             StorageSource storageSource = translationTree.getStorageSource();

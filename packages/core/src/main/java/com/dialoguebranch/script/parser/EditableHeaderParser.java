@@ -48,6 +48,9 @@ import static com.dialoguebranch.parser.DialogueBranchParser.NODE_NAME_REGEX;
  */
 public class EditableHeaderParser {
 
+    /** Creates a new {@link EditableHeaderParser}. */
+    public EditableHeaderParser() {}
+
     Logger logger = LoggerFactory.getLogger(EditableHeaderParser.class);
 
     /**

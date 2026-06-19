@@ -31,6 +31,12 @@ package com.dialoguebranch.script.model;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * A container that groups a set of {@link EditableTranslation} objects belonging to a single
+ * language or context within an {@link EditableProject}.
+ *
+ * @author Harm op den Akker
+ */
 public class EditableTranslationSet {
 
     private List<EditableTranslation> editableTranslations;
@@ -39,10 +45,15 @@ public class EditableTranslationSet {
     // -------------------- Constructor(s) -------------------- //
     // -------------------------------------------------------- //
 
+    /** Creates an empty {@link EditableTranslationSet}. */
     public EditableTranslationSet() {
         editableTranslations = new ArrayList<>();
     }
 
+    /**
+     * Creates an {@link EditableTranslationSet} pre-populated with the given list of translations.
+     * @param editableTranslations the initial list of {@link EditableTranslation}s.
+     */
     public EditableTranslationSet(List<EditableTranslation> editableTranslations) {
         this.editableTranslations = editableTranslations;
     }
@@ -51,10 +62,18 @@ public class EditableTranslationSet {
     // -------------------- Getters & Setters -------------------- //
     // ----------------------------------------------------------- //
 
+    /**
+     * Returns the list of {@link EditableTranslation}s in this set.
+     * @return the list of editable translations.
+     */
     public List<EditableTranslation> getEditableTranslations() {
         return editableTranslations;
     }
 
+    /**
+     * Sets the list of {@link EditableTranslation}s in this set.
+     * @param editableTranslations the new list of editable translations.
+     */
     public void setEditableTranslations(List<EditableTranslation> editableTranslations) {
         this.editableTranslations = editableTranslations;
     }
@@ -63,6 +82,10 @@ public class EditableTranslationSet {
     // -------------------- Public Methods -------------------- //
     // -------------------------------------------------------- //
 
+    /**
+     * Adds the given {@link EditableTranslation} to this set.
+     * @param editableTranslation the translation to add.
+     */
     public void addEditableTranslation(EditableTranslation editableTranslation) {
         editableTranslations.add(editableTranslation);
     }

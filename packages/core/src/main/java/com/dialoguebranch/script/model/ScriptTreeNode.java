@@ -61,6 +61,14 @@ public class ScriptTreeNode {
     // -------------------- Constructor(s) -------------------- //
     // -------------------------------------------------------- //
 
+    /**
+     * Creates a {@link ScriptTreeNode} with the given parent, storage source, resource type and
+     * name.
+     * @param parent the parent node, or {@code null} if this is the root.
+     * @param storageSource the storage location for this node.
+     * @param resourceType whether this node represents a script, translation file, or folder.
+     * @param name the name of this node.
+     */
     public ScriptTreeNode(ScriptTreeNode parent, StorageSource storageSource,
                           ResourceType resourceType, String name) {
         this.parent = parent;
@@ -74,42 +82,82 @@ public class ScriptTreeNode {
     // -------------------- Getters & Setters -------------------- //
     // ----------------------------------------------------------- //
 
+    /**
+     * Returns the parent {@link ScriptTreeNode}, or {@code null} if this is the root.
+     * @return the parent node.
+     */
     public ScriptTreeNode getParent() {
         return this.parent;
     }
 
+    /**
+     * Sets the parent {@link ScriptTreeNode}.
+     * @param parent the parent node, or {@code null} to make this the root.
+     */
     public void setParent(ScriptTreeNode parent) {
         this.parent = parent;
     }
 
+    /**
+     * Returns the {@link StorageSource} for this node.
+     * @return the storage source.
+     */
     public StorageSource getStorageSource() {
         return this.storageSource;
     }
 
+    /**
+     * Sets the {@link StorageSource} for this node.
+     * @param storageSource the storage source.
+     */
     public void setStorageSource(StorageSource storageSource) {
         this.storageSource = storageSource;
     }
 
+    /**
+     * Returns the {@link ResourceType} of this node (script, translation, or folder).
+     * @return the resource type.
+     */
     public ResourceType getResourceType() {
         return this.resourceType;
     }
 
+    /**
+     * Sets the {@link ResourceType} of this node.
+     * @param resourceType the resource type.
+     */
     public void setResourceType(ResourceType resourceType) {
         this.resourceType = resourceType;
     }
 
+    /**
+     * Returns the name of this node (e.g. the script name or folder name).
+     * @return the node name.
+     */
     public String getName() {
         return this.name;
     }
 
+    /**
+     * Sets the name of this node.
+     * @param name the node name.
+     */
     public void setName(String name) {
         this.name = name;
     }
 
+    /**
+     * Returns the list of child {@link ScriptTreeNode}s.
+     * @return the children, sorted by the {@code ScriptTreeNodeComparator}.
+     */
     public List<ScriptTreeNode> getChildren() {
         return this.children;
     }
 
+    /**
+     * Sets the list of child {@link ScriptTreeNode}s and sorts them.
+     * @param children the new child list.
+     */
     public void setChildren(List<ScriptTreeNode> children) {
         this.children = children;
         this.children.sort(new ScriptTreeNodeComparator());
@@ -119,10 +167,18 @@ public class ScriptTreeNode {
     // -------------------- Other Methods -------------------- //
     // ------------------------------------------------------- //
 
+    /**
+     * Returns {@code true} if this node has no children (i.e. is a leaf in the tree).
+     * @return {@code true} if this node is a leaf.
+     */
     public boolean isLeaf() {
         return children.isEmpty();
     }
 
+    /**
+     * Adds the given child {@link ScriptTreeNode} to this node's children list and re-sorts.
+     * @param node the child node to add.
+     */
     public void addChild(ScriptTreeNode node) {
         this.children.add(node);
         this.children.sort(new ScriptTreeNodeComparator());
