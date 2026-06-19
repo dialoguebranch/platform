@@ -100,6 +100,14 @@ public record Translatable(NodeBody parent, List<NodeBody.Segment> segments) {
 		return builder.toString();
 	}
 
+	/**
+	 * Returns a trimmed, export-friendly string representation of this {@link Translatable} by
+	 * concatenating the trimmed {@link String} representation of each segment. Unlike
+	 * {@link #toString()}, leading and trailing whitespace within each segment is removed, making
+	 * the result suitable for use as a translation key in external tools such as POEditor.
+	 *
+	 * @return a whitespace-trimmed string representation of the translatable segments.
+	 */
 	public String toExportFriendlyString() {
 		StringBuilder builder = new StringBuilder();
 		for (NodeBody.Segment segment : segments) {

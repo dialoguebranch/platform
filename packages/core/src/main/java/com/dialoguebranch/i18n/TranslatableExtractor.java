@@ -49,11 +49,32 @@ import java.util.List;
  */
 public class TranslatableExtractor {
 
+	/**
+	 * Extracts all translatable segments from the given {@link Node}, using the node's configured
+	 * speaker as the speaker and {@link SourceTranslatable#USER} as the addressee.
+	 *
+	 * @param node the {@link Node} from which to extract translatable segments.
+	 * @return a {@link List} of {@link SourceTranslatable}s found in the node body.
+	 */
 	public List<SourceTranslatable> extractFromNode(Node node) {
 		return extractFromBody(node.getHeader().getSpeaker(),
 				SourceTranslatable.USER, node.getBody());
 	}
 
+	/**
+	 * Extracts all translatable segments from the given {@link NodeBody}. Traversal descends into
+	 * {@code <<if>>} and {@code <<random>>} command branches, and into reply statements (with
+	 * speaker and addressee roles swapped). {@code <<input>>} commands are included inline as part
+	 * of the surrounding translatable segment.
+	 *
+	 * @param speaker   the name of the agent delivering the top-level statements in {@code body},
+	 *                  or {@link SourceTranslatable#USER} when statements belong to the end-user.
+	 * @param addressee the name of the agent being addressed at the top level, or
+	 *                  {@link SourceTranslatable#USER} when the end-user is addressed.
+	 * @param body      the {@link NodeBody} to extract translatable segments from.
+	 * @return a {@link List} of {@link SourceTranslatable}s found in the body and its nested
+	 *         commands and replies.
+	 */
 	public List<SourceTranslatable> extractFromBody(String speaker,
                                                     String addressee, NodeBody body) {
 		List<SourceTranslatable> result = new ArrayList<>();

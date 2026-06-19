@@ -63,6 +63,16 @@ import java.util.*;
  * @author Dennis Hofs (RRD)
  */
 public class TranslationParser {
+
+	/**
+	 * Parses a Dialogue Branch translation file from the given {@link URL} and returns a
+	 * {@link TranslationParserResult} containing the parsed translations, any parse errors, and
+	 * any warnings encountered during parsing.
+	 *
+	 * @param url the {@link URL} pointing to the translation JSON resource.
+	 * @return a {@link TranslationParserResult} with the parse outcome.
+	 * @throws IOException in case of an I/O error while opening or reading the resource.
+	 */
 	public static TranslationParserResult parse(URL url)
 			throws IOException {
 		try (InputStream input = url.openStream()) {
@@ -70,6 +80,15 @@ public class TranslationParser {
 		}
 	}
 
+	/**
+	 * Parses a Dialogue Branch translation file from the given {@link File} and returns a
+	 * {@link TranslationParserResult} containing the parsed translations, any parse errors, and
+	 * any warnings encountered during parsing.
+	 *
+	 * @param file the translation JSON {@link File} to parse.
+	 * @return a {@link TranslationParserResult} with the parse outcome.
+	 * @throws IOException in case of an I/O error while reading the file.
+	 */
 	public static TranslationParserResult parse(File file)
 			throws IOException {
 		try (InputStream input = new FileInputStream(file)) {
@@ -77,11 +96,33 @@ public class TranslationParser {
 		}
 	}
 
+	/**
+	 * Parses a Dialogue Branch translation file from the given {@link InputStream} (read as
+	 * UTF-8) and returns a {@link TranslationParserResult} containing the parsed translations,
+	 * any parse errors, and any warnings encountered during parsing.
+	 *
+	 * @param input the {@link InputStream} containing the translation JSON content.
+	 * @return a {@link TranslationParserResult} with the parse outcome.
+	 * @throws IOException in case of an I/O error while reading the stream.
+	 */
 	public static TranslationParserResult parse(InputStream input)
 			throws IOException{
 		return parse(new InputStreamReader(input, StandardCharsets.UTF_8));
 	}
 
+	/**
+	 * Parses a Dialogue Branch translation file from the given {@link Reader} and returns a
+	 * {@link TranslationParserResult} containing the parsed translations, any parse errors, and
+	 * any warnings encountered during parsing.
+	 *
+	 * <p>The reader is read to completion and its content is interpreted as a JSON object
+	 * conforming to the POEditor key-value export format described in the class-level
+	 * documentation.</p>
+	 *
+	 * @param reader the {@link Reader} providing the translation JSON content.
+	 * @return a {@link TranslationParserResult} with the parse outcome.
+	 * @throws IOException in case of an I/O error while reading from the reader.
+	 */
 	public static TranslationParserResult parse(Reader reader)
 			throws IOException {
 		TranslationParserResult result = new TranslationParserResult();

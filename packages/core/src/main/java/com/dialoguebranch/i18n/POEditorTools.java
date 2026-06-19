@@ -209,6 +209,20 @@ public class POEditorTools {
 		writer.writeValue(exportFile, terms);
 	}
 
+	/**
+	 * Entry point for the interactive POEditor command-line tool. When invoked without arguments
+	 * the tool presents a menu with three scenarios:
+	 * <ol>
+	 *   <li>Generate a single POEditor terms JSON file from a .dlb script and all scripts it
+	 *       transitively references.</li>
+	 *   <li>Generate one POEditor terms JSON file per .dlb script found in the transitive reference
+	 *       tree.</li>
+	 *   <li>Convert a POEditor key-value JSON export into one or more Dialogue Branch translation
+	 *       JSON files.</li>
+	 * </ol>
+	 *
+	 * @param args command-line arguments (currently unused; the tool is fully interactive).
+	 */
 	public static void main(String[] args) {
 		POEditorTools tools = new POEditorTools();
 
@@ -350,6 +364,14 @@ public class POEditorTools {
 		System.exit(0);
 	}
 
+	/**
+	 * Interactively prompts the user for an output directory path. If the directory does not yet
+	 * exist the user is asked whether it should be created. Exits the process if the user declines
+	 * or if directory creation fails.
+	 *
+	 * @return a {@link File} pointing to the chosen (and potentially newly created) output
+	 *         directory.
+	 */
 	private File getOutputDirectoryInteractive() {
 		Scanner userInputScanner = new Scanner(System.in);
 		System.out.print("Output directory: ");
