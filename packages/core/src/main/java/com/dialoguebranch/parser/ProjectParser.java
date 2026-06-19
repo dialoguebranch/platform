@@ -55,8 +55,8 @@ import com.dialoguebranch.i18n.Translator;
  * extension of {@link Constants#DLB_TRANSLATION_FILE_EXTENSION} as provided through the given
  * {@link FileLoader} implementation.
  *
- * @author Dennis Hofs (Roessingh Research and Development)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Dennis Hofs
+ * @author Harm op den Akker
  */
 public class ProjectParser {
 	private final FileLoader fileLoader;

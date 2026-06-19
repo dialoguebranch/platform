@@ -34,7 +34,7 @@ import java.time.ZoneId;
  * {@link User} has an identifier and a time zone in which he currently resides that can be used to
  * log events (dialogue history and the stored update times for Dialogue Branch variables).
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class User {
 

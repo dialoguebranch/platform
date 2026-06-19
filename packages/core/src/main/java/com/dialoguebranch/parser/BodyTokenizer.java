@@ -39,8 +39,8 @@ import nl.rrd.utils.exception.LineNumberParseException;
  * A {@link BodyTokenizer} may be used to split a line of dialogue branch script into a {@link List}
  * of {@link BodyToken}s.
  *
- * @author Dennis Hofs (Roessingh Research and Development)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Dennis Hofs
+ * @author Harm op den Akker
  */
 public class BodyTokenizer {
 

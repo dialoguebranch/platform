@@ -32,8 +32,8 @@ package com.dialoguebranch.model.nodepointer;
  * An {@link InternalNodePointer} represents a pointer from an originNode to a targetNode within
  * the same Dialogue Branch script.
  * 
- * @author Tessa Beinema (University of Twente)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Tessa Beinema
+ * @author Harm op den Akker
  *
  * @see NodePointer
  */

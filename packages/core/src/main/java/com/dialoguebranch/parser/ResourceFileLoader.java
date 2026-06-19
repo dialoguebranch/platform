@@ -72,7 +72,7 @@ import java.util.Map;
  * value is again an array with directory or file entries.<br />
  * A file entry is a string with the file name.</p>
  *
- * @author Dennis Hofs (RRD)
+ * @author Dennis Hofs
  */
 public class ResourceFileLoader implements FileLoader {
 	private static final String INDEX_FILE = "dialogues.json";

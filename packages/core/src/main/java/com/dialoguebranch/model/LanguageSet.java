@@ -36,7 +36,7 @@ import java.util.Objects;
  * A {@link LanguageSet} is a mapping from a single source {@link Language} to a list of translation
  * {@link Language}s.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class LanguageSet {
 

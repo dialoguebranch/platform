@@ -68,8 +68,8 @@ import nl.rrd.utils.expressions.EvaluationException;
  * the {@code parameters} is a set containing one entry for "text", with the value "website". An
  * {@link ActionCommand} may contain any number of optional parameters like this.</p>
  *
- * @author Dennis Hofs (Roessingh Research and Development)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Dennis Hofs
+ * @author Harm op den Akker
  */
 public class ActionCommand extends AttributesCommand {
 

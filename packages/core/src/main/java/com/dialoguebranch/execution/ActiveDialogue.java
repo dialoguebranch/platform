@@ -48,8 +48,8 @@ import java.util.Map;
  * {@link ActiveDialogue} also contains utility functions to keep track of the state during
  * "execution" of the dialogue.
  * 
- * @author Harm op den Akker (Fruit Tree Labs)
- * @author Tessa Beinema (Roessingh Research and Development)
+ * @author Harm op den Akker
+ * @author Tessa Beinema
  */
 public class ActiveDialogue {
 

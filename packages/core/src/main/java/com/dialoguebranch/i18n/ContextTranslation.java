@@ -34,8 +34,8 @@ import java.util.Set;
  * This class models the translation of a phrase in a Dialogue Branch dialogue, along with a context
  * set. Supported contexts are: male_speaker, female_speaker, male_addressee, female_addressee.
  *
- * @author Dennis Hofs (Roessingh Research and Development)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Dennis Hofs
+ * @author Harm op den Akker
  *
  * @param context a set of properties that defines the context in which the {@code translation}
  *                takes place.

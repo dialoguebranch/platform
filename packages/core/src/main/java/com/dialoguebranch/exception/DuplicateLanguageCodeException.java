@@ -34,7 +34,7 @@ import java.io.Serial;
  * An exception that indicates that a Dialogue Branch project is trying to define two languages with
  * the same language code, or similar errors.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class DuplicateLanguageCodeException extends DialogueBranchException {
 

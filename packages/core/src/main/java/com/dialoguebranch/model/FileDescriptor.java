@@ -49,7 +49,7 @@ import java.util.Objects;
  * its file extension (but including any subdirectories under the language directory in which it
  * resides).
  *
- * @author Harm op den Akker (Fruit Tree Labs).
+ * @author Harm op den Akker
  */
 public class FileDescriptor {
 	

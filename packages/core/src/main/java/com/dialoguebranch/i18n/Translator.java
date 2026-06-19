@@ -42,7 +42,7 @@ import com.dialoguebranch.model.VariableString;
  * The translation map can be obtained from a translation file using the {@link
  * TranslationParser}.
  *
- * @author Dennis Hofs (RRD)
+ * @author Dennis Hofs
  */
 public class Translator {
 	private TranslationContext context;

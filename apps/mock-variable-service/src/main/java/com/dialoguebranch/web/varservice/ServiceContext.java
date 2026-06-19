@@ -36,7 +36,7 @@ import nl.rrd.utils.http.HttpURL;
  * A collection of static methods that provide information about the running context of this
  * service.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class ServiceContext {
 

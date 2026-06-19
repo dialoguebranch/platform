@@ -49,7 +49,7 @@ import java.time.Instant;
 /**
  * The main entry point for the External Variable Service Dummy as a Spring Boot Application.
  * 
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 @SpringBootApplication
 @EnableScheduling

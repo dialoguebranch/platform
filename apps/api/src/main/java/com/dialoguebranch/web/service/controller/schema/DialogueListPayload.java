@@ -37,7 +37,7 @@ import java.util.Arrays;
  * A {@link DialogueListPayload} object contains a list of dialogue names that is somehow provided
  * by the web service.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class DialogueListPayload extends JsonObject {
 

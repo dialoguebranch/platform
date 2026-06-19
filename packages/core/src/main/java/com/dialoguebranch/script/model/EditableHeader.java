@@ -41,7 +41,7 @@ import java.util.*;
  *
  * @see Editable
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class EditableHeader extends Editable {
 

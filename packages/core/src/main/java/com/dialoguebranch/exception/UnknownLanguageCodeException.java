@@ -34,7 +34,7 @@ import java.io.Serial;
  * An exception that may be thrown in case a user, or software configuration attempts to reference
  * a language code that is not known to the system.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class UnknownLanguageCodeException extends DialogueBranchException {
 

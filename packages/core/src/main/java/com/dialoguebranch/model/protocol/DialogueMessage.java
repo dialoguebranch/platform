@@ -39,7 +39,7 @@ import java.util.List;
  * The {@link Node} having been executed means that variables have
  * been resolved and "if" and "set" commands have been executed.
  *
- * @author Dennis Hofs (RRD)
+ * @author Dennis Hofs
  */
 public class DialogueMessage {
 	private String dialogue;

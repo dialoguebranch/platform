@@ -34,7 +34,7 @@ package com.dialoguebranch.exception;
  * and can be used simply to distinguish a class of exceptions that can be thrown by Dialogue Branch
  * software.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public abstract class DialogueBranchException extends Exception {
 

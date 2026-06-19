@@ -36,8 +36,8 @@ import java.io.Serial;
 /**
  * This exception indicates a parse error within a Dialogue Branch node.
  * 
- * @author Dennis Hofs (Roessingh Research and Development)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Dennis Hofs
+ * @author Harm op den Akker
  */
 public class NodeParseException extends ParseException {
 

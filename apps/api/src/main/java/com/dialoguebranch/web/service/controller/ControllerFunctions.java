@@ -46,7 +46,7 @@ import java.util.Map;
  * The {@link ControllerFunctions} class offers a set of public, static methods that can be used by
  * the service's various REST controllers.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class ControllerFunctions {
 

@@ -40,7 +40,7 @@ import com.dialoguebranch.model.NodeBody;
  * Base class for commands that are specified with &lt;&lt;...&gt;&gt; in Dialogue Branch statements
  * and replies.
  * 
- * @author Dennis Hofs (Roessingh Research and Development)
+ * @author Dennis Hofs
  */
 public abstract class Command implements Cloneable {
 

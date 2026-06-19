@@ -42,7 +42,7 @@ import java.util.List;
  * with the correct extension will result in a successful parse, and it is up to the user to decide
  * what to do with the results.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class EditableScriptParser {
 

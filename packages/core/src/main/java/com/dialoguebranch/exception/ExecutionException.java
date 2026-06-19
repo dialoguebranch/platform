@@ -34,8 +34,8 @@ import java.io.Serial;
  * An {@link ExecutionException} is an exception that can be thrown during execution of a Dialogue
  * Branch script.
  *
- * @author Dennis Hofs (Roessingh Research and Development)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Dennis Hofs
+ * @author Harm op den Akker
  */
 public class ExecutionException extends DialogueBranchException {
 

@@ -39,7 +39,7 @@ import java.time.ZoneId;
  * Factory class for creating {@link UserService} objects. Defines how to generate a new {@link
  * UserService} given a {@code userId} and an optional time zone.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class UserServiceFactory {
 

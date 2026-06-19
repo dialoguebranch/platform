@@ -34,7 +34,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * A {@link DLBVariablePayload} represents a Dialogue Branch Variable that is returned as the result
  * of an api-call to the web service.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class DLBVariablePayload {
 

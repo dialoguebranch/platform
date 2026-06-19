@@ -54,7 +54,7 @@ import java.util.List;
  * assume/create a single {username}.json file for every Dialogue Branch User that will contain a
  * JSON representation of the Dialogue Branch Variable Store.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class VariableStoreJSONStorageHandler implements VariableStoreStorageHandler {
 

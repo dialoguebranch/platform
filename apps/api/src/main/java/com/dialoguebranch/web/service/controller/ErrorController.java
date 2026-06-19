@@ -59,8 +59,8 @@ import jakarta.servlet.http.HttpServletResponse;
  * contain sensitive information, are hidden for the client.</li>
  * </ul></p>
  * 
- * @author Dennis Hofs (Roessingh Research and Development)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Dennis Hofs
+ * @author Harm op den Akker
  */
 
 @Hidden

@@ -64,7 +64,7 @@ import java.util.Map;
  *   resolved.</li>
  * </ul>
  *
- * @author Dennis Hofs (RRD)
+ * @author Dennis Hofs
  * @author Harm op den Akker
  */
 public class DialogueStatement {

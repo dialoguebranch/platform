@@ -51,8 +51,8 @@ import java.util.List;
  *     <li>targetNodeId - the ID (or "Title") of the node to which is being referenced.</li>
  * </ul>
  * 
- * @author Harm op den Akker (Fruit Tree Labs)
- * @author Tessa Beinema (University of Twente)
+ * @author Harm op den Akker
+ * @author Tessa Beinema
  *
  * @see NodePointer
  */

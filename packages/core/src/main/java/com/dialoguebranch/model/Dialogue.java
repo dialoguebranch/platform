@@ -44,7 +44,7 @@ import com.dialoguebranch.model.nodepointer.ExternalNodePointer;
  * and an (unordered) list of {@link Node}s. One of these {@link Node}s should have as title
  * "Start".
  * 
- * @author Harm op den Akker (Roessingh Research and Development)
+ * @author Harm op den Akker
  */
 public class Dialogue {
 	

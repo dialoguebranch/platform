@@ -43,8 +43,8 @@ import java.util.Map;
  * and {@link #getParseErrors()} is non-empty. Non-fatal issues (e.g. empty values) are reported
  * as {@link #getWarnings() warnings} without preventing the translations from being returned.</p>
  *
- * @author Dennis Hofs (Roessingh Research and Development)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Dennis Hofs
+ * @author Harm op den Akker
  */
 public class TranslationParserResult {
 

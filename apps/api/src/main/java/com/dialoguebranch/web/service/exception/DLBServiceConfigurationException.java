@@ -34,7 +34,7 @@ import java.io.Serial;
  * This exception is thrown when any part of the Dialogue Branch Web Service application could not
  * be initialized due to an incorrectly defined configuration parameter.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class DLBServiceConfigurationException extends Exception {
 

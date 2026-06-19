@@ -39,7 +39,7 @@ import java.util.Map;
  * web service protocol. It mirrors {@link ActionCommand}
  * except that any variables in strings have been resolved.
  *
- * @author Dennis Hofs (RRD)
+ * @author Dennis Hofs
  */
 public class DialogueAction {
 	private String type;

@@ -39,8 +39,8 @@ import java.io.Serial;
  * message (default "Internal Server Error") will be written to the response. It is handled by the
  * {@link ErrorController ErrorController}.
  * 
- * @author Dennis Hofs (Roessingh Research and Development)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Dennis Hofs
+ * @author Harm op den Akker
  */
 @ResponseStatus(value=HttpStatus.INTERNAL_SERVER_ERROR)
 public class InternalServerErrorException extends HttpException {

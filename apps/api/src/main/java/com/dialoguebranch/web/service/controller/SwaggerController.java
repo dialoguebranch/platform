@@ -37,7 +37,7 @@ import org.springframework.web.servlet.view.RedirectView;
 /**
  * Controller for the Swagger User Interface at /swagger-ui.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 @Configuration
 @Controller

@@ -51,8 +51,8 @@ import java.util.List;
  *     <li>{@link Type#VARIABLE}</li>
  * </ul>
  *
- * @author Harm op den Akker (Fruit Tree Labs)
- * @author Dennis Hofs (Roessingh Research and Development)
+ * @author Harm op den Akker
+ * @author Dennis Hofs
  */
 public class BodyToken {
 

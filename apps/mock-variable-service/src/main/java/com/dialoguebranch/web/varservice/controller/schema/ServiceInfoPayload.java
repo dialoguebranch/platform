@@ -34,7 +34,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * A {@link ServiceInfoPayload} object may be used to consolidate certain metadata about this
  * Dialogue Branch External Variable Service.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class ServiceInfoPayload {
 

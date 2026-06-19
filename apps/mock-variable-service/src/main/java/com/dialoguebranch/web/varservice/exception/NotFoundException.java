@@ -39,8 +39,8 @@ import java.io.Serial;
  * (default "Not Found") will be written to the response. It is handled by the {@link
  * ErrorController}.
  *
- * @author Dennis Hofs (Roessingh Research and Development)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Dennis Hofs
+ * @author Harm op den Akker
  */
 @ResponseStatus(value=HttpStatus.NOT_FOUND)
 public class NotFoundException extends HttpException {

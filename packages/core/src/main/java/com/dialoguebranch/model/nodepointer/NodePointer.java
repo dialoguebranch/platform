@@ -35,8 +35,8 @@ import com.dialoguebranch.model.Node;
  * InternalNodePointer} that links to a node withing the same dialogue, or an {@link
  * ExternalNodePointer} linking to a node in another Dialogue Branch script.
  * 
- * @author Tessa Beinema (Roessingh Research and Development)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Tessa Beinema
+ * @author Harm op den Akker
  *
  * @see InternalNodePointer
  * @see ExternalNodePointer

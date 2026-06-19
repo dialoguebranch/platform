@@ -36,7 +36,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * should be annotated with {@link ResponseStatus ResponseStatus}. They are
  * handled by {@link ErrorController ErrorController}.
  * 
- * @author Dennis Hofs (RRD)
+ * @author Dennis Hofs
  */
 public abstract class HttpException extends Exception {
 	private static final long serialVersionUID = 1L;

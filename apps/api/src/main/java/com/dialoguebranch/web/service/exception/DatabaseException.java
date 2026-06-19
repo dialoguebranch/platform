@@ -33,8 +33,8 @@ import java.io.Serial;
 /**
  * This exception is thrown when any database error occurs.
  *
- * @author Dennis Hofs (Roessingh Research and Development)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Dennis Hofs
+ * @author Harm op den Akker
  */
 public class DatabaseException extends Exception {
 

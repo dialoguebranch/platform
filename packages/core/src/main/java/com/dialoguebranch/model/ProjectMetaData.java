@@ -42,7 +42,7 @@ import java.util.List;
  * dynamically modifying the contents of a {@link ProjectMetaData} specification while maintaining
  * certain constraints.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class ProjectMetaData {
 

@@ -55,7 +55,7 @@ import java.util.List;
  *   </li>
  * </ul>
  *
- * @author Dennis Hofs (RRD)
+ * @author Dennis Hofs
  */
 public class ReplyMessage {
 	private int replyId;

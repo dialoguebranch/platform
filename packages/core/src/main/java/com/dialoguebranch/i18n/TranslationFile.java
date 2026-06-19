@@ -62,8 +62,8 @@ import java.util.Map;
  *   }
  * }</pre>
  *
- * @author Harm op den Akker (Fruit Tree Labs)
- * @author Dennis Hofs (Roessingh Research and Development)
+ * @author Harm op den Akker
+ * @author Dennis Hofs
  */
 public class TranslationFile {
 

@@ -34,7 +34,7 @@ import com.dialoguebranch.web.service.exception.HttpException;
  * Implementations of this interface can be passed to {@link QueryRunner
  * QueryRunner} to run a query using the authentication database.
  * 
- * @author Dennis Hofs (RRD)
+ * @author Dennis Hofs
  *
  * @param <T> the type of the query result
  */

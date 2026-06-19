@@ -60,7 +60,7 @@ import jakarta.servlet.http.HttpServletResponse;
  * contain sensitive information, are hidden for the client.</li>
  * </ul></p>
  * 
- * @author Dennis Hofs (RRD)
+ * @author Dennis Hofs
  * @author Harm op den Akker
  */
 @Hidden

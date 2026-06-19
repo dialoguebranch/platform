@@ -31,7 +31,7 @@ package com.dialoguebranch.model;
 /**
  * A {@link Node} represents a single step in a {@link Dialogue} definition.
  *
- * @author Harm op den Akker (Roessingh Research and Development)
+ * @author Harm op den Akker
  */
 public class Node {
 	

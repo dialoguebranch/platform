@@ -34,7 +34,7 @@ import java.io.Serial;
  * Exception that may be thrown whenever the user is providing invalid input in any Dialogue Branch
  * related context.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class InvalidInputException extends DialogueBranchException {
 

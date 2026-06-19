@@ -37,7 +37,7 @@ import java.util.Map;
  * delivering the node's content, and may carry arbitrary key-value metadata via
  * {@code optionalTags}.
  *
- * @author Fruit Tree Labs
+ * @author Harm op den Akker
  */
 public class NodeHeader {
 

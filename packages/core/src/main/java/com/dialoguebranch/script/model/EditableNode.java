@@ -47,7 +47,7 @@ import java.beans.PropertyChangeSupport;
  * @see Editable
  * @see PropertyChangeListener
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class EditableNode extends Editable implements PropertyChangeListener {
 

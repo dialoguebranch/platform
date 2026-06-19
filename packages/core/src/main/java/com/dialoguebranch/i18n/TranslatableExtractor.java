@@ -45,7 +45,7 @@ import java.util.List;
  * commands) from a {@link Node} or {@link NodeBody}. This includes translatables within "if" and
  * "random" commands and replies.
  *
- * @author Dennis Hofs (Roessingh Research and Development)
+ * @author Dennis Hofs
  */
 public class TranslatableExtractor {
 

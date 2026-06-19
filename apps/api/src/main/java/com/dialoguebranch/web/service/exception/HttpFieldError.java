@@ -33,8 +33,8 @@ import nl.rrd.utils.json.JsonObject;
 /**
  * This class defines an error in the user input for a specified field.
  * 
- * @author Dennis Hofs (Roessingh Research and Development)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Dennis Hofs
+ * @author Harm op den Akker
  */
 public class HttpFieldError extends JsonObject {
 

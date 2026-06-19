@@ -43,8 +43,8 @@ import java.util.Map;
  * This class contains the result of parsing a Dialogue Branch project with the {@link
  * ProjectParser}.
  *
- * @author Dennis Hofs (RRD)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Dennis Hofs
+ * @author Harm op den Akker
  */
 public class ProjectParserResult {
 

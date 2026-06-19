@@ -40,8 +40,8 @@ import java.util.List;
  * project. The default implementation is {@link ResourceFileLoader}, which can load files from
  * resources on the classpath.
  *
- * @author Dennis Hofs (RRD)
- * @author Harm op den Akker (Fruit Tree Labs - hopdenakker@fruittreelabs.com)
+ * @author Dennis Hofs
+ * @author Harm op den Akker
  */
 public interface FileLoader {
 

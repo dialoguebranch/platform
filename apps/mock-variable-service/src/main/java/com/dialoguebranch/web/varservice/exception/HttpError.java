@@ -37,7 +37,7 @@ import nl.rrd.utils.json.JsonObject;
  * An HTTP error can be included as a JSON string in the content of an HTTP error response. It has
  * an optional error code. The core error codes are defined as constants in {@link ErrorCode}.
  * 
- * @author Dennis Hofs (Roessingh Research and Development)
+ * @author Dennis Hofs
  */
 public class HttpError extends JsonObject {
 	private String code = null;

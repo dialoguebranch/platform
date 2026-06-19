@@ -47,7 +47,7 @@ import java.util.*;
  * This class models the &lt;&lt;if ...&gt;&gt; command in Dialogue Branch. It can be part
  * of a {@link NodeBody} (not inside a reply).
  * 
- * @author Dennis Hofs (RRD)
+ * @author Dennis Hofs
  */
 public class IfCommand extends ExpressionCommand {
 	private List<Clause> ifClauses = new ArrayList<>();

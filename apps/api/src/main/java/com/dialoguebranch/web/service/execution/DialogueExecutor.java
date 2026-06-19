@@ -51,8 +51,8 @@ import java.util.Set;
  * A {@link DialogueExecutor} holds a set of functions for executing Dialogue Branch Dialogue for a
  * given {@link UserService}.
  * 
- * @author Tessa Beinema (University of Twente)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Tessa Beinema
+ * @author Harm op den Akker
  */
 public class DialogueExecutor {
 

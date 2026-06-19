@@ -49,7 +49,7 @@ import java.util.Map;
  * project, and a set of {@link EditableScript}s, representing the dialogue branch scripts that
  * may yet still be edited.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class EditableProject extends Editable implements PropertyChangeListener {
 

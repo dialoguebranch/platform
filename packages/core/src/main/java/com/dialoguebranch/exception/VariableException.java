@@ -34,8 +34,8 @@ import java.io.Serial;
  * This exception can be thrown when the content of the variable store is not as expected. It can
  * mean that a variable is not defined or its value is invalid.
  * 
- * @author Dennis Hofs (Roessingh Research and Development)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Dennis Hofs
+ * @author Harm op den Akker
  */
 public class VariableException extends RuntimeException {
 

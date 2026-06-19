@@ -37,7 +37,7 @@ import org.springframework.web.servlet.view.RedirectView;
  * Controller class that ensures users visiting the root of the web service are properly redirected
  * to the Swagger UI.
  *
- * @author Harm op den Akker (Fruit Tree Labs).
+ * @author Harm op den Akker
  */
 @Controller
 public class SwaggerController {

@@ -38,7 +38,7 @@ import java.io.IOException;
 /**
  * Interface for classes that can read and write a {@link VariableStore}.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public interface VariableStoreStorageHandler extends VariableStoreOnChangeListener {
 

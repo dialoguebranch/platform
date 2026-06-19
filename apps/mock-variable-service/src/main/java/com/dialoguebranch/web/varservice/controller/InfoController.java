@@ -47,7 +47,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Controller for the /info/... end-points of the Dialogue Branch External Variable Service.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 @RestController
 @RequestMapping(value = {"/v{version}/info", "/info"})

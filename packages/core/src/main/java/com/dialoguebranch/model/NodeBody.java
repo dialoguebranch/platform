@@ -83,7 +83,7 @@ import java.util.*;
  *   option.</li>
  * </ul>
  * 
- * @author Dennis Hofs (RRD)
+ * @author Dennis Hofs
  */
 public class NodeBody {
 	private List<Segment> segments = new ArrayList<>();

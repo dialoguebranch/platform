@@ -52,7 +52,7 @@ import java.util.Scanner;
  *
  * <p>This class can be used to test various functions of the library.</p>
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class CommandLineRunner {
 

@@ -41,7 +41,7 @@ import java.time.ZonedDateTime;
  * of a {@link VariableStore}, using easily serializable parameters (i.e. avoiding Time-related
  * objects).
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Variable {

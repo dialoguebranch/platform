@@ -38,8 +38,8 @@ import java.io.Serial;
  * with {@link ResponseStatus ResponseStatus}. They are handled by
  * {@link ErrorController ErrorController}.
  * 
- * @author Dennis Hofs (Roessingh Research and Development)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Dennis Hofs
+ * @author Harm op den Akker
  */
 public abstract class HttpException extends Exception {
 

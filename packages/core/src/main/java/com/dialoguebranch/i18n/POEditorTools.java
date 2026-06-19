@@ -47,8 +47,8 @@ import java.util.*;
  * conveniently execute different scripts covering different scenarios related to importing from- or
  * exporting to POEditor.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
- * @author Tessa Beinema (University of Twente)
+ * @author Harm op den Akker
+ * @author Tessa Beinema
  */
 public class POEditorTools {
 

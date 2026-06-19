@@ -59,7 +59,7 @@ import java.util.Objects;
  * <p>This class supports the {@link PropertyChangeSupport} pattern and will report all changes that
  * are made to its content after creation.</p>
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class EditableScript extends Editable implements PropertyChangeListener  {
 

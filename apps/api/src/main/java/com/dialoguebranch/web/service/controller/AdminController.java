@@ -58,7 +58,7 @@ import java.util.List;
 /**
  * Controller for the /admin/... end-points of the Dialogue Branch Web Service.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 @RestController
 @SecurityRequirement(name = "X-Auth-Token")

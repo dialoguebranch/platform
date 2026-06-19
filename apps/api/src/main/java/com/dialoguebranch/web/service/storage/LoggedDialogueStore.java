@@ -51,7 +51,7 @@ import java.util.*;
  * <p>A {@link LoggedDialogueStore} does not maintain any data in-memory, but immediately stores
  * any changes made to the configured storage mechanism.</p>
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class LoggedDialogueStore {
 

@@ -47,7 +47,7 @@ import java.util.Set;
  * This class models the &lt;&lt;input ...&gt;&gt; command in Dialogue Branch. It can
  * be part of a {@link NodeBody} inside a reply.
  * 
- * @author Dennis Hofs (RRD)
+ * @author Dennis Hofs
  */
 public abstract class InputCommand extends AttributesCommand {
 	public static final String TYPE_EMAIL = "email";

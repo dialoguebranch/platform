@@ -58,8 +58,8 @@ import com.dialoguebranch.model.command.ActionCommand;
  *   <li>{@link SetCommand}</li>
  * </ul>
  * 
- * @author Dennis Hofs (Roessingh Research and Development)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Dennis Hofs
+ * @author Harm op den Akker
  */
 public class Reply {
 	private int replyId;

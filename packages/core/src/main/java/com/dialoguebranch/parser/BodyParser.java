@@ -50,8 +50,8 @@ import java.util.List;
  * (where we accept e.g. 'action', 'if', 'random' and 'set') or a statement section within a reply
  * (where we only accept 'action' or 'set' commands).</p>
  *
- * @author Dennis Hofs (Roessingh Research and Development)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Dennis Hofs
+ * @author Harm op den Akker
  */
 public class BodyParser {
 

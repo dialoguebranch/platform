@@ -44,7 +44,7 @@ import java.util.*;
  * This class models the &lt;&lt;random ...&gt;&gt; command in Dialogue Branch. It can be
  * part of a {@link NodeBody} (not inside a reply).
  * 
- * @author Dennis Hofs (RRD)
+ * @author Dennis Hofs
  */
 public class RandomCommand extends AttributesCommand {
 	private final Random random = new Random();

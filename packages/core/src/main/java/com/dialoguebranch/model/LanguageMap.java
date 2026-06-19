@@ -36,7 +36,7 @@ import java.util.Objects;
  * A {@link LanguageMap} is a wrapper object containing a {@link List} of {@link LanguageSet}s, as
  * well as some convenience methods for manipulating {@link LanguageSet}s.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class LanguageMap {
 

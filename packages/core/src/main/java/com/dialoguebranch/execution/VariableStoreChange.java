@@ -33,7 +33,7 @@ import java.util.*;
 /**
  * An abstract representation of a change in the {@link VariableStore}.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public abstract class VariableStoreChange {
 
@@ -94,8 +94,8 @@ public abstract class VariableStoreChange {
 	 * An implementation of {@link VariableStoreChange} representing a set of added {@link
 	 * Variable}s.
 	 *
-	 * @author Dennis Hofs (Roessingh Research and Development)
-	 * @author Harm op den Akker (Fruit Tree Labs)
+	 * @author Dennis Hofs
+	 * @author Harm op den Akker
 	 */
 	public static class Put extends VariableStoreChange {
 		private final Map<String,Object> variables;

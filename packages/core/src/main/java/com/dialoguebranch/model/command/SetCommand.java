@@ -50,7 +50,7 @@ import com.dialoguebranch.parser.BodyToken;
  * Reply} (to be performed when the user chooses the reply). It
  * contains an assign statement.
  * 
- * @author Dennis Hofs (RRD)
+ * @author Dennis Hofs
  */
 public class SetCommand extends ExpressionCommand {
 	private AssignExpression expression;

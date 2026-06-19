@@ -35,8 +35,8 @@ import nl.rrd.utils.json.JsonObject;
  * that the Spring Framework returns a valid JSON string. Normally if a Spring method returns
  * {@code null}, it results in an empty response, which may throw client applications off course.
  *
- * @author Dennis Hofs (Roessingh Research and Development)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Dennis Hofs
+ * @author Harm op den Akker
  *
  * @param <T> the value type
  */

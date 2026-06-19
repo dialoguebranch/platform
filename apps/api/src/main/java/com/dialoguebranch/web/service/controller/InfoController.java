@@ -47,7 +47,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Controller for the /info/... end-points of the Dialogue Branch Web Service.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 @RestController
 @Tag(name = "5. Information", description = "End-points that provide information about the " +

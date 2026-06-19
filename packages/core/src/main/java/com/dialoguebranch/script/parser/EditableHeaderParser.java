@@ -44,7 +44,7 @@ import static com.dialoguebranch.parser.DialogueBranchParser.NODE_NAME_REGEX;
  * a given {@link EditableHeader} into a collection of key-value pairs (tags). This is an extremely
  * fault-tolerant parser that is meant to be used at the time of editing scripts.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class EditableHeaderParser {
 

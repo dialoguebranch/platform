@@ -41,7 +41,7 @@ import java.util.List;
  * <p>In addition, an editable object must define a way for it to be parsed, and stores potential
  * warnings that resulted from the latest parse.</p>
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public abstract class Editable {
 

@@ -60,7 +60,7 @@ import java.util.*;
  * <p>This parser ignores context strings and returns a flat map of translatables. This means that
  * it does not support different translations of the same string with different contexts.</p>
  *
- * @author Dennis Hofs (RRD)
+ * @author Dennis Hofs
  */
 public class TranslationParser {
 

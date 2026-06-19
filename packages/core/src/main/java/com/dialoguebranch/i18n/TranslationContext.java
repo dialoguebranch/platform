@@ -42,8 +42,8 @@ import java.util.Map;
  * <p>This information is relevant as in some languages, speaker- or addressee gender may affect the
  * translation, and different variations may be provided in the translation script.</p>
  *
- * @author Dennis Hofs (Roessingh Research and Development)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Dennis Hofs
+ * @author Harm op den Akker
  */
 public class TranslationContext {
 

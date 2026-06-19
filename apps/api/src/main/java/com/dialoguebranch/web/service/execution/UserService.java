@@ -56,8 +56,8 @@ import java.util.*;
  * A {@link UserService} is a service class that handles all communication with the Dialogue Branch
  * Web Service for a specific {@link User}.
  * 
- * @author Harm op den Akker (Fruit Tree Labs)
- * @author Tessa Beinema (University of Twente)
+ * @author Harm op den Akker
+ * @author Tessa Beinema
  */
 public class UserService {
 

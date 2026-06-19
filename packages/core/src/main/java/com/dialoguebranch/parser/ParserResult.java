@@ -37,8 +37,8 @@ import java.util.List;
  * A {@link ParserResult} object contains the results of parsing a .dlb file, including the
  * resulting {@link Dialogue} and a list of {@link ParseException}s.
  *
- * @author Dennis Hofs (Roessingh Research and Development)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Dennis Hofs
+ * @author Harm op den Akker
  */
 public class ParserResult {
 

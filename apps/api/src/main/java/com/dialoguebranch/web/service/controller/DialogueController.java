@@ -72,8 +72,8 @@ import java.util.UUID;
 /**
  * Controller for the /dialogue/... end-points of the Dialogue Branch Web Service.
  *
- * @author Dennis Hofs (Roessingh Research and Development)
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Dennis Hofs
+ * @author Harm op den Akker
  */
 @RestController
 @SecurityRequirement(name = "X-Auth-Token")

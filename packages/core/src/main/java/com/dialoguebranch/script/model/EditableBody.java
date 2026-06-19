@@ -39,7 +39,7 @@ import java.util.Objects;
  *
  * @see Editable
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class EditableBody extends Editable {
 

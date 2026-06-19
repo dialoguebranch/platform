@@ -36,7 +36,7 @@ package com.dialoguebranch.model;
  *
  * <p>Note: Language codes *must* be unique within a given Dialogue Branch project.</p>
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class Language {
 

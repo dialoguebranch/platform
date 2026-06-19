@@ -42,7 +42,7 @@ import java.util.*;
  * An {@link EditableProjectParser} is a collection of static methods that can be used to read an
  * {@link EditableProject} from a file.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
+ * @author Harm op den Akker
  */
 public class EditableProjectParser {
 

@@ -63,8 +63,8 @@ import java.util.List;
 /**
  * Controller for the /auth/... end-points of the Dialogue Branch Web Service.
  *
- * @author Harm op den Akker (Fruit Tree Labs)
- * @author Dennis Hofs (Roessingh Research and Development)
+ * @author Harm op den Akker
+ * @author Dennis Hofs
  */
 @RestController
 @RequestMapping(value = {"/v{version}/auth", "/auth"})
