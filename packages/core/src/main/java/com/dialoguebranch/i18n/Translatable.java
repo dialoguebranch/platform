@@ -43,7 +43,12 @@ import java.util.List;
  * <p>Instances of this class can be obtained from {@link TranslatableExtractor} or {@link
  * TranslationParser}.</p>
  *
- * @author Dennis Hofs (Roessingh Research and Development)
+ * @param parent   the {@link NodeBody} that contains these segments; used by {@link Translator}
+ *                 to locate and replace the segments in-place during translation.
+ * @param segments the ordered list of {@link NodeBody.Segment}s that make up the translatable
+ *                 content (text, variables, and optional {@code <<input>>} commands).
+ *
+ * @author Dennis Hofs
  */
 public record Translatable(NodeBody parent, List<NodeBody.Segment> segments) {
 

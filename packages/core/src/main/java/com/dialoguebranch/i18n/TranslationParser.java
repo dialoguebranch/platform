@@ -65,6 +65,12 @@ import java.util.*;
 public class TranslationParser {
 
 	/**
+	 * Creates a new {@link TranslationParser}. All parse methods are static; this constructor
+	 * exists only to satisfy JavaDoc tooling requirements.
+	 */
+	public TranslationParser() { }
+
+	/**
 	 * Parses a Dialogue Branch translation file from the given {@link URL} and returns a
 	 * {@link TranslationParserResult} containing the parsed translations, any parse errors, and
 	 * any warnings encountered during parsing.

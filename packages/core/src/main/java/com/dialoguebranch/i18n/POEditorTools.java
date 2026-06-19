@@ -53,6 +53,11 @@ import java.util.*;
 public class POEditorTools {
 
 	/**
+	 * Creates a new {@link POEditorTools} instance.
+	 */
+	public POEditorTools() { }
+
+	/**
 	 * Takes a Key-Value JSON export from POEditor and generates a set of {@link TranslationFile}
 	 * objects for each different dialogue found in the JSON file. The input JSON-file has the
 	 * following structure:

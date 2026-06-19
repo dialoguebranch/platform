@@ -50,6 +50,11 @@ import java.util.List;
 public class TranslatableExtractor {
 
 	/**
+	 * Creates a new {@link TranslatableExtractor}.
+	 */
+	public TranslatableExtractor() { }
+
+	/**
 	 * Extracts all translatable segments from the given {@link Node}, using the node's configured
 	 * speaker as the speaker and {@link SourceTranslatable#USER} as the addressee.
 	 *

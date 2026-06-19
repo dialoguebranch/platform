@@ -47,8 +47,13 @@ import java.util.Map;
  */
 public class TranslationContext {
 
+	/**
+	 * The gender of a speaker or addressee, used to select gender-inflected translation variants.
+	 */
 	public enum Gender {
+		/** Masculine gender. */
 		MALE,
+		/** Feminine gender. */
 		FEMALE
 	}
 

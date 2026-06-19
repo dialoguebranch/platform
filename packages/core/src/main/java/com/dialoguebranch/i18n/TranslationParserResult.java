@@ -48,6 +48,12 @@ import java.util.Map;
  */
 public class TranslationParserResult {
 
+	/**
+	 * Creates a new, empty {@link TranslationParserResult} with no translations, no parse errors,
+	 * and no warnings.
+	 */
+	public TranslationParserResult() { }
+
 	private Map<Translatable,List<ContextTranslation>> translations = null;
 	private List<ParseException> parseErrors = new ArrayList<>();
 	private List<String> warnings = new ArrayList<>();
