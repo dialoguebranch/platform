@@ -31,7 +31,7 @@ package com.dialoguebranch.web.varservice.controller.schema;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * A {@link DLBVariablePayload} represents a DialogueBranch Variable that is returned as the result
+ * A {@link DLBVariablePayload} represents a Dialogue Branch Variable that is returned as the result
  * of an api-call to the web service.
  *
  * @author Harm op den Akker (Fruit Tree Labs)
@@ -67,12 +67,12 @@ public class DLBVariablePayload {
 
 	/**
 	 * Creates an instance of a {@link DLBVariablePayload}
-	 * @param name the name of the DialogueBranch Variable that is represented by this
+	 * @param name the name of the Dialogue Branch Variable that is represented by this
 	 * 			   {@link DLBVariablePayload}
-	 * @param value the value of the DialogueBranch Variable as an {@link Object}
-	 * @param updatedTime the UTC timestamp of when this DialogueBranch Variable was last updated
+	 * @param value the value of the Dialogue Branch Variable as an {@link Object}
+	 * @param updatedTime the UTC timestamp of when this Dialogue Branch Variable was last updated
 	 * @param updatedTimeZone the time zone (as IANA String, e.g. "Europe/Lisbon") in which this
-	 *                        DialogueBranch variable was last updated.
+	 *                        Dialogue Branch variable was last updated.
 	 */
 	public DLBVariablePayload(String name, Object value,
 							  Long updatedTime, String updatedTimeZone) {
@@ -119,9 +119,9 @@ public class DLBVariablePayload {
 	}
 
 	/**
-	 * Returns the UTC timestamp in milliseconds of when this DialogueBranch Variable was last
+	 * Returns the UTC timestamp in milliseconds of when this Dialogue Branch Variable was last
 	 * updated.
-	 * @return the UTC timestamp in milliseconds of when this DialogueBranch Variable was last
+	 * @return the UTC timestamp in milliseconds of when this Dialogue Branch Variable was last
 	 *         updated.
 	 */
 	public Long getUpdatedTime() {
@@ -129,8 +129,8 @@ public class DLBVariablePayload {
 	}
 
 	/**
-	 * Sets the UTC timestamp in milliseconds of when this DialogueBranch Variable was last updated.
-	 * @param updatedTime the UTC timestamp in milliseconds of when this DialogueBranch Variable was
+	 * Sets the UTC timestamp in milliseconds of when this Dialogue Branch Variable was last updated.
+	 * @param updatedTime the UTC timestamp in milliseconds of when this Dialogue Branch Variable was
 	 *                    last updated.
 	 */
 	public void setUpdatedTime(Long updatedTime) {
@@ -138,9 +138,9 @@ public class DLBVariablePayload {
 	}
 
 	/**
-	 * Returns the timezone (as IANA String, e.g. "Europe/Lisbon") in which the DialogueBranch
+	 * Returns the timezone (as IANA String, e.g. "Europe/Lisbon") in which the Dialogue Branch
 	 * variable was last updated.
-	 * @return the timezone (as IANA String, e.g. "Europe/Lisbon") in which the DialogueBranch
+	 * @return the timezone (as IANA String, e.g. "Europe/Lisbon") in which the Dialogue Branch
 	 *         variable was last updated.
 	 */
 	public String getUpdatedTimeZone() {
@@ -148,10 +148,10 @@ public class DLBVariablePayload {
 	}
 
 	/**
-	 * Sets the timezone (as IANA String, e.g. "Europe/Lisbon") in which the DialogueBranch variable
+	 * Sets the timezone (as IANA String, e.g. "Europe/Lisbon") in which the Dialogue Branch variable
 	 * was last updated.
 	 * @param updatedTimeZone the timezone (as IANA String, e.g. "Europe/Lisbon") in which the
-	 *                        DialogueBranch variable was last updated.
+	 *                        Dialogue Branch variable was last updated.
 	 */
 	public void setUpdatedTimeZone(String updatedTimeZone) {
 		this.updatedTimeZone = updatedTimeZone;

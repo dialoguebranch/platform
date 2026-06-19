@@ -2,7 +2,7 @@
  *
  *                Copyright (c) 2023-2025 Fruit Tree Labs (www.fruittreelabs.com)
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *      as outlined below. Based on original source code licensed under the following terms:
  *
  *                                            ----------
@@ -40,7 +40,7 @@ import com.dialoguebranch.parser.BodyToken;
 import java.util.*;
 
 /**
- * This class models the &lt;&lt;random ...&gt;&gt; command in DialogueBranch. It can be
+ * This class models the &lt;&lt;random ...&gt;&gt; command in Dialogue Branch. It can be
  * part of a {@link NodeBody} (not inside a reply).
  * 
  * @author Dennis Hofs (RRD)

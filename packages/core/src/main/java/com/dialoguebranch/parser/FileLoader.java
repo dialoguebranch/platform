@@ -2,7 +2,7 @@
  *
  *                Copyright (c) 2023-2025 Fruit Tree Labs (www.fruittreelabs.com)
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *      as outlined below. Based on original source code licensed under the following terms:
  *
  *                                            ----------
@@ -34,8 +34,8 @@ import java.io.Reader;
 import java.util.List;
 
 /**
- * A DialogueBranch file loader is used by a {@link ProjectParser} to list and open
- * DialogueBranch dialogue files (.dlb) and translation files (.json) within a DialogueBranch
+ * A Dialogue Branch file loader is used by a {@link ProjectParser} to list and open
+ * Dialogue Branch dialogue files (.dlb) and translation files (.json) within a Dialogue Branch
  * project. The default implementation is {@link ResourceFileLoader}, which can load files from
  * resources on the classpath.
  *
@@ -45,7 +45,7 @@ import java.util.List;
 public interface FileLoader {
 
 	/**
-	 * Lists all DialogueBranch files in the project. The files should be dialogue files (.dlb) or
+	 * Lists all Dialogue Branch files in the project. The files should be dialogue files (.dlb) or
 	 * translation files (.json).
 	 *
 	 * @return the List of files as {@link FileDescriptor}s.
@@ -54,7 +54,7 @@ public interface FileLoader {
 	List<FileDescriptor> listDialogueBranchFiles() throws IOException;
 
 	/**
-	 * Opens the specified DialogueBranch file. This should be a dialogue file (.dlb) or a
+	 * Opens the specified Dialogue Branch file. This should be a dialogue file (.dlb) or a
 	 * translation file (.json).
 	 *
 	 * @param fileDescription the {@link FileDescriptor} object.

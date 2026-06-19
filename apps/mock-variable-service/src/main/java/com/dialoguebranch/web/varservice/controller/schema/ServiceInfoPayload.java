@@ -32,7 +32,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * A {@link ServiceInfoPayload} object may be used to consolidate certain metadata about this
- * DialogueBranch External Variable Service.
+ * Dialogue Branch External Variable Service.
  *
  * @author Harm op den Akker (Fruit Tree Labs)
  */
@@ -66,7 +66,7 @@ public class ServiceInfoPayload {
 	/**
 	 * Creates an instance of a {@link ServiceInfoPayload} with a given {@code build}, {@code
 	 * protocolVersion}, and {@code serviceVersion} {@link String}s that provide information about
-	 * the currently running DialogueBranch External Variable Service.
+	 * the currently running Dialogue Branch External Variable Service.
 	 * @param build the date and time when this service was built as a {@link String}.
 	 * @param protocolVersion the latest supported API protocol version as a {@link String}.
 	 * @param serviceVersion the software version of the service as a {@link String}.

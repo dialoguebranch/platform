@@ -3,7 +3,7 @@
  *                Copyright (c) 2023-2026 Fruit Tree Labs (www.fruittreelabs.com)
  *
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *                                        as outlined below.
  *
  *                                            ----------
@@ -43,7 +43,7 @@ import java.nio.file.Paths;
 
 /**
  * The AzureDataLakeStore class is used for handling file transfers to and from an Azure Data Lake
- * that can be configured to act as a back-up for the local file storage of the DialogueBranch Web Service.
+ * that can be configured to act as a back-up for the local file storage of the Dialogue Branch Web Service.
  *
  * @author Harm op den Akker
  */
@@ -142,7 +142,7 @@ public class AzureDataLakeStore {
 	 * {@code dialogueBranchUser}. This method will retrieve a "recent" set of ServerLoggedDialogue log files from
 	 * the Azure Data Lake, and saves them into the local dialogue log folder for the given user.
 	 *
-	 * @param dialogueBranchUser the id of the DialogueBranch user for whom to look for dialogues.
+	 * @param dialogueBranchUser the id of the Dialogue Branch user for whom to look for dialogues.
 	 * @throws IOException in case of an error writing to the local files.
 	 */
 	public void populateLocalDialogueLogs(String dialogueBranchUser) throws IOException {

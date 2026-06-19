@@ -3,7 +3,7 @@
  *                Copyright (c) 2023-2026 Fruit Tree Labs (www.fruittreelabs.com)
  *
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *                                        as outlined below.
  *
  *                                            ----------
@@ -33,7 +33,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * An {@link OngoingDialoguePayload} object contains information about an ongoing dialogue in the
- * DialogueBranch Web Service, as provided by the
+ * Dialogue Branch Web Service, as provided by the
  * {@link DialogueController} /dialogue/get-ongoing
  * end-point.
  *

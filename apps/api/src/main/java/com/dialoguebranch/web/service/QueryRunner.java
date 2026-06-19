@@ -3,7 +3,7 @@
  *                Copyright (c) 2023-2026 Fruit Tree Labs (www.fruittreelabs.com)
  *
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *                                        as outlined below.
  *
  *                                            ----------
@@ -57,7 +57,7 @@ public class QueryRunner {
 	 * @param versionName the protocol version name (see {@link ProtocolVersion})
 	 * @param providedAccessToken the provided JWT access token
 	 * @param response the HTTP response to add header WWW-Authenticate in case of 401 Unauthorized
-	 * @param delegateUser the "DialogueBranch user" for which this query should be run, or ""
+	 * @param delegateUser the "Dialogue Branch user" for which this query should be run, or ""
 	 *                     if this should be for the currently authenticated user
 	 * @param application the {@link Application} context used to access {@link BasicUserCredentials}
 	 *                    in a non-static way.

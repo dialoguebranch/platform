@@ -3,7 +3,7 @@
  *                Copyright (c) 2023-2025 Fruit Tree Labs (www.fruittreelabs.com)
  *
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *                                        as outlined below.
  *
  *                                            ----------
@@ -188,6 +188,11 @@ public class CommandLineRunner {
 		System.out.println(readResult.generateSummaryString());
 	}
 
+	/**
+	 * Asks the user to provide the location of a {@code .dlb} script file, then parses it using
+	 * the {@link com.dialoguebranch.script.parser.EditableScriptParser} and prints a summary of
+	 * each node it contains.
+	 */
 	private static void parseScriptFile() {
 		File scriptFile = null;
 		boolean scriptFileValid = false;
@@ -217,6 +222,11 @@ public class CommandLineRunner {
         }
     }
 
+	/**
+	 * Asks the user to provide the location of a project metadata {@code .xml} file, then parses
+	 * the project using the {@link com.dialoguebranch.script.parser.EditableProjectParser} and
+	 * prints a summary of its metadata and the number of scripts available per supported language.
+	 */
 	private static void parseEditableProject() {
 		File projectMetadataFile = null;
 		boolean projectMetadataFileValid = false;
@@ -360,6 +370,11 @@ public class CommandLineRunner {
 
 	}
 
+	/**
+	 * Asks the user to provide the location of a project metadata {@code .xml} file, then for
+	 * every source/translation language pair in the project generates TSV (tab-separated) export
+	 * files containing the translatable strings of each matching script.
+	 */
 	private static void generateTranslationCSVs() {
 		// Get a pointer to the projectMetadataFile (dlb-project.xml file)
 		File projectMetadataFile = null;
@@ -511,6 +526,15 @@ public class CommandLineRunner {
 		}
 	}
 
+	/**
+	 * Opens the command line for user input and checks whether the given value represents a valid,
+	 * existing {@code .dlb} Dialogue Branch script file. If so, returns a pointer to that file as
+	 * a {@link File}, otherwise throws an {@link InvalidInputException}.
+	 *
+	 * @return a {@link File} representing the {@code .dlb} file that the user provided as CLI input
+	 * @throws InvalidInputException if the input is {@code null}, the file does not exist, or the
+	 *                               path does not point to a {@code .dlb} file
+	 */
 	public static File askUserInputDialogueBranchFile() throws InvalidInputException {
 		Scanner userInputScanner = new Scanner(System.in);
 		String fileString = userInputScanner.nextLine();

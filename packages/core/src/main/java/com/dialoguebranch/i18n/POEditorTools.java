@@ -2,7 +2,7 @@
  *
  *                Copyright (c) 2023-2025 Fruit Tree Labs (www.fruittreelabs.com)
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *      as outlined below. Based on original source code licensed under the following terms:
  *
  *                                            ----------
@@ -178,7 +178,7 @@ public class POEditorTools {
 	}
 
 	/**
-	 * Returns a {@link Dialogue} object as read in from a DialogueBranch script identified by the
+	 * Returns a {@link Dialogue} object as read in from a Dialogue Branch script identified by the
 	 * given {@code fileName}.
 	 *
 	 * @param dlbScriptFile the .dlb script {@link File} to read

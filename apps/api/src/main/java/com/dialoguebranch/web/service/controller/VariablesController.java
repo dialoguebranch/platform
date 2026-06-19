@@ -3,7 +3,7 @@
  *                Copyright (c) 2023-2026 Fruit Tree Labs (www.fruittreelabs.com)
  *
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *                                        as outlined below.
  *
  *                                            ----------
@@ -174,10 +174,10 @@ public class VariablesController {
 	/**
 	 * For the given {@code userId} returns a mapping from names to value of Dialogue Branch
 	 * Variables for those variables provided in the given {@code variableNames} string. The {@code
-	 * variableNames} string should be a 'space-separated' list of valid DialogueBranch Variable
+	 * variableNames} string should be a 'space-separated' list of valid Dialogue Branch Variable
 	 * names (e.g. "variable1 variable_two variable-three").
 	 *
-	 * @param userId the DialogueBranch user for which to retrieve variable data.
+	 * @param userId the Dialogue Branch user for which to retrieve variable data.
 	 * @param variableNames a space-separated list of variable names, or the empty string
 	 * @param timeZone The current time zone of the Dialogue Branch user (presented as an IANA
 	 *                 String, e.g. 'Europe/Lisbon').
@@ -316,7 +316,7 @@ public class VariablesController {
 	 * for the specified {@code userId} in the given {@code timeZone}.
 	 *
 	 * @param userId the {@link String} identifier of the user for whom to set the variable.
-	 * @param name the name of the DialogueBranch Variable
+	 * @param name the name of the Dialogue Branch Variable
 	 * @param value the value for the Dialogue Branch Variable (or {@code null} in case the variable
 	 *              should be removed).
 	 * @return {@code null}
@@ -363,7 +363,7 @@ public class VariablesController {
 	 * End-point definition for setting the value of one or multiple Dialogue Branch Variables for a
 	 * given user.
 	 *
-	 * <p>Use this end-point to get set one or many DialogueBranch Variables to their given values
+	 * <p>Use this end-point to get set one or many Dialogue Branch Variables to their given values
 	 * (or to remove the stored value by setting it to the empty string.</p>
 	 *
 	 * @param request the {@link HttpServletRequest} object containing information on the HTTP
@@ -436,7 +436,7 @@ public class VariablesController {
 	 * userId} in the given {@code timeZone}.
 	 *
 	 * @param userId the {@link String} identifier of the user for whom to set the variables.
-	 * @param variables a mapping of DialogueBranch Variable names to value.
+	 * @param variables a mapping of Dialogue Branch Variable names to value.
 	 * @param timeZone The current time zone of the Dialogue Branch user (presented as an IANA
 	 * 	               String, e.g. 'Europe/Lisbon').
 	 * @return {@code null}

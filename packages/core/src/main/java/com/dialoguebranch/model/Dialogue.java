@@ -2,7 +2,7 @@
  *
  *                Copyright (c) 2023-2025 Fruit Tree Labs (www.fruittreelabs.com)
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *      as outlined below. Based on original source code licensed under the following terms:
  *
  *                                            ----------
@@ -39,7 +39,7 @@ import com.dialoguebranch.model.nodepointer.NodePointer;
 import com.dialoguebranch.model.nodepointer.ExternalNodePointer;
 
 /**
- * Object representation of a DialogueBranch Dialogue definition. A {@link Dialogue} has a name
+ * Object representation of a Dialogue Branch Dialogue definition. A {@link Dialogue} has a name
  * and an (unordered) list of {@link Node}s. One of these {@link Node}s should have as title
  * "Start".
  * 
@@ -159,7 +159,7 @@ public class Dialogue {
 	 * Returns a {@link Set} of {@link String}s containing all the names of dialogues
 	 * that are referenced by this {@link Dialogue}. These names do not include path and
 	 * file extension information.
-	 * @return all DialogueBranch dialogues referenced directly from this {@link Dialogue}.
+	 * @return all Dialogue Branch dialogues referenced directly from this {@link Dialogue}.
 	 */
 	public Set<String> getDialoguesReferenced() {
 		return Collections.unmodifiableSet(dialoguesReferenced);

@@ -2,7 +2,7 @@
  *
  *                Copyright (c) 2023-2025 Fruit Tree Labs (www.fruittreelabs.com)
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *      as outlined below. Based on original source code licensed under the following terms:
  *
  *                                            ----------
@@ -75,12 +75,12 @@ public class ProjectMetaData {
 	/**
 	 * Creates an instance of a {@link ProjectMetaData} object with the given parameters.
 	 *
-	 * @param name a descriptive name of the DialogueBranch project.
-	 * @param basePath the base path of this DialogueBranch project, always ending in a file
+	 * @param name a descriptive name of the Dialogue Branch project.
+	 * @param basePath the base path of this Dialogue Branch project, always ending in a file
 	 *                 separator character.
-	 * @param description a textual description of this DialogueBranch project.
+	 * @param description a textual description of this Dialogue Branch project.
 	 * @param version free-form version information (e.g. v0.1.0).
-	 * @param languageMap contains all the languages supported by this DialogueBranch project.
+	 * @param languageMap contains all the languages supported by this Dialogue Branch project.
 	 */
 	public ProjectMetaData(String name, String basePath, String description, String version,
 						   LanguageMap languageMap) {
@@ -98,12 +98,12 @@ public class ProjectMetaData {
 	/**
 	 * Creates an instance of a {@link ProjectMetaData} object with the given parameters.
 	 *
-	 * @param name a descriptive name of the DialogueBranch project.
-	 * @param basePath the base path of this DialogueBranch project, always ending in a file
+	 * @param name a descriptive name of the Dialogue Branch project.
+	 * @param basePath the base path of this Dialogue Branch project, always ending in a file
 	 *                 separator character.
-	 * @param description a textual description of this DialogueBranch project.
+	 * @param description a textual description of this Dialogue Branch project.
 	 * @param version free-form version information (e.g. v0.1.0).
-	 * @param languageMap contains all the languages supported by this DialogueBranch project.
+	 * @param languageMap contains all the languages supported by this Dialogue Branch project.
 	 * @param storageSource the object that contains information on where/how this ProjectMetaData
 	 *                      is stored.
 	 */
@@ -248,7 +248,7 @@ public class ProjectMetaData {
 	 * @param code the code of the source language to add.
 	 * @param languageSet the language set to which to add the language
 	 * @throws DuplicateLanguageCodeException in case a language with the given {@code code}
-	 *                                           already exists in this DialogueBranch project.
+	 *                                           already exists in this Dialogue Branch project.
 	 */
 	public void setSourceLanguage(String name, String code, LanguageSet languageSet)
 			throws DuplicateLanguageCodeException {
@@ -260,16 +260,16 @@ public class ProjectMetaData {
 	}
 
 	/**
-	 * Attempts to add a new source language to this DialogueBranch project with the given
+	 * Attempts to add a new source language to this Dialogue Branch project with the given
 	 * {@code name} and {@code code} by creating a new {@link LanguageSet} for it. This method
 	 * will fail with a {@link DuplicateLanguageCodeException} if a language with the given
-	 * {@code code} already exists in this DialogueBranch project. Otherwise, it will return a
+	 * {@code code} already exists in this Dialogue Branch project. Otherwise, it will return a
 	 * pointer to the newly created {@link LanguageSet}.
 	 *
 	 * @param name the name of the source language to add.
 	 * @param code the code of the source language to add.
 	 * @throws DuplicateLanguageCodeException in case a language with the given {@code code}
-	 *                                           already exists in this DialogueBranch project.
+	 *                                           already exists in this Dialogue Branch project.
 	 * @return the newly created {@link LanguageSet}
 	 */
 	public LanguageSet addSourceLanguage(String name, String code)
@@ -293,7 +293,7 @@ public class ProjectMetaData {
 	 * @param code the code of the language to add.
 	 * @param languageSet the language set to which to add the language
 	 * @throws DuplicateLanguageCodeException in case a language with the given {@code code}
-	 *                                           already exists in this DialogueBranch project.
+	 *                                           already exists in this Dialogue Branch project.
 	 */
 	public void addTranslationLanguage(String name, String code, LanguageSet languageSet)
 			throws DuplicateLanguageCodeException {
@@ -322,7 +322,7 @@ public class ProjectMetaData {
 	}
 
 	/**
-	 * Returns the {@link LanguageSet} in this DialogueBranch project for which the source
+	 * Returns the {@link LanguageSet} in this Dialogue Branch project for which the source
 	 * language code matches the given {@code code}.
 	 *
 	 * @param sourceLanguageCode the language code of the source language for which to look up its

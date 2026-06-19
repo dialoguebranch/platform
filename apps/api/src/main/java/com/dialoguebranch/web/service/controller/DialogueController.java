@@ -3,7 +3,7 @@
  *                Copyright (c) 2023-2026 Fruit Tree Labs (www.fruittreelabs.com)
  *
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *                                        as outlined below.
  *
  *                                            ----------
@@ -115,7 +115,7 @@ public class DialogueController {
 	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
 	 *                 Unauthorized error).
 	 * @param version The API Version to use, e.g. '1'.
-	 * @param dialogueName Name of the DialogueBranch Dialogue to start (excluding .dlb)
+	 * @param dialogueName Name of the Dialogue Branch Dialogue to start (excluding .dlb)
 	 * @param language Language code of the language in which to start the dialogue (e.g. 'en')
 	 * @param timeZone The current time zone of the user (as IANA, e.g. 'Europe/Lisbon')
 	 * @param delegateUser The user for which to execute the dialogue (leave empty if executing for
@@ -423,7 +423,7 @@ public class DialogueController {
 	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
 	 *                 Unauthorized error).
 	 * @param version The API Version to use, e.g. '1'.
-	 * @param dialogueName Name of the DialogueBranch Dialogue to continue (excluding .dlb)
+	 * @param dialogueName Name of the Dialogue Branch Dialogue to continue (excluding .dlb)
 	 * @param timeZone The current time zone of the user (as IANA, e.g. 'Europe/Lisbon')
 	 * @param delegateUser The user for which to continue executing the dialogue (leave empty if
 	 *                     executing for the currently authenticated user)
@@ -494,8 +494,8 @@ public class DialogueController {
 	 *
 	 * @param userId the user for which to continue executing the dialogue (leave empty if
 	 *               executing for the currently authenticated user).
-	 * @param dialogueName name of the DialogueBranch Dialogue to continue (excluding .dlb).
-	 * @param timeZone the current time zone of the DialogueBranch user (as IANA, e.g.
+	 * @param dialogueName name of the Dialogue Branch Dialogue to continue (excluding .dlb).
+	 * @param timeZone the current time zone of the Dialogue Branch user (as IANA, e.g.
 	 *                 'Europe/Lisbon').
 	 * @return a {@link NullableResponse} object containing the {@link DialogueMessage} or {@code
 	 *         null}.

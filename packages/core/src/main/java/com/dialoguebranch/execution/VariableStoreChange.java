@@ -2,7 +2,7 @@
  *
  *                Copyright (c) 2023-2025 Fruit Tree Labs (www.fruittreelabs.com)
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *      as outlined below. Based on original source code licensed under the following terms:
  *
  *                                            ----------
@@ -133,7 +133,7 @@ public abstract class VariableStoreChange {
 		/**
 		 * Creates an instance of a {@link Put} {@link VariableStoreChange} with a given
 		 * {@code variableName}, {@code variableValues}, and {@code lastUpdated} timestamp in the
-		 * timezone of the DialogueBranch user.
+		 * timezone of the Dialogue Branch user.
 		 * @param variableName the name of the {@link Variable} representing this Put change.
 		 * @param variableValue the value of the {@link Variable} representing this Put change.
 		 * @param time the time that this change took place (in the time zone of the user).
@@ -147,7 +147,7 @@ public abstract class VariableStoreChange {
 		/**
 		 * Creates an instance of a {@link Put} {@link VariableStoreChange} with a given
 		 * {@code variableName}, {@code variableValues}, and {@code lastUpdated} timestamp in the
-		 * timezone of the DialogueBranch user.
+		 * timezone of the Dialogue Branch user.
 		 * @param variableName the name of the {@link Variable} representing this Put change.
 		 * @param variableValue the value of the {@link Variable} representing this Put change.
 		 * @param time the time that this change took place (in the time zone of the user).
@@ -220,7 +220,7 @@ public abstract class VariableStoreChange {
 		/**
 		 * Returns the mapping of variable name to value ({@link Object}) representing all the
 		 * variables that have been added in this {@link VariableStoreChange}.
-		 * @return the added DialogueBranch Variables.
+		 * @return the added Dialogue Branch Variables.
 		 */
 		public Map<String,Object> getVariables() {
 			return variables;
@@ -229,7 +229,7 @@ public abstract class VariableStoreChange {
 	}
 
 	/**
-	 * An implementation of {@link VariableStoreChange} representing a set of removed DialogueBranch
+	 * An implementation of {@link VariableStoreChange} representing a set of removed Dialogue Branch
 	 * Variables, identified by their variable names.
 	 *
 	 * @author Dennis Hofs
@@ -306,7 +306,7 @@ public abstract class VariableStoreChange {
 
 		/**
 		 * Creates an instance of a {@link Clear} {@link VariableStoreChange} indicating a full
-		 * clear (removed all variables) of the DialogueBranch Variable Store.
+		 * clear (removed all variables) of the Dialogue Branch Variable Store.
 		 * @param time the time that this change took place (in the time zone of the user).
 		 */
 		public Clear(ZonedDateTime time) {
@@ -315,7 +315,7 @@ public abstract class VariableStoreChange {
 
 		/**
 		 * Creates an instance of a {@link Clear} {@link VariableStoreChange} indicating a full
-		 * clear (removed all variables) of the DialogueBranch Variable Store.
+		 * clear (removed all variables) of the Dialogue Branch Variable Store.
 		 * @param time the time that this change took place (in the time zone of the user).
 		 * @param source the source of the change to the variable store.
 		 */

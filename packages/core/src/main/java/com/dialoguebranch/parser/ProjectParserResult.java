@@ -2,7 +2,7 @@
  *
  *                Copyright (c) 2023-2025 Fruit Tree Labs (www.fruittreelabs.com)
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *      as outlined below. Based on original source code licensed under the following terms:
  *
  *                                            ----------
@@ -39,7 +39,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * This class contains the result of parsing a DialogueBranch project with the {@link
+ * This class contains the result of parsing a Dialogue Branch project with the {@link
  * ProjectParser}.
  *
  * @author Dennis Hofs (RRD)

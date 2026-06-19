@@ -3,7 +3,7 @@
  *                Copyright (c) 2023-2026 Fruit Tree Labs (www.fruittreelabs.com)
  *
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *                                        as outlined below.
  *
  *                                            ----------
@@ -311,7 +311,7 @@ public class UserService {
 	 *
 	 * @param variables the set of variables
 	 * @param eventTime the timestamp (in the time zone of the user) of the event that triggered
-	 *                  this change of DialogueBranch Variables
+	 *                  this change of Dialogue Branch Variables
 	 */
 	public void storeReplyInput(Map<String,?> variables, ZonedDateTime eventTime)
 			throws ExecutionException {
@@ -321,14 +321,14 @@ public class UserService {
 
 
 	/**
-	 * This function ensures that for all DialogueBranch Variables in the given {@link Set}, of
+	 * This function ensures that for all Dialogue Branch Variables in the given {@link Set}, of
 	 * {@code variableNames} an up-to-date value is loaded into the {@link VariableStore}
 	 * for this user represented by this {@link UserService} through an external Dialogue Branch
 	 * Variable Service if, and only if one has been configured. If {@code
 	 * config.getExternalVariableServiceEnabled() == false} this method will cause no changes to
 	 * occur.
 	 *
-	 * @param variableNames the set of DialogueBranch Variables that need to have their values
+	 * @param variableNames the set of Dialogue Branch Variables that need to have their values
 	 *                      updated.
 	 */
 	public void updateVariablesFromExternalService(Set<String> variableNames) {
@@ -503,7 +503,7 @@ public class UserService {
 	 * dialogue definition exists in this service manager.
 	 * 
 	 * @param dialogueDescription the sought dialogue description
-	 * @return the {@link Dialogue} containing the DialogueBranch dialogue representation.
+	 * @return the {@link Dialogue} containing the Dialogue Branch dialogue representation.
 	 * @throws ExecutionException if the dialogue definition is not found
 	 */
 	public Dialogue getDialogueDefinition(

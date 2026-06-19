@@ -2,7 +2,7 @@
  *
  *                Copyright (c) 2023-2025 Fruit Tree Labs (www.fruittreelabs.com)
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *      as outlined below. Based on original source code licensed under the following terms:
  *
  *                                            ----------
@@ -43,7 +43,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * This class models the &lt;&lt;input ...&gt;&gt; command in DialogueBranch. It can
+ * This class models the &lt;&lt;input ...&gt;&gt; command in Dialogue Branch. It can
  * be part of a {@link NodeBody} inside a reply.
  * 
  * @author Dennis Hofs (RRD)

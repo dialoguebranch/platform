@@ -2,7 +2,7 @@
  *
  *                Copyright (c) 2023-2025 Fruit Tree Labs (www.fruittreelabs.com)
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *      as outlined below. Based on original source code licensed under the following terms:
  *
  *                                            ----------
@@ -140,7 +140,7 @@ public class ActiveDialogue {
 	 * state.
 	 *
 	 * @param eventTime the timestamp (in the time zone of the user) of the event that triggered
-	 *                  this start of the DialogueBranch dialogue.
+	 *                  this start of the Dialogue Branch dialogue.
 	 * @return the initial {@link Node}.
 	 * @throws ExecutionException if the request is invalid
 	 * @throws EvaluationException if an expression cannot be evaluated
@@ -164,7 +164,7 @@ public class ActiveDialogue {
 	 * @param eventTime the timestamp (in the time zone of the user) that triggered this start of
 	 *                  execution of the dialogue
 	 * @return the {@link Node} object representing the given "starting node" after it has been
-	 * 		   executed by the DialogueBranch parser (e.g. after control statements have been
+	 * 		   executed by the Dialogue Branch parser (e.g. after control statements have been
 	 * 		   resolved)
 	 * @throws ExecutionException if the request is invalid
 	 * @throws EvaluationException if an expression cannot be evaluated during execution of the node
@@ -194,7 +194,7 @@ public class ActiveDialogue {
 	 * @param replyId the reply ID
 	 * @param eventTime the time (in the user's timezone) of the event that triggered this
 	 *                  processing of the reply.
-	 * @return The {@link NodePointer} pointing to the next DialogueBranch Node
+	 * @return The {@link NodePointer} pointing to the next Dialogue Branch Node
 	 * @throws EvaluationException if an expression cannot be evaluated
 	 */
 	public NodePointer processReplyAndGetNodePointer(int replyId, ZonedDateTime eventTime)
@@ -239,7 +239,7 @@ public class ActiveDialogue {
 	 * Stores the specified variables in the variable store.
 	 *
 	 * @param eventTime the time (in the time zone of the user) of the event that triggered this
-	 *                  change in DialogueBranch Variables.
+	 *                  change in Dialogue Branch Variables.
 	 * @param variables the variables
 	 * // TODO: It's not exactly clear how this method is supposed to be used. The assumption is now
 	 *                  that this method stores a set of variables that are the direct result from
@@ -297,7 +297,7 @@ public class ActiveDialogue {
 	 *
 	 * @param node a node to execute
 	 * @param eventTime the time stamp (in the time zone of the user) of the event that triggered
-	 *                  the execution of this DialogueBranch Node
+	 *                  the execution of this Dialogue Branch Node
 	 * @return the executed {@link Node}.
 	 * @throws EvaluationException if an expression cannot be evaluated
 	 */
@@ -324,7 +324,7 @@ public class ActiveDialogue {
 	 *
 	 * @param node a node to execute.
 	 * @param eventTime the timestamp (in the time zone of the user) of the event that triggered the
-	 *                  execution of the DialogueBranch Node
+	 *                  execution of the Dialogue Branch Node
 	 * @return the executed {@link Node}
 	 * @throws EvaluationException if an expression cannot be evaluated
 	 */

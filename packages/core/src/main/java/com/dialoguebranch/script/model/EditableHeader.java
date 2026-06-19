@@ -3,7 +3,7 @@
  *                Copyright (c) 2023-2025 Fruit Tree Labs (www.fruittreelabs.com)
  *
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *                                        as outlined below.
  *
  *                                            ----------
@@ -34,7 +34,7 @@ import java.beans.PropertyChangeSupport;
 import java.util.*;
 
 /**
- * An {@link EditableHeader} represents a (partial) header of a DialogueBranch Script Node,
+ * An {@link EditableHeader} represents a (partial) header of a Dialogue Branch Script Node,
  * including convenience methods that can be used in an editor for such a header. This class informs
  * registered property change listeners of changes in its content using the {@link
  * PropertyChangeSupport} mechanism provided by its super-class {@link Editable}.

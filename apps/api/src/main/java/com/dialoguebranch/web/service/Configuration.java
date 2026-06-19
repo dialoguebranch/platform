@@ -3,7 +3,7 @@
  *                Copyright (c) 2023-2026 Fruit Tree Labs (www.fruittreelabs.com)
  *
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *                                        as outlined below.
  *
  *                                            ----------
@@ -311,9 +311,9 @@ public class Configuration extends LinkedHashMap<String,String> {
 	}
 
 	/**
-	 * Returns the configured Base URL for the DialogueBranch Web Service.
+	 * Returns the configured Base URL for the Dialogue Branch Web Service.
 	 *
-	 * @return the configured Base URL for the DialogueBranch Web Service.
+	 * @return the configured Base URL for the Dialogue Branch Web Service.
 	 */
 	public String getBaseUrl() {
 		if(get(BASE_URL) == null) return "";
@@ -460,9 +460,9 @@ public class Configuration extends LinkedHashMap<String,String> {
 	// ---------------------------------------------------------------------------- //
 
 	/**
-	 * Returns whether an "External DialogueBranch Variable Service" has been configured to be used.
+	 * Returns whether an "External Dialogue Branch Variable Service" has been configured to be used.
 	 *
-	 * @return whether an "External DialogueBranch Variable Service" has been configured to be used.
+	 * @return whether an "External Dialogue Branch Variable Service" has been configured to be used.
 	 */
 	public boolean getExternalVariableServiceEnabled() {
 		return Boolean.parseBoolean(get(EXTERNAL_VARIABLE_SERVICE_ENABLED));
@@ -602,9 +602,9 @@ public class Configuration extends LinkedHashMap<String,String> {
 	}
 
 	/**
-	 * Returns the name of the folder used for storing DialogueBranch variable stores.
+	 * Returns the name of the folder used for storing Dialogue Branch variable stores.
 	 *
-	 * @return the name of the folder used for storing DialogueBranch variable stores.
+	 * @return the name of the folder used for storing Dialogue Branch variable stores.
 	 */
 	public String getDirectoryNameVariables() {
 		return DIRECTORY_NAME_VARIABLES;

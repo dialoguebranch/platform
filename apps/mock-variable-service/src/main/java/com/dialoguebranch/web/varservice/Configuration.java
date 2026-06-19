@@ -133,9 +133,9 @@ public class Configuration extends LinkedHashMap<String,String> {
 	}
 
 	/**
-	 * Returns the configured Base URL for the DialogueBranch Web Service.
+	 * Returns the configured Base URL for the Dialogue Branch Web Service.
 	 *
-	 * @return the configured Base URL for the DialogueBranch Web Service.
+	 * @return the configured Base URL for the Dialogue Branch Web Service.
 	 */
 	public String getBaseUrl() {
 		if(get(BASE_URL) == null) return "";

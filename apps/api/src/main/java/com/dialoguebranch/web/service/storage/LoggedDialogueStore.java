@@ -3,7 +3,7 @@
  *                Copyright (c) 2023-2026 Fruit Tree Labs (www.fruittreelabs.com)
  *
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *                                        as outlined below.
  *
  *                                            ----------
@@ -71,7 +71,7 @@ public class LoggedDialogueStore {
 	 * {@code userId}, with a reference to that user's {@link UserService}. Upon instantiation,
 	 * this {@link LoggedDialogueStore} attempts to create the directory to be used for logging
 	 * dialogues (as defined in the {@link Configuration}).
-	 * @param userId the identifier of the DialogueBranch User for which to instantiate this {@link
+	 * @param userId the identifier of the Dialogue Branch User for which to instantiate this {@link
 	 *                   LoggedDialogueStore}
 	 * @param userService the {@link UserService} associated with this LoggedDialogueStore
 	 * @throws IOException in case of an error instantiating the log folder.

@@ -2,7 +2,7 @@
  *
  *                Copyright (c) 2023-2025 Fruit Tree Labs (www.fruittreelabs.com)
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *      as outlined below. Based on original source code licensed under the following terms:
  *
  *                                            ----------
@@ -35,7 +35,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A {@link BodyToken} is the smallest meaningful segment of a line of text of a DialogueBranch
+ * A {@link BodyToken} is the smallest meaningful segment of a line of text of a Dialogue Branch
  * script and can be generated from the script text by the {@link BodyTokenizer}. A
  * {@link BodyToken} can be of the following types (as defined by {@link Type}):
  *

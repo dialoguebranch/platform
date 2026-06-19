@@ -95,14 +95,14 @@ public class VariablesController {
 	// -----------------------------------------------------------------------
 
 	/**
-	 * Retrieve updates for a given list of DialogueBranch Variables. The use case for this
-	 * end-point is as follows. Before executing a DialogueBranch Dialogue, you (or e.g. the
-	 * DialogueBranch Web Service) may gather a list of all the DialogueBranch Variables used in its
+	 * Retrieve updates for a given list of Dialogue Branch Variables. The use case for this
+	 * end-point is as follows. Before executing a Dialogue Branch Dialogue, you (or e.g. the
+	 * Dialogue Branch Web Service) may gather a list of all the Dialogue Branch Variables used in its
 	 * execution. Before starting the execution, you may call this end-point with the list of
-	 * DialogueBranch Variables in order to verify that you have the latest values for all
+	 * Dialogue Branch Variables in order to verify that you have the latest values for all
 	 * variables. In return, you will receive a list - which is a subset of the list you provided -
-	 * that contains all DialogueBranch Variables for which an updated value is available. You are
-	 * basically asking: 'Hey, I have this list of DialogueBranch Variables for this user, is this
+	 * that contains all Dialogue Branch Variables for which an updated value is available. You are
+	 * basically asking: 'Hey, I have this list of Dialogue Branch Variables for this user, is this
 	 * up-to-date?'.
 	 *
 	 * <p>You must pass along the current timezone of the user (client) so that certain time
@@ -117,8 +117,8 @@ public class VariablesController {
 	 * @param response the {@link HttpServletResponse} that generated the request.
 	 * @param version the API Version to use, e.g. '1'.
 	 * @param userId the userId of the Dialogue Branch user.
-	 * @param timeZone the current time zone of the DialogueBranch user (e.g. "Europe/Lisbon").
-	 * @param dlbVariables the List of DialogueBranch Variables for which to check for updates.
+	 * @param timeZone the current time zone of the Dialogue Branch user (e.g. "Europe/Lisbon").
+	 * @param dlbVariables the List of Dialogue Branch Variables for which to check for updates.
 	 * @return A list of {@link DLBVariablePayload}s representing all updated variables.
 	 * @throws Exception in case of a network or service error.
 	 */
@@ -193,7 +193,7 @@ public class VariablesController {
 	}
 
 	/**
-	 * This method performs the "dummy" updating of the requested list of DialogueBranch Variables.
+	 * This method performs the "dummy" updating of the requested list of Dialogue Branch Variables.
 	 * For a real-world implementation you should replace this method and make sure it does
 	 * something useful.
 	 *
@@ -203,7 +203,7 @@ public class VariablesController {
 	 * 'currentTime', those two variables will be updated to reflect the current date and time in
 	 * the user's provided time zone.</p>
 	 *
-	 * <p>For every other DialogueBranch Variable for which an update is requested, there is a 50%
+	 * <p>For every other Dialogue Branch Variable for which an update is requested, there is a 50%
 	 * chance that this variable will be included in the result set with a lastUpdated timestamp of
 	 * "now" (in the provided time zone of the user), without changing its value.</p>
 	 *
@@ -314,8 +314,8 @@ public class VariablesController {
 	 * @param response the {@link HttpServletResponse} that generated the request.
 	 * @param version the API Version to use, e.g. '1'.
 	 * @param userId the userId of the Dialogue Branch user.
-	 * @param timeZone the current time zone of the DialogueBranch user (e.g. "Europe/Lisbon").
-	 * @param dlbVariables the List of DialogueBranch Variables for which to check for updates.
+	 * @param timeZone the current time zone of the Dialogue Branch user (e.g. "Europe/Lisbon").
+	 * @param dlbVariables the List of Dialogue Branch Variables for which to check for updates.
 	 * @return A status code of 200 (OK).
 	 * @throws Exception in case of a network or service error.
 	 */
@@ -421,9 +421,9 @@ public class VariablesController {
 	// ---------------------------------------------------------------------
 
 	/**
-	 * Inform that the DialogueBranch Variable store has been completed cleared. With this end-point
-	 * you can inform this DialogueBranch External Variable Service that a full clear of the
-	 * DialogueBranch Variable Store has occurred for a particular user.
+	 * Inform that the Dialogue Branch Variable store has been completed cleared. With this end-point
+	 * you can inform this Dialogue Branch External Variable Service that a full clear of the
+	 * Dialogue Branch Variable Store has occurred for a particular user.
 	 *
 	 * <p>You must pass along the current timezone of the user (client) so that the clearing of the
 	 * database event may be correctly time logged.</p>
@@ -434,8 +434,8 @@ public class VariablesController {
 	 * @param request the {@link HttpServletRequest} that generated the request.
 	 * @param response the {@link HttpServletResponse} that generated the request.
 	 * @param version the API Version to use, e.g. '1'.
-	 * @param userId the userId of the DialogueBranch user.
-	 * @param timeZone the current time zone of the DialogueBranch user (e.g. "Europe/Lisbon").
+	 * @param userId the userId of the Dialogue Branch user.
+	 * @param timeZone the current time zone of the Dialogue Branch user (e.g. "Europe/Lisbon").
 	 * @return A status code of 200 (OK).
 	 * @throws Exception in case of a network or service error.
 	 */
@@ -491,7 +491,7 @@ public class VariablesController {
 
 	/**
 	 * This method performs the Dummy implementation for receiving the notification that a
-	 * DialogueBranch Variable store has been completely cleared. As this is a dummy implementation
+	 * Dialogue Branch Variable store has been completely cleared. As this is a dummy implementation
 	 * and there is no real external service, the implementation is simply to return "OK", without
 	 * doing anything.
 	 *

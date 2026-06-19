@@ -2,7 +2,7 @@
  *
  *                Copyright (c) 2023-2025 Fruit Tree Labs (www.fruittreelabs.com)
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *      as outlined below. Based on original source code licensed under the following terms:
  *
  *                                            ----------
@@ -28,7 +28,7 @@
 package com.dialoguebranch.model;
 
 /**
- * A {@link Language} defines a language used in a DialogueBranch project with a given name and
+ * A {@link Language} defines a language used in a Dialogue Branch project with a given name and
  * language code. The 'code' is preferably a specific ISO3 code, an ISO1 code, or for languages that
  * don't actually exist (e.g. "Klingon", "Orcish") a made up code that is not assigned to any
  * existing language.

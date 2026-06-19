@@ -2,7 +2,7 @@
  *
  *                Copyright (c) 2023-2025 Fruit Tree Labs (www.fruittreelabs.com)
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *      as outlined below. Based on original source code licensed under the following terms:
  *
  *                                            ----------
@@ -45,7 +45,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * <p>This DialogueBranch file loader can load files from resources on the classpath. The files
+ * <p>This Dialogue Branch file loader can load files from resources on the classpath. The files
  * should be organized as language/path/to/dialogue-name.dlb or language/path/to/dialogue-name.json.
  * Languages should be encoded with ISO codes like "en" or "en_GB". Example:
  * en_GB/robin/intro.dlb</p>

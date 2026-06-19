@@ -3,7 +3,7 @@
  *                Copyright (c) 2023-2026 Fruit Tree Labs (www.fruittreelabs.com)
  *
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *                                        as outlined below.
  *
  *                                            ----------
@@ -53,7 +53,7 @@ import java.net.URL;
 import java.time.Instant;
 
 /**
- * The main entry point for the DialogueBranch Web Service as a Spring Boot Application.
+ * The main entry point for the Dialogue Branch Web Service as a Spring Boot Application.
  *
  * @author Dennis Hofs (Roessingh Research and Development)
  * @author Harm op den Akker (Fruit Tree Labs)
