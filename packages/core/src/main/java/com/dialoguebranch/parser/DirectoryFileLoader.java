@@ -74,9 +74,9 @@ import java.util.List;
  */
 public record DirectoryFileLoader(File rootDirectory) implements FileLoader {
 
-	// -----------------------------------------------------------
-	// -------------------- Getters & Setters --------------------
-	// -----------------------------------------------------------
+	// ----------------------------------------------------------- //
+	// -------------------- Getters & Setters -------------------- //
+	// ----------------------------------------------------------- //
 
 	/**
 	 * Returns the root directory for this {@link DirectoryFileLoader}.
@@ -88,9 +88,9 @@ public record DirectoryFileLoader(File rootDirectory) implements FileLoader {
 		return rootDirectory;
 	}
 
-	// -------------------------------------------------------------------
-	// -------------------- Interface Implementations --------------------
-	// -------------------------------------------------------------------
+	// ------------------------------------------------------------------- //
+	// -------------------- Interface Implementations -------------------- //
+	// ------------------------------------------------------------------- //
 
 	@Override
 	public List<FileDescriptor> listDialogueBranchFiles() {
@@ -114,9 +114,9 @@ public record DirectoryFileLoader(File rootDirectory) implements FileLoader {
 		return new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8);
 	}
 
-	// ---------------------------------------------------------
-	// -------------------- Other Functions --------------------
-	// ---------------------------------------------------------
+	// --------------------------------------------------------- //
+	// -------------------- Other Functions -------------------- //
+	// --------------------------------------------------------- //
 
 	/**
 	 * Recursively generates a list of {@link FileDescriptor} objects from all .dlb and/or .json

@@ -46,9 +46,9 @@ public class NodeParseException extends ParseException {
 	/** The name of the node from which this error occurred. */
 	private final String nodeTitle;
 
-	// --------------------------------------------------------
-	// -------------------- Constructor(s) --------------------
-	// --------------------------------------------------------
+	// -------------------------------------------------------- //
+	// -------------------- Constructor(s) -------------------- //
+	// -------------------------------------------------------- //
 
 	/**
 	 * Constructs a new exception in the specified node. If the node title is unknown, it can be set
@@ -63,9 +63,9 @@ public class NodeParseException extends ParseException {
 		this.nodeTitle = nodeTitle;
 	}
 
-	// -----------------------------------------------------------
-	// -------------------- Getters & Setters --------------------
-	// -----------------------------------------------------------
+	// ----------------------------------------------------------- //
+	// -------------------- Getters & Setters -------------------- //
+	// ----------------------------------------------------------- //
 
 	/**
 	 * Returns the node title. If the title is unknown, this method returns {@code null}.

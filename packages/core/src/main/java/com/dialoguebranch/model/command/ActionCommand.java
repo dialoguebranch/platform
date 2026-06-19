@@ -97,9 +97,9 @@ public class ActionCommand extends AttributesCommand {
 	/** The set of "other" free parameters defined in this ActionCommand. */
 	private Map<String, VariableString> parameters = new LinkedHashMap<>();
 
-	// --------------------------------------------------------
-	// -------------------- Constructor(s) --------------------
-	// --------------------------------------------------------
+	// -------------------------------------------------------- //
+	// -------------------- Constructor(s) -------------------- //
+	// -------------------------------------------------------- //
 
 	/**
 	 * Creates an instance of an {@link ActionCommand} with given {@code type} and {@code value}.
@@ -128,9 +128,9 @@ public class ActionCommand extends AttributesCommand {
 		}
 	}
 
-	// -----------------------------------------------------------
-	// -------------------- Getters & Setters --------------------
-	// -----------------------------------------------------------
+	// ----------------------------------------------------------- //
+	// -------------------- Getters & Setters -------------------- //
+	// ----------------------------------------------------------- //
 
 	/**
 	 * Returns the type of this {@link ActionCommand} as a String.
@@ -187,9 +187,9 @@ public class ActionCommand extends AttributesCommand {
 		this.parameters = parameters;
 	}
 
-	// -------------------------------------------------------
-	// -------------------- Other Methods --------------------
-	// -------------------------------------------------------
+	// ------------------------------------------------------- //
+	// -------------------- Other Methods -------------------- //
+	// ------------------------------------------------------- //
 
 	/**
 	 * Adds an optional parameter with the given {@code name} and {@code value} to the map of

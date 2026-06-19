@@ -54,7 +54,9 @@ public class Dialogue {
 	private Set<String> variablesWritten = new HashSet<>();
 	private Set<String> dialoguesReferenced = new HashSet<>();
 	
-	// ---------- Constructors:
+	// -------------------------------------------------------- //
+	// -------------------- Constructor(s) -------------------- //
+	// -------------------------------------------------------- //
 	
 	/**
 	 * Creates an empty instance of a {@link Dialogue}.
@@ -88,7 +90,9 @@ public class Dialogue {
 		dialoguesReferenced.addAll(other.dialoguesReferenced);
 	}
 	
-	// ---------- Getters:
+	// ------------------------------------------------- //
+	// -------------------- Getters -------------------- //
+	// ------------------------------------------------- //
 	
 	/**
 	 * Returns the name of this {@link Dialogue}.
@@ -161,7 +165,9 @@ public class Dialogue {
 		return Collections.unmodifiableSet(dialoguesReferenced);
 	}
 	
-	// ---------- Setters:
+	// ------------------------------------------------- //
+	// -------------------- Setters -------------------- //
+	// ------------------------------------------------- //
 	
 	/**
 	 * Sets the name of this {@link Dialogue}.
@@ -171,7 +177,9 @@ public class Dialogue {
 		this.dialogueName = dialogueName;
 	}
 	
-	// ---------- Functions:
+	// --------------------------------------------------- //
+	// -------------------- Functions -------------------- //
+	// --------------------------------------------------- //
 	
 	public boolean nodeExists(String nodeId) {
 		return nodes.containsKey(nodeId.toLowerCase());

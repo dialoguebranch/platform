@@ -37,7 +37,9 @@ public class Node {
 	private NodeHeader header;
 	private NodeBody body;
 	
-	// ---------- Constructors:
+	// -------------------------------------------------------- //
+	// -------------------- Constructor(s) -------------------- //
+	// -------------------------------------------------------- //
 
 	/**
 	 * Creates an instance of an empty {@link Node}.
@@ -75,7 +77,9 @@ public class Node {
 		body = new NodeBody(other.body);
 	}
 	
-	// ---------- Getters:
+	// ------------------------------------------------- //
+	// -------------------- Getters -------------------- //
+	// ------------------------------------------------- //
 
 	/**
 	 * Returns the {@link NodeHeader} of this {@link Node}.
@@ -95,7 +99,9 @@ public class Node {
 		return body;
 	}
 
-	// ---------- Setters;
+	// ------------------------------------------------- //
+	// -------------------- Setters -------------------- //
+	// ------------------------------------------------- //
 
 	/**
 	 * Sets the {@link NodeHeader} for this {@link Node}.
@@ -115,7 +121,9 @@ public class Node {
 		this.body = body;
 	}
 	
-	// ---------- Utility:
+	// ------------------------------------------------- //
+	// -------------------- Utility -------------------- //
+	// ------------------------------------------------- //
 	
 	/**
 	 * Returns the title of this {@link Node} as defined in its

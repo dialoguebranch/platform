@@ -65,9 +65,9 @@ public class ProjectParser {
 			translations = new LinkedHashMap<>();
 	private final Map<FileDescriptor, Dialogue> translatedDialogues = new LinkedHashMap<>();
 
-	// --------------------------------------------------------
-	// -------------------- Constructor(s) --------------------
-	// --------------------------------------------------------
+	// -------------------------------------------------------- //
+	// -------------------- Constructor(s) -------------------- //
+	// -------------------------------------------------------- //
 
 	/**
 	 * Creates an instance of a {@link ProjectParser} with a given {@link FileLoader} that is used
@@ -80,9 +80,9 @@ public class ProjectParser {
 		this.fileLoader = fileLoader;
 	}
 
-	// -------------------------------------------------------
-	// -------------------- Other Methods --------------------
-	// -------------------------------------------------------
+	// ------------------------------------------------------- //
+	// -------------------- Other Methods -------------------- //
+	// ------------------------------------------------------- //
 
 	public ProjectParserResult parse() throws IOException {
 		ProjectParserResult projectParserResult = new ProjectParserResult(fileLoader);

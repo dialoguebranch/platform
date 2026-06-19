@@ -46,7 +46,9 @@ public class InternalNodePointer extends NodePointer {
 		super(other);
 	}
 	
-	// ---------- Functions:
+	// --------------------------------------------------- //
+	// -------------------- Functions -------------------- //
+	// --------------------------------------------------- //
 
 	@Override
 	public InternalNodePointer clone() {

@@ -38,9 +38,9 @@ package com.dialoguebranch.exception;
  */
 public abstract class DialogueBranchException extends Exception {
 
-    // --------------------------------------------------------
-    // -------------------- Constructor(s) --------------------
-    // --------------------------------------------------------
+    // -------------------------------------------------------- //
+    // -------------------- Constructor(s) -------------------- //
+    // -------------------------------------------------------- //
 
     /**
      * Creates an instance of a {@link DialogueBranchException} with a given {@code message},

@@ -77,9 +77,9 @@ public class LanguageSet {
 		this.translationLanguages = Objects.requireNonNullElseGet(translationLanguages,ArrayList::new);
 	}
 
-	// -----------------------------------------------------------
-	// -------------------- Getters & Setters --------------------
-	// -----------------------------------------------------------
+	// ----------------------------------------------------------- //
+	// -------------------- Getters & Setters -------------------- //
+	// ----------------------------------------------------------- //
 
 	/**
 	 * Returns the source language of this {@link LanguageMap}.
@@ -114,9 +114,9 @@ public class LanguageSet {
 		this.translationLanguages = translationLanguages;
 	}
 
-	// -------------------------------------------------------
-	// -------------------- Other Methods --------------------
-	// -------------------------------------------------------
+	// ------------------------------------------------------- //
+	// -------------------- Other Methods -------------------- //
+	// ------------------------------------------------------- //
 
 	/**
 	 * Add the given {@code translationLanguage} to the {@link List} of translation

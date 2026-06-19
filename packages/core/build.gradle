@@ -39,7 +39,7 @@ javadoc {
 	destinationDir = reporting.file("javadoc")
 	include 'com/dialoguebranch/**'
 	options.source = "17"
-	options.addStringOption('Xmaxwarns', '100')
+	options.addStringOption('Xmaxwarns', '1000')
 }
 
 dependencies {

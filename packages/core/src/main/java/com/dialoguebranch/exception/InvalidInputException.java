@@ -41,9 +41,9 @@ public class InvalidInputException extends DialogueBranchException {
 	@Serial
 	private static final long serialVersionUID = 1L;
 
-	// --------------------------------------------------------
-	// -------------------- Constructor(s) --------------------
-	// --------------------------------------------------------
+	// -------------------------------------------------------- //
+	// -------------------- Constructor(s) -------------------- //
+	// -------------------------------------------------------- //
 
 	/**
 	 * Creates an instance of a {@link InvalidInputException} with a given message.

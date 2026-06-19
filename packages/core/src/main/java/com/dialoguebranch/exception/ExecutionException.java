@@ -57,9 +57,9 @@ public class ExecutionException extends DialogueBranchException {
 	/** The type of this {@link ExecutionException} as {@link Type}. */
 	private final Type type;
 
-	// --------------------------------------------------------
-	// -------------------- Constructor(s) --------------------
-	// --------------------------------------------------------
+	// -------------------------------------------------------- //
+	// -------------------- Constructor(s) -------------------- //
+	// -------------------------------------------------------- //
 
 	/**
 	 * Creates an instance of an {@link ExecutionException} with a given {@link Type} and
@@ -86,9 +86,9 @@ public class ExecutionException extends DialogueBranchException {
 		this.type = type;
 	}
 
-	// -----------------------------------------------------------
-	// -------------------- Getters & Setters --------------------
-	// -----------------------------------------------------------
+	// ----------------------------------------------------------- //
+	// -------------------- Getters & Setters -------------------- //
+	// ----------------------------------------------------------- //
 
 	/**
 	 * Returns the {@link Type} of this {@link ExecutionException}.

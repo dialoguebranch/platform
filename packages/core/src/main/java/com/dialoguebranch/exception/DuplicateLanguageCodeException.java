@@ -43,9 +43,9 @@ public class DuplicateLanguageCodeException extends DialogueBranchException {
 	/** The language code (e.g. 'en') that is duplicated. */
 	private final String languageCode;
 
-	// --------------------------------------------------------
-	// -------------------- Constructor(s) --------------------
-	// --------------------------------------------------------
+	// -------------------------------------------------------- //
+	// -------------------- Constructor(s) -------------------- //
+	// -------------------------------------------------------- //
 
 	/**
 	 * Constructs a new exception for the specified language code.
@@ -58,9 +58,9 @@ public class DuplicateLanguageCodeException extends DialogueBranchException {
 		this.languageCode = languageCode;
 	}
 
-	// -----------------------------------------------------------
-	// -------------------- Getters & Setters --------------------
-	// -----------------------------------------------------------
+	// ----------------------------------------------------------- //
+	// -------------------- Getters & Setters -------------------- //
+	// ----------------------------------------------------------- //
 
 	/**
 	 * Return the language code associated with this {@link DuplicateLanguageCodeException}.

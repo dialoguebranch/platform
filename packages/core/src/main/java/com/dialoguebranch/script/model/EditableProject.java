@@ -98,9 +98,9 @@ public class EditableProject extends Editable implements PropertyChangeListener 
         this.isModified = false;
     }
 
-    // ------------------------------------------------------------ //
-    // -------------------- Getters & Setters --------------------- //
-    // ------------------------------------------------------------ //
+    // ----------------------------------------------------------- //
+    // -------------------- Getters & Setters -------------------- //
+    // ----------------------------------------------------------- //
 
     /**
      * Returns the project metadata object for this {@link EditableProject}.
@@ -175,9 +175,9 @@ public class EditableProject extends Editable implements PropertyChangeListener 
                 PROPERTY_PROJECT_AVAILABLE_SCRIPTS,oldValue,this.availableScripts);
     }
 
-    // -------------------------------------------------------- //
-    // -------------------- Other Methods --------------------- //
-    // -------------------------------------------------------- //
+    // ------------------------------------------------------- //
+    // -------------------- Other Methods -------------------- //
+    // ------------------------------------------------------- //
 
     public void addActiveScript(EditableScript editableScript) {
         activeScripts.put(editableScript.getDialogueName(),editableScript);

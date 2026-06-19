@@ -44,9 +44,9 @@ public class ProjectFileLoader implements FileLoader {
 	private final File projectMetadataFile;
 	private final ProjectMetaData projectMetaData;
 
-	// --------------------------------------------------------
-	// -------------------- Constructor(s) --------------------
-	// --------------------------------------------------------
+	// -------------------------------------------------------- //
+	// -------------------- Constructor(s) -------------------- //
+	// -------------------------------------------------------- //
 
 	/**
 	 * Creates an instance of a {@link ProjectFileLoader} with a given pointer to a project metadata
@@ -61,9 +61,9 @@ public class ProjectFileLoader implements FileLoader {
 		this.projectMetaData = loadProjectMetaDataFile(projectMetadataFile);
 	}
 
-	// -----------------------------------------------------------
-	// -------------------- Getters & Setters --------------------
-	// -----------------------------------------------------------
+	// ----------------------------------------------------------- //
+	// -------------------- Getters & Setters -------------------- //
+	// ----------------------------------------------------------- //
 
 	/**
 	 * Returns the Dialogue Branch project metadata (.xml) {@link File} from which this
@@ -83,9 +83,9 @@ public class ProjectFileLoader implements FileLoader {
 		return projectMetaData;
 	}
 
-	// -------------------------------------------------------------------
-	// -------------------- Interface Implementations --------------------
-	// -------------------------------------------------------------------
+	// ------------------------------------------------------------------- //
+	// -------------------- Interface Implementations -------------------- //
+	// ------------------------------------------------------------------- //
 
 	@Override
 	public List<FileDescriptor> listDialogueBranchFiles() {
@@ -118,9 +118,9 @@ public class ProjectFileLoader implements FileLoader {
 		return new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8);
 	}
 
-	// ---------------------------------------------------------
-	// -------------------- Other Functions --------------------
-	// ---------------------------------------------------------
+	// --------------------------------------------------------- //
+	// -------------------- Other Functions -------------------- //
+	// --------------------------------------------------------- //
 
 	public static ProjectMetaData loadProjectMetaDataFile(File metaDataFile)
 			throws IOException, ParseException {

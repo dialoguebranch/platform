@@ -46,7 +46,9 @@ public class LoggedInteraction {
 	private int replyId;
 
 
-	// ---------- Constructors:
+	// -------------------------------------------------------- //
+	// -------------------- Constructor(s) -------------------- //
+	// -------------------------------------------------------- //
 
 	public LoggedInteraction() {
 	}
@@ -78,7 +80,9 @@ public class LoggedInteraction {
 		this.replyId = replyId;
 	}
 	
-	// ---------- Getters:
+	// ------------------------------------------------- //
+	// -------------------- Getters -------------------- //
+	// ------------------------------------------------- //
 	
 	public long getTimestamp() {
 		return timestamp;
@@ -112,7 +116,9 @@ public class LoggedInteraction {
 		return this.replyId;
 	}
 	
-	// ---------- Setters:
+	// ------------------------------------------------- //
+	// -------------------- Setters -------------------- //
+	// ------------------------------------------------- //
 	
 	public void setTimestamp(long timestamp) {
 		this.timestamp = timestamp;

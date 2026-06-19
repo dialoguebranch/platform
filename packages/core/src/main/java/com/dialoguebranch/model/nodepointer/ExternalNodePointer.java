@@ -189,7 +189,9 @@ public class ExternalNodePointer extends NodePointer {
 		return absoluteTargetDialogue.toString();
 	}
 
-	// ---------- Functions:
+	// --------------------------------------------------- //
+	// -------------------- Functions -------------------- //
+	// --------------------------------------------------- //
 
 	@Override
 	public int hashCode() {

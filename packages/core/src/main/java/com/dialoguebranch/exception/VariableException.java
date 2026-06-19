@@ -41,9 +41,9 @@ public class VariableException extends RuntimeException {
 	@Serial
 	private static final long serialVersionUID = 1L;
 
-	// --------------------------------------------------------
-	// -------------------- Constructor(s) --------------------
-	// --------------------------------------------------------
+	// -------------------------------------------------------- //
+	// -------------------- Constructor(s) -------------------- //
+	// -------------------------------------------------------- //
 
 	/**
 	 * Creates an instance of a {@link VariableException} with given {@code message}.
