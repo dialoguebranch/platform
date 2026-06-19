@@ -292,6 +292,10 @@ public class DialogueStatement {
 	 * {@code segmentType} field.
 	 */
 	public static class SegmentDeserializer extends JsonDeserializer<Segment> {
+
+		/** Creates a new {@link SegmentDeserializer}. */
+		public SegmentDeserializer() {}
+
 		@Override
 		public Segment deserialize(JsonParser p, DeserializationContext ctxt)
 				throws IOException, JsonProcessingException {
@@ -333,6 +337,10 @@ public class DialogueStatement {
 	/** Jackson serializer that flattens {@link InputSegment} parameters into the JSON object. */
 	public static class InputSegmentSerializer extends
 			JsonSerializer<InputSegment> {
+
+		/** Creates a new {@link InputSegmentSerializer}. */
+		public InputSegmentSerializer() {}
+
 		@Override
 		public void serialize(InputSegment value, JsonGenerator gen,
 				SerializerProvider serializers) throws IOException {
@@ -351,6 +359,10 @@ public class DialogueStatement {
 	/** Jackson deserializer that reconstructs an {@link InputSegment} from a flat JSON object. */
 	public static class InputSegmentDeserializer extends
 			JsonDeserializer<InputSegment> {
+
+		/** Creates a new {@link InputSegmentDeserializer}. */
+		public InputSegmentDeserializer() {}
+
 		@Override
 		public InputSegment deserialize(JsonParser p,
 				DeserializationContext ctxt) throws IOException,
