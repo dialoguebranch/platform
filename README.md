@@ -53,7 +53,7 @@ docker compose up
 ## Individual Packages & Apps
 
 - **[packages/core](packages/core/README.md)** — Core Java library (Gradle)
-- **[apps/api](apps/api/)** — Spring Boot REST API wrapping the core library
+- **[apps/api](apps/api/README.md)** — Spring Boot REST API wrapping the core library (includes full deployment & Keycloak setup instructions)
 - **[apps/web](apps/web/README.md)** — Vue 3 / Vite front-end (`npm install && npm run dev`)
 - **[apps/mock-variable-service](apps/mock-variable-service/)** — Mock external variable service
 
