@@ -47,11 +47,23 @@ public class ExecutionException extends DialogueBranchException {
 	 * that has occurred.
 	 */
 	public enum Type {
+
+		/** The requested agent could not be found. */
 		AGENT_NOT_FOUND,
+
+		/** The requested dialogue does not exist in the project. */
 		DIALOGUE_NOT_FOUND,
+
+		/** The requested node could not be found within the dialogue. */
 		NODE_NOT_FOUND,
+
+		/** The selected reply option does not exist for the current node. */
 		REPLY_NOT_FOUND,
+
+		/** The requested logged interaction could not be found. */
 		INTERACTION_NOT_FOUND,
+
+		/** An operation was attempted that requires an active dialogue, but none is in progress. */
 		NO_ACTIVE_DIALOGUE
 	}
 

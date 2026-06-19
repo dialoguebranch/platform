@@ -28,6 +28,12 @@
 
 package com.dialoguebranch.exception;
 
+/**
+ * Thrown when a {@code .dlb} script file cannot be parsed, for example due to a syntax error or
+ * structural inconsistency in the script content.
+ *
+ * @author Harm op den Akker
+ */
 public class ScriptParseException extends DialogueBranchException {
 
     /**

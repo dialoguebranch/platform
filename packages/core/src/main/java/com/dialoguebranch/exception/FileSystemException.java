@@ -28,6 +28,12 @@
 
 package com.dialoguebranch.exception;
 
+/**
+ * Thrown when a file system operation fails in a Dialogue Branch context, such as reading or
+ * writing script files, translation files, or project metadata.
+ *
+ * @author Harm op den Akker
+ */
 public class FileSystemException extends DialogueBranchException {
 
     /**
