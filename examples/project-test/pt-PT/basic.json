@@ -1,0 +1,23 @@
+{
+    "Martin McOwl": {
+        "Hi, my name is Martin McOwl, and this is the Default Dialogue Branch Test dialogue.": "Olá, o meu nome é Martin McOwl, e este é o diálogo de teste padrão do Dialogue Branch.",
+        "This dialogue is very basic, and shows only dialogue flow and ending.": "Este diálogo é muito básico e mostra apenas o fluxo do diálogo e o seu término.",
+        "Any node can have zero or more reply options. When there are none, the dialogue is over.": "Qualquer nó pode ter zero ou mais opções de resposta. Quando não há nenhuma, o diálogo termina.",
+        "We deal with statements, reply options, and ending dialogues.": "Tratamos de declarações, opções de resposta e términos de diálogos.",
+        "When a statement has no reply options left, the dialogue will end.": "Quando uma declaração não tem mais opções de resposta, o diálogo terminará.",
+        "I've got the last word, and I declare this dialogue to be over!": "Tenho a última palavra, e declaro este diálogo encerrado!",
+        "Statements are things that a speaker says, like this!": "Declarações são coisas que um interlocutor diz, como esta!",
+        "Alternatively, a reply option can point to the reserved node name \"End\". When the dialogue reaches this node, the dialogue is also over.": "Em alternativa, uma opção de resposta pode apontar para o nome de nó reservado \"End\". Quando o diálogo chega a este nó, o diálogo também termina."
+    },
+    "_user": {
+        "Nice to meet you Martin McOwl.": "Prazer em conhecê-lo, Martin McOwl.",
+        "Goodbye.": "Adeus.",
+        "Tell me more.": "Conte-me mais.",
+        "Dialogue over?": "Diálogo terminado?",
+        "Tell me about statements.": "Fale-me sobre declarações.",
+        "Reply Options?": "Opções de resposta?",
+        "How do you end a dialogue?": "Como se termina um diálogo?",
+        "This reply option points to the \"End\" node.": "Esta opção de resposta aponta para o nó \"End\".",
+        "This one points to a node without replies.": "Esta aponta para um nó sem respostas."
+    }
+}

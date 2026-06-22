@@ -1,0 +1,30 @@
+{
+    "Martin McOwl": {
+        "In this example we will look at conditionals in Dialogue Branch.": "In dit voorbeeld bekijken we conditionelen in Dialogue Branch.",
+        "So let's first set some variables that we can use to play with.": "Laten we eerst een paar variabelen instellen waarmee we kunnen spelen.",
+        "This statement will only be shown if the variable \"variableThatIsTrue\" is true (which it is).": "Deze uitspraak wordt alleen getoond als de variabele \"variableThatIsTrue\" waar is (wat het geval is).",
+        "Otherwise, you would see this statement (you will never see this).": "Anders zou u deze uitspraak zien (u zult dit nooit zien).",
+        "You can write the shorthand \"if variableName\" to check for true (without the \"== true\" part).": "U kunt de verkorte schrijfwijze \"if variabelenaam\" gebruiken om op waar te controleren (zonder het \"== true\" gedeelte).",
+        "You can make any part of the": "U kunt elk deel van de",
+        "Dialogue Branch": "Dialogue Branch",
+        "NOT DialogueBranch": "NIET DialogueBranch",
+        "dialogue conditional. As long as": "dialoog conditioneel maken. Zolang maar",
+        "the resulting contents are valid.": "de resulterende inhoud geldig is.",
+        "Text that will never be shown.": "Tekst die nooit getoond zal worden.",
+        "Also, you can nest conditionals as deep as you like.": "Bovendien kunt u conditionelen zo diep nesten als u wilt.",
+        "This text will also never be shown.": "Deze tekst zal ook nooit getoond worden.",
+        "Let me set some other variables to show some other things.": "Laat me nog enkele variabelen instellen om andere dingen te laten zien.",
+        "You can use conditionals using strings or numbers as well, anything you would expect from a scripting language really...": "U kunt conditionelen ook gebruiken met tekstreeksen of getallen, alles wat u van een scripttaal zou verwachten eigenlijk...",
+        "And that's all we have to say about conditionals for today.": "En dat is alles wat we voor vandaag te zeggen hebben over conditionelen."
+    },
+    "_user": {
+        "Okay, that is clear.": "Oké, dat is duidelijk.",
+        "Goodbye.": "Tot ziens.",
+        "Suddenly a reply option.": "Plotseling een antwoordoptie.",
+        "The user will never see this reply option.": "De gebruiker zal deze antwoordoptie nooit zien.",
+        "Okay, clear.": "Oké, duidelijk.",
+        "Okay, show me!": "Oké, laat het me zien!",
+        "Understood.": "Begrepen.",
+        "Thanks and goodbye.": "Bedankt en tot ziens."
+    }
+}

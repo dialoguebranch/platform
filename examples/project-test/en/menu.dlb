@@ -1,0 +1,21 @@
+title: Start
+tags: 
+speaker: Martin McOwl
+colorID: 2
+position: 758,-148
+---
+This is a menu dialogue that allows you to start other dialogues.
+
+[[Tutorials: Basic|basic.Start]]
+[[Baldur's Gate 1: Imoen Introduction|/bg1/bg1-candlekeep-imoen.Start]]
+[[Baldur's Gate 1: Winthrop Introduction|/bg1/bg1-candlekeep-winthrop.Start]]
+[[Goodbye.|End]]
+===
+title: End
+tags: 
+speaker: 
+colorID: 5
+position: 752,255
+---
+
+===

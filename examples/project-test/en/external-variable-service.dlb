@@ -1,0 +1,72 @@
+title: Start
+tags: 
+speaker: Martin McOwl
+colorID: 0
+position: 437,412
+---
+This is a test script that allows you to test the use of the "Dialogue Branch External Variable Service Dummy" application.
+
+[[Whoah?! What is that all about?|ExplainVarService]]
+[[Okay, let's do the test.|Test]]
+===
+title: ExplainVarService
+tags: 
+speaker: Martin McOwl
+colorID: 0
+position: 277,103
+---
+In Dialogue Branch, there are many ways you can cleverly use variables to make dialogues more personalized or interactive.
+
+[[Explain2]]
+===
+title: Explain2
+tags: 
+speaker: Martin McOwl
+colorID: 2
+position: 276,-163
+---
+<<set $varServiceExplained = "This is a variable" >>
+
+Variables may be defined within the dialogue script, like we set the 'varServiceExplained' variable right now, and the value is "$varServiceExplained".
+
+[[Explain3]]
+===
+title: Explain3
+tags: 
+speaker: Martin McOwl
+colorID: 0
+position: 280,-408
+---
+But sometimes you need to collect data from an 'external' source, like a weather API, or your own user database.
+
+[[Explain4]]
+===
+title: Explain4
+tags: 
+speaker: Martin McOwl
+colorID: 0
+position: 277,-659
+---
+That is what the 'Dialogue Branch External Variable Service' is for. It allows you to connect the Web Service to an external source of variable data, which you can build yourself to provide whatever data you like.
+
+[[Explain5]]
+===
+title: Explain5
+tags: 
+speaker: Martin McOwl
+colorID: 0
+position: 278,-926
+---
+Does that make a sense?
+
+[[Please, explain me again.|ExplainVarService]]
+[[Yes, let's run the test.|Test]]
+===
+title: Test
+tags: 
+speaker: Martin McOwl
+colorID: 0
+position: 548,105
+---
+Okay, the following information should be provided by the Dummy implementation of the External Variable Service. The current date is $currentDate, and the current time is $currentTime.
+===

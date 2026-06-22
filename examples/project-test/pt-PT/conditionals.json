@@ -1,0 +1,30 @@
+{
+    "Martin McOwl": {
+        "In this example we will look at conditionals in Dialogue Branch.": "Neste exemplo vamos analisar os condicionais no Dialogue Branch.",
+        "So let's first set some variables that we can use to play with.": "Vamos primeiro definir algumas variáveis com as quais podemos trabalhar.",
+        "This statement will only be shown if the variable \"variableThatIsTrue\" is true (which it is).": "Esta declaração só será mostrada se a variável \"variableThatIsTrue\" for verdadeira (o que é o caso).",
+        "Otherwise, you would see this statement (you will never see this).": "Caso contrário, veria esta declaração (nunca a verá).",
+        "You can write the shorthand \"if variableName\" to check for true (without the \"== true\" part).": "Pode escrever a forma abreviada \"if nomeVariável\" para verificar se é verdadeiro (sem a parte \"== true\").",
+        "You can make any part of the": "Pode tornar qualquer parte do",
+        "Dialogue Branch": "Dialogue Branch",
+        "NOT DialogueBranch": "NÃO DialogueBranch",
+        "dialogue conditional. As long as": "diálogo condicional. Desde que",
+        "the resulting contents are valid.": "o conteúdo resultante seja válido.",
+        "Text that will never be shown.": "Texto que nunca será mostrado.",
+        "Also, you can nest conditionals as deep as you like.": "Além disso, pode aninhar condicionais tão profundamente quanto quiser.",
+        "This text will also never be shown.": "Este texto também nunca será mostrado.",
+        "Let me set some other variables to show some other things.": "Deixe-me definir mais algumas variáveis para mostrar outras coisas.",
+        "You can use conditionals using strings or numbers as well, anything you would expect from a scripting language really...": "Também pode usar condicionais com cadeias de texto ou números, tudo o que esperaria de uma linguagem de script, realmente...",
+        "And that's all we have to say about conditionals for today.": "E é tudo o que temos a dizer sobre condicionais por hoje."
+    },
+    "_user": {
+        "Okay, that is clear.": "Está bem, isso é claro.",
+        "Goodbye.": "Adeus.",
+        "Suddenly a reply option.": "De repente uma opção de resposta.",
+        "The user will never see this reply option.": "O utilizador nunca verá esta opção de resposta.",
+        "Okay, clear.": "Está bem, claro.",
+        "Okay, show me!": "Está bem, mostre-me!",
+        "Understood.": "Compreendido.",
+        "Thanks and goodbye.": "Obrigado e adeus."
+    }
+}

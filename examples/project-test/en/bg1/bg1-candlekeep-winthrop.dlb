@@ -1,0 +1,69 @@
+title: Start
+tags: 
+speaker: Winthrop
+colorID: 0
+position: 113,363
+---
+<<if $WinthropIntroduced == true>>
+    As good to see ye again as any other I could have laid eyes on. Make yourself as comfortable as you will. If you wish for anything, just ask.
+
+[[Goodbye.|End|<<action type="generic" value="START_TRADE">>]]
+
+<<else>>
+    Well, hello there, young one! Come to visit your old pal Winthrop, have ye? Well, don't forget the 10,000 gold piece book entrance fee, as per Candlekeep's custom, don'tcha know.
+
+    [[That is outrageous! What kind of a fool do you take me for?! Stuff your inn, and stuff your company!|Outraged]]
+    [[You always were the big kidder, Winthrop. That gets funnier very nearly every time I hear it. Well, perhaps not quite so often.|Kidding]]
+    [[I fear I do not have that kind of entry fee with me. I suppose I shall return when I do.|NoFee]]
+<<endif>>
+===
+title: Outraged
+tags: 
+speaker: Winthrop
+colorID: 5
+position: 494,112
+---
+Ever the humorless brat ye always were! It's but for the reputation of your father that I give ye endless chances to redeem yer manner. I will tolerate ye here today, but bother me not.
+
+<<set $WinthropIntroduced = true>>
+===
+title: Kidding
+tags: 
+speaker: Winthrop
+colorID: 0
+position: 491,363
+---
+Haw! Just having a bit o' fun with ye, my friend. Them monks may be walking about with poles in their nethers, but you know you are always welcome here in my sight. Gorion did well by you, he did. So, is there anything I can do for ya? Some drinks, a room to sleep, or anything to buy?
+
+[[No, thanks.|Nothing]]
+[[Sure, what do you have?|End|<<action type="generic" value="START_TRADE">>]]
+===
+title: Nothing
+tags: 
+speaker: Winthrop
+colorID: 5
+position: 804,229
+---
+Well, it was good speaking with you.
+
+<<set $WinthropIntroduced = true>>
+===
+title: NoFee
+tags: 
+speaker: Winthrop
+colorID: 0
+position: 492,628
+---
+A charming child ye always were, but I fear ye lack the sense of humor your father and I shared. You must know that you are welcome here always. Stay as you will as long as ye like. So, is there anything I can do for ya? Some drinks, a room to sleep, or anything to buy?
+
+[[Nothing for me, thank you.|Nothing]]
+[[Sure, what do you have?|End|<<action type="generic" value="START_TRADE">>]]
+===
+title: End
+tags: 
+speaker: 
+colorID: 0
+position: 808,528
+---
+
+===

@@ -1,0 +1,22 @@
+{
+    "Martin McOwl": {
+        "In this example we look at $subjectToday.": "In dit voorbeeld kijken we naar $subjectToday.",
+        "In this node we have set some variables: $variableOne, $variable2, and $variable_three using a \"set\" statement.": "In dit knooppunt hebben we enkele variabelen ingesteld: $variableOne, $variable2 en $variable_three met een \"set\" instructie.",
+        "These variables contained string values, so they can be injected in statements (this can also be done with numbers, like so: $aNumber).": "Deze variabelen bevatten tekstwaarden, waardoor ze in uitspraken kunnen worden ingevoegd (dit kan ook met getallen, zoals: $aNumber).",
+        "Variables must start with a $-sign and then any small or capital letter ([a-z] or [A-Z]). Besides that you can use any combination of letters, numbers and underscores to define your variable name.": "Variabelen moeten beginnen met een $-teken gevolgd door een kleine of hoofdletter ([a-z] of [A-Z]). Daarna kunt u elke combinatie van letters, cijfers en underscores gebruiken om de variabelenaam te definiëren.",
+        "Variables can be set at various places in the dialogue. For example, attached to replies:": "Variabelen kunnen op verschillende plaatsen in het dialoog worden ingesteld. Bijvoorbeeld gekoppeld aan antwoorden:",
+        "So, your variable now has the value \"$replyVariable\" (without the quotes).": "Uw variabele heeft nu de waarde \"$replyVariable\" (zonder de aanhalingstekens).",
+        "All variables that you set in the dialogue can be used directly. But not all variables need to be set from the dialogue itself.": "Alle variabelen die u in het dialoog instelt, kunnen direct worden gebruikt. Maar niet alle variabelen hoeven vanuit het dialoog zelf te worden ingesteld.",
+        "The Dialogue Branch software libraries support the concept of a \"variable store\", a simple list of variables that can be used to store the state of your application.": "De Dialogue Branch softwarebibliotheken ondersteunen het concept van een \"variabelenopslag\", een eenvoudige lijst van variabelen die de toestand van uw applicatie kan bijhouden.",
+        "For example, many of your dialogues might use a variable called \"userName\" that is set after account creation. So you can say things like \"Hey $userName!\".": "Veel van uw dialogen kunnen bijvoorbeeld een variabele gebruiken genaamd \"userName\" die wordt ingesteld na het aanmaken van een account. Zo kunt u dingen zeggen als \"Hé $userName!\".",
+        "Without attaching a variable store that contains a value for this variable \"$userName\", we will not see a value, but the Dialogue Branch script is still valid.": "Zonder een variabelenopslag te koppelen die een waarde bevat voor de variabele \"$userName\", zullen we geen waarde zien, maar het Dialogue Branch script is nog steeds geldig.",
+        "Well, that's all we have to say about variables!": "Dat is alles wat we te zeggen hebben over variabelen!"
+    },
+    "_user": {
+        "Okay, let's go.": "Oké, laten we beginnen.",
+        "Let it be \"Four!\"": "Laat het \"Vier!\" zijn",
+        "I'm going for \"Pizza.\"": "Ik kies voor \"Pizza.\"",
+        "I'll make it the number 8.": "Ik maak er het getal 8 van.",
+        "Goodbye.": "Tot ziens."
+    }
+}
