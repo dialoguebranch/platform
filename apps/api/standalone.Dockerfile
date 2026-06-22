@@ -20,6 +20,7 @@ FROM eclipse-temurin:17-jdk AS builder
 WORKDIR /build
 
 # Copy the monorepo source needed for this service
+COPY global.json global.json
 COPY packages/core/ packages/core/
 COPY apps/api/ apps/api/
 

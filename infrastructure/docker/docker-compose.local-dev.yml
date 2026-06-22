@@ -93,5 +93,23 @@ services:
       DLB_MARIADB_USER: root
       DLB_MARIADB_DATABASE: dialoguebranch
 
+  # ---------------------------------------------------------------------------
+  # Dialogue Branch Web Client — Vue 3 / Vite dev server
+  # ---------------------------------------------------------------------------
+
+  dlb-web-client:
+    image: node:22
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host"
+    volumes:
+      - ../../apps/web:/app
+      - dlb_web_node_modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      dlb-web-service:
+        condition: service_started
+
 volumes:
   mariadb_data:
+  dlb_web_node_modules:
