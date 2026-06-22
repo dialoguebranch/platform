@@ -30,6 +30,7 @@ package com.dialoguebranch.web.service;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.models.Components;
+import com.dialoguebranch.web.service.ServiceContext;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.Paths;
@@ -106,7 +107,7 @@ public class OpenApiSwaggerConfig {
 				.description("The DialogueBranch Web Service API gives authorized clients the " +
 						"ability to start-, and sequentially execute DialogueBranch dialogues as " +
 						"well to access DialogueBranch Variable data.")
-				.version(com.dialoguebranch.web.service.Configuration.getInstance().getVersion())
+				.version(ServiceContext.getCurrentVersion())
 				.contact(new Contact().email("info@dialoguebranch.com")
 						.name("DialogueBranch Platform Support"))
 				.license(new License().name("MIT").url("https://opensource.org/licenses/MIT")));

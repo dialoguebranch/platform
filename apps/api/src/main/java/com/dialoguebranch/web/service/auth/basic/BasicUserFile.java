@@ -28,7 +28,6 @@
 
 package com.dialoguebranch.web.service.auth.basic;
 
-import com.dialoguebranch.web.service.Configuration;
 import nl.rrd.utils.AppComponents;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.xml.AbstractSimpleSAXHandler;
@@ -49,30 +48,20 @@ import java.util.List;
  */
 public class BasicUserFile {
 
-	// -------------------------------------------------------- //
-	// -------------------- Constructor(s) -------------------- //
-	// -------------------------------------------------------- //
-
-	/**
-	 * This class may be used in a static way.
-	 */
 	public BasicUserFile() { }
-
-	// ------------------------------------------------------- //
-	// -------------------- Other Methods -------------------- //
-	// ------------------------------------------------------- //
 
 	/**
 	 * Retrieve the {@link BasicUserCredentials} matching the given {@code username}.
 	 *
+	 * @param dataDir the service data directory path.
 	 * @param username the username of the user for whom to search.
 	 * @return the {@link BasicUserCredentials} object matching the user, or {@code null} if none is
 	 * 		   found.
 	 */
-	public static BasicUserCredentials findUser(String username) {
+	public static BasicUserCredentials findUser(String dataDir, String username) {
 		List<BasicUserCredentials> users;
 		try {
-			users = read();
+			users = read(dataDir);
 		} catch (ParseException | IOException ex) {
 			throw new RuntimeException("Failed to read users.xml: " +
 					ex.getMessage(), ex);
@@ -89,32 +78,20 @@ public class BasicUserFile {
 	 * Read the full list of configured users and return it as a {@link List} of {@link
 	 * BasicUserCredentials} objects.
 	 *
+	 * @param dataDir the service data directory path.
 	 * @return the full list of existing users for this service.
 	 * @throws ParseException in case of an error parsing the users.xml file.
 	 * @throws IOException in case of an error in parsing the users.xml file.
 	 */
-	public static List<BasicUserCredentials> read() throws ParseException, IOException {
-		Configuration config = Configuration.getInstance();
-		File dataDir = new File(config.get(Configuration.DATA_DIR));
+	public static List<BasicUserCredentials> read(String dataDir) throws ParseException, IOException {
 		File usersFile = new File(dataDir, "users.xml");
 		SimpleSAXParser<List<BasicUserCredentials>> parser = new SimpleSAXParser<>(new XMLHandler());
 		return parser.parse(usersFile);
 	}
 
-	/**
-	 * Implementation of an {@link AbstractSimpleSAXHandler} for parsing users.xml files.
-	 */
 	private static class XMLHandler extends AbstractSimpleSAXHandler<List<BasicUserCredentials>> {
 		private final List<BasicUserCredentials> users = new ArrayList<>();
 
-		/**
-		 * Parser for all XML elements of the users.xml file.
-		 *
-		 * @param name the name of the XML element.
-		 * @param attributes the attributes of the XML element.
-		 * @param parents the list of parents of the XML element.
-		 * @throws ParseException in case of any parse error or unexpected element found.
-		 */
 		@Override
 		public void startElement(String name, Attributes attributes, List<String> parents)
 				throws ParseException {
@@ -130,12 +107,6 @@ public class BasicUserFile {
 			}
 		}
 
-		/**
-		 * XML Parser for the "username" element from the users.xml file.
-		 *
-		 * @param attributes the XML attributes.
-		 * @throws ParseException in case of any parse error or missing attribute.
-		 */
 		private void startUser(Attributes attributes) throws ParseException {
 			String username = readAttribute(attributes, "username").trim();
 			if (username.isEmpty()) {
@@ -151,7 +122,7 @@ public class BasicUserFile {
 				rolesString = readAttribute(attributes, "roles");
 				roles = rolesString.split(",");
 
-				for(String role : roles) {
+				for (String role : roles) {
 					if (!(role.equalsIgnoreCase(BasicUserCredentials.USER_ROLE_CLIENT)
 							|| role.equalsIgnoreCase(BasicUserCredentials.USER_ROLE_EDITOR)
 							|| role.equalsIgnoreCase(BasicUserCredentials.USER_ROLE_ADMIN))) {
@@ -163,7 +134,7 @@ public class BasicUserFile {
 				rolesString = BasicUserCredentials.USER_ROLE_CLIENT;
 				roles = rolesString.split(",");
 				Logger logger = AppComponents.getLogger(BasicUserFile.class.getSimpleName());
-                logger.warn("Warning while reading users.xml file: User role not defined " +
+				logger.warn("Warning while reading users.xml file: User role not defined " +
 						"for user '{}', assuming role '{}'.", username, rolesString);
 			}
 			users.add(new BasicUserCredentials(username, password, roles));
@@ -180,5 +151,4 @@ public class BasicUserFile {
 			return users;
 		}
 	}
-
 }

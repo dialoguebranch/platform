@@ -29,7 +29,6 @@
 package com.dialoguebranch.web.service.controller;
 
 import com.dialoguebranch.exception.ExecutionException;
-import com.dialoguebranch.web.service.Configuration;
 import com.dialoguebranch.web.service.exception.*;
 import jakarta.servlet.http.HttpServletRequest;
 import nl.rrd.utils.exception.ParseException;

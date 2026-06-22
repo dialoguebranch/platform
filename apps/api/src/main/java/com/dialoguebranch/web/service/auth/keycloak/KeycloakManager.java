@@ -28,8 +28,8 @@
 
 package com.dialoguebranch.web.service.auth.keycloak;
 
+import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.auth.AuthenticationInfo;
-import com.dialoguebranch.web.service.Configuration;
 import com.dialoguebranch.web.service.exception.ErrorCode;
 import com.dialoguebranch.web.service.exception.InvalidRoleException;
 import com.dialoguebranch.web.service.exception.UnauthorizedException;
@@ -59,27 +59,21 @@ import java.util.*;
  */
 public class KeycloakManager {
 
-    /** Used for writing logging information */
     private final Logger logger = AppComponents.getLogger(getClass().getSimpleName());
 
-    /** Used to access configuration parameters */
-    private final Configuration config = Configuration.getInstance();
+    private final DlbProperties.Auth.Keycloak keycloakConfig;
 
-    /** Indicates whether the Keycloak manager has already been initialized. */
     private boolean initialized = false;
 
-    /** A set of public RSA keys as obtained from the Keycloak instance, mapped by 'kid'. */
-    private final Map<String,PublicKey> publicKeys;
+    private final Map<String, PublicKey> publicKeys;
 
     // -------------------------------------------------------- //
     // -------------------- Constructor(s) -------------------- //
     // -------------------------------------------------------- //
 
-    public KeycloakManager() {
+    public KeycloakManager(DlbProperties dlbProperties) {
+        this.keycloakConfig = dlbProperties.getAuth().getKeycloak();
         this.publicKeys = new HashMap<>();
-
-        //TODO: Start initializing from the moment this manager is created, but give it some
-        // time for the Keycloak service to actually start up (and maybe attempt a few retries).
     }
 
     private void initialize() throws NoSuchAlgorithmException, InvalidKeySpecException {
@@ -89,40 +83,40 @@ public class KeycloakManager {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-        String keyCloakCertsUrl = config.getKeycloakBaseUrl();
-        if(!keyCloakCertsUrl.endsWith("/")) keyCloakCertsUrl += "/";
+        String keyCloakCertsUrl = keycloakConfig.getBaseUrl();
+        if (!keyCloakCertsUrl.endsWith("/")) keyCloakCertsUrl += "/";
         keyCloakCertsUrl += "realms/"
-                + config.getKeycloakRealm()
+                + keycloakConfig.getRealm()
                 + "/protocol/openid-connect/certs";
 
         logger.info("   * Retrieving public Keycloak certificate data from: {} ...",
                 keyCloakCertsUrl);
 
-        HttpEntity<MultiValueMap<String,String>> entity = new HttpEntity<>(headers);
+        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(headers);
         ResponseEntity<KeycloakCertsResponse> response = restTemplate.exchange(
                 keyCloakCertsUrl,
                 HttpMethod.GET,
                 entity,
                 KeycloakCertsResponse.class);
 
-        if(response.getStatusCode() == HttpStatus.OK) {
+        if (response.getStatusCode() == HttpStatus.OK) {
             logger.info("   * Response OK.");
             KeycloakCertsResponse keyCloakResponse = response.getBody();
 
-            if(keyCloakResponse == null) {
+            if (keyCloakResponse == null) {
                 logger.warn("   x Unable to get key information from response.");
                 throw new InvalidKeySpecException("Unable to get key information " +
                         "from response body.");
             }
 
-            for(KeycloakKey key : keyCloakResponse.getKeys()) {
+            for (KeycloakKey key : keyCloakResponse.getKeys()) {
                 BigInteger modulus = new BigInteger(
                         1, Base64.getUrlDecoder().decode(key.getN()));
                 BigInteger exponent = new BigInteger(
-                        1,Base64.getUrlDecoder().decode(key.getE()));
+                        1, Base64.getUrlDecoder().decode(key.getE()));
                 RSAPublicKeySpec rsaPublicKeySpec = new RSAPublicKeySpec(modulus, exponent);
                 KeyFactory keyFactory = KeyFactory.getInstance(key.getKeyType());
-                this.publicKeys.put(key.getKeyId(),keyFactory.generatePublic(rsaPublicKeySpec));
+                this.publicKeys.put(key.getKeyId(), keyFactory.generatePublic(rsaPublicKeySpec));
             }
             this.setInitialized();
             logger.info("   * KeycloakManager initialized successfully.");
@@ -133,43 +127,32 @@ public class KeycloakManager {
 
     public AuthenticationInfo validateAccessToken(String accessToken) throws UnauthorizedException {
 
-        // Only on first time use, make sure the KeycloakManager is initialized (retrieved its
-        // public keys).
-        if(!this.isInitialized()) {
+        if (!this.isInitialized()) {
             try {
                 this.initialize();
-            } catch(NoSuchAlgorithmException noSuchAlgorithmException) {
+            } catch (NoSuchAlgorithmException noSuchAlgorithmException) {
                 throw new UnauthorizedException(
                         "NoSuchAlgorithmException while validating accessToken: "
                                 + noSuchAlgorithmException.getMessage());
-            } catch(InvalidKeySpecException invalidKeySpecException) {
+            } catch (InvalidKeySpecException invalidKeySpecException) {
                 throw new UnauthorizedException(
                         "InvalidKeySpecException while validating accessToken: "
                                 + invalidKeySpecException.getMessage());
             }
         }
 
-        // We need to extract the "key id" ("kid") from the header of the accessToken.
-        // Based on the "kid", we should use the correct, corresponding Public Key that we
-        // obtained from the Keycloak service.
-
-        // Split the JWT into its parts (header . payload . signature)
         String[] parts = accessToken.split("\\.");
         if (parts.length != 3) {
             throw new UnauthorizedException("Invalid JWT access token while parsing header.");
         }
 
-        // Extract the keyID ("kid") from the header.
         String keyId;
         try {
-            // Decode the header into a JSON String
             String headerJson = new String(Base64.getUrlDecoder().decode(parts[0]));
-
-            // Convert JSON to a map
             ObjectMapper objectMapper = new ObjectMapper();
-            Map<String,String> headerData = objectMapper.readValue(headerJson, Map.class);
+            Map<String, String> headerData = objectMapper.readValue(headerJson, Map.class);
             keyId = headerData.get("kid");
-        } catch(JsonProcessingException e) {
+        } catch (JsonProcessingException e) {
             throw new UnauthorizedException("Unable to parse JWT header.");
         }
 
@@ -177,57 +160,54 @@ public class KeycloakManager {
 
         try {
             claims = Jwts.parser()
-                    .verifyWith(this.publicKeys.get(keyId)) // Use the public key that matches this kid
+                    .verifyWith(this.publicKeys.get(keyId))
                     .build()
                     .parseSignedClaims(accessToken)
                     .getPayload();
-        } catch(IllegalArgumentException iae) {
+        } catch (IllegalArgumentException iae) {
             logger.warn("Invalid JWT access token while validating.");
             throw new UnauthorizedException("Invalid JWT access token while validating.");
-        } catch(JwtException jwte) {
+        } catch (JwtException jwte) {
 
-            if(jwte instanceof ExpiredJwtException) {
+            if (jwte instanceof ExpiredJwtException) {
                 logger.warn("The provided access token has expired.");
                 throw new UnauthorizedException(ErrorCode.AUTH_TOKEN_EXPIRED,
                         "The provided access token has expired.");
             }
 
-            // In all other cases, just throw a generic "keycloak error"
             logger.warn("A JwtException occurred while parsing access token.");
             throw new UnauthorizedException(ErrorCode.KEYCLOAK_ERROR,
                     "A JwtException occurred while parsing access token.");
         }
 
-        // Obtain the roles from accessToken claims
         String[] roles;
         try {
             @SuppressWarnings("unchecked")
-            LinkedHashMap<Object,Object> resourceAccessMap
-                    = (LinkedHashMap<Object, Object>) claims.get("resource_access");
+            LinkedHashMap<Object, Object> resourceAccessMap =
+                    (LinkedHashMap<Object, Object>) claims.get("resource_access");
 
-            if(resourceAccessMap == null)
+            if (resourceAccessMap == null)
                 throw new InvalidRoleException("Unable to extract role information from JWT " +
                         "claims. No 'resource_access' found.");
 
             @SuppressWarnings("unchecked")
-            LinkedHashMap<Object,Object> rolesMap
-                    = (LinkedHashMap<Object,Object>) resourceAccessMap.get("dlb-web-service");
+            LinkedHashMap<Object, Object> rolesMap =
+                    (LinkedHashMap<Object, Object>) resourceAccessMap.get("dlb-web-service");
 
-            if(rolesMap == null)
+            if (rolesMap == null)
                 throw new InvalidRoleException(
                         "Unable to extract role information from JWT claims. No 'roles' found.");
 
             Set<Object> keys = rolesMap.keySet();
             String rolesString = "";
 
-            // printing the elements of LinkedHashMap
             for (Object key : keys) {
                 if (key.toString().equals("roles")) {
                     rolesString = rolesMap.get(key).toString();
                 }
             }
 
-            if(rolesString.isEmpty()) {
+            if (rolesString.isEmpty()) {
                 throw new InvalidRoleException(
                         "Unable to extract role information from JWT claims. Empty roles.");
             } else {
@@ -236,19 +216,18 @@ public class KeycloakManager {
                 roles = rolesString.split(",");
             }
 
-        } catch(InvalidRoleException e) {
+        } catch (InvalidRoleException e) {
             logger.warn("Unable to extract role information from Keycloak generated JWT. " +
                     "Assuming single role: 'client'.");
             roles = new String[]{"client"};
         }
 
         return new AuthenticationInfo(
-                claims.get("preferred_username",String.class),
+                claims.get("preferred_username", String.class),
                 roles,
                 claims.getIssuedAt(),
                 claims.getExpiration());
     }
-
 
     // ----------------------------------------------------------- //
     // -------------------- Getters & Setters -------------------- //
@@ -261,5 +240,4 @@ public class KeycloakManager {
     public void setInitialized() {
         this.initialized = true;
     }
-
 }

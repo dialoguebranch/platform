@@ -32,8 +32,7 @@ import com.dialoguebranch.execution.Variable;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.VariableStoreChange;
 import com.dialoguebranch.execution.VariableStoreOnChangeListener;
-import com.dialoguebranch.web.service.Configuration;
-import com.dialoguebranch.web.service.execution.UserService;
+import com.dialoguebranch.web.service.DlbProperties;
 import nl.rrd.utils.AppComponents;
 import org.slf4j.Logger;
 import org.springframework.http.*;
@@ -49,117 +48,104 @@ public class ExternalVariableServiceUpdater implements VariableStoreOnChangeList
 
 	private final Logger logger =
 			AppComponents.getLogger(ClassUtils.getUserClass(getClass()).getSimpleName());
-	private final Configuration config = AppComponents.get(Configuration.class);
+	private final DlbProperties dlbProperties;
+
+	public ExternalVariableServiceUpdater(DlbProperties dlbProperties) {
+		this.dlbProperties = dlbProperties;
+	}
 
 	@Override
 	public void onChange(VariableStore variableStore, List<VariableStoreChange> changes) {
 
+		DlbProperties.ExternalVariableService evs = dlbProperties.getExternalVariableService();
 		String userId = variableStore.getUser().getId();
 		String userTimeZoneString = variableStore.getUser().getTimeZone().toString();
 
 		List<Variable> variablesToUpdate = new ArrayList<>();
 
-		for(VariableStoreChange change : changes) {
+		for (VariableStoreChange change : changes) {
 			VariableStoreChange.Source source = change.getSource();
 
-			if(!source.equals(VariableStoreChange.Source.EXTERNAL_VARIABLE_SERVICE)) {
-				// This change to the variable store did not come from an update through the
-				// external variable service, so the external variable service should be notified
+			if (!source.equals(VariableStoreChange.Source.EXTERNAL_VARIABLE_SERVICE)) {
 
-				if(config.getExternalVariableServiceEnabled()) {
+				if (evs.isEnabled()) {
 					logger.info("An external Dialogue Branch Variable Service is enabled at {}/v{}/",
-							config.getExternalVariableServiceURL(),
-							config.getExternalVariableServiceAPIVersion());
+							evs.getUrl(), evs.getApiVersion());
 
-					if(change instanceof VariableStoreChange.Clear) {
+					if (change instanceof VariableStoreChange.Clear) {
 						RestTemplate restTemplate = new RestTemplate();
 						HttpHeaders requestHeaders = new HttpHeaders();
-						requestHeaders.set("Authorization", "Bearer "
-								+ config.getExternalVariableServiceAPIKey());
+						requestHeaders.set("Authorization", "Bearer " + evs.getApiKey());
 
-						String notifyClearedUrl = config.getExternalVariableServiceURL()
-							+ "/v" + config.getExternalVariableServiceAPIVersion()
-							+ "/variables/notify-cleared";
+						String notifyClearedUrl = evs.getUrl()
+								+ "/v" + evs.getApiVersion()
+								+ "/variables/notify-cleared";
 
 						LinkedMultiValueMap<String, String> allRequestParams =
-							new LinkedMultiValueMap<>();
+								new LinkedMultiValueMap<>();
 						allRequestParams.put("userId", Arrays.asList(userId));
 						allRequestParams.put("timeZone", Arrays.asList(userTimeZoneString));
 
 						HttpEntity<?> entity = new HttpEntity<>(requestHeaders);
 						UriComponentsBuilder builder =
-							UriComponentsBuilder.fromUriString(notifyClearedUrl)
-								.queryParams(
-									(LinkedMultiValueMap<String, String>) allRequestParams);
+								UriComponentsBuilder.fromUriString(notifyClearedUrl)
+										.queryParams(
+												(LinkedMultiValueMap<String, String>) allRequestParams);
 						UriComponents uriComponents = builder.build().encode();
 
-						// Todo: check if we need to do something with the 200 OK response
 						ResponseEntity<Object> response = restTemplate.exchange(
-							uriComponents.toUri(),
-							HttpMethod.POST,
-							entity,
-							Object.class);
+								uriComponents.toUri(),
+								HttpMethod.POST,
+								entity,
+								Object.class);
 
 					} else if (change instanceof VariableStoreChange.Remove) {
-						Collection<String> variableNames
-							= ((VariableStoreChange.Remove) change).getVariableNames();
+						Collection<String> variableNames =
+								((VariableStoreChange.Remove) change).getVariableNames();
 
 						for (String variableName : variableNames) {
 							long updatedTime = change.getTime().toEpochSecond() * 1000;
-
 							variablesToUpdate.add(
-								new Variable(
-									variableName,
-									null,
-									updatedTime,
-									userTimeZoneString));
+									new Variable(variableName, null, updatedTime,
+											userTimeZoneString));
 						}
 					} else if (change instanceof VariableStoreChange.Put) {
-						Map<String,Object> changedVariables
-							= ((VariableStoreChange.Put) change).getVariables();
+						Map<String, Object> changedVariables =
+								((VariableStoreChange.Put) change).getVariables();
 
 						long updatedTime = change.getTime().toEpochSecond() * 1000;
 
-						for(String variableName : changedVariables.keySet()) {
+						for (String variableName : changedVariables.keySet()) {
 							Object variableValue = changedVariables.get(variableName);
 							variablesToUpdate.add(
-								new Variable(
-									variableName,
-									variableValue,
-									updatedTime,
-									userTimeZoneString));
+									new Variable(variableName, variableValue, updatedTime,
+											userTimeZoneString));
 						}
 					}
 				}
 			}
 		}
 
-		// Perform the actual REST call
-		if(!variablesToUpdate.isEmpty()) {
-
+		if (!variablesToUpdate.isEmpty()) {
 			RestTemplate restTemplate = new RestTemplate();
 			HttpHeaders requestHeaders = new HttpHeaders();
 			requestHeaders.setContentType(MediaType.valueOf("application/json"));
-			requestHeaders.set("Authorization", "Bearer "
-					+ config.getExternalVariableServiceAPIKey());
+			requestHeaders.set("Authorization", "Bearer " + evs.getApiKey());
 
-			String notifyUpdatesUrl = config.getExternalVariableServiceURL()
-					+ "/v" + config.getExternalVariableServiceAPIVersion()
+			String notifyUpdatesUrl = evs.getUrl()
+					+ "/v" + evs.getApiVersion()
 					+ "/variables/notify-updated";
 
-			LinkedMultiValueMap<String, String> allRequestParams =
-					new LinkedMultiValueMap<>();
+			LinkedMultiValueMap<String, String> allRequestParams = new LinkedMultiValueMap<>();
 			allRequestParams.put("userId", Arrays.asList(userId));
 			allRequestParams.put("timeZone", Arrays.asList(userTimeZoneString));
 
 			HttpEntity<?> entity = new HttpEntity<>(variablesToUpdate, requestHeaders);
 			UriComponentsBuilder builder =
 					UriComponentsBuilder.fromUriString(notifyUpdatesUrl)
-							.queryParams(
-									(LinkedMultiValueMap<String, String>) allRequestParams);
+							.queryParams((LinkedMultiValueMap<String, String>) allRequestParams);
 			UriComponents uriComponents = builder.build().encode();
 
-			// Todo: check if we need to do something with the 200 OK response
 			ResponseEntity<Object> response = restTemplate.exchange(
 					uriComponents.toUri(),
 					HttpMethod.POST,
@@ -167,5 +153,4 @@ public class ExternalVariableServiceUpdater implements VariableStoreOnChangeList
 					Object.class);
 		}
 	}
-
 }

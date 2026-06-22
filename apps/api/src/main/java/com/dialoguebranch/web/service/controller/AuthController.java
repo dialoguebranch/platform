@@ -28,7 +28,10 @@
 
 package com.dialoguebranch.web.service.controller;
 
-import com.dialoguebranch.web.service.*;
+import com.dialoguebranch.web.service.Application;
+import com.dialoguebranch.web.service.DlbProperties;
+import com.dialoguebranch.web.service.ProtocolVersion;
+import com.dialoguebranch.web.service.QueryRunner;
 import com.dialoguebranch.web.service.auth.AuthenticationInfo;
 import com.dialoguebranch.web.service.auth.basic.BasicUserCredentials;
 import com.dialoguebranch.web.service.auth.basic.BasicUserFile;
@@ -79,9 +82,6 @@ public class AuthController {
 
 	/** Used for writing logging information */
 	private final Logger logger = AppComponents.getLogger(getClass().getSimpleName());
-
-	/** Used to access configuration parameters */
-	private final Configuration config = Configuration.getInstance();
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
@@ -178,7 +178,7 @@ public class AuthController {
 		// BadRequestException in case of errors
 		validateLoginParameters(request, loginParametersPayload);
 
-		if(config.getAuthService().equals(Configuration.AUTH_SERVICE_KEYCLOAK)) {
+		if(application.getDlbProperties().getAuth().getService().equals(DlbProperties.AUTH_SERVICE_KEYCLOAK)) {
 			logger.info("Keycloak authentication enabled.");
 			return doLoginKeycloak(loginParametersPayload);
 		} else {
@@ -249,16 +249,17 @@ public class AuthController {
 
 		logger.info("User {} logged in successfully.", basicUserCredentials.getUsername());
 
-		String accessToken = JWTUtils.generateAccessToken(basicUserCredentials);
-		String refreshToken = JWTUtils.generateRefreshToken(basicUserCredentials);
+		DlbProperties.Auth auth = application.getDlbProperties().getAuth();
+		String accessToken = application.getJwtUtils().generateAccessToken(basicUserCredentials);
+		String refreshToken = application.getJwtUtils().generateRefreshToken(basicUserCredentials);
 
 		return new LoginResultPayload(
 				basicUserCredentials.getUsername(),
 				basicUserCredentials.getCommaSeparatedRolesString(),
 				accessToken,
-				config.getAccessTokenExpirationSeconds(),
+				auth.getAccessTokenExpirationSeconds(),
 				refreshToken,
-				config.getRefreshTokenExpirationSeconds()
+				auth.getRefreshTokenExpirationSeconds()
 				);
 	}
 
@@ -278,17 +279,18 @@ public class AuthController {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-		String keycloakLoginUrl = config.getKeycloakBaseUrl();
+		DlbProperties.Auth.Keycloak keycloak = application.getDlbProperties().getAuth().getKeycloak();
+		String keycloakLoginUrl = keycloak.getBaseUrl();
 		if(!keycloakLoginUrl.endsWith("/")) keycloakLoginUrl += "/";
 		keycloakLoginUrl += "realms/"
-				+ config.getKeycloakRealm()
+				+ keycloak.getRealm()
 				+ "/protocol/openid-connect/token";
 
         logger.info("Redirecting login attempt to: {}", keycloakLoginUrl);
 
 		MultiValueMap<String, String> requestParameters = new LinkedMultiValueMap<>();
-		requestParameters.add("client_id",config.getKeycloakClientId());
-		requestParameters.add("client_secret",config.getKeycloakClientSecret());
+		requestParameters.add("client_id",keycloak.getClientId());
+		requestParameters.add("client_secret",keycloak.getClientSecret());
 		requestParameters.add("username",loginParametersPayload.getUser());
 		requestParameters.add("password",loginParametersPayload.getPassword());
 		requestParameters.add("grant_type","password");
@@ -439,7 +441,7 @@ public class AuthController {
 		// Log this call to the service log
 		logger.info("POST /v{}/auth/refresh", version);
 
-		if(config.getAuthService().equals(Configuration.AUTH_SERVICE_KEYCLOAK)) {
+		if(application.getDlbProperties().getAuth().getService().equals(DlbProperties.AUTH_SERVICE_KEYCLOAK)) {
 			return doRefreshKeycloak(refreshParametersPayload);
 		} else {
 			return doRefreshNative(refreshParametersPayload);
@@ -454,17 +456,18 @@ public class AuthController {
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
-		String keycloakLoginUrl = config.getKeycloakBaseUrl();
+		DlbProperties.Auth.Keycloak keycloak = application.getDlbProperties().getAuth().getKeycloak();
+		String keycloakLoginUrl = keycloak.getBaseUrl();
 		if(!keycloakLoginUrl.endsWith("/")) keycloakLoginUrl += "/";
 		keycloakLoginUrl += "realms/"
-				+ config.getKeycloakRealm()
+				+ keycloak.getRealm()
 				+ "/protocol/openid-connect/token";
 
 		logger.info("Redirecting token refresh attempt to: {}", keycloakLoginUrl);
 
 		MultiValueMap<String, String> requestParameters = new LinkedMultiValueMap<>();
-		requestParameters.add("client_id",config.getKeycloakClientId());
-		requestParameters.add("client_secret",config.getKeycloakClientSecret());
+		requestParameters.add("client_id",keycloak.getClientId());
+		requestParameters.add("client_secret",keycloak.getClientSecret());
 		requestParameters.add("refresh_token",refreshParametersPayload.getRefreshToken());
 		requestParameters.add("grant_type","refresh_token");
 
@@ -528,7 +531,7 @@ public class AuthController {
 		AuthenticationInfo authInfo;
 
 		try {
-			authInfo = JWTUtils.isRefreshTokenValid(refreshParametersPayload.getRefreshToken());
+			authInfo = application.getJwtUtils().isRefreshTokenValid(refreshParametersPayload.getRefreshToken());
 		} catch (ExpiredJwtException ex) {
 			throw new UnauthorizedException(ErrorCode.AUTH_TOKEN_EXPIRED,
 					"Refresh token expired");
@@ -551,13 +554,14 @@ public class AuthController {
 			throw new UnauthorizedException(ErrorCode.UNKNOWN_USER, invalidError);
 		}
 
+		DlbProperties.Auth auth = application.getDlbProperties().getAuth();
 		return new LoginResultPayload(
 				authInfo.getUsername(),
 				basicUserCredentials.getCommaSeparatedRolesString(),
-				JWTUtils.generateAccessToken(basicUserCredentials),
-				config.getAccessTokenExpirationSeconds(),
-				JWTUtils.generateRefreshToken(basicUserCredentials),
-				config.getRefreshTokenExpirationSeconds()
+				application.getJwtUtils().generateAccessToken(basicUserCredentials),
+				auth.getAccessTokenExpirationSeconds(),
+				application.getJwtUtils().generateRefreshToken(basicUserCredentials),
+				auth.getRefreshTokenExpirationSeconds()
 		);
 
 	}

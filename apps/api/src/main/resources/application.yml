@@ -1,0 +1,85 @@
+# Dialogue Branch Web Service — Spring Boot configuration.
+#
+# Build-time values (version, buildTime) are injected from deployment.properties,
+# which is updated by the Gradle tasks updateVersion and updateConfig.
+
+spring:
+  config:
+    import:
+      - optional:classpath:deployment.properties
+
+springdoc:
+  swagger-ui:
+    operations-sorter: method
+    tags-sorter: alpha
+
+# ----------------------------------------------------------------------------------
+# Dialogue Branch Web Service configuration (all properties under the "dlb" prefix).
+#
+# Any property can be overridden at runtime via an environment variable by converting
+# the property path to SCREAMING_SNAKE_CASE and prepending DLB_:
+#
+#   dlb.base-url                        → DLB_BASE_URL
+#   dlb.mariadb.host                    → DLB_MARIADB_HOST
+#   dlb.mariadb.password                → DLB_MARIADB_PASSWORD
+#   dlb.auth.service                    → DLB_AUTH_SERVICE
+#   dlb.auth.keycloak.client-secret     → DLB_AUTH_KEYCLOAK_CLIENT_SECRET
+#   dlb.auth.jwt-access-token-secret    → DLB_AUTH_JWT_ACCESS_TOKEN_SECRET
+# ----------------------------------------------------------------------------------
+
+dlb:
+  # Populated from deployment.properties at build time
+  version: ${version:unknown}
+  build-time: ${buildTime:unknown}
+
+  # Public base URL where this service is reachable
+  base-url: http://localhost:8089/dlb-web-service
+
+  # Filesystem path to the service data directory
+  data-dir: /usr/local/dialogue-branch/data/dlb-web-service
+
+  # Whether anonymous user accounts may be created via the REST API
+  allow-anonymous-users: false
+
+  # ---- Database ----
+  mariadb:
+    host: localhost
+    port: 3306
+    user: root
+    password: ""
+    database: dialoguebranch
+
+  # ---- Authentication ----
+  auth:
+    # "native" or "keycloak"
+    service: native
+
+    # Keycloak settings (required when service = keycloak)
+    keycloak:
+      base-url: http://keycloak:8080/
+      realm: dialoguebranch
+      client-id: dlb-web-service
+      client-secret: ""
+
+    # Native JWT settings (required when service = native)
+    jwt-access-token-secret: ""
+    access-token-expiration-seconds: 300
+    jwt-refresh-token-secret: ""
+    refresh-token-expiration-seconds: 1800
+
+  # ---- External Variable Service ----
+  external-variable-service:
+    enabled: false
+    url: ""
+    api-version: 1
+    api-key: ""
+
+  # ---- Azure Data Lake (experimental) ----
+  azure-data-lake:
+    enabled: false
+    authentication-method: ""
+    account-name: ""
+    account-key: ""
+    sas-account-url: ""
+    sas-token: ""
+    file-system-name: ""

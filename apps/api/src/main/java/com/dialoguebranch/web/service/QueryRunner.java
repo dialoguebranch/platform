@@ -28,6 +28,7 @@
 
 package com.dialoguebranch.web.service;
 
+import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.auth.AuthenticationInfo;
 import com.dialoguebranch.web.service.auth.basic.BasicUserCredentials;
 import com.dialoguebranch.web.service.auth.jwt.JWTUtils;
@@ -133,7 +134,7 @@ public class QueryRunner {
 														 Application application)
 			throws UnauthorizedException {
 
-		if(application.getConfiguration().getAuthService().equals(Configuration.AUTH_SERVICE_KEYCLOAK))
+		if(application.getDlbProperties().getAuth().getService().equals(DlbProperties.AUTH_SERVICE_KEYCLOAK))
 			return validateKeycloakAccessToken(providedAccessToken, application);
 		else
 			return validateNativeAccessToken(providedAccessToken, application);
@@ -158,7 +159,7 @@ public class QueryRunner {
 
 		AuthenticationInfo authenticationInfo;
 		try {
-			authenticationInfo = JWTUtils.isAccessTokenValid(token);
+			authenticationInfo = application.getJwtUtils().isAccessTokenValid(token);
 		} catch (ExpiredJwtException ex) {
 			throw new UnauthorizedException(ErrorCode.AUTH_TOKEN_EXPIRED,
 					"Authentication token expired");

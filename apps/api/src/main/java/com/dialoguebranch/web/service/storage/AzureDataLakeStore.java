@@ -32,7 +32,7 @@ import com.azure.core.http.rest.PagedIterable;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.file.datalake.*;
 import com.azure.storage.file.datalake.models.PathItem;
-import com.dialoguebranch.web.service.Configuration;
+import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.exception.DLBServiceConfigurationException;
 import nl.rrd.utils.AppComponents;
 import org.slf4j.Logger;
@@ -43,7 +43,8 @@ import java.nio.file.Paths;
 
 /**
  * The AzureDataLakeStore class is used for handling file transfers to and from an Azure Data Lake
- * that can be configured to act as a back-up for the local file storage of the Dialogue Branch Web Service.
+ * that can be configured to act as a back-up for the local file storage of the Dialogue Branch
+ * Web Service.
  *
  * @author Harm op den Akker
  */
@@ -51,124 +52,100 @@ public class AzureDataLakeStore {
 
 	private final Logger logger = AppComponents.getLogger(getClass().getSimpleName());
 
-	private final Configuration config;
+	private final DlbProperties dlbProperties;
 	private final DataLakeFileSystemClient dataLakeFileSystemClient;
 	public static final String AUTHENTICATION_METHOD_SAS = "sas-token";
 	public static final String AUTHENTICATION_METHOD_ACCOUNT_KEY = "account-key";
 
-	public AzureDataLakeStore() throws DLBServiceConfigurationException {
+	public AzureDataLakeStore(DlbProperties dlbProperties) throws DLBServiceConfigurationException {
 
-		config = Configuration.getInstance();
+		this.dlbProperties = dlbProperties;
+		DlbProperties.AzureDataLake cfg = dlbProperties.getAzureDataLake();
 
 		DataLakeServiceClient dataLakeServiceClient;
-		String authMethod = config.getAzureDataLakeAuthenticationMethod();
-		// Option 1: Create ServiceClient using SAS Token
-		if(authMethod.equals(AUTHENTICATION_METHOD_SAS)) {
-			dataLakeServiceClient = new DataLakeServiceClientBuilder()
-				.endpoint(config.getAzureDataLakeSASAccountUrl())
-				.sasToken(config.getAzureDataLakeSASToken())
-				.buildClient();
-		}
+		String authMethod = cfg.getAuthenticationMethod();
 
-		// Option 2: Create ServiceClient using accountName and accountKey
-		else if(authMethod.equals(AUTHENTICATION_METHOD_ACCOUNT_KEY)) {
+		if (authMethod.equals(AUTHENTICATION_METHOD_SAS)) {
+			dataLakeServiceClient = new DataLakeServiceClientBuilder()
+					.endpoint(cfg.getSasAccountUrl())
+					.sasToken(cfg.getSasToken())
+					.buildClient();
+		} else if (authMethod.equals(AUTHENTICATION_METHOD_ACCOUNT_KEY)) {
 			StorageSharedKeyCredential sharedKeyCredential =
-					new StorageSharedKeyCredential(config.getAzureDataLakeAccountName(),
-							config.getAzureDataLakeAccountKey());
+					new StorageSharedKeyCredential(cfg.getAccountName(), cfg.getAccountKey());
 
 			DataLakeServiceClientBuilder builder = new DataLakeServiceClientBuilder();
 			builder.credential(sharedKeyCredential);
-			builder.endpoint("https://" + config.getAzureDataLakeAccountName()
-					+ ".dfs.core.windows.net");
+			builder.endpoint("https://" + cfg.getAccountName() + ".dfs.core.windows.net");
 			dataLakeServiceClient = builder.buildClient();
 		} else {
-			throw new DLBServiceConfigurationException("Attempting to initialize AzureDataLakeStore, " +
-				"but an unknown authentication method '"+authMethod+"' was configured.");
+			throw new DLBServiceConfigurationException(
+					"Attempting to initialize AzureDataLakeStore, " +
+					"but an unknown authentication method '" + authMethod + "' was configured.");
 		}
 
 		dataLakeFileSystemClient =
-				dataLakeServiceClient.getFileSystemClient(config.getAzureDataLakeFileSystemName());
+				dataLakeServiceClient.getFileSystemClient(cfg.getFileSystemName());
 
-		// Log a successful connection message
-		if(authMethod.equals(AUTHENTICATION_METHOD_SAS)) {
-			logger.info("Successfully initiated Azure Data Lake Client using account URL '" +
-					config.getAzureDataLakeSASAccountUrl() + "' and file system '" +
-					config.getAzureDataLakeFileSystemName() + "'.");
-		} else if(authMethod.equals(AUTHENTICATION_METHOD_ACCOUNT_KEY)) {
-			logger.info("Successfully initiated Azure Data Lake Client for account: '" +
-					config.getAzureDataLakeAccountName() + "' and file system '" +
-					config.getAzureDataLakeFileSystemName() + "'.");
+		if (authMethod.equals(AUTHENTICATION_METHOD_SAS)) {
+			logger.info("Successfully initiated Azure Data Lake Client using account URL '{}'" +
+					" and file system '{}'.", cfg.getSasAccountUrl(), cfg.getFileSystemName());
+		} else if (authMethod.equals(AUTHENTICATION_METHOD_ACCOUNT_KEY)) {
+			logger.info("Successfully initiated Azure Data Lake Client for account: '{}'" +
+					" and file system '{}'.", cfg.getAccountName(), cfg.getFileSystemName());
 		}
 	}
 
-	/**
-	 * Writes the given {@code file} for the given {@code user} to the Azure Data Lake.
-	 * @param user the identifier of the user to which the file belongs.
-	 * @param file the file to write to the Azure Data Lake.
-	 */
 	public void writeLoggedDialogueFile(String user, File file) {
 		DataLakeDirectoryClient directoryClient =
 				dataLakeFileSystemClient.getDirectoryClient(
-						config.getDirectoryNameDialogues() + "/" + user);
+						DlbProperties.DIRECTORY_NAME_DIALOGUES + "/" + user);
 		DataLakeFileClient fileClient = directoryClient.getFileClient(file.getName());
 		try {
-			fileClient.uploadFromFile(file.getAbsolutePath(),true);
-		} catch(UncheckedIOException e) {
-			logger.error("Failed to upload dialogue log session '"
-					+ file.getAbsolutePath() + "' to Azure Data Lake.");
+			fileClient.uploadFromFile(file.getAbsolutePath(), true);
+		} catch (UncheckedIOException e) {
+			logger.error("Failed to upload dialogue log session '{}' to Azure Data Lake.",
+					file.getAbsolutePath());
 		}
 	}
 
-	/**
-	 * Writes an application log file to the Azure Data Lake.
-	 * @param file the log file to write.
-	 */
 	public void writeApplicationLogFile(File file) {
 		DataLakeDirectoryClient directoryClient =
-				dataLakeFileSystemClient.getDirectoryClient(config.getDirectoryNameApplicationLogs());
+				dataLakeFileSystemClient.getDirectoryClient(
+						DlbProperties.DIRECTORY_NAME_APPLICATION_LOGS);
 		DataLakeFileClient fileClient = directoryClient.getFileClient(file.getName());
 		try {
-			fileClient.uploadFromFile(file.getAbsolutePath(),true);
-			logger.info("Successfully uploaded application log '" +
-					file.getAbsolutePath() + "' to Azure Data Lake.");
-		} catch(UncheckedIOException e) {
-			logger.error("Failed to upload application log '" +
-					file.getAbsolutePath() + "' to Azure Data Lake.");
+			fileClient.uploadFromFile(file.getAbsolutePath(), true);
+			logger.info("Successfully uploaded application log '{}' to Azure Data Lake.",
+					file.getAbsolutePath());
+		} catch (UncheckedIOException e) {
+			logger.error("Failed to upload application log '{}' to Azure Data Lake.",
+					file.getAbsolutePath());
 		}
 	}
 
-	/**
-	 * Populate the local dialogue log folder for the given user, identified by the
-	 * {@code dialogueBranchUser}. This method will retrieve a "recent" set of ServerLoggedDialogue log files from
-	 * the Azure Data Lake, and saves them into the local dialogue log folder for the given user.
-	 *
-	 * @param dialogueBranchUser the id of the Dialogue Branch user for whom to look for dialogues.
-	 * @throws IOException in case of an error writing to the local files.
-	 */
 	public void populateLocalDialogueLogs(String dialogueBranchUser) throws IOException {
-		logger.info("Populating local dialogue log folder for user '" + dialogueBranchUser + "'.");
+		logger.info("Populating local dialogue log folder for user '{}'.", dialogueBranchUser);
 		DataLakeDirectoryClient directoryClient =
 				dataLakeFileSystemClient.getDirectoryClient(
-						config.getDirectoryNameDialogues() + "/" + dialogueBranchUser);
+						DlbProperties.DIRECTORY_NAME_DIALOGUES + "/" + dialogueBranchUser);
 
-		// If there is a directory for the given DialogueBranch user
 		if (directoryClient.exists()) {
-
 			PagedIterable<PathItem> pathItems = directoryClient.listPaths();
 
 			for (PathItem pathItem : pathItems) {
-				// item.getName() returns e.g. "dialogues/user-name/{fileName}.json"
-				Path path = Paths.get(config.getDataDir() + File.separator + pathItem.getName());
+				Path path = Paths.get(dlbProperties.getDataDir() + File.separator
+						+ pathItem.getName());
 				String fileName = path.getFileName().toString();
 
-				logger.info("Found file on Azure Data Lake for user '" + dialogueBranchUser
-						+ "': " + pathItem.getName() + " (file name: '" + fileName + "').");
+				logger.info("Found file on Azure Data Lake for user '{}': {} (file name: '{}').",
+						dialogueBranchUser, pathItem.getName(), fileName);
 
 				DataLakeFileClient fileClient =
 						dataLakeFileSystemClient.getFileClient(pathItem.getName());
 
-				File localFile = new File(config.getDataDir() + File.separator +
-						config.getDirectoryNameDialogues() + File.separator +
+				File localFile = new File(dlbProperties.getDataDir() + File.separator +
+						DlbProperties.DIRECTORY_NAME_DIALOGUES + File.separator +
 						dialogueBranchUser + File.separator + fileName);
 
 				OutputStream targetStream = new FileOutputStream(localFile);
@@ -177,6 +154,4 @@ public class AzureDataLakeStore {
 			}
 		}
 	}
-
-
 }

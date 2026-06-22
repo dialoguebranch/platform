@@ -28,71 +28,68 @@
 
 package com.dialoguebranch.web.service.auth.jwt;
 
+import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.auth.AuthenticationInfo;
-import com.dialoguebranch.web.service.Configuration;
 import com.dialoguebranch.web.service.auth.basic.BasicUserCredentials;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.function.Function;
 
 /**
- * Collection of static methods for creating and verifying JSON Web Tokens (JWTs).
+ * Spring-managed bean providing JWT creation and validation for the native authentication service.
  *
  * @author Harm op den Akker
  * @author Dennis Hofs
  */
+@Component
 public class JWTUtils {
 
-    /** Used to access configuration parameters */
-    private static final Configuration config = Configuration.getInstance();
+    private final DlbProperties dlbProperties;
 
-    /**
-     * Generates an access token (JWT) based on the given {@link BasicUserCredentials}.
-     *
-     * @param basicUserCredentials object containing username, and roles of the user for which to
-     *                             generate a JWT.
-     * @return the JWT access token as a String.
-     */
-    public static String generateAccessToken(BasicUserCredentials basicUserCredentials) {
+    @Autowired
+    public JWTUtils(DlbProperties dlbProperties) {
+        this.dlbProperties = dlbProperties;
+    }
+
+    public String generateAccessToken(BasicUserCredentials basicUserCredentials) {
+        DlbProperties.Auth auth = dlbProperties.getAuth();
         return Jwts.builder()
-                .expiration(new Date(System.currentTimeMillis() + config.getAccessTokenExpirationSeconds() * 1000L))
+                .expiration(new Date(System.currentTimeMillis()
+                        + auth.getAccessTokenExpirationSeconds() * 1000L))
                 .issuedAt(new Date())
-                .issuer(config.getBaseUrl())
+                .issuer(dlbProperties.getBaseUrl())
                 .subject(basicUserCredentials.getUsername())
-                .claim("typ","Bearer") // Type of Token
-                .claim("azp","dlb-web-service") // Authorized party
+                .claim("typ", "Bearer")
+                .claim("azp", "dlb-web-service")
                 .claim("roles", basicUserCredentials.getCommaSeparatedRolesString())
                 .signWith(getAccessTokenSecret())
                 .compact();
     }
 
-    /**
-     * Generates a refresh token (JWT) based on the given {@link BasicUserCredentials}.
-     *
-     * @param basicUserCredentials object containing username, and roles of the user for which to
-     *                             generate a JWT.
-     * @return the JWT refresh token as a String.
-     */
-    public static String generateRefreshToken(BasicUserCredentials basicUserCredentials) {
+    public String generateRefreshToken(BasicUserCredentials basicUserCredentials) {
+        DlbProperties.Auth auth = dlbProperties.getAuth();
         return Jwts.builder()
-                .expiration(new Date(System.currentTimeMillis() + config.getRefreshTokenExpirationSeconds() * 1000L))
+                .expiration(new Date(System.currentTimeMillis()
+                        + auth.getRefreshTokenExpirationSeconds() * 1000L))
                 .issuedAt(new Date())
-                .issuer(config.getBaseUrl())
-                .audience().add(config.getBaseUrl()).and()
+                .issuer(dlbProperties.getBaseUrl())
+                .audience().add(dlbProperties.getBaseUrl()).and()
                 .subject(basicUserCredentials.getUsername())
-                .claim("typ","Refresh") // Type of Token
-                .claim("azp","dlb-web-service") // Authorized party
+                .claim("typ", "Refresh")
+                .claim("azp", "dlb-web-service")
                 .signWith(getRefreshTokenSecret())
                 .compact();
     }
 
-    public static <T> T extractClaims(String token, Function<Claims, T> claimFunction) {
+    public <T> T extractClaims(String token, Function<Claims, T> claimFunction) {
         Claims claims = Jwts.parser()
                 .verifyWith(getAccessTokenSecret())
                 .build()
@@ -101,8 +98,7 @@ public class JWTUtils {
         return claimFunction.apply(claims);
     }
 
-    public static AuthenticationInfo isAccessTokenValid(String token)
-            throws JwtException {
+    public AuthenticationInfo isAccessTokenValid(String token) throws JwtException {
         final Claims claims = Jwts.parser()
                 .verifyWith(getAccessTokenSecret())
                 .build()
@@ -110,7 +106,6 @@ public class JWTUtils {
                 .getPayload();
         String rolesString = (String) claims.get("roles");
         String[] roles = rolesString.split(",");
-
         return new AuthenticationInfo(
                 claims.getSubject(),
                 roles,
@@ -118,14 +113,12 @@ public class JWTUtils {
                 claims.getExpiration());
     }
 
-    public static AuthenticationInfo isRefreshTokenValid(String refreshToken)
-            throws JwtException {
+    public AuthenticationInfo isRefreshTokenValid(String refreshToken) throws JwtException {
         final Claims claims = Jwts.parser()
                 .verifyWith(getRefreshTokenSecret())
                 .build()
                 .parseSignedClaims(refreshToken)
                 .getPayload();
-
         return new AuthenticationInfo(
                 claims.getSubject(),
                 null,
@@ -133,28 +126,13 @@ public class JWTUtils {
                 claims.getExpiration());
     }
 
-    /**
-     * Obtains a {@link SecretKey} object used for encrypting and decrypting Access Tokens by
-     * parsing the Base64 string value as defined in the configuration property
-     * jwtAccessTokenSecret.
-     *
-     * @return the secret key as a {@link SecretKey} object.
-     */
-    private static SecretKey getAccessTokenSecret() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(Configuration.getInstance()
-                .getJwtAccessTokenSecret()));
+    private SecretKey getAccessTokenSecret() {
+        return Keys.hmacShaKeyFor(
+                Decoders.BASE64.decode(dlbProperties.getAuth().getJwtAccessTokenSecret()));
     }
 
-    /**
-     * Obtains a {@link SecretKey} object used for encrypting and decrypting Access Tokens by
-     * parsing the Base64 string value as defined in the configuration property
-     * jwtAccessTokenSecret.
-     *
-     * @return the secret key as a {@link SecretKey} object.
-     */
-    private static SecretKey getRefreshTokenSecret() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(Configuration.getInstance()
-                .getJwtRefreshTokenSecret()));
+    private SecretKey getRefreshTokenSecret() {
+        return Keys.hmacShaKeyFor(
+                Decoders.BASE64.decode(dlbProperties.getAuth().getJwtRefreshTokenSecret()));
     }
-
 }

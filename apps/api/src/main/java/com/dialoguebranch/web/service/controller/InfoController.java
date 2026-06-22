@@ -33,7 +33,6 @@ import nl.rrd.utils.AppComponents;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.ProtocolVersion;
 import com.dialoguebranch.web.service.ServiceContext;
-import com.dialoguebranch.web.service.Configuration;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -126,9 +125,9 @@ public class InfoController {
 		String upTimeString = days + "d " + hours + "h " + minutes + "m";
 
 		return new ServiceInfoPayload(
-				Configuration.getInstance().get(Configuration.BUILD_TIME),
+				application.getDlbProperties().getBuildTime(),
 				ServiceContext.getCurrentVersion(),
-				Configuration.getInstance().get(Configuration.VERSION),
+				application.getDlbProperties().getVersion(),
 				upTimeString);
 	}
 

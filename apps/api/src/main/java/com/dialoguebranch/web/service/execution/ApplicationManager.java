@@ -36,7 +36,7 @@ import com.dialoguebranch.model.Project;
 import com.dialoguebranch.parser.FileLoader;
 import com.dialoguebranch.parser.ProjectParser;
 import com.dialoguebranch.parser.ProjectParserResult;
-import com.dialoguebranch.web.service.Configuration;
+import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.auth.basic.BasicUserCredentials;
 import com.dialoguebranch.web.service.auth.basic.BasicUserFile;
 import com.dialoguebranch.web.service.auth.keycloak.KeycloakManager;
@@ -47,6 +47,7 @@ import nl.rrd.utils.AppComponents;
 import nl.rrd.utils.exception.DatabaseException;
 import nl.rrd.utils.exception.ParseException;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.ZoneId;
@@ -65,6 +66,7 @@ public class ApplicationManager {
 
 	private final Logger logger = AppComponents.getLogger(getClass().getSimpleName());
 	private final Project project;
+	private final DlbProperties dlbProperties;
 	private final List<UserService> activeUserServices = new ArrayList<>();
 	private final List<BasicUserCredentials> basicUserCredentials;
 	private AzureDataLakeStore azureDataLakeStore = null;
@@ -83,7 +85,10 @@ public class ApplicationManager {
 	 *                                          initialized due to an incorrectly set config
 	 *                                          parameter.
 	 */
-	public ApplicationManager(FileLoader fileLoader) throws DLBServiceConfigurationException {
+	public ApplicationManager(FileLoader fileLoader, DlbProperties dlbProperties)
+			throws DLBServiceConfigurationException {
+
+		this.dlbProperties = dlbProperties;
 
 		ProjectParser projectParser = new ProjectParser(fileLoader);
 		ProjectParserResult readResult;
@@ -112,26 +117,21 @@ public class ApplicationManager {
 		this.userServiceFactory = new UserServiceFactory(this,
 				new VariableStoreDatabaseStorageHandler());
 
-
-		// Load in configuration values
-		Configuration config = AppComponents.get(Configuration.class);
-
 		// Initialize User Manager
-		if(config.getAuthService().equals(Configuration.AUTH_SERVICE_KEYCLOAK)) {
-			keycloakManager = new KeycloakManager();
-			basicUserCredentials = new ArrayList<>(); // This is the (now unused) built-in list
+		if(dlbProperties.getAuth().getService().equals(DlbProperties.AUTH_SERVICE_KEYCLOAK)) {
+			keycloakManager = new KeycloakManager(dlbProperties);
+			basicUserCredentials = new ArrayList<>();
 		} else {
-			// Read all BasicUserCredentials from users.xml
 			try {
-				basicUserCredentials = BasicUserFile.read();
+				basicUserCredentials = BasicUserFile.read(dlbProperties.getDataDir());
 			} catch (ParseException | IOException e) {
 				throw new RuntimeException(e);
 			}
 		}
 
-		if(Configuration.getInstance().getAzureDataLakeEnabled()) {
+		if(dlbProperties.getAzureDataLake().isEnabled()) {
 			try {
-				azureDataLakeStore = new AzureDataLakeStore();
+				azureDataLakeStore = new AzureDataLakeStore(dlbProperties);
 			} catch(DLBServiceConfigurationException e) {
                 logger.error("Error configuring Azure Data Lake: {}", e.getMessage());
 				throw e;
@@ -168,6 +168,10 @@ public class ApplicationManager {
 			if(uc.getUsername().equals(username)) return uc;
 		}
 		return null;
+	}
+
+	public DlbProperties getDlbProperties() {
+		return dlbProperties;
 	}
 
 	public AzureDataLakeStore getAzureDataLakeStore() {

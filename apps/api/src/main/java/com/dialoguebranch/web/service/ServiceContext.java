@@ -28,43 +28,43 @@
 
 package com.dialoguebranch.web.service;
 
-import nl.rrd.utils.AppComponents;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.http.HttpURL;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+/**
+ * Provides static access to a small number of shared service-context values. Initialized by Spring
+ * at startup via constructor injection so that its static methods remain callable from non-Spring
+ * code without modification.
+ */
+@Component
 public class ServiceContext {
 
-	/**
-	 * Returns the base URL.
-	 * @return the base URL
-	 */
-	public static String getBaseUrl() {
-		Configuration config = AppComponents.get(Configuration.class);
-		return config.get(Configuration.BASE_URL);
-	}
-	
-	/**
-	 * Returns the base path.
-	 * @return the base path
-	 */
-	public static String getBasePath() {
-		String url = getBaseUrl();
-		HttpURL httpUrl;
-		try {
-			httpUrl = HttpURL.parse(url);
-		} catch (ParseException ex) {
-			throw new RuntimeException("Invalid base URL: " + url + ": " + ex.getMessage(), ex);
-		}
-		return httpUrl.getPath();
-	}
+    private static DlbProperties dlbProperties;
 
-	/**
-	 * Returns the current protocol version.
-	 * @return the current protocol version
-	 */
-	public static String getCurrentVersion() {
-		ProtocolVersion[] versions = ProtocolVersion.values();
-		return versions[versions.length - 1].versionName();
-	}
+    @Autowired
+    public ServiceContext(DlbProperties dlbProperties) {
+        ServiceContext.dlbProperties = dlbProperties;
+    }
 
+    public static String getBaseUrl() {
+        return dlbProperties.getBaseUrl();
+    }
+
+    public static String getBasePath() {
+        String url = getBaseUrl();
+        HttpURL httpUrl;
+        try {
+            httpUrl = HttpURL.parse(url);
+        } catch (ParseException ex) {
+            throw new RuntimeException("Invalid base URL: " + url + ": " + ex.getMessage(), ex);
+        }
+        return httpUrl.getPath();
+    }
+
+    public static String getCurrentVersion() {
+        ProtocolVersion[] versions = ProtocolVersion.values();
+        return versions[versions.length - 1].versionName();
+    }
 }

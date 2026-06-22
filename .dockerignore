@@ -1,0 +1,6 @@
+**/.gradle
+**/.idea
+**/.DS_Store
+**/build
+**/gradle.properties
+apps/api/src/main/resources/service.properties

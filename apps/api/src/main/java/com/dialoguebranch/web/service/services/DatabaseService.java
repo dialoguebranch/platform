@@ -28,6 +28,7 @@
 
 package com.dialoguebranch.web.service.services;
 
+import com.dialoguebranch.web.service.DlbProperties;
 import jakarta.persistence.Entity;
 import nl.rrd.utils.AppComponents;
 import org.hibernate.SessionFactory;
@@ -35,6 +36,7 @@ import org.hibernate.jpa.HibernatePersistenceConfiguration;
 import org.hibernate.service.spi.ServiceException;
 import org.hibernate.tool.schema.Action;
 import org.slf4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
@@ -46,10 +48,17 @@ import java.util.Set;
 
 @Configuration
 public class DatabaseService {
+
+	private final DlbProperties dlbProperties;
+
+	@Autowired
+	public DatabaseService(DlbProperties dlbProperties) {
+		this.dlbProperties = dlbProperties;
+	}
+
 	@Bean
 	public SessionFactory sessionFactory() {
-		com.dialoguebranch.web.service.Configuration cfg =
-				com.dialoguebranch.web.service.Configuration.getInstance();
+		DlbProperties.MariaDb cfg = dlbProperties.getMariadb();
 
 		List<? extends Class<?>> entityClasses = findEntityClasses();
 
@@ -65,9 +74,9 @@ public class DatabaseService {
 		while (true) {
 			try {
 				return hibernateConfig
-						.jdbcUrl("jdbc:mariadb://" + cfg.getMariadbHost() + ":" + cfg.getMariadbPort() +
-								"/" + cfg.getMariadbDatabase() + "?createDatabaseIfNotExist=true")
-						.jdbcCredentials(cfg.getMariadbUser(), cfg.getMariadbPassword())
+						.jdbcUrl("jdbc:mariadb://" + cfg.getHost() + ":" + cfg.getPort() +
+								"/" + cfg.getDatabase() + "?createDatabaseIfNotExist=true")
+						.jdbcCredentials(cfg.getUser(), cfg.getPassword())
 						.schemaToolingAction(Action.UPDATE)
 						.createEntityManagerFactory();
 			} catch (ServiceException ex) {

@@ -28,6 +28,8 @@ configurations {
 }
 
 dependencies {
+	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:3.5.4'
+
 	implementation 'org.apache.httpcomponents.client5:httpclient5:5.5'
 
 	// Enabling this dependency will include the required dlb-core-java from local source.
@@ -79,41 +81,19 @@ configurations {
 }
 
 class UpdateConfigTask extends DefaultTask {
-	private ProviderFactory providerFactory
-
-	@Inject
-	UpdateConfigTask(ProviderFactory providerFactory) {
-		this.providerFactory = providerFactory
-	}
 
 	@TaskAction
 	void doTaskAction() {
-		Properties props = new Properties()
-		def propPrefix = 'dlb-config'
-
-		providerFactory.gradlePropertiesPrefixedBy(propPrefix).get().each { key, value ->
-			if (!key.startsWith(propPrefix))
-				return
-			key = key.substring(propPrefix.length())
-			key = key[0].toLowerCase() + key.substring(1)
-			props[key] = value
-		}
-
-		// Add the current time as buildTime property
-		props['buildTime'] = new Date().format("MM/dd/yyyy HH:mm:ss")
-
-		def resDir = new File('src/main/resources')
-		resDir.mkdirs()
-		def out = new File(resDir, 'service.properties')
-		out.withWriter('UTF-8') {
-			props.store(it, 'DO NOT EDIT, generated with gradlew updateConfig')
-		}
+		def buildTime = new Date().format("MM/dd/yyyy HH:mm:ss")
+		ant.replaceregexp(file: 'src/main/resources/deployment.properties',
+			match: "buildTime=.*",
+			replace: "buildTime=${buildTime}")
 	}
 }
 
 tasks.register('updateConfig', UpdateConfigTask) {
 	group = "configuration"
-	description = "Generates an updated version of service.properties that includes values from 'gradle.properties' starting with 'dlb-config'."
+	description = "Writes the current build timestamp to deployment.properties."
 }
 
 class ListDialogueFilesTask extends DefaultTask {

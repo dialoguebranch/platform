@@ -1,44 +1,108 @@
-### From your GIT/dialoguebranch/ folder
-### docker build --no-cache -t dlb-web-service -f ./dlb-web/dlb-web-service/standalone.Dockerfile .
-### docker run -itd -p 8089:8089 --name dlb-web-service dlb-web-service
-### (User 'docker system prune -a') to clean up the cache and free up disk space
+# Standalone Dialogue Branch Web Service Docker image.
+#
+# Build context must be the platform/ root of the monorepo:
+#   docker build -t dlb-web-service -f apps/api/standalone.Dockerfile .
+#
+# Run the resulting image:
+#   docker run -p 8089:8089 dlb-web-service
+#
+# To override the service configuration at runtime, mount a custom service.properties:
+#   docker run -p 8089:8089 \
+#     -v /path/to/your/service.properties:/usr/local/dialogue-branch/data/dlb-web-service/service.properties \
+#     dlb-web-service
 
-# Use an official Java runtime as a parent image
-FROM tomcat:11.0
+# ---------------------------------------------------------- #
+# -------------------- Stage 1: Builder -------------------- #
+# ---------------------------------------------------------- #
 
-# Edit the server.xml, changing the port from 8080 to 8089
-RUN sed -i 's/port="8080"/port="8089"/' ${CATALINA_HOME}/conf/server.xml
+FROM eclipse-temurin:17-jdk AS builder
 
-# Make port 8089 available to the world outside this container
-EXPOSE 8089
+WORKDIR /build
 
-### Prepare the source files and data folders
+# Copy the monorepo source needed for this service
+COPY packages/core/ packages/core/
+COPY apps/api/ apps/api/
 
-# Copy the local source folder into the container
-COPY ./dlb-web/dlb-web-service/ /usr/local/dialogue-branch/source/dlb-web/dlb-web-service/
-COPY ./dlb-core-java/ /usr/local/dialogue-branch/source/dlb-core-java/
-RUN for f in `find /usr/local/dialogue-branch/source -name "gradlew" -print`; do chmod 755 $f && sed -i -e 's/\r//' $f; done
+RUN chmod +x apps/api/gradlew
 
-# Create some data folders used by the services
-RUN mkdir /usr/local/dialogue-branch/data/
-RUN mkdir /usr/local/dialogue-branch/data/dlb-web-service/
+WORKDIR /build/apps/api
 
-### Next, build and deploy the Web Service
+# Build the WAR, skipping tests and Javadoc for a faster image build.
+# All runtime configuration is supplied via environment variables — see Stage 2.
+RUN ./gradlew clean updateVersion build -x test -PbuildEnv=dev --no-daemon
 
-# Set the working directory to the DLB Web Service source folder
-WORKDIR /usr/local/dialogue-branch/source/dlb-web/dlb-web-service/
+# ---------------------------------------------------------- #
+# -------------------- Stage 2: Runtime -------------------- #
+# ---------------------------------------------------------- #
 
-# Execute a clean build
-RUN ./gradlew clean updateVersion build
+FROM tomcat:11.0.22-jre17-temurin
 
-# Copy the generated .war file into the tomcat webapps
-RUN cp /usr/local/dialogue-branch/source/dlb-web/dlb-web-service/build/libs/dlb-web-service-1.2.5.war /usr/local/tomcat/webapps/dlb-web-service.war
+# The HTTP port Tomcat listens on inside the container (default: 8089).
+# Override with -e SERVER_PORT=... or in docker-compose.yml.
+# Remember to match your -p host:container port mapping accordingly.
+ENV SERVER_PORT=8089
+EXPOSE ${SERVER_PORT}
 
-# Copy the users.xml file into the data folder
-RUN cp /usr/local/dialogue-branch/source/dlb-web/dlb-web-service/config/users.xml /usr/local/dialogue-branch/data/dlb-web-service/
+# Create the data directory used by the service
+RUN mkdir -p /usr/local/dialogue-branch/data/dlb-web-service/
 
-# Set the working directory in the container
-WORKDIR /usr/local/tomcat
+# Copy the built WAR from the builder stage into Tomcat
+COPY --from=builder /build/apps/api/build/libs/dlb-web-service-*.war \
+    ${CATALINA_HOME}/webapps/dlb-web-service.war
 
-# Run Tomcat server
-CMD ["catalina.sh", "run"]
+# Copy the example users file as the default authentication config
+COPY apps/api/config/users-example.xml \
+    /usr/local/dialogue-branch/data/dlb-web-service/users.xml
+
+# Copy and register the entrypoint script
+COPY apps/api/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
+# -------------------------------------------------------------------------
+# Runtime configuration via environment variables.
+# All values below can be overridden in a docker run -e or docker-compose.yml.
+# See https://www.dialoguebranch.com/docs for full documentation.
+# -------------------------------------------------------------------------
+
+# General
+ENV DLB_BASE_URL=http://localhost:8089/dlb-web-service
+ENV DLB_DATA_DIR=/usr/local/dialogue-branch/data/dlb-web-service
+
+# -------------------------------------------------------------------------
+# Non-sensitive defaults — safe to set as ENV.
+# -------------------------------------------------------------------------
+
+ENV DLB_AUTH_SERVICE=native
+ENV DLB_AUTH_ACCESS_TOKEN_EXPIRATION_SECONDS=300
+ENV DLB_AUTH_REFRESH_TOKEN_EXPIRATION_SECONDS=1800
+ENV DLB_AUTH_KEYCLOAK_BASE_URL=http://keycloak:8080/
+ENV DLB_AUTH_KEYCLOAK_REALM=dialoguebranch
+ENV DLB_AUTH_KEYCLOAK_CLIENT_ID=dlb-web-service
+ENV DLB_MARIADB_HOST=mariadb
+ENV DLB_MARIADB_PORT=3306
+ENV DLB_MARIADB_USER=root
+ENV DLB_MARIADB_DATABASE=dialoguebranch
+ENV DLB_EXTERNAL_VARIABLE_SERVICE_ENABLED=false
+ENV DLB_EXTERNAL_VARIABLE_SERVICE_API_VERSION=1
+ENV DLB_AZURE_DATA_LAKE_ENABLED=false
+
+# -------------------------------------------------------------------------
+# Sensitive values — DO NOT set defaults here.
+# Supply these at runtime via docker run -e, a docker-compose.yml
+# environment block, or Docker Secrets.
+#
+# Required:
+#   DLB_AUTH_JWT_ACCESS_TOKEN_SECRET  — JWT signing secret for access tokens
+#   DLB_AUTH_JWT_REFRESH_TOKEN_SECRET — JWT signing secret for refresh tokens
+#   DLB_MARIADB_PASSWORD              — MariaDB user password
+#
+# Optional (only needed when the relevant feature is enabled):
+#   DLB_AUTH_KEYCLOAK_CLIENT_SECRET          — Keycloak client secret
+#   DLB_EXTERNAL_VARIABLE_SERVICE_URL        — URL of the external variable service
+#   DLB_EXTERNAL_VARIABLE_SERVICE_API_KEY    — API key for the external variable service
+#   DLB_AZURE_DATA_LAKE_ACCOUNT_KEY          — Azure Data Lake account key
+#   DLB_AZURE_DATA_LAKE_SAS_TOKEN            — Azure Data Lake SAS token
+# -------------------------------------------------------------------------
+
+CMD []

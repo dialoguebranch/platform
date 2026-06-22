@@ -28,7 +28,7 @@
 
 package com.dialoguebranch.web.service.storage;
 
-import com.dialoguebranch.web.service.Configuration;
+import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.execution.UserService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -55,7 +55,7 @@ import java.util.*;
  */
 public class LoggedDialogueStore {
 
-	private final Configuration config = Configuration.getInstance();
+	private final DlbProperties dlbProperties;
 	private final UserService userService;
 	private final String userId;
 	private final File userLogDirectory;
@@ -76,15 +76,17 @@ public class LoggedDialogueStore {
 	 * @param userService the {@link UserService} associated with this LoggedDialogueStore
 	 * @throws IOException in case of an error instantiating the log folder.
 	 */
-	public LoggedDialogueStore(String userId, UserService userService) throws IOException {
+	public LoggedDialogueStore(String userId, UserService userService,
+							   DlbProperties dlbProperties) throws IOException {
         Logger logger = AppComponents.getLogger(getClass().getSimpleName());
         logger.info("Initializing LoggedDialogueStore for user '" + userId + "'.");
 
 		this.userService = userService;
 		this.userId = userId;
+		this.dlbProperties = dlbProperties;
 
-		File dialogueLogDirectory = new File(config.getDataDir() + File.separator
-				+ config.getDirectoryNameDialogues());
+		File dialogueLogDirectory = new File(dlbProperties.getDataDir() + File.separator
+				+ DlbProperties.DIRECTORY_NAME_DIALOGUES);
 
 		// If the application's dialogue log directory doesn't exist yet
 		if(!dialogueLogDirectory.exists()) {
@@ -107,7 +109,7 @@ public class LoggedDialogueStore {
 				logger.info("Created user's dialogue log directory at: "+userLogDirectory);
 				// The user  directory was created. In case an Azure Data Lake backup service is
 				// enabled, check if there is data to populate this directory here.
-				if(config.getAzureDataLakeEnabled()) {
+				if(dlbProperties.getAzureDataLake().isEnabled()) {
 					try {
 						userService.getApplicationManager().getAzureDataLakeStore().
 								populateLocalDialogueLogs(userId);
@@ -224,7 +226,7 @@ public class LoggedDialogueStore {
 			File dataFile = new File(userLogDirectory, sessionStartTime + " " + sessionId +
 					".json");
 			FileUtils.writeFileString(dataFile, json);
-			if(config.getAzureDataLakeEnabled()) {
+			if(dlbProperties.getAzureDataLake().isEnabled()) {
 				userService.getApplicationManager().getAzureDataLakeStore()
 						.writeLoggedDialogueFile(userId,dataFile);
 			}

@@ -32,13 +32,14 @@ import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.execution.*;
 import com.dialoguebranch.i18n.TranslationContext;
 import com.dialoguebranch.model.*;
-import com.dialoguebranch.web.service.Configuration;
+import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.storage.*;
 import nl.rrd.utils.AppComponents;
 import nl.rrd.utils.exception.DatabaseException;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.i18n.I18nLanguageFinder;
 import nl.rrd.utils.i18n.I18nUtils;
+import org.slf4j.Logger;
 import org.slf4j.Logger;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
@@ -106,17 +107,19 @@ public class UserService {
 					+ dialogueBranchUser.getId() + "': " + ex.getMessage(), ex);
 		}
 
-		Configuration config = AppComponents.get(Configuration.class);
+		DlbProperties dlbProperties = applicationManager.getDlbProperties();
 
 		this.variableStore.addOnChangeListener(onVarChangeListener);
 
-		if(config.getExternalVariableServiceEnabled()) {
-			this.variableStore.addOnChangeListener(new ExternalVariableServiceUpdater());
+		if (dlbProperties.getExternalVariableService().isEnabled()) {
+			this.variableStore.addOnChangeListener(
+					new ExternalVariableServiceUpdater(dlbProperties));
 		}
 
 		dialogueExecutor = new DialogueExecutor(this);
 
-		loggedDialogueStore = new LoggedDialogueStore(dialogueBranchUser.getId(), this);
+		loggedDialogueStore = new LoggedDialogueStore(
+				dialogueBranchUser.getId(), this, dlbProperties);
 
 		// create dialogueLanguageMap
 		List<FileDescriptor> dialogues = applicationManager.getDialogueDescriptions();
@@ -335,38 +338,32 @@ public class UserService {
         logger.info("Attempting to update values from external service for the following set " +
 				"of variables: {}", variableNames);
 
-		Configuration config = AppComponents.get(Configuration.class);
+		DlbProperties dlbProperties = applicationManager.getDlbProperties();
+		DlbProperties.ExternalVariableService evs = dlbProperties.getExternalVariableService();
 
-		if(config.getExternalVariableServiceEnabled()) {
+		if (evs.isEnabled()) {
 			logger.info("An external Dialogue Branch Variable Service is enabled at {}/v{}/",
-					config.getExternalVariableServiceURL(),
-					config.getExternalVariableServiceAPIVersion());
+					evs.getUrl(), evs.getApiVersion());
 
 			List<Variable> varsToUpdate = new ArrayList<>();
-			for(String variableName : variableNames) {
+			for (String variableName : variableNames) {
 				Variable variable = variableStore.getVariable(variableName);
-				if(variable != null) {
+				if (variable != null) {
                     logger.info("A DialogueBranch Variable '{}' exists for User '{}': {}",
 							variableName, dialogueBranchUser.getId(), variable);
 					varsToUpdate.add(variable);
 				} else {
-					varsToUpdate.add(
-							new Variable(
-									variableName,
-									null,
-									null,
-									null));
+					varsToUpdate.add(new Variable(variableName, null, null, null));
 				}
 			}
 
 			RestTemplate restTemplate = new RestTemplate();
 			HttpHeaders requestHeaders = new HttpHeaders();
 			requestHeaders.setContentType(MediaType.valueOf("application/json"));
-			requestHeaders.set("Authorization", "Bearer "
-					+ config.getExternalVariableServiceAPIKey());
+			requestHeaders.set("Authorization", "Bearer " + evs.getApiKey());
 
-			String retrieveUpdatesUrl = config.getExternalVariableServiceURL()
-					+ "/v"+config.getExternalVariableServiceAPIVersion()
+			String retrieveUpdatesUrl = evs.getUrl()
+					+ "/v" + evs.getApiVersion()
 					+ "/variables/retrieve-updates";
 
             logger.info("RetrieveUpdatesURL: {}", retrieveUpdatesUrl);
