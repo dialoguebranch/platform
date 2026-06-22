@@ -4,7 +4,12 @@ plugins {
 }
 
 group = 'com.dialoguebranch'
-version = '1.2.5' // run updateVersion after changing this property
+
+// Version is defined once for the entire monorepo in /global.json.
+// To release a new version, update it there.
+version = new groovy.json.JsonSlurper()
+        .parse(new File(projectDir.parentFile.parentFile, 'global.json'))
+        .version
 
 repositories {
 	mavenCentral()
