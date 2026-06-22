@@ -3,7 +3,7 @@
 /.gradle/
 /.idea/
 /gradle.properties
-/src/main/resources/service.properties
+/src/main/resources/deployment.properties
 /src/main/resources/dialogues/*
 !/src/main/resources/dialogues/README.md
 !/src/main/resources/dialogues/en/basic.dlb
