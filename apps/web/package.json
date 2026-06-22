@@ -1,12 +1,13 @@
 {
   "name": "dlb-web-client-vuejs",
-  "version": "0.0.0",
+  "version": "1.3.1",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sync-version": "node -e \"import('../../global.json', {with:{type:'json'}}).then(g => { const fs = require('fs'); const p = JSON.parse(fs.readFileSync('./package.json')); p.version = g.default.version; fs.writeFileSync('./package.json', JSON.stringify(p, null, 2) + '\\n'); })\""
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.7.2",
