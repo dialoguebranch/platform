@@ -11,112 +11,158 @@ and the documentation at [www.dialoguebranch.com/docs](https://www.dialoguebranc
 - Java 17 or higher
 - Docker & Docker Compose
 
-## 1. Deploying with Keycloak using Docker
+---
 
-The preferred way of using Dialogue Branch is with its Keycloak integration.
+## 1. Running with Docker
 
-### 1.1. Prepare configuration
+### 1.1. Building the image
 
-* Create a `gradle.properties` file in this folder by copying `gradle.docker-with-keycloak.properties`.
-  This contains workable default configuration values.
-* Create a `secrets.properties` file in the repo root by copying `secrets.example.properties`
-  (has insecure, but workable default values).
-
-### 1.2. Build Docker images
-
-* Make sure Docker is running.
-* From the repo root, build the Docker image:
-  ```bash
-  ./gradlew dockerBuild
-  ```
-
-For faster development, build the WAR file outside the Docker image and bind-mount it:
+All Docker commands must be run from the **`platform/`** root of the monorepo, as the build
+context needs access to both `apps/api/` and `packages/core/`.
 
 ```bash
-# Build the dev image once
-./gradlew dockerBuildDev
-
-# Then, to compile and deploy code changes
-./gradlew clean updateConfig build -PbuildEnv=dev
-
-# Subsequent changes only need
-./gradlew build -PbuildEnv=dev
+docker build -t dlb-web-service -f apps/api/Dockerfile .
 ```
 
-### 1.3. Run with Docker Compose
+The build uses a two-stage process: the first stage compiles the Java source and produces a
+WAR file; the second stage copies only the WAR into a clean Tomcat image. The JDK and Gradle
+are not included in the final image.
+
+### 1.2. Running the full local development stack
+
+A local development stack (API + MariaDB + Keycloak + Web Client) is defined in
+[`infrastructure/docker/docker-compose.local-dev.yml`](../../infrastructure/docker/docker-compose.local-dev.yml).
+See [`infrastructure/docker/README.md`](../../infrastructure/docker/README.md) for setup
+instructions.
+
+### 1.4. Minimal deployment (API + MariaDB only)
+
+A minimal compose file for deploying the API with native authentication and no Keycloak is
+provided at
+[`infrastructure/docker/docker-compose.minimal.yml`](../../infrastructure/docker/docker-compose.minimal.yml).
 
 ```bash
-./gradlew dockerComposeUp
-# or, for the dev image:
-./gradlew dockerComposeUpDev
+cp infrastructure/docker/secrets.minimal.env.example infrastructure/docker/secrets.minimal.env
+# edit secrets.minimal.env with your values
+docker compose -f infrastructure/docker/docker-compose.minimal.yml up
 ```
 
-The first time it may take a while until Keycloak is fully initialized and running.
+---
 
-### 1.4. Test the setup
+## 2. Configuration
 
-* Open http://localhost:8081/ — this should show the Keycloak administration panel.
-  Log in with `admin` / `admin` and do the following:
-  * Make sure the selected Realm is `dialoguebranch` (click Manage realms).
-  * Create a user (e.g. username `user`), fill in an email address, first name and last name,
-    check "email verified".
-  * Go to **Credentials** and set a fixed password (e.g. `user`).
-  * Go to **Role mapping** and assign client roles: `admin`, `client`, `editor`.
-* Open http://localhost:8089/dlb-web-service/ — this should show the Swagger UI. Try it out:
-  * Select the `/auth/login/` endpoint and click "Try it out".
-  * Set both `user` and `password` to `"user"` and click Execute. You should receive:
-    ```json
-    {
-      "user": "user",
-      "role": "user",
-      "token": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIi..."
-    }
-    ```
-* Open http://localhost:8080/ — the web client (log in with `user` / `user`).
-* Open http://localhost:8100/ — phpMyAdmin for the MariaDB database (log in with `root` / `password`).
+All configuration is supplied via environment variables at runtime. The table below lists
+every supported variable, its default value, and whether it is required.
 
-## 2. Deploying a Standalone Instance using Docker
+### General
 
-For a simpler setup without Keycloak, using the built-in user-account management:
+| Variable | Default | Required | Description |
+|---|---|---|---|
+| `SERVER_PORT` | `8089` | No | Port Tomcat listens on inside the container |
+| `DLB_BASE_URL` | `http://localhost:8089/dlb-web-service` | Yes | Public base URL of the service |
+| `DLB_DATA_DIR` | `/usr/local/dialogue-branch/data/dlb-web-service` | No | Path to the service data directory |
 
-### 2.1. Prepare configuration
+### Authentication
 
-* Copy `gradle.docker-standalone.properties` to `gradle.properties` in this folder.
-* Prepare `config/users.xml` by copying `config/users-example.xml`.
-  You can keep the example `client::client`, `editor::editor`, and `admin::admin` users or define
-  your own.
+| Variable | Default | Required | Description |
+|---|---|---|---|
+| `DLB_AUTH_SERVICE` | `native` | No | Authentication backend: `native` or `keycloak` |
 
-### 2.2. Build and run
+#### Native authentication (`DLB_AUTH_SERVICE=native`)
+
+| Variable | Default | Required | Description |
+|---|---|---|---|
+| `DLB_AUTH_JWT_ACCESS_TOKEN_SECRET` | — | **Yes** | Secret used to sign JWT access tokens |
+| `DLB_AUTH_JWT_REFRESH_TOKEN_SECRET` | — | **Yes** | Secret used to sign JWT refresh tokens |
+| `DLB_AUTH_ACCESS_TOKEN_EXPIRATION_SECONDS` | `300` | No | Access token lifetime in seconds |
+| `DLB_AUTH_REFRESH_TOKEN_EXPIRATION_SECONDS` | `1800` | No | Refresh token lifetime in seconds |
+
+Generate strong secrets with:
+```bash
+openssl rand -base64 64
+```
+
+#### Keycloak authentication (`DLB_AUTH_SERVICE=keycloak`)
+
+| Variable | Default | Required | Description |
+|---|---|---|---|
+| `DLB_AUTH_KEYCLOAK_BASE_URL` | `http://keycloak:8080/` | Yes | Base URL of your Keycloak instance |
+| `DLB_AUTH_KEYCLOAK_REALM` | `dialoguebranch` | Yes | Keycloak realm name |
+| `DLB_AUTH_KEYCLOAK_CLIENT_ID` | `dlb-web-service` | Yes | Keycloak client ID |
+| `DLB_AUTH_KEYCLOAK_CLIENT_SECRET` | — | **Yes** | Keycloak client secret |
+
+### Database
+
+| Variable | Default | Required | Description |
+|---|---|---|---|
+| `DLB_MARIADB_HOST` | `mariadb` | Yes | MariaDB hostname |
+| `DLB_MARIADB_PORT` | `3306` | No | MariaDB port |
+| `DLB_MARIADB_USER` | `root` | Yes | MariaDB username |
+| `DLB_MARIADB_PASSWORD` | — | **Yes** | MariaDB password |
+| `DLB_MARIADB_DATABASE` | `dialoguebranch` | Yes | MariaDB database name |
+
+### External Variable Service
+
+| Variable | Default | Required | Description |
+|---|---|---|---|
+| `DLB_EXTERNAL_VARIABLE_SERVICE_ENABLED` | `false` | No | Enable the external variable service |
+| `DLB_EXTERNAL_VARIABLE_SERVICE_URL` | — | When enabled | URL of the external variable service |
+| `DLB_EXTERNAL_VARIABLE_SERVICE_API_VERSION` | `1` | No | API version to use |
+| `DLB_EXTERNAL_VARIABLE_SERVICE_API_KEY` | — | When enabled | API key for authentication |
+
+### Azure Data Lake *(experimental)*
+
+| Variable | Default | Required | Description |
+|---|---|---|---|
+| `DLB_AZURE_DATA_LAKE_ENABLED` | `false` | No | Enable Azure Data Lake integration |
+| `DLB_AZURE_DATA_LAKE_AUTHENTICATION_METHOD` | — | When enabled | `sas-token` or `account-key` |
+| `DLB_AZURE_DATA_LAKE_ACCOUNT_NAME` | — | When enabled | Storage account name |
+| `DLB_AZURE_DATA_LAKE_ACCOUNT_KEY` | — | When `account-key` | Storage account key |
+| `DLB_AZURE_DATA_LAKE_SAS_ACCOUNT_URL` | — | When `sas-token` | SAS account URL |
+| `DLB_AZURE_DATA_LAKE_SAS_TOKEN` | — | When `sas-token` | SAS token |
+| `DLB_AZURE_DATA_LAKE_FILE_SYSTEM_NAME` | — | When enabled | Data Lake file system name |
+
+### Changing the port
+
+To run the service on a different port, set `SERVER_PORT` and update the `-p` mapping to match:
 
 ```bash
-# From the repo root
-docker build --no-cache -t dlb-web-service -f ./apps/api/standalone.Dockerfile .
-docker run -itd -p 8089:8089 --name dlb-web-service dlb-web-service
+docker run -p 9090:9090 -e SERVER_PORT=9090 ... dlb-web-service
 ```
 
-Open http://localhost:8089/dlb-web-service/ to see the Swagger documentation page.
+---
 
-Check out the [Exploring the API](https://dialoguebranch.com/docs/dialogue-branch/dev/tutorials/tutorial-webservice-exploringapi.html)
-tutorial for further notes on navigating the API through Swagger.
+## 3. Publishing to Docker Hub
 
-## 3. Development Setup
+Tag and push the image to Docker Hub:
 
-### 3.1. IntelliJ IDEA
+```bash
+docker tag dlb-web-service dialoguebranch/dlb-web-service:1.2.5
+docker tag dlb-web-service dialoguebranch/dlb-web-service:latest
+docker push dialoguebranch/dlb-web-service:1.2.5
+docker push dialoguebranch/dlb-web-service:latest
+```
+
+---
+
+## 4. Development Setup
+
+### 4.1. IntelliJ IDEA
 
 On the IntelliJ Welcome Screen select **Open** and select the repo root folder. Verify the
 following settings:
 
-* **File → Project Structure**
-  * *Project Settings → Project*: SDK version 17+, Language Level 17.
-  * *Project Settings → Modules*: Module SDK version 17+.
-* **IntelliJ IDEA → Settings → Build, Execution, Deployment → Build Tools → Gradle**:
+- **File → Project Structure**
+  - *Project Settings → Project*: SDK version 17+, Language Level 17.
+  - *Project Settings → Modules*: Module SDK version 17+.
+- **IntelliJ IDEA → Settings → Build, Execution, Deployment → Build Tools → Gradle**:
   Gradle JVM version 17+.
 
-### 3.2. Configuration files
+### 4.2. Configuration files
 
 Before deploying, create the following files (copy from the provided examples):
 
-* `apps/api/gradle.properties`
-* `apps/api/config/users.xml`
-* `apps/mock-variable-service/gradle.properties`
-* `apps/mock-variable-service/config/service-users.xml`
+- `apps/api/gradle.properties`
+- `apps/api/config/users.xml`
+- `apps/mock-variable-service/gradle.properties`
+- `apps/mock-variable-service/config/service-users.xml`

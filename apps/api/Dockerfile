@@ -51,9 +51,13 @@ RUN mkdir -p /usr/local/dialogue-branch/data/dlb-web-service/
 COPY --from=builder /build/apps/api/build/libs/dlb-web-service-*.war \
     ${CATALINA_HOME}/webapps/dlb-web-service.war
 
-# Copy the example users file as the default authentication config
+# Bundle the example users file so the entrypoint can use it as a fallback.
+# At startup, the entrypoint copies this to users.xml only if no users.xml
+# is already present (e.g. mounted via a volume at runtime).
+# To use your own accounts, mount a custom users.xml at:
+#   /usr/local/dialogue-branch/data/dlb-web-service/users.xml
 COPY apps/api/config/users-example.xml \
-    /usr/local/dialogue-branch/data/dlb-web-service/users.xml
+    /usr/local/dialogue-branch/data/dlb-web-service/users-example.xml
 
 # Copy and register the entrypoint script
 COPY apps/api/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh

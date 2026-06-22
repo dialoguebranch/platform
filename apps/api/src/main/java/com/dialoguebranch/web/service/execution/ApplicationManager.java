@@ -95,7 +95,7 @@ public class ApplicationManager {
 		try {
 			readResult = projectParser.parse();
 		} catch (IOException ex) {
-			throw new RuntimeException("Error while reading DialogueBranch project: "
+			throw new RuntimeException("Error while reading Dialogue Branch project: "
 					+ ex.getMessage(), ex);
 		}
 		for (String path : readResult.getParseErrors().keySet()) {

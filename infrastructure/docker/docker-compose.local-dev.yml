@@ -72,7 +72,7 @@ services:
   dlb-web-service:
     build:
       context: ../..
-      dockerfile: apps/api/standalone.Dockerfile
+      dockerfile: apps/api/Dockerfile
     restart: unless-stopped
     depends_on:
       mariadb:
