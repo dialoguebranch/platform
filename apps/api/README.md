@@ -110,18 +110,6 @@ openssl rand -base64 64
 | `DLB_EXTERNAL_VARIABLE_SERVICE_API_VERSION` | `1` | No | API version to use |
 | `DLB_EXTERNAL_VARIABLE_SERVICE_API_KEY` | — | When enabled | API key for authentication |
 
-### Azure Data Lake *(experimental)*
-
-| Variable | Default | Required | Description |
-|---|---|---|---|
-| `DLB_AZURE_DATA_LAKE_ENABLED` | `false` | No | Enable Azure Data Lake integration |
-| `DLB_AZURE_DATA_LAKE_AUTHENTICATION_METHOD` | — | When enabled | `sas-token` or `account-key` |
-| `DLB_AZURE_DATA_LAKE_ACCOUNT_NAME` | — | When enabled | Storage account name |
-| `DLB_AZURE_DATA_LAKE_ACCOUNT_KEY` | — | When `account-key` | Storage account key |
-| `DLB_AZURE_DATA_LAKE_SAS_ACCOUNT_URL` | — | When `sas-token` | SAS account URL |
-| `DLB_AZURE_DATA_LAKE_SAS_TOKEN` | — | When `sas-token` | SAS token |
-| `DLB_AZURE_DATA_LAKE_FILE_SYSTEM_NAME` | — | When enabled | Data Lake file system name |
-
 ### Changing the port
 
 To run the service on a different port, set `SERVER_PORT` and update the `-p` mapping to match:

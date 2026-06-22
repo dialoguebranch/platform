@@ -90,7 +90,6 @@ ENV DLB_MARIADB_USER=root
 ENV DLB_MARIADB_DATABASE=dialoguebranch
 ENV DLB_EXTERNAL_VARIABLE_SERVICE_ENABLED=false
 ENV DLB_EXTERNAL_VARIABLE_SERVICE_API_VERSION=1
-ENV DLB_AZURE_DATA_LAKE_ENABLED=false
 
 # -------------------------------------------------------------------------
 # Sensitive values — DO NOT set defaults here.
@@ -106,8 +105,6 @@ ENV DLB_AZURE_DATA_LAKE_ENABLED=false
 #   DLB_AUTH_KEYCLOAK_CLIENT_SECRET          — Keycloak client secret
 #   DLB_EXTERNAL_VARIABLE_SERVICE_URL        — URL of the external variable service
 #   DLB_EXTERNAL_VARIABLE_SERVICE_API_KEY    — API key for the external variable service
-#   DLB_AZURE_DATA_LAKE_ACCOUNT_KEY          — Azure Data Lake account key
-#   DLB_AZURE_DATA_LAKE_SAS_TOKEN            — Azure Data Lake SAS token
 # -------------------------------------------------------------------------
 
 CMD []

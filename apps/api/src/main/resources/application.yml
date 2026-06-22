@@ -74,12 +74,3 @@ dlb:
     api-version: 1
     api-key: ""
 
-  # ---- Azure Data Lake (experimental) ----
-  azure-data-lake:
-    enabled: false
-    authentication-method: ""
-    account-name: ""
-    account-key: ""
-    sas-account-url: ""
-    sas-token: ""
-    file-system-name: ""

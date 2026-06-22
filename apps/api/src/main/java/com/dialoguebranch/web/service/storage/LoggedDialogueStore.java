@@ -107,22 +107,6 @@ public class LoggedDialogueStore {
 		if(!userLogDirectory.exists()) {
 			if(userLogDirectory.mkdirs()) {
 				logger.info("Created user's dialogue log directory at: "+userLogDirectory);
-				// The user  directory was created. In case an Azure Data Lake backup service is
-				// enabled, check if there is data to populate this directory here.
-				if(dlbProperties.getAzureDataLake().isEnabled()) {
-					try {
-						userService.getApplicationManager().getAzureDataLakeStore().
-								populateLocalDialogueLogs(userId);
-					} catch(IOException e) {
-						logger.error("Error populating local dialogue log folder from Azure Data " +
-							"Lake. It is possible that dialogue log information that is " +
-							"available on the Azure Data Lake should have been synchronised to " +
-							"the local DialogueBranch Web Service storage, but something went " +
-							"wrong in doing so. This does not warrant interrupting the current " +
-							"request, so operation has continued as if no log information was " +
-							"available.");
-					}
-				}
 			} else {
 				throw new IOException("Unable to create the user's log folder at: "
 						+ userLogDirectory.getAbsolutePath());
@@ -226,10 +210,6 @@ public class LoggedDialogueStore {
 			File dataFile = new File(userLogDirectory, sessionStartTime + " " + sessionId +
 					".json");
 			FileUtils.writeFileString(dataFile, json);
-			if(dlbProperties.getAzureDataLake().isEnabled()) {
-				userService.getApplicationManager().getAzureDataLakeStore()
-						.writeLoggedDialogueFile(userId,dataFile);
-			}
 		}
 	}
 

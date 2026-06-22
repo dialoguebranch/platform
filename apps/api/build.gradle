@@ -69,13 +69,6 @@ dependencies {
 	implementation platform('org.hibernate.orm:hibernate-platform:7.0.9.Final')
 	implementation 'org.hibernate.orm:hibernate-core'
 
-	// Used for the Azure Data Lake Integration
-
-		// https://mvnrepository.com/artifact/com.azure/azure-sdk-bom
-		implementation 'com.azure:azure-sdk-bom:1.2.37'
-
-		// https://mvnrepository.com/artifact/com.azure/azure-storage-file-datalake
-		implementation 'com.azure:azure-storage-file-datalake:12.24.1'
 }
 
 configurations {

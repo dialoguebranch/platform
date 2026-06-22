@@ -172,13 +172,6 @@ ApplicationListener<ApplicationEvent> {
 				logger.info("===== External Variable Service API Version: {}", evs.getApiVersion());
 			}
 
-			DlbProperties.AzureDataLake adl = dlbProperties.getAzureDataLake();
-			logger.info("=== Azure Data Lake Storage Enabled: {}", adl.isEnabled());
-			if(adl.isEnabled()) {
-				logger.info("===== Azure Data Lake Account URL: {}", adl.getSasAccountUrl());
-				logger.info("===== Azure Data Lake Filesystem: {}", adl.getFileSystemName());
-			}
-
 			logger.info("===================================================");
 		}
 	}

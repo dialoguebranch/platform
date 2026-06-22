@@ -88,9 +88,6 @@ public class DlbProperties {
     @NestedConfigurationProperty
     private ExternalVariableService externalVariableService = new ExternalVariableService();
 
-    @NestedConfigurationProperty
-    private AzureDataLake azureDataLake = new AzureDataLake();
-
     // --------------------------------------------------------- //
     // -------------------- Nested: MariaDB -------------------- //
     // --------------------------------------------------------- //
@@ -205,41 +202,6 @@ public class DlbProperties {
         public void setApiKey(String apiKey) { this.apiKey = apiKey; }
     }
 
-    // ----------------------------------------------------------- //
-    // -------------------- Nested: AzureDataLake ---------------- //
-    // ----------------------------------------------------------- //
-
-    public static class AzureDataLake {
-        private boolean enabled = false;
-        private String authenticationMethod = "";
-        private String accountName = "";
-        private String accountKey = "";
-        private String sasAccountUrl = "";
-        private String sasToken = "";
-        private String fileSystemName = "";
-
-        public boolean isEnabled() { return enabled; }
-        public void setEnabled(boolean enabled) { this.enabled = enabled; }
-
-        public String getAuthenticationMethod() { return authenticationMethod; }
-        public void setAuthenticationMethod(String m) { this.authenticationMethod = m; }
-
-        public String getAccountName() { return accountName; }
-        public void setAccountName(String accountName) { this.accountName = accountName; }
-
-        public String getAccountKey() { return accountKey; }
-        public void setAccountKey(String accountKey) { this.accountKey = accountKey; }
-
-        public String getSasAccountUrl() { return sasAccountUrl; }
-        public void setSasAccountUrl(String sasAccountUrl) { this.sasAccountUrl = sasAccountUrl; }
-
-        public String getSasToken() { return sasToken; }
-        public void setSasToken(String sasToken) { this.sasToken = sasToken; }
-
-        public String getFileSystemName() { return fileSystemName; }
-        public void setFileSystemName(String fileSystemName) { this.fileSystemName = fileSystemName; }
-    }
-
     // --------------------------------------------------------- //
     // -------------------- Top-level getters/setters ---------- //
     // --------------------------------------------------------- //
@@ -271,7 +233,4 @@ public class DlbProperties {
     public void setExternalVariableService(ExternalVariableService s) {
         this.externalVariableService = s;
     }
-
-    public AzureDataLake getAzureDataLake() { return azureDataLake; }
-    public void setAzureDataLake(AzureDataLake azureDataLake) { this.azureDataLake = azureDataLake; }
 }

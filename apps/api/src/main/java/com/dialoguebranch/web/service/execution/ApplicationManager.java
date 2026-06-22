@@ -41,7 +41,6 @@ import com.dialoguebranch.web.service.auth.basic.BasicUserCredentials;
 import com.dialoguebranch.web.service.auth.basic.BasicUserFile;
 import com.dialoguebranch.web.service.auth.keycloak.KeycloakManager;
 import com.dialoguebranch.web.service.exception.DLBServiceConfigurationException;
-import com.dialoguebranch.web.service.storage.AzureDataLakeStore;
 import com.dialoguebranch.web.service.storage.VariableStoreDatabaseStorageHandler;
 import nl.rrd.utils.AppComponents;
 import nl.rrd.utils.exception.DatabaseException;
@@ -69,7 +68,6 @@ public class ApplicationManager {
 	private final DlbProperties dlbProperties;
 	private final List<UserService> activeUserServices = new ArrayList<>();
 	private final List<BasicUserCredentials> basicUserCredentials;
-	private AzureDataLakeStore azureDataLakeStore = null;
 	private KeycloakManager keycloakManager = null;
 	private final UserServiceFactory userServiceFactory;
 
@@ -129,14 +127,6 @@ public class ApplicationManager {
 			}
 		}
 
-		if(dlbProperties.getAzureDataLake().isEnabled()) {
-			try {
-				azureDataLakeStore = new AzureDataLakeStore(dlbProperties);
-			} catch(DLBServiceConfigurationException e) {
-                logger.error("Error configuring Azure Data Lake: {}", e.getMessage());
-				throw e;
-			}
-		}
 	}
 
 	// ----------------------------------------------------------- //
@@ -172,10 +162,6 @@ public class ApplicationManager {
 
 	public DlbProperties getDlbProperties() {
 		return dlbProperties;
-	}
-
-	public AzureDataLakeStore getAzureDataLakeStore() {
-		return azureDataLakeStore;
 	}
 
 	public KeycloakManager getKeycloakManager() {
