@@ -30,10 +30,10 @@ package com.dialoguebranch.execution.parser;
 
 import com.dialoguebranch.i18n.ContextTranslation;
 import com.dialoguebranch.i18n.Translatable;
-import com.dialoguebranch.execution.model.Dialogue;
-import com.dialoguebranch.execution.model.FileDescriptor;
+import com.dialoguebranch.model.execute.Dialogue;
+import com.dialoguebranch.model.execute.FileDescriptor;
 import nl.rrd.utils.exception.ParseException;
-import com.dialoguebranch.execution.model.Project;
+import com.dialoguebranch.model.execute.Project;
 
 import java.util.LinkedHashMap;
 import java.util.List;

@@ -28,7 +28,7 @@
 
 package com.dialoguebranch.execution.parser;
 
-import com.dialoguebranch.execution.model.FileDescriptor;
+import com.dialoguebranch.model.execute.FileDescriptor;
 
 import java.io.IOException;
 import java.io.Reader;

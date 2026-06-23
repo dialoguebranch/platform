@@ -28,7 +28,7 @@
 
 package com.dialoguebranch.i18n;
 
-import com.dialoguebranch.execution.model.NodeBody;
+import com.dialoguebranch.model.execute.NodeBody;
 
 /**
  * A {@link SourceTranslatable} pairs a {@link Translatable} segment with the identity of its

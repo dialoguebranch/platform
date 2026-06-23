@@ -32,11 +32,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import com.dialoguebranch.execution.model.NodeBody;
-import com.dialoguebranch.execution.model.Reply;
-import com.dialoguebranch.execution.model.nodepointer.NodePointer;
-import com.dialoguebranch.execution.model.nodepointer.ExternalNodePointer;
-import com.dialoguebranch.execution.model.nodepointer.InternalNodePointer;
+import com.dialoguebranch.model.execute.NodeBody;
+import com.dialoguebranch.model.execute.Reply;
+import com.dialoguebranch.model.execute.nodepointer.NodePointer;
+import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
+import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import nl.rrd.utils.CurrentIterator;
 import nl.rrd.utils.exception.LineNumberParseException;
 import nl.rrd.utils.exception.ParseException;

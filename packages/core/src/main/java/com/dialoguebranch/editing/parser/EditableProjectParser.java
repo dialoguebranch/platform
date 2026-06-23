@@ -27,11 +27,15 @@
  */
 package com.dialoguebranch.editing.parser;
 
-import com.dialoguebranch.execution.model.*;
 import com.dialoguebranch.execution.parser.ProjectMetaDataParser;
-import com.dialoguebranch.editing.model.EditableProject;
-import com.dialoguebranch.editing.model.FileStorageSource;
-import com.dialoguebranch.editing.model.ScriptTreeNode;
+import com.dialoguebranch.model.edit.EditableProject;
+import com.dialoguebranch.model.edit.FileStorageSource;
+import com.dialoguebranch.model.edit.ScriptTreeNode;
+import com.dialoguebranch.model.common.ProjectMetaData;
+import com.dialoguebranch.model.execute.Constants;
+import com.dialoguebranch.model.execute.Language;
+import com.dialoguebranch.model.execute.LanguageSet;
+import com.dialoguebranch.model.execute.ResourceType;
 import nl.rrd.utils.exception.ParseException;
 
 import java.io.File;

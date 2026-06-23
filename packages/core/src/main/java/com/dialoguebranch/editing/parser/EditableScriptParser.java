@@ -28,8 +28,8 @@
 package com.dialoguebranch.editing.parser;
 
 import com.dialoguebranch.exception.ScriptParseException;
-import com.dialoguebranch.execution.model.Constants;
-import com.dialoguebranch.editing.model.*;
+import com.dialoguebranch.model.edit.*;
+import com.dialoguebranch.model.execute.Constants;
 
 import java.io.*;
 import java.util.ArrayList;

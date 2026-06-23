@@ -28,9 +28,9 @@
 
 package com.dialoguebranch.i18n;
 
-import com.dialoguebranch.execution.model.Constants;
-import com.dialoguebranch.execution.model.Dialogue;
-import com.dialoguebranch.execution.model.Node;
+import com.dialoguebranch.model.execute.Constants;
+import com.dialoguebranch.model.execute.Dialogue;
+import com.dialoguebranch.model.execute.Node;
 import com.dialoguebranch.execution.parser.DialogueBranchParser;
 import com.dialoguebranch.execution.parser.ParserResult;
 import com.fasterxml.jackson.core.type.TypeReference;

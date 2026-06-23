@@ -28,8 +28,8 @@
 
 package com.dialoguebranch.i18n;
 
-import com.dialoguebranch.execution.model.NodeBody;
-import com.dialoguebranch.execution.model.command.InputCommand;
+import com.dialoguebranch.model.execute.NodeBody;
+import com.dialoguebranch.model.execute.command.InputCommand;
 
 import java.util.List;
 

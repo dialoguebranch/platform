@@ -30,8 +30,8 @@ package com.dialoguebranch.web.service.execution;
 
 import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.execution.*;
-import com.dialoguebranch.execution.model.*;
 import com.dialoguebranch.i18n.TranslationContext;
+import com.dialoguebranch.model.execute.*;
 import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.storage.*;
 import nl.rrd.utils.AppComponents;

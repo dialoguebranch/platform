@@ -28,12 +28,12 @@
 
 package com.dialoguebranch.execution.parser;
 
-import com.dialoguebranch.execution.model.NodeBody;
-import com.dialoguebranch.execution.model.Reply;
-import com.dialoguebranch.execution.model.command.Command;
+import com.dialoguebranch.model.execute.NodeBody;
+import com.dialoguebranch.model.execute.Reply;
+import com.dialoguebranch.model.execute.command.Command;
 import nl.rrd.utils.CurrentIterator;
 import nl.rrd.utils.exception.LineNumberParseException;
-import com.dialoguebranch.execution.model.VariableString;
+import com.dialoguebranch.model.execute.VariableString;
 
 import java.util.ArrayList;
 import java.util.List;

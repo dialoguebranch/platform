@@ -28,11 +28,11 @@
 
 package com.dialoguebranch.execution.parser;
 
-import com.dialoguebranch.execution.model.Language;
-import com.dialoguebranch.execution.model.LanguageMap;
-import com.dialoguebranch.execution.model.LanguageSet;
-import com.dialoguebranch.execution.model.ProjectMetaData;
-import com.dialoguebranch.editing.model.FileStorageSource;
+import com.dialoguebranch.model.execute.Language;
+import com.dialoguebranch.model.execute.LanguageMap;
+import com.dialoguebranch.model.execute.LanguageSet;
+import com.dialoguebranch.model.common.ProjectMetaData;
+import com.dialoguebranch.model.edit.FileStorageSource;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.xml.AbstractSimpleSAXHandler;
 import nl.rrd.utils.xml.SimpleSAXHandler;

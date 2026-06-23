@@ -31,7 +31,7 @@ package com.dialoguebranch.execution.parser;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.dialoguebranch.execution.model.VariableString;
+import com.dialoguebranch.model.execute.VariableString;
 import nl.rrd.utils.ReferenceParameter;
 import nl.rrd.utils.exception.LineNumberParseException;
 

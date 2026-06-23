@@ -29,8 +29,8 @@
 package com.dialoguebranch.execution.parser;
 
 import com.dialoguebranch.exception.NodeParseException;
-import com.dialoguebranch.execution.model.*;
-import com.dialoguebranch.execution.model.nodepointer.InternalNodePointer;
+import com.dialoguebranch.model.execute.*;
+import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import nl.rrd.utils.exception.LineNumberParseException;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.io.LineColumnNumberReader;

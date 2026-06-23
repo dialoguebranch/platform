@@ -28,10 +28,10 @@
 
 package com.dialoguebranch.editing.writer;
 
-import com.dialoguebranch.execution.model.Language;
-import com.dialoguebranch.execution.model.LanguageMap;
-import com.dialoguebranch.execution.model.LanguageSet;
-import com.dialoguebranch.execution.model.ProjectMetaData;
+import com.dialoguebranch.model.execute.Language;
+import com.dialoguebranch.model.execute.LanguageMap;
+import com.dialoguebranch.model.execute.LanguageSet;
+import com.dialoguebranch.model.common.ProjectMetaData;
 import nl.rrd.utils.xml.XMLWriter;
 
 import java.io.IOException;

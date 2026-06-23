@@ -28,7 +28,7 @@
 
 package com.dialoguebranch.i18n;
 
-import com.dialoguebranch.execution.model.NodeBody;
+import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.execution.parser.BodyToken;
 import com.dialoguebranch.execution.parser.BodyTokenizer;
 import com.fasterxml.jackson.core.type.TypeReference;

@@ -28,8 +28,8 @@
 
 package com.dialoguebranch.web.service.storage;
 
-import com.dialoguebranch.execution.model.LoggedDialogue;
-import com.dialoguebranch.execution.model.LoggedInteraction;
+import com.dialoguebranch.model.execute.LoggedDialogue;
+import com.dialoguebranch.model.execute.LoggedInteraction;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 

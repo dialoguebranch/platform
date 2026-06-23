@@ -30,9 +30,9 @@ package com.dialoguebranch.web.service.execution;
 
 import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.i18n.TranslationContext;
-import com.dialoguebranch.execution.model.Dialogue;
-import com.dialoguebranch.execution.model.FileDescriptor;
-import com.dialoguebranch.execution.model.Project;
+import com.dialoguebranch.model.execute.Dialogue;
+import com.dialoguebranch.model.execute.FileDescriptor;
+import com.dialoguebranch.model.execute.Project;
 import com.dialoguebranch.execution.parser.FileLoader;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;

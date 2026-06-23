@@ -39,7 +39,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import com.dialoguebranch.execution.model.*;
+import com.dialoguebranch.model.execute.*;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.i18n.I18nLanguageFinder;
 import com.dialoguebranch.i18n.ContextTranslation;

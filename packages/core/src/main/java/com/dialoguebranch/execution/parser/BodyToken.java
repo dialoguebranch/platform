@@ -28,7 +28,7 @@
 
 package com.dialoguebranch.execution.parser;
 
-import com.dialoguebranch.execution.model.VariableString;
+import com.dialoguebranch.model.execute.VariableString;
 import nl.rrd.utils.CurrentIterator;
 import nl.rrd.utils.DataFormatter;
 

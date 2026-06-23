@@ -29,7 +29,7 @@
 package com.dialoguebranch.execution.parser;
 
 import nl.rrd.utils.exception.ParseException;
-import com.dialoguebranch.execution.model.Dialogue;
+import com.dialoguebranch.model.execute.Dialogue;
 import java.util.ArrayList;
 import java.util.List;
 

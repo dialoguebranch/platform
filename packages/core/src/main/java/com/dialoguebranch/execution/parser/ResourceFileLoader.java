@@ -28,9 +28,9 @@
 
 package com.dialoguebranch.execution.parser;
 
-import com.dialoguebranch.execution.model.Constants;
-import com.dialoguebranch.execution.model.FileDescriptor;
-import com.dialoguebranch.execution.model.ResourceType;
+import com.dialoguebranch.model.execute.Constants;
+import com.dialoguebranch.model.execute.FileDescriptor;
+import com.dialoguebranch.model.execute.ResourceType;
 import com.fasterxml.jackson.core.type.TypeReference;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.io.FileUtils;

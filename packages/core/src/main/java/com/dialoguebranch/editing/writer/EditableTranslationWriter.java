@@ -28,7 +28,9 @@
 
 package com.dialoguebranch.editing.writer;
 
-import com.dialoguebranch.editing.model.*;
+import com.dialoguebranch.model.edit.EditableTranslation;
+import com.dialoguebranch.model.edit.FileStorageSource;
+import com.dialoguebranch.model.edit.StorageSource;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;

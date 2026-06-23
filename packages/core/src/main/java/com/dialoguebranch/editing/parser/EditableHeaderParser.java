@@ -27,9 +27,9 @@
  */
 package com.dialoguebranch.editing.parser;
 
-import com.dialoguebranch.editing.model.EditableHeader;
-import com.dialoguebranch.editing.model.EditableNode;
-import com.dialoguebranch.editing.model.EditableScript;
+import com.dialoguebranch.model.edit.EditableHeader;
+import com.dialoguebranch.model.edit.EditableNode;
+import com.dialoguebranch.model.edit.EditableScript;
 import com.dialoguebranch.editing.warning.ParserWarning;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

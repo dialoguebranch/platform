@@ -27,7 +27,7 @@
  */
 package com.dialoguebranch.editing.parser;
 
-import com.dialoguebranch.editing.model.EditableBody;
+import com.dialoguebranch.model.edit.EditableBody;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

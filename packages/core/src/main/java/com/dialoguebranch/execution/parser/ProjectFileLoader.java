@@ -28,10 +28,10 @@
 
 package com.dialoguebranch.execution.parser;
 
-import com.dialoguebranch.execution.model.Constants;
-import com.dialoguebranch.execution.model.FileDescriptor;
-import com.dialoguebranch.execution.model.ResourceType;
-import com.dialoguebranch.execution.model.ProjectMetaData;
+import com.dialoguebranch.model.execute.Constants;
+import com.dialoguebranch.model.execute.FileDescriptor;
+import com.dialoguebranch.model.execute.ResourceType;
+import com.dialoguebranch.model.common.ProjectMetaData;
 import nl.rrd.utils.exception.ParseException;
 
 import java.io.*;

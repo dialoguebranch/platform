@@ -28,7 +28,7 @@
 
 package com.dialoguebranch.i18n;
 
-import com.dialoguebranch.execution.model.Constants;
+import com.dialoguebranch.model.execute.Constants;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;

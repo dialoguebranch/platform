@@ -29,11 +29,11 @@
 package com.dialoguebranch.editing.parser;
 
 import com.dialoguebranch.exception.FileSystemException;
-import com.dialoguebranch.execution.model.Language;
-import com.dialoguebranch.editing.model.EditableProject;
-import com.dialoguebranch.editing.model.EditableTranslation;
-import com.dialoguebranch.editing.model.FileStorageSource;
-import com.dialoguebranch.editing.model.StorageSource;
+import com.dialoguebranch.model.execute.Language;
+import com.dialoguebranch.model.edit.EditableProject;
+import com.dialoguebranch.model.edit.EditableTranslation;
+import com.dialoguebranch.model.edit.FileStorageSource;
+import com.dialoguebranch.model.edit.StorageSource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.File;
