@@ -30,12 +30,12 @@ package com.dialoguebranch.web.service.execution;
 
 import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.i18n.TranslationContext;
-import com.dialoguebranch.model.Dialogue;
-import com.dialoguebranch.model.FileDescriptor;
-import com.dialoguebranch.model.Project;
-import com.dialoguebranch.parser.FileLoader;
-import com.dialoguebranch.parser.ProjectParser;
-import com.dialoguebranch.parser.ProjectParserResult;
+import com.dialoguebranch.execution.model.Dialogue;
+import com.dialoguebranch.execution.model.FileDescriptor;
+import com.dialoguebranch.execution.model.Project;
+import com.dialoguebranch.execution.parser.FileLoader;
+import com.dialoguebranch.execution.parser.ProjectParser;
+import com.dialoguebranch.execution.parser.ProjectParserResult;
 import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.auth.basic.BasicUserCredentials;
 import com.dialoguebranch.web.service.auth.basic.BasicUserFile;
@@ -46,7 +46,6 @@ import nl.rrd.utils.AppComponents;
 import nl.rrd.utils.exception.DatabaseException;
 import nl.rrd.utils.exception.ParseException;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.ZoneId;

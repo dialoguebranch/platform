@@ -31,7 +31,7 @@ package com.dialoguebranch.web.service;
 import com.dialoguebranch.web.service.auth.jwt.JWTUtils;
 import com.dialoguebranch.web.service.exception.DLBServiceConfigurationException;
 import com.dialoguebranch.web.service.execution.ApplicationManager;
-import com.dialoguebranch.parser.ResourceFileLoader;
+import com.dialoguebranch.execution.parser.ResourceFileLoader;
 import jakarta.annotation.PostConstruct;
 import nl.rrd.utils.AppComponents;
 import org.hibernate.SessionFactory;

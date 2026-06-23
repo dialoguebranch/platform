@@ -31,16 +31,16 @@ package com.dialoguebranch.cli;
 import com.dialoguebranch.exception.DialogueBranchException;
 import com.dialoguebranch.exception.InvalidInputException;
 import com.dialoguebranch.exception.ScriptParseException;
-import com.dialoguebranch.model.Language;
-import com.dialoguebranch.model.LanguageSet;
-import com.dialoguebranch.model.ProjectMetaData;
-import com.dialoguebranch.parser.*;
-import com.dialoguebranch.script.model.EditableProject;
-import com.dialoguebranch.script.model.EditableScript;
-import com.dialoguebranch.script.model.EditableNode;
-import com.dialoguebranch.script.model.ScriptTreeNode;
-import com.dialoguebranch.script.parser.EditableProjectParser;
-import com.dialoguebranch.script.parser.EditableScriptParser;
+import com.dialoguebranch.execution.model.Language;
+import com.dialoguebranch.execution.model.LanguageSet;
+import com.dialoguebranch.execution.model.ProjectMetaData;
+import com.dialoguebranch.execution.parser.*;
+import com.dialoguebranch.editing.model.EditableProject;
+import com.dialoguebranch.editing.model.EditableScript;
+import com.dialoguebranch.editing.model.EditableNode;
+import com.dialoguebranch.editing.model.ScriptTreeNode;
+import com.dialoguebranch.editing.parser.EditableProjectParser;
+import com.dialoguebranch.editing.parser.EditableScriptParser;
 import nl.rrd.utils.exception.ParseException;
 
 import java.io.File;
@@ -190,7 +190,7 @@ public class CommandLineRunner {
 
 	/**
 	 * Asks the user to provide the location of a {@code .dlb} script file, then parses it using
-	 * the {@link com.dialoguebranch.script.parser.EditableScriptParser} and prints a summary of
+	 * the {@link com.dialoguebranch.editing.parser.EditableScriptParser} and prints a summary of
 	 * each node it contains.
 	 */
 	private static void parseScriptFile() {
@@ -224,7 +224,7 @@ public class CommandLineRunner {
 
 	/**
 	 * Asks the user to provide the location of a project metadata {@code .xml} file, then parses
-	 * the project using the {@link com.dialoguebranch.script.parser.EditableProjectParser} and
+	 * the project using the {@link com.dialoguebranch.editing.parser.EditableProjectParser} and
 	 * prints a summary of its metadata and the number of scripts available per supported language.
 	 */
 	private static void parseEditableProject() {

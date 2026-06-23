@@ -28,7 +28,8 @@
 
 package com.dialoguebranch.web.service.storage;
 
-import com.dialoguebranch.model.LoggedInteraction;
+import com.dialoguebranch.execution.model.LoggedDialogue;
+import com.dialoguebranch.execution.model.LoggedInteraction;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -39,7 +40,7 @@ import java.util.List;
 import java.util.UUID;
 
 @JsonIgnoreProperties(ignoreUnknown=true)
-public class ServerLoggedDialogue implements com.dialoguebranch.model.LoggedDialogue {
+public class ServerLoggedDialogue implements LoggedDialogue {
 
 	private String id;
 	private String sessionId;

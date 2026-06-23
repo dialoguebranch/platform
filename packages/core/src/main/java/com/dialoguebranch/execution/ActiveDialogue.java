@@ -29,12 +29,12 @@
 package com.dialoguebranch.execution;
 
 import com.dialoguebranch.exception.ExecutionException;
-import com.dialoguebranch.model.*;
-import com.dialoguebranch.model.command.Command;
-import com.dialoguebranch.model.command.InputCommand;
-import com.dialoguebranch.model.command.SetCommand;
-import com.dialoguebranch.model.nodepointer.NodePointer;
-import com.dialoguebranch.model.nodepointer.InternalNodePointer;
+import com.dialoguebranch.execution.model.*;
+import com.dialoguebranch.execution.model.command.Command;
+import com.dialoguebranch.execution.model.command.InputCommand;
+import com.dialoguebranch.execution.model.command.SetCommand;
+import com.dialoguebranch.execution.model.nodepointer.NodePointer;
+import com.dialoguebranch.execution.model.nodepointer.InternalNodePointer;
 import nl.rrd.utils.expressions.EvaluationException;
 
 import java.time.ZonedDateTime;

@@ -28,9 +28,9 @@
 
 package com.dialoguebranch.execution;
 
-import com.dialoguebranch.model.Dialogue;
-import com.dialoguebranch.model.LoggedDialogue;
-import com.dialoguebranch.model.Node;
+import com.dialoguebranch.execution.model.Dialogue;
+import com.dialoguebranch.execution.model.LoggedDialogue;
+import com.dialoguebranch.execution.model.Node;
 
 /**
  * An immutable value object returned after executing a node in an {@link ActiveDialogue}. It

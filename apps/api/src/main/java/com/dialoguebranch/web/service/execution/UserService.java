@@ -30,8 +30,8 @@ package com.dialoguebranch.web.service.execution;
 
 import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.execution.*;
+import com.dialoguebranch.execution.model.*;
 import com.dialoguebranch.i18n.TranslationContext;
-import com.dialoguebranch.model.*;
 import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.storage.*;
 import nl.rrd.utils.AppComponents;
@@ -39,7 +39,6 @@ import nl.rrd.utils.exception.DatabaseException;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.i18n.I18nLanguageFinder;
 import nl.rrd.utils.i18n.I18nUtils;
-import org.slf4j.Logger;
 import org.slf4j.Logger;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;

@@ -32,10 +32,10 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.dialoguebranch.model.Dialogue;
-import com.dialoguebranch.model.Node;
-import com.dialoguebranch.model.NodeBody;
-import com.dialoguebranch.model.VariableString;
+import com.dialoguebranch.execution.model.Dialogue;
+import com.dialoguebranch.execution.model.Node;
+import com.dialoguebranch.execution.model.NodeBody;
+import com.dialoguebranch.execution.model.VariableString;
 
 /**
  * This class can translate {@link Node}s given a translation map.

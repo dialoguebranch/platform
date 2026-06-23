@@ -28,11 +28,11 @@
 
 package com.dialoguebranch.i18n;
 
-import com.dialoguebranch.model.Constants;
-import com.dialoguebranch.model.Dialogue;
-import com.dialoguebranch.model.Node;
-import com.dialoguebranch.parser.DialogueBranchParser;
-import com.dialoguebranch.parser.ParserResult;
+import com.dialoguebranch.execution.model.Constants;
+import com.dialoguebranch.execution.model.Dialogue;
+import com.dialoguebranch.execution.model.Node;
+import com.dialoguebranch.execution.parser.DialogueBranchParser;
+import com.dialoguebranch.execution.parser.ParserResult;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;

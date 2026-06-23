@@ -28,13 +28,15 @@
 
 package com.dialoguebranch.i18n;
 
+import com.dialoguebranch.execution.model.NodeBody;
+
 /**
  * A {@link SourceTranslatable} pairs a {@link Translatable} segment with the identity of its
  * speaker and addressee, providing the conversational context needed to select the right
  * gender-inflected or speaker-specific translation variant.
  *
  * <p>Instances are produced by {@link TranslatableExtractor} when it walks a {@link
- * com.dialoguebranch.model.NodeBody NodeBody}, and are consumed by {@link Translator} to look up
+ * NodeBody NodeBody}, and are consumed by {@link Translator} to look up
  * and apply the correct translation from a translation map.</p>
  *
  * @param speaker   the name of the agent delivering the statement, or {@link #USER} when the

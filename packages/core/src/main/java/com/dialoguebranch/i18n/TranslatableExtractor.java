@@ -28,14 +28,14 @@
 
 package com.dialoguebranch.i18n;
 
-import com.dialoguebranch.model.VariableString;
-import com.dialoguebranch.model.command.Command;
-import com.dialoguebranch.model.Node;
-import com.dialoguebranch.model.NodeBody;
-import com.dialoguebranch.model.Reply;
-import com.dialoguebranch.model.command.IfCommand;
-import com.dialoguebranch.model.command.InputCommand;
-import com.dialoguebranch.model.command.RandomCommand;
+import com.dialoguebranch.execution.model.VariableString;
+import com.dialoguebranch.execution.model.command.Command;
+import com.dialoguebranch.execution.model.Node;
+import com.dialoguebranch.execution.model.NodeBody;
+import com.dialoguebranch.execution.model.Reply;
+import com.dialoguebranch.execution.model.command.IfCommand;
+import com.dialoguebranch.execution.model.command.InputCommand;
+import com.dialoguebranch.execution.model.command.RandomCommand;
 
 import java.util.ArrayList;
 import java.util.List;

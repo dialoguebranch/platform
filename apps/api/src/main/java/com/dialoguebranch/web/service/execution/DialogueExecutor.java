@@ -31,10 +31,10 @@ package com.dialoguebranch.web.service.execution;
 import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.execution.ActiveDialogue;
 import com.dialoguebranch.execution.ExecuteNodeResult;
-import com.dialoguebranch.model.*;
-import com.dialoguebranch.model.nodepointer.ExternalNodePointer;
-import com.dialoguebranch.model.nodepointer.InternalNodePointer;
-import com.dialoguebranch.model.nodepointer.NodePointer;
+import com.dialoguebranch.execution.model.*;
+import com.dialoguebranch.execution.model.nodepointer.ExternalNodePointer;
+import com.dialoguebranch.execution.model.nodepointer.InternalNodePointer;
+import com.dialoguebranch.execution.model.nodepointer.NodePointer;
 import com.dialoguebranch.web.service.storage.ServerLoggedDialogue;
 import nl.rrd.utils.AppComponents;
 import nl.rrd.utils.datetime.DateTimeUtils;
@@ -90,8 +90,8 @@ public class DialogueExecutor {
 	 * @throws ExecutionException if the request is invalid.
 	 */
 	public ExecuteNodeResult startDialogue(FileDescriptor dialogueDescription,
-										   Dialogue dialogueDefinition, String nodeId,
-										   String sessionId, long sessionStartTime)
+	                                       Dialogue dialogueDefinition, String nodeId,
+	                                       String sessionId, long sessionStartTime)
 			throws DatabaseException, IOException, ExecutionException {
 
 		ActiveDialogue dialogue = new ActiveDialogue(dialogueDescription,

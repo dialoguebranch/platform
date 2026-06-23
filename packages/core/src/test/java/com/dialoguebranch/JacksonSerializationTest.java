@@ -30,7 +30,7 @@ package com.dialoguebranch;
 
 import com.dialoguebranch.execution.Variable;
 import com.dialoguebranch.i18n.TranslationFile;
-import com.dialoguebranch.model.protocol.DialogueStatement;
+import com.dialoguebranch.execution.model.protocol.DialogueStatement;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Rule;
 import org.junit.Test;

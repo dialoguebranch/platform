@@ -28,8 +28,8 @@
 
 package com.dialoguebranch.web.service.controller;
 
-import com.dialoguebranch.model.FileDescriptor;
-import com.dialoguebranch.model.ResourceType;
+import com.dialoguebranch.execution.model.FileDescriptor;
+import com.dialoguebranch.execution.model.ResourceType;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.ProtocolVersion;
 import com.dialoguebranch.web.service.QueryRunner;

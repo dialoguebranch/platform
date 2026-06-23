@@ -30,12 +30,12 @@ package com.dialoguebranch.web.service.controller;
 
 import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.execution.ExecuteNodeResult;
-import com.dialoguebranch.model.LoggedInteraction;
-import com.dialoguebranch.model.MessageSource;
-import com.dialoguebranch.model.DialogueState;
-import com.dialoguebranch.model.protocol.DialogueMessage;
-import com.dialoguebranch.model.protocol.DialogueMessageFactory;
-import com.dialoguebranch.model.protocol.NullableResponse;
+import com.dialoguebranch.execution.model.LoggedInteraction;
+import com.dialoguebranch.execution.model.MessageSource;
+import com.dialoguebranch.execution.model.DialogueState;
+import com.dialoguebranch.execution.model.protocol.DialogueMessage;
+import com.dialoguebranch.execution.model.protocol.DialogueMessageFactory;
+import com.dialoguebranch.execution.model.protocol.NullableResponse;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.ProtocolVersion;

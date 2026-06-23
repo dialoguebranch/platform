@@ -70,7 +70,7 @@ public class LoggedDialogueStore {
 	 * Creates an instance of a {@link LoggedDialogueStore} for the user identified by the given
 	 * {@code userId}, with a reference to that user's {@link UserService}. Upon instantiation,
 	 * this {@link LoggedDialogueStore} attempts to create the directory to be used for logging
-	 * dialogues (as defined in the {@link Configuration}).
+	 * dialogues (as defined in the {@link DlbProperties}).
 	 * @param userId the identifier of the Dialogue Branch User for which to instantiate this {@link
 	 *                   LoggedDialogueStore}
 	 * @param userService the {@link UserService} associated with this LoggedDialogueStore

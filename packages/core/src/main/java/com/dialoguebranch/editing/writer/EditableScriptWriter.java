@@ -1,0 +1,82 @@
+/*
+ *
+ *                 Copyright (c) 2023-2026 Dialogue Branch (www.dialoguebranch.com)
+ *
+ *
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
+ *                                        as outlined below.
+ *
+ *                                            ----------
+ *
+ * Copyright (c) 2023-2026 Dialogue Branch (www.dialoguebranch.com)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge, publish, distribute,
+ * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or
+ * substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+ * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+package com.dialoguebranch.editing.writer;
+
+import com.dialoguebranch.execution.model.Constants;
+import com.dialoguebranch.editing.model.*;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+
+/**
+ * Utility class that serialises an {@link EditableScript} back to its source {@code .dlb} file.
+ * Each node is written in the standard Dialogue Branch format: header source, {@code ---}
+ * separator, body source, and {@code ===} node separator.
+ *
+ * @author Harm op den Akker
+ */
+public class EditableScriptWriter {
+
+    /** Utility class — no instances. */
+    private EditableScriptWriter() {}
+
+    /**
+     * Writes the given {@link EditableScript} to the file indicated by its
+     * {@link FileStorageSource}. If the storage source is not a {@link FileStorageSource}, this
+     * method does nothing.
+     *
+     * @param editableScript the script to write.
+     * @throws IOException if a write error occurs.
+     */
+    public static void write(EditableScript editableScript) throws IOException {
+
+        StorageSource storageSource = editableScript.getStorageSource();
+        if(storageSource instanceof FileStorageSource fileStorageSource) {
+            File scriptFile = fileStorageSource.getSourceFile();
+
+            FileWriter fileWriter = new FileWriter(scriptFile);
+            for(EditableNode node : editableScript.getNodes()) {
+
+                fileWriter.write(node.getHeader().getSourceCode());
+                fileWriter.write(System.lineSeparator());
+                fileWriter.write(Constants.DLB_HEADER_SEPARATOR);
+                fileWriter.write(System.lineSeparator());
+                fileWriter.write(node.getBody().getSourceCode());
+                fileWriter.write(System.lineSeparator());
+                fileWriter.write(Constants.DLB_NODE_SEPARATOR);
+                fileWriter.write(System.lineSeparator());
+
+            }
+            fileWriter.close();
+        }
+
+    }
+
+}
