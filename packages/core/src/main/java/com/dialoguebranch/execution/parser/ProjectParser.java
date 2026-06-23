@@ -41,6 +41,7 @@ import java.util.Set;
 
 import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.common.ResourceType;
+import com.dialoguebranch.model.common.ProjectMetaData;
 import com.dialoguebranch.model.execute.*;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.i18n.I18nLanguageFinder;
@@ -126,6 +127,10 @@ public class ProjectParser {
 		}
 
 		project.setTranslations(dlgTranslations);
+
+		if (fileLoader instanceof ProjectFileLoader projectFileLoader)
+			project.setMetaData(projectFileLoader.getProjectMetaData());
+
 		projectParserResult.setProject(project);
 		return projectParserResult;
 	}
@@ -241,7 +246,8 @@ public class ProjectParser {
 		}
 
 		for (ResourcePointer fileDescription : translations.keySet()) {
-			Dialogue source = findSourceDialogue(fileDescription.getDialogueName());
+			Dialogue source = findSourceDialogue(fileDescription.getDialogueName(),
+					fileDescription.getLanguage());
 			if (source == null) {
 				getParseErrors(readResult, fileDescription).add(new ParseException(
 						"No source dialogue found for translation: " + fileDescription));
@@ -254,23 +260,56 @@ public class ProjectParser {
 		}
 	}
 
-	private Dialogue findSourceDialogue(String dlgName) {
+	/**
+	 * Finds the source {@link Dialogue} for a given dialogue name and translation language code.
+	 *
+	 * <p>When a {@link ProjectFileLoader} with {@link ProjectMetaData} is available, the language
+	 * map is consulted to find the source language that is paired with the given translation
+	 * language. This ensures the correct source script is used regardless of how many source
+	 * languages exist in the project.</p>
+	 *
+	 * <p>If no metadata is available (e.g. when using a {@link DirectoryFileLoader}), or if the
+	 * translation language is not found in the language map, the method falls back to
+	 * {@link I18nLanguageFinder} with {@link Locale#ENGLISH} to pick the best available source.</p>
+	 *
+	 * @param dlgName             the dialogue name to look up.
+	 * @param translationLanguage the language code of the translation being resolved.
+	 * @return the source {@link Dialogue}, or {@code null} if none could be found.
+	 */
+	private Dialogue findSourceDialogue(String dlgName, String translationLanguage) {
 		List<ResourcePointer> matches = new ArrayList<>();
 		for (ResourcePointer fileDescription : dialogues.keySet()) {
-			String currDlgName = fileDescription.getDialogueName();
-			if (currDlgName.equals(dlgName))
+			if (fileDescription.getDialogueName().equals(dlgName))
 				matches.add(fileDescription);
 		}
 		if (matches.isEmpty())
 			return null;
 		if (matches.size() == 1)
 			return dialogues.get(matches.get(0));
+
 		Map<String, ResourcePointer> lngMap = new HashMap<>();
-		for (ResourcePointer match : matches) {
+		for (ResourcePointer match : matches)
 			lngMap.put(match.getLanguage(), match);
+
+		// Prefer the source language defined in the project metadata for this translation language
+		if (fileLoader instanceof ProjectFileLoader projectFileLoader) {
+			ProjectMetaData metaData = projectFileLoader.getProjectMetaData();
+			if (metaData != null && metaData.getLanguageMap() != null) {
+				for (LanguageSet languageSet : metaData.getLanguageMap().getLanguageSets()) {
+					for (Language translationLng : languageSet.getTranslationLanguages()) {
+						if (translationLng.getCode().equals(translationLanguage)) {
+							String sourceCode = languageSet.getSourceLanguage().getCode();
+							ResourcePointer sourcePointer = lngMap.get(sourceCode);
+							if (sourcePointer != null)
+								return dialogues.get(sourcePointer);
+						}
+					}
+				}
+			}
 		}
-		I18nLanguageFinder finder = new I18nLanguageFinder(new ArrayList<>(
-				lngMap.keySet()));
+
+		// Fallback: use I18nLanguageFinder with English locale
+		I18nLanguageFinder finder = new I18nLanguageFinder(new ArrayList<>(lngMap.keySet()));
 		finder.setUserLocale(Locale.ENGLISH);
 		String language = finder.find();
 		if (language == null)
