@@ -52,6 +52,7 @@ const loadDialogue = (name) => {
     .then((dialogueStep) => {
         dialogueName.value = dialogueStep.dialogueName;
         dialogueSteps.value.push(dialogueStep);
+        dialogueEnded.value = dialogueStep.replies.length === 0;
         emit('newDialogueStep');
         scrollTextToBottom();
     });
