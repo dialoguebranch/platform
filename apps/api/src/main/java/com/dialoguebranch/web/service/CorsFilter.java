@@ -50,6 +50,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class CorsFilter implements Filter {
 
+	/** Creates a new {@link CorsFilter} instance. */
+	public CorsFilter() { }
+
 	/**
 	 * Called by the servlet container when this filter is placed into service. No initialization
 	 * logic is required for this filter.

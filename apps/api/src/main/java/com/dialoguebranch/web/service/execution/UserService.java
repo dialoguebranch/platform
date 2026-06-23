@@ -73,7 +73,7 @@ public class UserService {
 
 	private TranslationContext translationContext = null;
 
-	// dialogueLanguageMap: map from dialogue name -> language -> dialogue description
+	/** Map from dialogue name to a map of language tag to the corresponding {@link ResourcePointer}. */
 	protected Map<String, Map<String, ResourcePointer>> dialogueLanguageMap = new LinkedHashMap<>();
 
 	// -------------------------------------------------------- //
@@ -90,6 +90,8 @@ public class UserService {
 	 * @param onVarChangeListener the {@link VariableStoreOnChangeListener} that will be added
 	 *                            to the {@link VariableStore} instance that this
 	 *                            {@link UserService} creates.
+	 * @throws DatabaseException if an error occurs reading existing variables from the database.
+	 * @throws IOException if an error occurs initialising the logged dialogue store.
 	 */
 	public UserService(User dialogueBranchUser, ApplicationManager applicationManager,
 					   VariableStoreOnChangeListener onVarChangeListener)
@@ -210,6 +212,9 @@ public class UserService {
 	 *                  for this started dialogue session.
 	 * @param sessionStartTime the utc timestamp for when this dialogue session started.
 	 * @return the dialogue node result with the start node or specified node
+	 * @throws DatabaseException if a database error occurs.
+	 * @throws IOException if an I/O error occurs.
+	 * @throws ExecutionException if the dialogue cannot be executed.
 	 */
 	public ExecuteNodeResult startDialogueSession(String dialogueId, String nodeId, String language,
 												  String sessionId, long sessionStartTime)
@@ -305,6 +310,7 @@ public class UserService {
 	/**
 	 * Cancels the current dialogue.
 	 *
+	 * @param loggedDialogueId the identifier of the logged dialogue to cancel.
 	 * @throws DatabaseException if a database error occurs
 	 * @throws IOException if a communication error occurs
 	 */
@@ -332,6 +338,7 @@ public class UserService {
 	 * @param variables the set of variables
 	 * @param eventTime the timestamp (in the time zone of the user) of the event that triggered
 	 *                  this change of Dialogue Branch Variables
+	 * @throws ExecutionException if the variables cannot be stored.
 	 */
 	public void storeReplyInput(Map<String,?> variables, ZonedDateTime eventTime)
 			throws ExecutionException {
@@ -604,13 +611,23 @@ public class UserService {
 	/**
 	 * Checks whether a given {@code sessionId} exists for this user, and returns {@code true} if it
 	 * does, or {@code false} if not.
+	 *
 	 * @param sessionId the sessionId {@link String} for which to check.
 	 * @return {@code true} if the sessionId is already in use, false otherwise.
+	 * @throws DatabaseException if a database error occurs while checking.
 	 */
 	public boolean existsSessionId(String sessionId) throws DatabaseException {
 		return loggedDialogueStore.existsSessionId(sessionId);
 	}
 
+	/**
+	 * Returns all logged dialogue entries for this user associated with the given session ID.
+	 *
+	 * @param sessionId the session ID for which to retrieve logged dialogues.
+	 * @return the list of {@link ServerLoggedDialogue} entries for the given session.
+	 * @throws IOException if an I/O error occurs reading the log files.
+	 * @throws DatabaseException if a database error occurs.
+	 */
 	public List<ServerLoggedDialogue> getDialogueSessionLog(String sessionId)
 			throws IOException, DatabaseException {
         logger.info("Getting dialogue log session data for user '{}' and sessionId '{}'.",

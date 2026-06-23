@@ -43,6 +43,10 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class DatabaseTestService {
+
+	/** Creates a new {@link DatabaseTestService} instance. */
+	public DatabaseTestService() { }
+
 	@Autowired
 	private SessionFactory sessionFactory;
 

@@ -412,6 +412,7 @@ public class AuthController {
 	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
 	 *                 Unauthorized error).
 	 * @param version The API Version to use, e.g. '1'.
+	 * @param refreshParametersPayload the payload containing the refresh token.
 	 * @return 'true' if the token is correct, otherwise it will throw an exception.
 	 * @throws UnauthorizedException if the given authentication token is not (or no longer) valid.
 	 */

@@ -48,6 +48,7 @@ import java.util.List;
  */
 public class BasicUserFile {
 
+	/** Creates a new {@link BasicUserFile} instance. */
 	public BasicUserFile() { }
 
 	/**

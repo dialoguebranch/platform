@@ -49,15 +49,26 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
 @ConfigurationProperties(prefix = "dlb")
 public class DlbProperties {
 
+    /** Creates a new {@link DlbProperties} instance with default values. */
+    public DlbProperties() { }
+
     // ------------------------------------------------------------- //
     // -------------------- Shared String Constants ---------------- //
     // ------------------------------------------------------------- //
 
+    /** Authentication service identifier for Keycloak. */
     public static final String AUTH_SERVICE_KEYCLOAK = "keycloak";
+
+    /** Authentication service identifier for the built-in native service. */
     public static final String AUTH_SERVICE_NATIVE = "native";
 
+    /** Name of the application logs sub-directory within the data directory. */
     public static final String DIRECTORY_NAME_APPLICATION_LOGS = "logs";
+
+    /** Name of the dialogues sub-directory within the data directory. */
     public static final String DIRECTORY_NAME_DIALOGUES = "dialogues";
+
+    /** Name of the variables sub-directory within the data directory. */
     public static final String DIRECTORY_NAME_VARIABLES = "variables";
 
     // --------------------------------------------------------- //
@@ -98,35 +109,84 @@ public class DlbProperties {
      * @author Harm op den Akker
      */
     public static class MariaDb {
+
+        /** Creates a new {@link MariaDb} configuration instance with default values. */
+        public MariaDb() { }
+
         private String host = "localhost";
         private int port = 3306;
         private String user = "root";
         private String password = "";
         private String database = "dialoguebranch";
 
-        /** Returns the database host name. @return the host name. */
+        /**
+         * Returns the database host name.
+         *
+         * @return the host name.
+         */
         public String getHost() { return host; }
-        /** Sets the database host name. @param host the host name. */
+
+        /**
+         * Sets the database host name.
+         *
+         * @param host the host name.
+         */
         public void setHost(String host) { this.host = host; }
 
-        /** Returns the database port number. @return the port number. */
+        /**
+         * Returns the database port number.
+         *
+         * @return the port number.
+         */
         public int getPort() { return port; }
-        /** Sets the database port number. @param port the port number. */
+
+        /**
+         * Sets the database port number.
+         *
+         * @param port the port number.
+         */
         public void setPort(int port) { this.port = port; }
 
-        /** Returns the database user name. @return the user name. */
+        /**
+         * Returns the database user name.
+         *
+         * @return the user name.
+         */
         public String getUser() { return user; }
-        /** Sets the database user name. @param user the user name. */
+
+        /**
+         * Sets the database user name.
+         *
+         * @param user the user name.
+         */
         public void setUser(String user) { this.user = user; }
 
-        /** Returns the database password. @return the password. */
+        /**
+         * Returns the database password.
+         *
+         * @return the password.
+         */
         public String getPassword() { return password; }
-        /** Sets the database password. @param password the password. */
+
+        /**
+         * Sets the database password.
+         *
+         * @param password the password.
+         */
         public void setPassword(String password) { this.password = password; }
 
-        /** Returns the database name. @return the database name. */
+        /**
+         * Returns the database name.
+         *
+         * @return the database name.
+         */
         public String getDatabase() { return database; }
-        /** Sets the database name. @param database the database name. */
+
+        /**
+         * Sets the database name.
+         *
+         * @param database the database name.
+         */
         public void setDatabase(String database) { this.database = database; }
     }
 
@@ -140,6 +200,9 @@ public class DlbProperties {
      * @author Harm op den Akker
      */
     public static class Auth {
+
+        /** Creates a new {@link Auth} configuration instance with default values. */
+        public Auth() { }
 
         /** Which authentication backend to use: {@code "native"} or {@code "keycloak"}. */
         private String service = AUTH_SERVICE_NATIVE;
@@ -159,34 +222,88 @@ public class DlbProperties {
         /** Refresh token lifetime in seconds (default: 1800). */
         private int refreshTokenExpirationSeconds = 1800;
 
-        /** Returns the authentication service name. @return the service name. */
+        /**
+         * Returns the authentication service name.
+         *
+         * @return the service name.
+         */
         public String getService() { return service; }
-        /** Sets the authentication service name. @param service the service name. */
+
+        /**
+         * Sets the authentication service name.
+         *
+         * @param service the service name.
+         */
         public void setService(String service) { this.service = service; }
 
-        /** Returns the Keycloak configuration. @return the {@link Keycloak} configuration. */
+        /**
+         * Returns the Keycloak configuration.
+         *
+         * @return the {@link Keycloak} configuration.
+         */
         public Keycloak getKeycloak() { return keycloak; }
-        /** Sets the Keycloak configuration. @param keycloak the {@link Keycloak} configuration. */
+
+        /**
+         * Sets the Keycloak configuration.
+         *
+         * @param keycloak the {@link Keycloak} configuration.
+         */
         public void setKeycloak(Keycloak keycloak) { this.keycloak = keycloak; }
 
-        /** Returns the JWT access token secret. @return the JWT access token secret. */
+        /**
+         * Returns the JWT access token secret.
+         *
+         * @return the JWT access token secret.
+         */
         public String getJwtAccessTokenSecret() { return jwtAccessTokenSecret; }
-        /** Sets the JWT access token secret. @param s the JWT access token secret. */
+
+        /**
+         * Sets the JWT access token secret.
+         *
+         * @param s the JWT access token secret.
+         */
         public void setJwtAccessTokenSecret(String s) { this.jwtAccessTokenSecret = s; }
 
-        /** Returns the access token lifetime in seconds. @return the expiration in seconds. */
+        /**
+         * Returns the access token lifetime in seconds.
+         *
+         * @return the expiration in seconds.
+         */
         public int getAccessTokenExpirationSeconds() { return accessTokenExpirationSeconds; }
-        /** Sets the access token lifetime in seconds. @param s the expiration in seconds. */
+
+        /**
+         * Sets the access token lifetime in seconds.
+         *
+         * @param s the expiration in seconds.
+         */
         public void setAccessTokenExpirationSeconds(int s) { this.accessTokenExpirationSeconds = s; }
 
-        /** Returns the JWT refresh token secret. @return the JWT refresh token secret. */
+        /**
+         * Returns the JWT refresh token secret.
+         *
+         * @return the JWT refresh token secret.
+         */
         public String getJwtRefreshTokenSecret() { return jwtRefreshTokenSecret; }
-        /** Sets the JWT refresh token secret. @param s the JWT refresh token secret. */
+
+        /**
+         * Sets the JWT refresh token secret.
+         *
+         * @param s the JWT refresh token secret.
+         */
         public void setJwtRefreshTokenSecret(String s) { this.jwtRefreshTokenSecret = s; }
 
-        /** Returns the refresh token lifetime in seconds. @return the expiration in seconds. */
+        /**
+         * Returns the refresh token lifetime in seconds.
+         *
+         * @return the expiration in seconds.
+         */
         public int getRefreshTokenExpirationSeconds() { return refreshTokenExpirationSeconds; }
-        /** Sets the refresh token lifetime in seconds. @param s the expiration in seconds. */
+
+        /**
+         * Sets the refresh token lifetime in seconds.
+         *
+         * @param s the expiration in seconds.
+         */
         public void setRefreshTokenExpirationSeconds(int s) { this.refreshTokenExpirationSeconds = s; }
 
         // -------------------- Nested: Keycloak -------------------- //
@@ -197,29 +314,69 @@ public class DlbProperties {
          * @author Harm op den Akker
          */
         public static class Keycloak {
+
+            /** Creates a new {@link Keycloak} configuration instance with default values. */
+            public Keycloak() { }
+
             private String baseUrl = "http://keycloak:8080/";
             private String realm = "dialoguebranch";
             private String clientId = "dlb-web-service";
             private String clientSecret = "";
 
-            /** Returns the Keycloak base URL. @return the base URL. */
+            /**
+             * Returns the Keycloak base URL.
+             *
+             * @return the base URL.
+             */
             public String getBaseUrl() { return baseUrl; }
-            /** Sets the Keycloak base URL. @param baseUrl the base URL. */
+
+            /**
+             * Sets the Keycloak base URL.
+             *
+             * @param baseUrl the base URL.
+             */
             public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
 
-            /** Returns the Keycloak realm name. @return the realm name. */
+            /**
+             * Returns the Keycloak realm name.
+             *
+             * @return the realm name.
+             */
             public String getRealm() { return realm; }
-            /** Sets the Keycloak realm name. @param realm the realm name. */
+
+            /**
+             * Sets the Keycloak realm name.
+             *
+             * @param realm the realm name.
+             */
             public void setRealm(String realm) { this.realm = realm; }
 
-            /** Returns the Keycloak client ID. @return the client ID. */
+            /**
+             * Returns the Keycloak client ID.
+             *
+             * @return the client ID.
+             */
             public String getClientId() { return clientId; }
-            /** Sets the Keycloak client ID. @param clientId the client ID. */
+
+            /**
+             * Sets the Keycloak client ID.
+             *
+             * @param clientId the client ID.
+             */
             public void setClientId(String clientId) { this.clientId = clientId; }
 
-            /** Returns the Keycloak client secret. @return the client secret. */
+            /**
+             * Returns the Keycloak client secret.
+             *
+             * @return the client secret.
+             */
             public String getClientSecret() { return clientSecret; }
-            /** Sets the Keycloak client secret. @param clientSecret the client secret. */
+
+            /**
+             * Sets the Keycloak client secret.
+             *
+             * @param clientSecret the client secret.
+             */
             public void setClientSecret(String clientSecret) { this.clientSecret = clientSecret; }
         }
     }
@@ -234,29 +391,69 @@ public class DlbProperties {
      * @author Harm op den Akker
      */
     public static class ExternalVariableService {
+
+        /** Creates a new {@link ExternalVariableService} configuration instance with default values. */
+        public ExternalVariableService() { }
+
         private boolean enabled = false;
         private String url = "";
         private int apiVersion = 1;
         private String apiKey = "";
 
-        /** Returns whether the external variable service is enabled. @return {@code true} if enabled. */
+        /**
+         * Returns whether the external variable service is enabled.
+         *
+         * @return {@code true} if enabled.
+         */
         public boolean isEnabled() { return enabled; }
-        /** Sets whether the external variable service is enabled. @param enabled {@code true} to enable. */
+
+        /**
+         * Sets whether the external variable service is enabled.
+         *
+         * @param enabled {@code true} to enable.
+         */
         public void setEnabled(boolean enabled) { this.enabled = enabled; }
 
-        /** Returns the base URL of the external variable service. @return the URL. */
+        /**
+         * Returns the base URL of the external variable service.
+         *
+         * @return the URL.
+         */
         public String getUrl() { return url; }
-        /** Sets the base URL of the external variable service. @param url the URL. */
+
+        /**
+         * Sets the base URL of the external variable service.
+         *
+         * @param url the URL.
+         */
         public void setUrl(String url) { this.url = url; }
 
-        /** Returns the API version to use when calling the external variable service. @return the API version. */
+        /**
+         * Returns the API version to use when calling the external variable service.
+         *
+         * @return the API version.
+         */
         public int getApiVersion() { return apiVersion; }
-        /** Sets the API version to use when calling the external variable service. @param apiVersion the API version. */
+
+        /**
+         * Sets the API version to use when calling the external variable service.
+         *
+         * @param apiVersion the API version.
+         */
         public void setApiVersion(int apiVersion) { this.apiVersion = apiVersion; }
 
-        /** Returns the API key used to authenticate with the external variable service. @return the API key. */
+        /**
+         * Returns the API key used to authenticate with the external variable service.
+         *
+         * @return the API key.
+         */
         public String getApiKey() { return apiKey; }
-        /** Sets the API key used to authenticate with the external variable service. @param apiKey the API key. */
+
+        /**
+         * Sets the API key used to authenticate with the external variable service.
+         *
+         * @param apiKey the API key.
+         */
         public void setApiKey(String apiKey) { this.apiKey = apiKey; }
     }
 
@@ -264,46 +461,118 @@ public class DlbProperties {
     // -------------------- Top-level getters/setters ---------- //
     // --------------------------------------------------------- //
 
-    /** Returns the application version string. @return the version string. */
+    /**
+     * Returns the application version string.
+     *
+     * @return the version string.
+     */
     public String getVersion() { return version; }
-    /** Sets the application version string. @param version the version string. */
+
+    /**
+     * Sets the application version string.
+     *
+     * @param version the version string.
+     */
     public void setVersion(String version) { this.version = version; }
 
-    /** Returns the build timestamp string. @return the build timestamp. */
+    /**
+     * Returns the build timestamp string.
+     *
+     * @return the build timestamp.
+     */
     public String getBuildTime() { return buildTime; }
-    /** Sets the build timestamp string. @param buildTime the build timestamp. */
+
+    /**
+     * Sets the build timestamp string.
+     *
+     * @param buildTime the build timestamp.
+     */
     public void setBuildTime(String buildTime) { this.buildTime = buildTime; }
 
-    /** Returns the public base URL of this service instance. @return the base URL. */
+    /**
+     * Returns the public base URL of this service instance.
+     *
+     * @return the base URL.
+     */
     public String getBaseUrl() { return baseUrl; }
-    /** Sets the public base URL of this service instance. @param baseUrl the base URL. */
+
+    /**
+     * Sets the public base URL of this service instance.
+     *
+     * @param baseUrl the base URL.
+     */
     public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
 
-    /** Returns the filesystem path to the service data directory. @return the data directory path. */
+    /**
+     * Returns the filesystem path to the service data directory.
+     *
+     * @return the data directory path.
+     */
     public String getDataDir() { return dataDir; }
-    /** Sets the filesystem path to the service data directory. @param dataDir the data directory path. */
+
+    /**
+     * Sets the filesystem path to the service data directory.
+     *
+     * @param dataDir the data directory path.
+     */
     public void setDataDir(String dataDir) { this.dataDir = dataDir; }
 
-    /** Returns whether the service allows creation of anonymous user accounts. @return {@code true} if allowed. */
+    /**
+     * Returns whether the service allows creation of anonymous user accounts.
+     *
+     * @return {@code true} if allowed.
+     */
     public boolean isAllowAnonymousUsers() { return allowAnonymousUsers; }
-    /** Sets whether the service allows creation of anonymous user accounts. @param allowAnonymousUsers {@code true} to allow. */
+
+    /**
+     * Sets whether the service allows creation of anonymous user accounts.
+     *
+     * @param allowAnonymousUsers {@code true} to allow.
+     */
     public void setAllowAnonymousUsers(boolean allowAnonymousUsers) {
         this.allowAnonymousUsers = allowAnonymousUsers;
     }
 
-    /** Returns the MariaDB connection configuration. @return the {@link MariaDb} configuration. */
+    /**
+     * Returns the MariaDB connection configuration.
+     *
+     * @return the {@link MariaDb} configuration.
+     */
     public MariaDb getMariadb() { return mariadb; }
-    /** Sets the MariaDB connection configuration. @param mariadb the {@link MariaDb} configuration. */
+
+    /**
+     * Sets the MariaDB connection configuration.
+     *
+     * @param mariadb the {@link MariaDb} configuration.
+     */
     public void setMariadb(MariaDb mariadb) { this.mariadb = mariadb; }
 
-    /** Returns the authentication configuration. @return the {@link Auth} configuration. */
+    /**
+     * Returns the authentication configuration.
+     *
+     * @return the {@link Auth} configuration.
+     */
     public Auth getAuth() { return auth; }
-    /** Sets the authentication configuration. @param auth the {@link Auth} configuration. */
+
+    /**
+     * Sets the authentication configuration.
+     *
+     * @param auth the {@link Auth} configuration.
+     */
     public void setAuth(Auth auth) { this.auth = auth; }
 
-    /** Returns the external variable service configuration. @return the {@link ExternalVariableService} configuration. */
+    /**
+     * Returns the external variable service configuration.
+     *
+     * @return the {@link ExternalVariableService} configuration.
+     */
     public ExternalVariableService getExternalVariableService() { return externalVariableService; }
-    /** Sets the external variable service configuration. @param s the {@link ExternalVariableService} configuration. */
+
+    /**
+     * Sets the external variable service configuration.
+     *
+     * @param s the {@link ExternalVariableService} configuration.
+     */
     public void setExternalVariableService(ExternalVariableService s) {
         this.externalVariableService = s;
     }

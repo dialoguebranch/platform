@@ -61,6 +61,9 @@ import java.util.List;
 		" dialogues.")
 public class LogController {
 
+	/** Creates a new {@link LogController} instance. */
+	public LogController() { }
+
 	@Autowired
 	Application application;
 
@@ -70,6 +73,17 @@ public class LogController {
 	// -------------------- END-POINT: "/log/get-session" -------------------- //
 	// ----------------------------------------------------------------------- //
 
+	/**
+	 * Retrieves all logged dialogue entries associated with the given session identifier.
+	 *
+	 * @param request the HTTP request.
+	 * @param response the HTTP response.
+	 * @param version the API version string.
+	 * @param sessionId the session ID for which to retrieve logged dialogues.
+	 * @param delegateUser the user for whom to retrieve the session (empty means the authenticated user).
+	 * @return the list of {@link ServerLoggedDialogue} entries for the given session.
+	 * @throws Exception if authentication fails or an error occurs processing the request.
+	 */
 	@Operation(
 		summary = "Retrieve all known logging information for a given session.",
 		description = "This method will retrieve all know logging information associated with " +

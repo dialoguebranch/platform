@@ -74,6 +74,7 @@ public class LoggedDialogueStore {
 	 * @param userId the identifier of the Dialogue Branch User for which to instantiate this {@link
 	 *                   LoggedDialogueStore}
 	 * @param userService the {@link UserService} associated with this LoggedDialogueStore
+	 * @param dlbProperties the application configuration properties used to determine the data directory.
 	 * @throws IOException in case of an error instantiating the log folder.
 	 */
 	public LoggedDialogueStore(String userId, UserService userService,
@@ -192,8 +193,10 @@ public class LoggedDialogueStore {
 
 	/**
 	 * Checks whether the given {@code sessionId} exists for this user.
+	 *
 	 * @param sessionId the sessionId for which to check.
 	 * @return true if the sessionId exists, false otherwise.
+	 * @throws DatabaseException if the dialogue log directory cannot be listed.
 	 */
 	public boolean existsSessionId(String sessionId) throws DatabaseException {
 		// First check whether the latest stored in-memory dialogue may be a match
@@ -221,6 +224,14 @@ public class LoggedDialogueStore {
 		return false;
 	}
 
+	/**
+	 * Reads and returns all {@link ServerLoggedDialogue} entries associated with the given session ID.
+	 *
+	 * @param sessionId the session ID for which to read all logged dialogues.
+	 * @return the list of {@link ServerLoggedDialogue} entries for the given session.
+	 * @throws DatabaseException if the dialogue log directory cannot be listed.
+	 * @throws IOException if an error occurs reading a log file.
+	 */
 	public List<ServerLoggedDialogue> readSession(String sessionId)
 			throws DatabaseException, IOException {
 

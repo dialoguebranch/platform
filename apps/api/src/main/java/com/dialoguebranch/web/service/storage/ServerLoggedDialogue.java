@@ -77,6 +77,7 @@ public class ServerLoggedDialogue implements LoggedDialogue {
 	 * @param dialogueStartTime the time that this dialogue started in the time zone of the user.
 	 * @param sessionId an optional externally provided id to be added to the logs (or
 	 *                    {@code null}).
+	 * @param sessionStartTime the UTC epoch-millisecond timestamp for when the session started.
 	 */
 	public ServerLoggedDialogue(String user, ZonedDateTime dialogueStartTime, String sessionId,
 								long sessionStartTime) {

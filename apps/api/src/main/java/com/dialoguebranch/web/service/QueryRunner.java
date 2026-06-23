@@ -48,12 +48,16 @@ import jakarta.servlet.http.HttpServletResponse;
  */
 public class QueryRunner {
 
+	/** Utility class — not instantiated. */
+	private QueryRunner() { }
+
 	/**
 	 * Runs a query on the authentication database. If the HTTP request is specified, it will
 	 * validate the authentication token. If there is no token in the request, or the token is empty
 	 * or invalid, it throws an HttpException with 401 Unauthorized. If the request is null, it will
 	 * not validate anything. This can be used for a login or signup.
-	 * 
+	 *
+	 * @param <T> the return type of the query result.
 	 * @param query the query
 	 * @param versionName the protocol version name (see {@link ProtocolVersion})
 	 * @param providedAccessToken the provided JWT access token
@@ -125,6 +129,7 @@ public class QueryRunner {
 	 * Otherwise, it will return the {@link AuthenticationInfo} object representing the information
 	 * of the authenticated user.
 	 *
+	 * @param providedAccessToken the JWT access token string to validate.
 	 * @param application the {@link Application} context used to access {@link
 	 *                    BasicUserCredentials} in a non-static way.
 	 * @return the {@link AuthenticationInfo} for the authenticated user

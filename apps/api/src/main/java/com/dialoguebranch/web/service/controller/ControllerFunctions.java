@@ -49,6 +49,9 @@ import java.util.Map;
  */
 public class ControllerFunctions {
 
+	/** Utility class — not instantiated. */
+	private ControllerFunctions() { }
+
 	/**
 	 * Parses a given String into a {@link ZoneId} time zone object. The given {@code timeZone}
 	 * String should be formatted according to the rules defined in {@link ZoneId#of(String)}}.
@@ -138,6 +141,14 @@ public class ControllerFunctions {
 		}
 	}
 
+	/**
+	 * Extracts the JWT access token from the request's {@code X-Auth-Token} or
+	 * {@code Authorization: Bearer} header.
+	 *
+	 * @param request the incoming HTTP request.
+	 * @return the extracted access token string.
+	 * @throws UnauthorizedException if no valid token can be found in the request headers.
+	 */
 	public static String extractAccessToken(HttpServletRequest request) throws UnauthorizedException {
 		String token = request.getHeader("X-Auth-Token");
 

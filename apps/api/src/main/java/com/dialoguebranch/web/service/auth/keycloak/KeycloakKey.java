@@ -41,30 +41,39 @@ import java.util.ArrayList;
  */
 public class KeycloakKey {
 
+    /** The key identifier ({@code kid}). */
     @JsonProperty("kid")
     public String keyId;
 
+    /** The key type ({@code kty}), e.g. {@code "RSA"}. */
     @JsonProperty("kty")
     public String keyType;
 
+    /** The algorithm ({@code alg}), e.g. {@code "RS256"}. */
     @JsonProperty("alg")
     public String algorithm;
 
+    /** The intended use ({@code use}), e.g. {@code "sig"}. */
     @JsonProperty("use")
     public String use;
 
+    /** The X.509 certificate chain ({@code x5c}). */
     @JsonProperty("x5c")
     public ArrayList<String> x5c;
 
+    /** The X.509 SHA-1 thumbprint ({@code x5t}). */
     @JsonProperty("x5t")
     public String x5t;
 
+    /** The X.509 SHA-256 thumbprint ({@code x5t#S256}). */
     @JsonProperty("x5t#S256")
     public String x5tS256;
 
+    /** The RSA modulus ({@code n}). */
     @JsonProperty("n")
     public String n;
 
+    /** The RSA exponent ({@code e}). */
     @JsonProperty("e")
     public String e;
 
@@ -180,7 +189,7 @@ public class KeycloakKey {
      *    key represented by other members of the JWK.  Use of this member is
      *    OPTIONAL.
      *
-     * @return
+     * @return the X.509 certificate chain.
      */
     public ArrayList<String> getX5c() {
         return x5c;
@@ -202,7 +211,7 @@ public class KeycloakKey {
      * certificate MUST match the public key represented by other members of the JWK. Use of this
      * member is OPTIONAL.
      *
-     * @return
+     * @return the X.509 SHA-1 thumbprint.
      */
     public String getX5t() {
         return x5t;

@@ -107,6 +107,14 @@ public class JWTUtils {
                 .compact();
     }
 
+    /**
+     * Extracts claims from the given JWT access token using the provided claim resolver function.
+     *
+     * @param <T> the type of the extracted claim value.
+     * @param token the JWT access token string.
+     * @param claimFunction a function that maps the parsed {@link Claims} to the desired value.
+     * @return the extracted claim value.
+     */
     public <T> T extractClaims(String token, Function<Claims, T> claimFunction) {
         Claims claims = Jwts.parser()
                 .verifyWith(getAccessTokenSecret())

@@ -57,6 +57,8 @@ import java.util.Set;
 public class DialogueExecutor {
 
 	private final Logger logger = AppComponents.getLogger(getClass().getSimpleName());
+
+	/** The {@link UserService} for which dialogues are being executed. */
 	protected UserService userService;
 
 	// -------------------------------------------------------- //

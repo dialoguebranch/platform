@@ -43,6 +43,14 @@ import org.springframework.web.servlet.view.RedirectView;
 @Controller
 public class SwaggerController {
 
+	/** Creates a new {@link SwaggerController} instance. */
+	public SwaggerController() { }
+
+	/**
+	 * Redirects requests to the root path to the Swagger UI page.
+	 *
+	 * @return a {@link RedirectView} pointing to the Swagger UI HTML page.
+	 */
 	@RequestMapping("/")
 	public RedirectView redirectRoot() {
 		return new RedirectView(ServiceContext.getBaseUrl() + "/swagger-ui.html");

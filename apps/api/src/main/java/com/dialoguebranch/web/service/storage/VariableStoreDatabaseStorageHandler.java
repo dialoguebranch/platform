@@ -60,6 +60,9 @@ import java.util.function.Supplier;
  */
 public class VariableStoreDatabaseStorageHandler implements VariableStoreStorageHandler {
 
+    /** Creates a new {@link VariableStoreDatabaseStorageHandler} instance. */
+    public VariableStoreDatabaseStorageHandler() { }
+
     private final Logger logger =
             AppComponents.getLogger(ClassUtils.getUserClass(getClass()).getSimpleName());
 

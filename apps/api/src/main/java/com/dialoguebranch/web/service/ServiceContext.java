@@ -54,10 +54,20 @@ public class ServiceContext {
         ServiceContext.dlbProperties = dlbProperties;
     }
 
+    /**
+     * Returns the public base URL of this service instance as configured in {@link DlbProperties}.
+     *
+     * @return the base URL string.
+     */
     public static String getBaseUrl() {
         return dlbProperties.getBaseUrl();
     }
 
+    /**
+     * Returns the URL path component of this service's base URL.
+     *
+     * @return the base path string, e.g. {@code "/dlb-web-service"}.
+     */
     public static String getBasePath() {
         String url = getBaseUrl();
         HttpURL httpUrl;
@@ -69,6 +79,11 @@ public class ServiceContext {
         return httpUrl.getPath();
     }
 
+    /**
+     * Returns the version name of the latest supported {@link ProtocolVersion}.
+     *
+     * @return the latest version name string, e.g. {@code "1"}.
+     */
     public static String getCurrentVersion() {
         ProtocolVersion[] versions = ProtocolVersion.values();
         return versions[versions.length - 1].versionName();

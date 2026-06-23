@@ -40,6 +40,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class UIController {
 
+	/** Creates a new {@link UIController} instance. */
+	public UIController() { }
+
 	/**
 	 * Serves the admin UI by forwarding the request to the embedded {@code index.html} resource.
 	 *

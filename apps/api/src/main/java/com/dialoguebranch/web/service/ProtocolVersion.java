@@ -33,6 +33,8 @@ package com.dialoguebranch.web.service;
  * the {protocol_version} is defined by the last available item in this {@code enum}.
  */
 public enum ProtocolVersion {
+
+	/** Protocol version 1 — the first and currently latest API version. */
 	V1("1");
 	
 	private final String versionName;
@@ -50,6 +52,13 @@ public enum ProtocolVersion {
 		return versionName;
 	}
 	
+	/**
+	 * Returns the {@link ProtocolVersion} matching the given version name string.
+	 *
+	 * @param versionName the version name string to look up, e.g. {@code "1"}.
+	 * @return the matching {@link ProtocolVersion}.
+	 * @throws IllegalArgumentException if no matching version is found.
+	 */
 	public static ProtocolVersion forVersionName(String versionName)
 			throws IllegalArgumentException {
 		for (ProtocolVersion value : ProtocolVersion.values()) {
@@ -60,6 +69,11 @@ public enum ProtocolVersion {
 				versionName);
 	}
 
+	/**
+	 * Returns the latest supported {@link ProtocolVersion} (the last-defined enum constant).
+	 *
+	 * @return the latest {@link ProtocolVersion}.
+	 */
 	public static ProtocolVersion getLatestVersion() {
 		return ProtocolVersion.values()[ProtocolVersion.values().length-1];
 	}
