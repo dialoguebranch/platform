@@ -70,6 +70,15 @@ export class DialogueBranchClient {
         });
     }
 
+    refresh(refreshToken) {
+        return fetch(this._baseUrl + "/auth/refresh", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refreshToken }),
+        })
+        .then((response) => this._handleResponse(response));
+    }
+
     getServerInfo() {
         return fetch(this._baseUrl + "/info/all", {
             method: "GET",

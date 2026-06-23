@@ -8,8 +8,7 @@ export function useClient() {
     const stateManagement = useStateManagement();
     const client = new DialogueBranchClient(config.baseUrl, state.value.user?.accessToken ?? null);
     client.onUnauthorized((response) => {
-        // the token must have become invalid
-        stateManagement.logout();
+        stateManagement.refreshSession();
     });
     return client;
 }

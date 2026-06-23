@@ -19,8 +19,13 @@ const variableBrowser = useTemplateRef('variable-browser');
 
 const appVersion = __APP_VERSION__;
 const sessionSecondsToLive = ref(Math.round(state.value.user.accessTokenSecondsToLive));
+let refreshing = false;
 const sessionTimer = setInterval(() => {
     sessionSecondsToLive.value = Math.round(state.value.user.accessTokenSecondsToLive);
+    if (sessionSecondsToLive.value < 30 && !refreshing) {
+        refreshing = true;
+        stateManagement.refreshSession().finally(() => { refreshing = false; });
+    }
 }, 1000);
 onUnmounted(() => clearInterval(sessionTimer));
 const serviceUrl = new URL(config.baseUrl);
