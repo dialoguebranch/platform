@@ -70,6 +70,14 @@ export class DialogueBranchClient {
         });
     }
 
+    getServerInfo() {
+        return fetch(this._baseUrl + "/info/all", {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+        })
+        .then((response) => this._handleResponse(response));
+    }
+
     listDialogues() {
         const url = this._baseUrl + "/admin/list-dialogues";
 

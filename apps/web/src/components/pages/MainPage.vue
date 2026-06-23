@@ -1,8 +1,6 @@
 <script setup>
-import { computed, onMounted, useTemplateRef } from 'vue';
-
-const appVersion = __APP_VERSION__;
-const buildTimestamp = new Date(__BUILD_TIMESTAMP__).toLocaleString();
+import { inject, onMounted, ref, useTemplateRef } from 'vue';
+import { useClient } from '../../composables/client.js';
 import { useStateManagement } from '../../composables/state-management.js';
 import DialogueBrowser from '../partials/DialogueBrowser.vue';
 import HeaderMenuItem from '../widgets/HeaderMenuItem.vue';
@@ -10,18 +8,29 @@ import InteractionTester from '../partials/InteractionTester.vue';
 import ResizablePanels from '../widgets/ResizablePanels.vue';
 import VariableBrowser from '../partials/VariableBrowser.vue';
 
-const versionInfo = computed(() => {
-    return 'Not connected.';
-});
-
+const config = inject('config');
+const client = useClient();
 const stateManagement = useStateManagement();
 
 const panels = useTemplateRef('panels');
 const interactionTester = useTemplateRef('interaction-tester');
 const variableBrowser = useTemplateRef('variable-browser');
 
+const appVersion = __APP_VERSION__;
+const serviceUrl = new URL(config.baseUrl);
+const serviceHost = serviceUrl.hostname;
+const servicePort = serviceUrl.port;
+const connectionInfo = ref('Not connected.');
+
 onMounted(() => {
     panels.value.selectMobileTab(0);
+    client.getServerInfo()
+        .then((info) => {
+            connectionInfo.value = `Connected to ${serviceHost} on port ${servicePort} running Web Service v${info.serviceVersion}.`;
+        })
+        .catch(() => {
+            connectionInfo.value = `Could not connect to ${serviceHost} on port ${servicePort}.`;
+        });
 });
 
 function onLogoutClick() {
@@ -50,7 +59,10 @@ function onResizePanels() {
     <div class="w-screen h-screen flex flex-col">
         <header class="flex bg-menu-bar shadow-md shadow-gray-400 z-1">
             <a class="shrink-0" href="/"><img class="box-content h-[60px] pl-4 py-3" src="../../assets/img/dlb-square.png"></a>
-            <span class="hidden sm:block font-title text-sm self-end pl-2 pb-3">{{ versionInfo }}</span>
+            <div class="hidden sm:flex flex-col justify-end pl-2 pb-2 font-mono text-xs text-gray-500">
+                <span>Dialogue Branch Web Client v{{ appVersion }}.</span>
+                <span>{{ connectionInfo }}</span>
+            </div>
             <div class="grow"></div>
             <div class="flex basis-0">
                 <HeaderMenuItem text="Documentation" link="https://www.dialoguebranch.com/docs/dialogue-branch/dev/index.html" />
@@ -58,12 +70,7 @@ function onResizePanels() {
             </div>
         </header>
 
-        <footer class="shrink-0 flex items-center justify-end gap-4 px-4 py-1 bg-menu-bar text-xs font-title text-gray-400">
-        <span>v{{ appVersion }}</span>
-        <span>Built: {{ buildTimestamp }}</span>
-    </footer>
-
-    <ResizablePanels
+        <ResizablePanels
             ref="panels"
             class="grow"
             cookiePrefix="mainPage"
