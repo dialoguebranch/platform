@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import IconButton from '../widgets/IconButton.vue';
 import MainPagePanelHeader from '../widgets/MainPagePanelHeader.vue';
 import MainPagePanelContainer from '../widgets/MainPagePanelContainer.vue';
+import DialogueTreeNode from './DialogueTreeNode.vue';
 
 defineEmits([
     'selectDialogue',
@@ -12,16 +13,43 @@ defineEmits([
 
 const client = useClient();
 
-const dialogues = ref([]);
+const tree = ref([]);
+const openFolders = ref({});
+
+function buildTree(names) {
+    const root = {};
+    for (const name of names) {
+        const parts = name.split('/');
+        let node = root;
+        for (let i = 0; i < parts.length - 1; i++) {
+            if (!node[parts[i]]) node[parts[i]] = { _children: {} };
+            node = node[parts[i]]._children;
+        }
+        const leaf = parts[parts.length - 1];
+        node[leaf] = { _file: name };
+    }
+    return root;
+}
 
 function listDialogues() {
     client.listDialogues()
     .then((json) => {
-        dialogues.value = json.dialogueNames;
+        const root = buildTree(json.dialogueNames);
+        tree.value = Object.entries(root).sort(([, a], [, b]) => {
+            const aIsFolder = !a._file;
+            const bIsFolder = !b._file;
+            if (aIsFolder !== bIsFolder) return aIsFolder ? -1 : 1;
+            return 0;
+        });
+        openFolders.value = {};
     })
     .catch((error) => {
         console.log(error);
     });
+}
+
+function toggleFolder(path) {
+    openFolders.value[path] = !openFolders.value[path];
 }
 
 listDialogues();
@@ -35,14 +63,16 @@ listDialogues();
             </template>
         </MainPagePanelHeader>
         <MainPagePanelContainer class="p-1 gap-1 flex flex-col sm:ml-1">
-            <div
-                v-for="dialogue in dialogues"
-                class="cursor-pointer bg-grey-lighter text-orange-darker hover:text-orange-dark font-title font-black text-xs p-1"
-                @click="$emit('selectDialogue', dialogue)"
-            >
-                <FontAwesomeIcon icon="fa fa-circle-play" />
-                {{ dialogue }}
-            </div>
+            <DialogueTreeNode
+                v-for="[name, node] in tree"
+                :key="name"
+                :name="name"
+                :node="node"
+                :path="name"
+                :openFolders="openFolders"
+                @toggleFolder="toggleFolder"
+                @selectDialogue="$emit('selectDialogue', $event)"
+            />
         </MainPagePanelContainer>
     </div>
 </template>
