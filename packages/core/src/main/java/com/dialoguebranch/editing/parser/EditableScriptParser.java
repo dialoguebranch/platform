@@ -28,8 +28,9 @@
 package com.dialoguebranch.editing.parser;
 
 import com.dialoguebranch.exception.ScriptParseException;
+import com.dialoguebranch.model.common.FileStorageSource;
 import com.dialoguebranch.model.edit.*;
-import com.dialoguebranch.model.execute.Constants;
+import com.dialoguebranch.model.common.DialogueBranchConstants;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -52,10 +53,10 @@ public class EditableScriptParser {
     /**
      * Attempts to create a {@link EditableScript} from the given {@link File} and with the
      * {@code languageCode} provided. The file must have the correct file extension, as defined in
-     * {@link Constants#DLB_SCRIPT_FILE_EXTENSION}.
+     * {@link DialogueBranchConstants#DLB_SCRIPT_FILE_EXTENSION}.
      *
      * <p>This reader will split the given input into {@link EditableNode}s based on the {@link
-     * Constants#DLB_NODE_SEPARATOR}, but otherwise does not parse these individual nodes. As such,
+     * DialogueBranchConstants#DLB_NODE_SEPARATOR}, but otherwise does not parse these individual nodes. As such,
      * any given file should successfully parse, as long as its file extension is correct.</p>
      *
      * @param file the Dialogue Branch script file to parse.
@@ -89,7 +90,7 @@ public class EditableScriptParser {
 
     /**
      * Replaces the contents of the given {@link EditableScript} by splitting the provided list of
-     * lines on the {@link Constants#DLB_NODE_SEPARATOR} and creating an {@link EditableNode} for
+     * lines on the {@link DialogueBranchConstants#DLB_NODE_SEPARATOR} and creating an {@link EditableNode} for
      * each segment.
      *
      * @param lines the source-code lines to parse into nodes.
@@ -101,7 +102,7 @@ public class EditableScriptParser {
         for(String line : lines) {
 
             // When we encounter the NODE_SEPARATOR, we take what we have and create a new node
-            if(line.equals(Constants.DLB_NODE_SEPARATOR)) {
+            if(line.equals(DialogueBranchConstants.DLB_NODE_SEPARATOR)) {
                 editableScript.addNode(createNode(editableScript, linesBuffer));
                 linesBuffer = new ArrayList<>();
             } else {
@@ -138,19 +139,19 @@ public class EditableScriptParser {
         }
 
         // If the only line we have is a header separator, return null
-        if(lines.size() == 1 && lines.contains(Constants.DLB_HEADER_SEPARATOR)) {
+        if(lines.size() == 1 && lines.contains(DialogueBranchConstants.DLB_HEADER_SEPARATOR)) {
             return null;
         }
 
         // If there is no header separator, everything is considered body
-        else if(!lines.contains(Constants.DLB_HEADER_SEPARATOR)) {
+        else if(!lines.contains(DialogueBranchConstants.DLB_HEADER_SEPARATOR)) {
             EditableBody body = new EditableBody(createdNode,lines);
             createdNode.setBody(body);
             return createdNode;
         }
 
         // If the header separator is the last element of the list, everything is header
-        else if(lines.indexOf(Constants.DLB_HEADER_SEPARATOR) == lines.size()-1) {
+        else if(lines.indexOf(DialogueBranchConstants.DLB_HEADER_SEPARATOR) == lines.size()-1) {
             EditableHeader header = new EditableHeader(createdNode,lines);
             createdNode.setHeader(header);
             return createdNode;
@@ -159,9 +160,9 @@ public class EditableScriptParser {
         // Else, split the lines into header and body
         else {
             EditableHeader header = new EditableHeader(createdNode,
-                    lines.subList(0, lines.indexOf(Constants.DLB_HEADER_SEPARATOR)));
+                    lines.subList(0, lines.indexOf(DialogueBranchConstants.DLB_HEADER_SEPARATOR)));
             EditableBody body = new EditableBody(createdNode,
-                    lines.subList(lines.indexOf(Constants.DLB_HEADER_SEPARATOR)+1, lines.size()));
+                    lines.subList(lines.indexOf(DialogueBranchConstants.DLB_HEADER_SEPARATOR)+1, lines.size()));
 
             createdNode.setBody(body);
             createdNode.setHeader(header);
@@ -172,7 +173,7 @@ public class EditableScriptParser {
 
     /**
      * Creates a {@link EditableScript} object with the name of the given file, if the
-     * extension of the given file is correct (see {@link Constants#DLB_SCRIPT_FILE_EXTENSION}).
+     * extension of the given file is correct (see {@link DialogueBranchConstants#DLB_SCRIPT_FILE_EXTENSION}).
      *
      * @param file the File from which to create the {@link EditableScript}.
      * @return a {@link EditableScript} object with the name of the given file.
@@ -182,10 +183,10 @@ public class EditableScriptParser {
             throws ScriptParseException {
         String extension = file.getName().substring(file.getName().lastIndexOf("."));
 
-        if(!extension.equals(Constants.DLB_SCRIPT_FILE_EXTENSION))
+        if(!extension.equals(DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION))
             throw new ScriptParseException(
                     "Invalid file extension '" + extension + "', expected: '"
-                            + Constants.DLB_SCRIPT_FILE_EXTENSION);
+                            + DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION);
 
         // Create a new EditableScript with the file name as dialogueName
         String fileName = file.getName().substring(0, file.getName().lastIndexOf("."));

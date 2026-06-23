@@ -30,9 +30,9 @@ package com.dialoguebranch.editing.writer;
 
 import com.dialoguebranch.model.edit.EditableNode;
 import com.dialoguebranch.model.edit.EditableScript;
-import com.dialoguebranch.model.edit.FileStorageSource;
-import com.dialoguebranch.model.edit.StorageSource;
-import com.dialoguebranch.model.execute.Constants;
+import com.dialoguebranch.model.common.FileStorageSource;
+import com.dialoguebranch.model.common.StorageSource;
+import com.dialoguebranch.model.common.DialogueBranchConstants;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -69,11 +69,11 @@ public class EditableScriptWriter {
 
                 fileWriter.write(node.getHeader().getSourceCode());
                 fileWriter.write(System.lineSeparator());
-                fileWriter.write(Constants.DLB_HEADER_SEPARATOR);
+                fileWriter.write(DialogueBranchConstants.DLB_HEADER_SEPARATOR);
                 fileWriter.write(System.lineSeparator());
                 fileWriter.write(node.getBody().getSourceCode());
                 fileWriter.write(System.lineSeparator());
-                fileWriter.write(Constants.DLB_NODE_SEPARATOR);
+                fileWriter.write(DialogueBranchConstants.DLB_NODE_SEPARATOR);
                 fileWriter.write(System.lineSeparator());
 
             }

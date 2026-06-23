@@ -28,9 +28,9 @@
 
 package com.dialoguebranch.execution.parser;
 
-import com.dialoguebranch.model.execute.Constants;
+import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.execute.FileDescriptor;
-import com.dialoguebranch.model.execute.ResourceType;
+import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.model.common.ProjectMetaData;
 import nl.rrd.utils.exception.ParseException;
 
@@ -166,12 +166,12 @@ public class ProjectFileLoader implements FileLoader {
 					result.addAll(listDir(language, pathName +
 							child.getName() + "/", child));
 				} else if (child.isFile()) {
-					if (child.getName().endsWith(Constants.DLB_SCRIPT_FILE_EXTENSION)) {
+					if (child.getName().endsWith(DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION)) {
 						result.add(new FileDescriptor(
 								language,
 								pathName + child.getName(),
 								ResourceType.SCRIPT));
-					} else if (child.getName().endsWith(Constants.DLB_TRANSLATION_FILE_EXTENSION)) {
+					} else if (child.getName().endsWith(DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION)) {
 						result.add(new FileDescriptor(
 								language,
 								pathName + child.getName(),

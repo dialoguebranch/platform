@@ -27,7 +27,7 @@
  */
 package com.dialoguebranch.model.edit;
 
-import com.dialoguebranch.model.execute.Constants;
+import com.dialoguebranch.model.common.DialogueBranchConstants;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -226,11 +226,11 @@ public class EditableNode extends Editable implements PropertyChangeListener {
     public String toString() {
         return header.getSourceCode() +
                 System.lineSeparator() +
-                Constants.DLB_HEADER_SEPARATOR +
+                DialogueBranchConstants.DLB_HEADER_SEPARATOR +
                 System.lineSeparator() +
                 body.getSourceCode() +
                 System.lineSeparator() +
-                Constants.DLB_NODE_SEPARATOR +
+                DialogueBranchConstants.DLB_NODE_SEPARATOR +
                 System.lineSeparator();
     }
 

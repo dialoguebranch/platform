@@ -32,8 +32,8 @@ import com.dialoguebranch.exception.FileSystemException;
 import com.dialoguebranch.model.execute.Language;
 import com.dialoguebranch.model.edit.EditableProject;
 import com.dialoguebranch.model.edit.EditableTranslation;
-import com.dialoguebranch.model.edit.FileStorageSource;
-import com.dialoguebranch.model.edit.StorageSource;
+import com.dialoguebranch.model.common.FileStorageSource;
+import com.dialoguebranch.model.common.StorageSource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.File;

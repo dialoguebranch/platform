@@ -29,6 +29,7 @@
 package com.dialoguebranch.execution.parser;
 
 import com.dialoguebranch.exception.NodeParseException;
+import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.execute.*;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import nl.rrd.utils.exception.LineNumberParseException;
@@ -228,11 +229,11 @@ public class DialogueBranchParser implements AutoCloseable {
 			int lineNum = reader.getLineNum();
 			String line = readLine();
 			while (line != null && inHeader) {
-				if (getContent(line).equals(Constants.DLB_NODE_SEPARATOR)) {
+				if (getContent(line).equals(DialogueBranchConstants.DLB_NODE_SEPARATOR)) {
 					result.readNodeEnd = true;
 					throw new LineNumberParseException(
 							"End of header not found", lineNum, 1);
-				} else if (getContent(line).equals(Constants.DLB_HEADER_SEPARATOR)) {
+				} else if (getContent(line).equals(DialogueBranchConstants.DLB_HEADER_SEPARATOR)) {
 					inHeader = false;
 				} else {
 					parseHeaderLine(headerMap, line, lineNum, nodeState);
@@ -256,7 +257,7 @@ public class DialogueBranchParser implements AutoCloseable {
 			line = readLine();
 			List<BodyToken> bodyTokens = new ArrayList<>();
 			while (line != null && inBody) {
-				if (getContent(line).equals(Constants.DLB_NODE_SEPARATOR)) {
+				if (getContent(line).equals(DialogueBranchConstants.DLB_NODE_SEPARATOR)) {
 					inBody = false;
 					result.readNodeEnd = true;
 				} else {
@@ -311,7 +312,7 @@ public class DialogueBranchParser implements AutoCloseable {
 	private void moveToNextNode() throws IOException {
 		String line;
 		while ((line = readLine()) != null) {
-			if (getContent(line).equals(Constants.DLB_NODE_SEPARATOR))
+			if (getContent(line).equals(DialogueBranchConstants.DLB_NODE_SEPARATOR))
 				return;
 		}
 	}

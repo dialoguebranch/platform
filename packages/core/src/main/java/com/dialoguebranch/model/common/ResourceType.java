@@ -26,25 +26,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.dialoguebranch.model.edit;
+package com.dialoguebranch.model.common;
 
 /**
- * Abstract base class representing the location or medium in which a Dialogue Branch resource
- * (script, translation, or project) is stored. Concrete subclasses provide the details needed to
- * read or write that resource (e.g. a {@link FileStorageSource} wraps a {@link java.io.File}).
+ * Classifies a Dialogue Branch resource file by its role within the project.
  *
  * @author Harm op den Akker
  */
-public abstract class StorageSource {
-
-    /** Creates a new {@link StorageSource}. */
-    public StorageSource() {}
-
-    /**
-     * Returns a human-readable descriptor identifying the storage location (e.g. an absolute file
-     * path or a database URL).
-     * @return the storage descriptor.
-     */
-    public abstract String getDescriptor();
-
+public enum ResourceType {
+	/** A Dialogue Branch script file ({@code .dlb}). */
+	SCRIPT,
+	/** A Dialogue Branch translation file ({@code .json}). */
+	TRANSLATION,
+	/** A directory (folder) within the project structure. */
+	FOLDER
 }

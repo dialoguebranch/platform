@@ -28,6 +28,8 @@
 
 package com.dialoguebranch.model.execute;
 
+import com.dialoguebranch.model.common.DialogueBranchConstants;
+
 /**
  * A {@link Node} represents a single step in a {@link Dialogue} definition.
  *
@@ -144,7 +146,7 @@ public class Node {
 	@Override
 	public String toString() {
 		return header + System.lineSeparator() +
-				Constants.DLB_HEADER_SEPARATOR + System.lineSeparator() + body;
+				DialogueBranchConstants.DLB_HEADER_SEPARATOR + System.lineSeparator() + body;
 	}
 
 }

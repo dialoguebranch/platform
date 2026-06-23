@@ -27,7 +27,8 @@
  */
 package com.dialoguebranch.model.edit;
 
-import com.dialoguebranch.model.execute.Constants;
+import com.dialoguebranch.model.common.StorageSource;
+import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.editing.parser.EditableScriptParser;
 
 import java.beans.PropertyChangeEvent;
@@ -86,10 +87,10 @@ public class EditableScript extends Editable implements PropertyChangeListener  
      * Creates an instance of an empty {@link EditableScript} with the given
      * {@code dialogueName} and {@code languageCode}. If the provided {@code dialogueName} is {@code
      * null} or the empty {@link String}, the dialogueName will default to {@link
-     * Constants#DLB_DEFAULT_DIALOGUE_NAME}.
+     * DialogueBranchConstants#DLB_DEFAULT_DIALOGUE_NAME}.
      *
      * <p>If the provided {@code languageCode} is {@code null} or the empty {@link String}, the
-     * languageCode will default to {@link Constants#DLB_DEFAULT_LANGUAGE_CODE}.</p>
+     * languageCode will default to {@link DialogueBranchConstants#DLB_DEFAULT_LANGUAGE_CODE}.</p>
      *
      * @param dialogueName the name of this {@link EditableScript}.
      * @param languageCode the language code for this {@link EditableScript}.
@@ -98,14 +99,14 @@ public class EditableScript extends Editable implements PropertyChangeListener  
     public EditableScript(String dialogueName, String languageCode, StorageSource storageSource) {
         // Set the dialogue name, or use the default value
         if(dialogueName == null || dialogueName.isEmpty()) {
-            this.dialogueName = Constants.DLB_DEFAULT_DIALOGUE_NAME;
+            this.dialogueName = DialogueBranchConstants.DLB_DEFAULT_DIALOGUE_NAME;
         } else {
             this.dialogueName = dialogueName;
         }
 
         // Set the languageCode, or use the default value
         if(languageCode == null || languageCode.isEmpty()) {
-            this.languageCode = Constants.DLB_DEFAULT_LANGUAGE_CODE;
+            this.languageCode = DialogueBranchConstants.DLB_DEFAULT_LANGUAGE_CODE;
         } else {
             this.languageCode = languageCode;
         }
@@ -122,10 +123,10 @@ public class EditableScript extends Editable implements PropertyChangeListener  
      * {@link EditableScript}.
      *
      * <p>If the provided {@code dialogueName} is {@code null} or the empty {@link String}, the
-     * dialogueName will default to {@link Constants#DLB_DEFAULT_DIALOGUE_NAME}.</p>
+     * dialogueName will default to {@link DialogueBranchConstants#DLB_DEFAULT_DIALOGUE_NAME}.</p>
      *
      * <p>If the provided {@code languageCode} is {@code null} or the empty {@link String}, the
-     * languageCode will default to {@link Constants#DLB_DEFAULT_LANGUAGE_CODE}.</p>
+     * languageCode will default to {@link DialogueBranchConstants#DLB_DEFAULT_LANGUAGE_CODE}.</p>
      *
      * @param dialogueName the name of this {@link EditableScript}.
      * @param languageCode the language code for this {@link EditableScript}.
@@ -159,13 +160,13 @@ public class EditableScript extends Editable implements PropertyChangeListener  
     /**
      * Sets the name of this {@link EditableScript} as a String. If the provided {@code
      * dialogueName} is {@code null} or the empty {@link String}, the dialogueName will default to
-     * {@link Constants#DLB_DEFAULT_DIALOGUE_NAME}.
+     * {@link DialogueBranchConstants#DLB_DEFAULT_DIALOGUE_NAME}.
      *
      * @param dialogueName the name of this {@link EditableScript} as a String.
      */
     public void setDialogueName(String dialogueName) {
         if(dialogueName == null || dialogueName.isEmpty()) {
-            dialogueName = Constants.DLB_DEFAULT_DIALOGUE_NAME;
+            dialogueName = DialogueBranchConstants.DLB_DEFAULT_DIALOGUE_NAME;
         }
         String oldValue = this.dialogueName;
         this.dialogueName = dialogueName;
@@ -185,13 +186,13 @@ public class EditableScript extends Editable implements PropertyChangeListener  
     /**
      * Sets the language code for this {@link EditableScript} as a String. If the provided
      * {@code languageCode} is {@code null} or the empty {@link String}, the languageCode will
-     * default to {@link Constants#DLB_DEFAULT_LANGUAGE_CODE}.
+     * default to {@link DialogueBranchConstants#DLB_DEFAULT_LANGUAGE_CODE}.
      *
      * @param languageCode the language code for this {@link EditableScript}.
      */
     public void setLanguageCode(String languageCode) {
         if(languageCode == null || languageCode.isEmpty()) {
-           languageCode = Constants.DLB_DEFAULT_LANGUAGE_CODE;
+           languageCode = DialogueBranchConstants.DLB_DEFAULT_LANGUAGE_CODE;
         }
         String oldValue = this.languageCode;
         this.languageCode = languageCode;
@@ -284,11 +285,11 @@ public class EditableScript extends Editable implements PropertyChangeListener  
         for(EditableNode node : nodes) {
             codeBuilder.append(node.getHeader().getSourceCode());
             codeBuilder.append(System.lineSeparator());
-            codeBuilder.append(Constants.DLB_HEADER_SEPARATOR);
+            codeBuilder.append(DialogueBranchConstants.DLB_HEADER_SEPARATOR);
             codeBuilder.append(System.lineSeparator());
             codeBuilder.append(node.getBody().getSourceCode());
             codeBuilder.append(System.lineSeparator());
-            codeBuilder.append(Constants.DLB_NODE_SEPARATOR);
+            codeBuilder.append(DialogueBranchConstants.DLB_NODE_SEPARATOR);
             codeBuilder.append(System.lineSeparator());
         }
         return codeBuilder.toString();

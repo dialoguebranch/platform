@@ -25,7 +25,7 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-package com.dialoguebranch.model.execute;
+package com.dialoguebranch.model.common;
 
 /**
  * Defines the string constants used throughout the Dialogue Branch platform, covering script
@@ -34,12 +34,12 @@ package com.dialoguebranch.model.execute;
  * @author Dennis Hofs
  * @author Harm op den Akker
  */
-public class Constants {
+public class DialogueBranchConstants {
 
 	/**
 	 * Private constructor; this class is a constants holder and is not meant to be instantiated.
 	 */
-	private Constants() { }
+	private DialogueBranchConstants() { }
 
     /** The String constants that defines how individual nodes are separated from each other in the
      * source code of a Dialogue Branch script */

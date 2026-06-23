@@ -29,6 +29,7 @@
 package com.dialoguebranch.model.edit;
 
 import com.dialoguebranch.i18n.SourceTranslatable;
+import com.dialoguebranch.model.common.StorageSource;
 
 import java.util.HashMap;
 import java.util.Map;

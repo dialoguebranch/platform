@@ -27,7 +27,7 @@
  */
 package com.dialoguebranch.model.edit;
 
-import com.dialoguebranch.model.execute.Constants;
+import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.editing.parser.EditableHeaderParser;
 
 import java.beans.PropertyChangeSupport;
@@ -319,7 +319,7 @@ public class EditableHeader extends Editable {
     /**
      * Convenience method for returning all present tags that do not have a defined meaning (e.g.,
      * "title", "speaker", "colorID", and "position" as defined in the {@link
-     * Constants#DLB_RESERVED_HEADER_TAGS} field). These are referred to in Dialogue Branch as the
+     * DialogueBranchConstants#DLB_RESERVED_HEADER_TAGS} field). These are referred to in Dialogue Branch as the
      * "optional tags".
      *
      * @return the map of optional tags for this Dialogue Branch node.
@@ -327,7 +327,7 @@ public class EditableHeader extends Editable {
     public Map<String,String> getOptionalTags() {
         Map<String,String> optionalTags = new HashMap<>();
         for (Map.Entry<String, String> set : tags.entrySet()) {
-            if(!Arrays.asList(Constants.DLB_RESERVED_HEADER_TAGS).contains(set.getKey())) {
+            if(!Arrays.asList(DialogueBranchConstants.DLB_RESERVED_HEADER_TAGS).contains(set.getKey())) {
                 optionalTags.put(set.getKey(), set.getValue());
             }
         }

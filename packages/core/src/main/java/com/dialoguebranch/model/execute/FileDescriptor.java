@@ -28,6 +28,9 @@
 
 package com.dialoguebranch.model.execute;
 
+import com.dialoguebranch.model.common.DialogueBranchConstants;
+import com.dialoguebranch.model.common.ResourceType;
+
 import java.io.File;
 import java.util.Objects;
 
@@ -164,12 +167,12 @@ public class FileDescriptor {
 	 * @return the uniquely identifying dialogue name.
 	 */
 	public String getDialogueName() {
-		if (filePath.endsWith(Constants.DLB_SCRIPT_FILE_EXTENSION)) {
+		if (filePath.endsWith(DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION)) {
 			return filePath.substring(0,filePath.length() -
-					Constants.DLB_SCRIPT_FILE_EXTENSION.length());
-		} else if(filePath.endsWith(Constants.DLB_TRANSLATION_FILE_EXTENSION)) {
+					DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION.length());
+		} else if(filePath.endsWith(DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION)) {
 			return filePath.substring(0, filePath.length() -
-					Constants.DLB_TRANSLATION_FILE_EXTENSION.length());
+					DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION.length());
 		}
 		else
 			return filePath;

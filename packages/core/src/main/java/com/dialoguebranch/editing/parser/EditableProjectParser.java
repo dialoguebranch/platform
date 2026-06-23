@@ -29,13 +29,13 @@ package com.dialoguebranch.editing.parser;
 
 import com.dialoguebranch.execution.parser.ProjectMetaDataParser;
 import com.dialoguebranch.model.edit.EditableProject;
-import com.dialoguebranch.model.edit.FileStorageSource;
-import com.dialoguebranch.model.edit.ScriptTreeNode;
+import com.dialoguebranch.model.common.FileStorageSource;
+import com.dialoguebranch.model.common.ScriptTreeNode;
 import com.dialoguebranch.model.common.ProjectMetaData;
-import com.dialoguebranch.model.execute.Constants;
+import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.execute.Language;
 import com.dialoguebranch.model.execute.LanguageSet;
-import com.dialoguebranch.model.execute.ResourceType;
+import com.dialoguebranch.model.common.ResourceType;
 import nl.rrd.utils.exception.ParseException;
 
 import java.io.File;
@@ -134,10 +134,10 @@ public class EditableProjectParser {
                 String validExtension;
                 ResourceType resourceType;
                 if(isSourcePath) {
-                    validExtension = Constants.DLB_SCRIPT_FILE_EXTENSION;
+                    validExtension = DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION;
                     resourceType = ResourceType.SCRIPT;
                 } else {
-                    validExtension = Constants.DLB_TRANSLATION_FILE_EXTENSION;
+                    validExtension = DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION;
                     resourceType = ResourceType.TRANSLATION;
                 }
 

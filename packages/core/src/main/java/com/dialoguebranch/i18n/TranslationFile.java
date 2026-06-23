@@ -28,7 +28,7 @@
 
 package com.dialoguebranch.i18n;
 
-import com.dialoguebranch.model.execute.Constants;
+import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -145,7 +145,7 @@ public class TranslationFile {
 		// Create the json file object based on the given directory and this
 		// object's fileName definition
 		File jsonFile = new File(directory.getAbsolutePath() + File.separator + fileName
-				+ Constants.DLB_TRANSLATION_FILE_EXTENSION);
+				+ DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION);
 
 		// Create an ObjectWriter with pretty printing
 		ObjectWriter writer = mapper.writer(new DefaultPrettyPrinter());

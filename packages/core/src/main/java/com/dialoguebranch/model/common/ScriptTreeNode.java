@@ -26,10 +26,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.dialoguebranch.model.edit;
-
-import com.dialoguebranch.model.execute.Constants;
-import com.dialoguebranch.model.execute.ResourceType;
+package com.dialoguebranch.model.common;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -245,16 +242,16 @@ public class ScriptTreeNode {
         result.append(this.getStorageSource().getDescriptor()).append(" (").append(this.getName()).append(")");
 
         if(!children.isEmpty()) {
-            result.append(Constants.DLB_PATH_SEPARATOR + " (").append(children.size()).append(" children).");
+            result.append(DialogueBranchConstants.DLB_PATH_SEPARATOR + " (").append(children.size()).append(" children).");
         }
 
         if(this.resourceType.equals(ResourceType.SCRIPT)) {
-            result.append(Constants.DLB_SCRIPT_FILE_EXTENSION);
+            result.append(DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION);
         } else if(this.resourceType.equals(ResourceType.TRANSLATION)) {
-            result.append(Constants.DLB_TRANSLATION_FILE_EXTENSION);
+            result.append(DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION);
         } else {
             for(ScriptTreeNode child : this.getChildren()) {
-                result.append("\n\t\t").append(this.getName()).append(Constants.DLB_PATH_SEPARATOR).append(child.toString());
+                result.append("\n\t\t").append(this.getName()).append(DialogueBranchConstants.DLB_PATH_SEPARATOR).append(child.toString());
             }
         }
 

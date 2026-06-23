@@ -39,6 +39,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import com.dialoguebranch.model.common.DialogueBranchConstants;
+import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.model.execute.*;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.i18n.I18nLanguageFinder;
@@ -51,8 +53,8 @@ import com.dialoguebranch.i18n.Translator;
 
 /**
  * This class can read an entire Dialogue Branch project consisting of dialogue script files (files
- * with an extension of {@link Constants#DLB_SCRIPT_FILE_EXTENSION}) and translation files (with an
- * extension of {@link Constants#DLB_TRANSLATION_FILE_EXTENSION} as provided through the given
+ * with an extension of {@link DialogueBranchConstants#DLB_SCRIPT_FILE_EXTENSION}) and translation files (with an
+ * extension of {@link DialogueBranchConstants#DLB_TRANSLATION_FILE_EXTENSION} as provided through the given
  * {@link FileLoader} implementation.
  *
  * @author Dennis Hofs

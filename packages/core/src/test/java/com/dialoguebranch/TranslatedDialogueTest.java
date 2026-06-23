@@ -34,7 +34,7 @@ import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.FileDescriptor;
 import com.dialoguebranch.model.execute.Node;
-import com.dialoguebranch.model.execute.ResourceType;
+import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.execution.parser.DirectoryFileLoader;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;

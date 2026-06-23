@@ -29,7 +29,7 @@
 package com.dialoguebranch.web.service.controller;
 
 import com.dialoguebranch.model.execute.FileDescriptor;
-import com.dialoguebranch.model.execute.ResourceType;
+import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.ProtocolVersion;
 import com.dialoguebranch.web.service.QueryRunner;

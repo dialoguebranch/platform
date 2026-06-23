@@ -28,9 +28,9 @@
 
 package com.dialoguebranch.execution.parser;
 
-import com.dialoguebranch.model.execute.Constants;
+import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.execute.FileDescriptor;
-import com.dialoguebranch.model.execute.ResourceType;
+import com.dialoguebranch.model.common.ResourceType;
 import com.fasterxml.jackson.core.type.TypeReference;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.io.FileUtils;
@@ -171,14 +171,14 @@ public class ResourceFileLoader implements FileLoader {
 	private void parseFileValue(String language, String prefix, String entry,
 			List<FileDescriptor> files) throws ParseException {
 		String path = prefix + entry;
-		if (!entry.endsWith(Constants.DLB_SCRIPT_FILE_EXTENSION) &&
-				!entry.endsWith(Constants.DLB_TRANSLATION_FILE_EXTENSION)) {
+		if (!entry.endsWith(DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION) &&
+				!entry.endsWith(DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION)) {
 			throw new ParseException(
-					"File does not have extension " + Constants.DLB_SCRIPT_FILE_EXTENSION
-							+ " or " + Constants.DLB_TRANSLATION_FILE_EXTENSION + ": " + path);
+					"File does not have extension " + DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION
+							+ " or " + DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION + ": " + path);
 		}
 		ResourceType resourceType;
-		if(entry.endsWith(Constants.DLB_SCRIPT_FILE_EXTENSION)) {
+		if(entry.endsWith(DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION)) {
 			resourceType = ResourceType.SCRIPT;
 		} else {
 			resourceType = ResourceType.TRANSLATION;

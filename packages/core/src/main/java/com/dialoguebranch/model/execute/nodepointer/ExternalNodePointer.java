@@ -28,7 +28,7 @@
 
 package com.dialoguebranch.model.execute.nodepointer;
 
-import com.dialoguebranch.model.execute.Constants;
+import com.dialoguebranch.model.common.DialogueBranchConstants;
 import nl.rrd.utils.exception.ParseException;
 import com.dialoguebranch.model.execute.Dialogue;
 
@@ -151,7 +151,7 @@ public class ExternalNodePointer extends NodePointer {
 		// Then, absolute targetDialoguePath must be excerpts/bobby/gossip/otherDialogue
 
 		// If the targetDialogue refers to "./folder/dialogueName", the absolute path is easy:
-		if(targetDialogue.startsWith("."+Constants.DLB_PATH_SEPARATOR)) {
+		if(targetDialogue.startsWith("."+ DialogueBranchConstants.DLB_PATH_SEPARATOR)) {
 			String result = targetDialogue.substring(2);
 			if(result.isEmpty()) {
 				throw new ParseException("ExternalNodePointer refers to empty dialogue name.");
@@ -163,14 +163,14 @@ public class ExternalNodePointer extends NodePointer {
 		// In all other cases, we first determine the origin path (which may be an empty list)
 		List<String> originPath = new ArrayList<>();
 
-		if(originDialogue.contains(Constants.DLB_PATH_SEPARATOR)) {
-			originPath = List.of(originDialogue.split(Constants.DLB_PATH_SEPARATOR));
+		if(originDialogue.contains(DialogueBranchConstants.DLB_PATH_SEPARATOR)) {
+			originPath = List.of(originDialogue.split(DialogueBranchConstants.DLB_PATH_SEPARATOR));
 			// Remove the origin dialogue name to get only the path
 			originPath = originPath.subList(0,originPath.size()-1);
 		}
 
 		// Remove any leading '/' from the target (as it is meaningless)
-		if(targetDialogue.startsWith(Constants.DLB_PATH_SEPARATOR)) {
+		if(targetDialogue.startsWith(DialogueBranchConstants.DLB_PATH_SEPARATOR)) {
 			targetDialogue = targetDialogue.substring(1);
 		}
 
@@ -178,8 +178,8 @@ public class ExternalNodePointer extends NodePointer {
 		List<String> targetPath = new ArrayList<>(originPath);
 
 		// We process instances of '/' one by one (allowing e.g. /../folder/../folder shenanigans).
-		while(targetDialogue.contains(Constants.DLB_PATH_SEPARATOR)) {
-			if(targetDialogue.startsWith(".."+Constants.DLB_PATH_SEPARATOR)) {
+		while(targetDialogue.contains(DialogueBranchConstants.DLB_PATH_SEPARATOR)) {
+			if(targetDialogue.startsWith(".."+ DialogueBranchConstants.DLB_PATH_SEPARATOR)) {
 				// We need to go one folder up (if there are no folders left, this is an error)
 				if(targetPath.isEmpty()) throw new ParseException(
 						"ExternalNodePointer references a dialogue below the project root.");
@@ -192,9 +192,9 @@ public class ExternalNodePointer extends NodePointer {
 
 			// We still have / characters, but they are not ../, so they must be folder/
 			else {
-				String folder = targetDialogue.substring(0,targetDialogue.indexOf(Constants.DLB_PATH_SEPARATOR));
+				String folder = targetDialogue.substring(0,targetDialogue.indexOf(DialogueBranchConstants.DLB_PATH_SEPARATOR));
 				targetPath.add(folder);
-				targetDialogue = targetDialogue.substring(targetDialogue.indexOf(Constants.DLB_PATH_SEPARATOR)+1);
+				targetDialogue = targetDialogue.substring(targetDialogue.indexOf(DialogueBranchConstants.DLB_PATH_SEPARATOR)+1);
 			}
 		}
 
@@ -207,7 +207,7 @@ public class ExternalNodePointer extends NodePointer {
 		StringBuilder absoluteTargetDialogue = new StringBuilder();
 		for(String pathEntry : targetPath) {
 			absoluteTargetDialogue.append(pathEntry)
-					.append(Constants.DLB_PATH_SEPARATOR);
+					.append(DialogueBranchConstants.DLB_PATH_SEPARATOR);
 		}
 		absoluteTargetDialogue.append(targetDialogue);
 

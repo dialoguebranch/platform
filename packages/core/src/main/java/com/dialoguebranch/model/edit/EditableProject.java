@@ -32,7 +32,7 @@ import com.dialoguebranch.exception.FileSystemException;
 import com.dialoguebranch.i18n.*;
 import com.dialoguebranch.execution.parser.DialogueBranchParser;
 import com.dialoguebranch.execution.parser.ParserResult;
-import com.dialoguebranch.model.common.ProjectMetaData;
+import com.dialoguebranch.model.common.*;
 import com.dialoguebranch.model.execute.*;
 
 import java.beans.PropertyChangeEvent;
@@ -57,7 +57,7 @@ public class EditableProject extends Editable implements PropertyChangeListener 
     private ProjectMetaData projectMetaData;
 
     /** A mapping of language to roots of trees of script contents */
-    private Map<Language,ScriptTreeNode> availableScripts;
+    private Map<Language, ScriptTreeNode> availableScripts;
 
     /** The set of "active" EditableScripts representing the scripts in this project */
     private final Map<String,EditableScript> activeScripts;
@@ -295,7 +295,7 @@ public class EditableProject extends Editable implements PropertyChangeListener 
                     } else {
                         String newFileName = translationLanguageTree.getStorageSource()
                                 .getDescriptor() + File.separator + sourceChild.getName()
-                                + Constants.DLB_TRANSLATION_FILE_EXTENSION;
+                                + DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION;
                         File newScriptFile = new File(newFileName);
 
                         // Generate an actual translation .json file from the source .dlb file

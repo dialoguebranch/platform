@@ -38,7 +38,7 @@ import com.dialoguebranch.execution.parser.*;
 import com.dialoguebranch.model.edit.EditableProject;
 import com.dialoguebranch.model.edit.EditableScript;
 import com.dialoguebranch.model.edit.EditableNode;
-import com.dialoguebranch.model.edit.ScriptTreeNode;
+import com.dialoguebranch.model.common.ScriptTreeNode;
 import com.dialoguebranch.editing.parser.EditableProjectParser;
 import com.dialoguebranch.editing.parser.EditableScriptParser;
 import nl.rrd.utils.exception.ParseException;

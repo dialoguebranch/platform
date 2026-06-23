@@ -29,6 +29,7 @@
 package com.dialoguebranch.execution;
 
 import com.dialoguebranch.exception.ExecutionException;
+import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.execute.*;
 import com.dialoguebranch.model.execute.command.Command;
 import com.dialoguebranch.model.execute.command.InputCommand;
@@ -236,7 +237,7 @@ public class ActiveDialogue {
 	public Node progressDialogue(InternalNodePointer nodePointer, ZonedDateTime eventTime)
 			throws EvaluationException {
 		Node nextNode = null;
-		if (!nodePointer.getTargetNodeId().equalsIgnoreCase(Constants.DLB_NODE_END_ID))
+		if (!nodePointer.getTargetNodeId().equalsIgnoreCase(DialogueBranchConstants.DLB_NODE_END_ID))
 			nextNode = dialogueDefinition.getNodeById(nodePointer.getTargetNodeId());
 		this.currentNode = nextNode;
 		if (nextNode != null) this.currentNode = executeNode(nextNode, eventTime);
@@ -264,7 +265,7 @@ public class ActiveDialogue {
 	 * in the current node. This method retrieves the corresponding statement to that reply, which
 	 * may be the statement as defined in the {@link Dialogue}, or it may be a constant defining
 	 * that this was an "Auto Forward" reply without a specified statement (see
-	 * {@link Constants#DLB_REPLY_STATEMENT_AUTOFORWARD}).
+	 * {@link DialogueBranchConstants#DLB_REPLY_STATEMENT_AUTOFORWARD}).
 	 *
 	 * @param replyId the reply id as provided e.g. by a client application.
 	 * @return the statement {@link String} corresponding to the reply identified by {@code replyId}
@@ -278,7 +279,7 @@ public class ActiveDialogue {
 					replyId, dialogueDefinition.getDialogueName(), currentNode.getTitle()));
 		}
 		if (selectedReply.getStatement() == null)
-			return Constants.DLB_REPLY_STATEMENT_AUTOFORWARD;
+			return DialogueBranchConstants.DLB_REPLY_STATEMENT_AUTOFORWARD;
 		StringBuilder result = new StringBuilder();
 		List<NodeBody.Segment> segments = selectedReply.getStatement()
 				.getSegments();
