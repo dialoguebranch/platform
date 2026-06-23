@@ -6,6 +6,7 @@ import { AutoForwardReply } from '@/dlb-lib/model/AutoForwardReply';
 
 const props = defineProps([
     'dialogueSteps',
+    'dialogueEnded',
 ]);
 
 defineEmits([
@@ -30,7 +31,7 @@ const currentStep = computed(() => {
     <div ref="root">
         <div v-if="currentStep" ref="root" class="flex flex-col font-title">
             <div
-                class="mt-10 flex flex-col"
+                class="mt-10 flex flex-col relative"
                 :class="resizableClasses({
                     default: 'mx-4',
                     sm: 'ml-10 mr-20',
@@ -38,6 +39,7 @@ const currentStep = computed(() => {
             >
                 <div class="bg-speech-bubble text-white text-lg rounded-2xl p-5">{{ currentStep.statement.fullStatement() }}</div>
                 <div class="border-20 border-transparent border-t-speech-bubble self-end mr-[10%]"></div>
+                <div v-if="dialogueEnded" class="absolute top-full font-title text-sm font-bold italic text-center pt-2 w-full">The dialogue has finished.</div>
             </div>
             <div class="flex mb-10"
                 :class="resizableClasses({

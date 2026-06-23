@@ -14,6 +14,7 @@ const emit = defineEmits([
 
 const dialogueName = ref(null);
 const dialogueSteps = ref([]);
+const dialogueEnded = ref(false);
 
 const modes = [
     {
@@ -40,6 +41,7 @@ const scrollTextToBottom = () => {
 const loadDialogue = (name) => {
     dialogueName.value = name;
     dialogueSteps.value = [];
+    dialogueEnded.value = false;
     client.startDialogue(name, 'en')
     .then((dialogueStep) => {
         dialogueSteps.value.push(dialogueStep);
@@ -78,6 +80,7 @@ function onSelectReply(dialogueStep, reply) {
     .then((dialogueStep) => {
         if (dialogueStep) {
             dialogueSteps.value.push(dialogueStep);
+            dialogueEnded.value = dialogueStep.replies.length === 0;
         }
         emit('newDialogueStep');
         scrollTextToBottom();
@@ -97,8 +100,8 @@ function onSelectReply(dialogueStep, reply) {
             </template>
         </MainPagePanelHeader>
         <MainPagePanelContainer>
-            <BalloonDialogueComponent v-if="selectedMode == 'balloon'" ref="balloons" :dialogueSteps="dialogueSteps" @selectReply="onSelectReply" />
-            <TextDialogueComponent v-if="selectedMode == 'text'" ref="text-component" :dialogueSteps="dialogueSteps" @selectReply="onSelectReply" />
+            <BalloonDialogueComponent v-if="selectedMode == 'balloon'" ref="balloons" :dialogueSteps="dialogueSteps" :dialogueEnded="dialogueEnded" @selectReply="onSelectReply" />
+            <TextDialogueComponent v-if="selectedMode == 'text'" ref="text-component" :dialogueSteps="dialogueSteps" :dialogueEnded="dialogueEnded" @selectReply="onSelectReply" />
         </MainPagePanelContainer>
     </div>
 </template>

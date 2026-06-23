@@ -5,6 +5,7 @@ import { AutoForwardReply } from '@/dlb-lib/model/AutoForwardReply';
 
 const props = defineProps([
     'dialogueSteps',
+    'dialogueEnded',
 ]);
 
 const emit = defineEmits([
@@ -101,6 +102,7 @@ function getBasicReplyTextClasses(stepIndex, reply) {
                 </div>
             </template>
         </div>
+        <div v-if="dialogueEnded && stepIndex === dialogueSteps.length - 1" class="font-title text-sm font-bold italic text-center pt-4">The dialogue has finished.</div>
     </div>
     <div ref="sentinel" :style="{ height: sentinelHeight + 'px' }"></div>
     </div>
