@@ -33,17 +33,29 @@ const scrollToBottom = () => {
 
 defineExpose({ scrollToBottom });
 
-function getBasicReplyNumberClasses(stepIndex) {
+const selectedReplies = ref({});
+
+function onReplyClick(step, stepIndex, reply) {
+    if (stepIndex !== props.dialogueSteps.length - 1) return;
+    selectedReplies.value[stepIndex] = reply.replyId;
+    emit('selectReply', step, reply);
+}
+
+function getBasicReplyNumberClasses(stepIndex, reply) {
     if (stepIndex === props.dialogueSteps.length - 1) {
+        return 'text-interaction-reply-option';
+    } else if (selectedReplies.value[stepIndex] === reply.replyId) {
         return 'text-interaction-reply-option';
     } else {
         return 'text-icon-button-disabled';
     }
 }
 
-function getBasicReplyTextClasses(stepIndex) {
+function getBasicReplyTextClasses(stepIndex, reply) {
     if (stepIndex === props.dialogueSteps.length - 1) {
         return 'cursor-pointer text-interaction-reply-option hover:text-interaction-reply-option-hover';
+    } else if (selectedReplies.value[stepIndex] === reply.replyId) {
+        return 'text-interaction-reply-option';
     } else {
         return 'text-icon-button-disabled';
     }
@@ -62,14 +74,14 @@ function getBasicReplyTextClasses(stepIndex) {
                 <div v-if="reply instanceof BasicReply" class="font-semibold flex gap-2">
                     <div
                         class="basis-0 grow-1 text-right"
-                        :class="getBasicReplyNumberClasses(stepIndex)"
+                        :class="getBasicReplyNumberClasses(stepIndex, reply)"
                     >
                         {{ replyIndex + 1 }}: -
                     </div>
                     <div class="basis-0 grow-8">
                         <span
-                            :class="getBasicReplyTextClasses(stepIndex)"
-                            @click="stepIndex === dialogueSteps.length - 1 ? $emit('selectReply', step, reply) : null"
+                            :class="getBasicReplyTextClasses(stepIndex, reply)"
+                            @click="onReplyClick(step, stepIndex, reply)"
                         >
                             {{ reply.statement.fullStatement() }}
                         </span>
