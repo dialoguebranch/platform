@@ -131,6 +131,19 @@ public class LogController {
 	// -------------------- END-POINT: "/log/verify-id" -------------------- //
 	// --------------------------------------------------------------------- //
 
+	/**
+	 * Verifies whether the given {@code sessionId} is already in use for the specified user,
+	 * returning {@code true} if the ID already exists or {@code false} if it is available.
+	 *
+	 * @param request the HTTP request containing authentication headers.
+	 * @param response the HTTP response.
+	 * @param version the API version to use, e.g. {@code "1"}.
+	 * @param sessionId the session identifier to verify.
+	 * @param delegateUser the user for whom to check the session ID, or empty to use the
+	 *                     currently authenticated user.
+	 * @return {@code true} if the session ID is already in use, {@code false} otherwise.
+	 * @throws Exception in case of a network error, internal error, or authentication error.
+	 */
 	@Operation(
 		summary = "Verify whether a dialogue session identifier is already in use for a given " +
 				"user.",

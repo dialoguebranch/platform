@@ -44,16 +44,37 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.*;
 
+/**
+ * A {@link VariableStoreOnChangeListener} that forwards Dialogue Branch Variable changes to the
+ * configured external variable service. When a variable is set, removed, or the store is cleared,
+ * this updater notifies the external service via the appropriate REST endpoint so that downstream
+ * systems remain in sync.
+ *
+ * @author Harm op den Akker
+ */
 public class ExternalVariableServiceUpdater implements VariableStoreOnChangeListener {
 
 	private final Logger logger =
 			AppComponents.getLogger(ClassUtils.getUserClass(getClass()).getSimpleName());
 	private final DlbProperties dlbProperties;
 
+	/**
+	 * Creates an instance of {@link ExternalVariableServiceUpdater} using the given application
+	 * configuration properties to determine the external service URL and credentials.
+	 *
+	 * @param dlbProperties the application configuration properties.
+	 */
 	public ExternalVariableServiceUpdater(DlbProperties dlbProperties) {
 		this.dlbProperties = dlbProperties;
 	}
 
+	/**
+	 * Processes a list of variable store changes and notifies the external variable service of
+	 * any additions, removals, or clears that did not originate from the external service itself.
+	 *
+	 * @param variableStore the variable store in which the changes occurred.
+	 * @param changes the list of changes that have been applied to the variable store.
+	 */
 	@Override
 	public void onChange(VariableStore variableStore, List<VariableStoreChange> changes) {
 

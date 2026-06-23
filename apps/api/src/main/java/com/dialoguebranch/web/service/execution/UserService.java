@@ -269,6 +269,15 @@ public class UserService {
 		return dialogueExecutor.progressDialogue(state, replyId);
 	}
 
+	/**
+	 * Reverts the given dialogue session to the previous agent node, re-executing it at the given
+	 * event time.
+	 *
+	 * @param state the current dialogue state from which to revert.
+	 * @param eventTime the timestamp of the revert event in the user's time zone.
+	 * @return the {@link ExecuteNodeResult} for the previous agent node.
+	 * @throws ExecutionException if the previous state cannot be determined.
+	 */
 	public ExecuteNodeResult revertDialogueSession(DialogueState state, ZonedDateTime eventTime)
 			throws ExecutionException {
 		ActiveDialogue dialogue = state.getActiveDialogue();
@@ -279,6 +288,15 @@ public class UserService {
 		return dialogueExecutor.backDialogue(state, eventTime);
 	}
 
+	/**
+	 * Continues the dialogue session from the given state by re-executing the current node at the
+	 * given event time, without progressing to a new node.
+	 *
+	 * @param state the current dialogue state to continue from.
+	 * @param eventTime the timestamp of the continue event in the user's time zone.
+	 * @return the {@link ExecuteNodeResult} for the current node.
+	 * @throws ExecutionException if the node cannot be executed.
+	 */
 	public ExecuteNodeResult continueDialogueSession(DialogueState state, ZonedDateTime eventTime)
 		throws ExecutionException {
 		return dialogueExecutor.executeCurrentNode(state,eventTime);
@@ -432,6 +450,13 @@ public class UserService {
 		}
 	}
 
+	/**
+	 * Spring {@link Bean} factory method that creates and returns a {@link RestTemplate} instance
+	 * used for making HTTP calls to external services.
+	 *
+	 * @param builder the {@link RestTemplateBuilder} injected by Spring.
+	 * @return a {@link RestTemplate} instance.
+	 */
 	@Bean
 	public RestTemplate restTemplate(RestTemplateBuilder builder) {
 		return builder.build();
@@ -508,6 +533,17 @@ public class UserService {
 				translationContext);
 	}
 
+	/**
+	 * Reconstructs the {@link DialogueState} for the logged dialogue identified by the given
+	 * {@code loggedDialogueId} at the interaction index {@code loggedInteractionIndex}.
+	 *
+	 * @param loggedDialogueId the identifier of the logged dialogue to reconstruct.
+	 * @param loggedInteractionIndex the index of the interaction at which to restore the state.
+	 * @return the reconstructed {@link DialogueState}.
+	 * @throws ExecutionException if the dialogue or node cannot be found.
+	 * @throws DatabaseException if a database error occurs reading the log.
+	 * @throws IOException if an I/O error occurs reading the log.
+	 */
 	public DialogueState getDialogueState(String loggedDialogueId,
 			int loggedInteractionIndex) throws ExecutionException, DatabaseException,
 			IOException {
@@ -520,6 +556,15 @@ public class UserService {
 		return getDialogueState(loggedDialogue, loggedInteractionIndex);
 	}
 
+	/**
+	 * Reconstructs the {@link DialogueState} from the given {@link ServerLoggedDialogue} at the
+	 * specified interaction index.
+	 *
+	 * @param loggedDialogue the logged dialogue from which to reconstruct the state.
+	 * @param loggedInteractionIndex the index of the interaction at which to restore the state.
+	 * @return the reconstructed {@link DialogueState}.
+	 * @throws ExecutionException if the dialogue, node, or interaction cannot be found.
+	 */
 	public DialogueState getDialogueState(ServerLoggedDialogue loggedDialogue,
 										  int loggedInteractionIndex) throws ExecutionException {
 		String dialogueName = loggedDialogue.getDialogueName();

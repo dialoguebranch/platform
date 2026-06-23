@@ -35,6 +35,13 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * JPA entity representing a user record in the {@code users} database table. Each user is
+ * identified by a UUID primary key and a unique username, and may own a set of
+ * {@link DBVariable} records.
+ *
+ * @author Harm op den Akker
+ */
 @Entity
 @Table(
 	name = "users",
@@ -56,33 +63,71 @@ public class DBUser {
 	@JsonIgnore
 	private Set<DBVariable> variables = new HashSet<>();
 
+	/**
+	 * Creates an empty instance of {@link DBUser}.
+	 */
 	public DBUser() {
 	}
 
+	/**
+	 * Creates an instance of {@link DBUser} with the given {@code username}.
+	 *
+	 * @param username the username of the user.
+	 */
 	public DBUser(String username) {
 		this.username = username;
 	}
 
+	/**
+	 * Returns the unique UUID identifier of this user.
+	 *
+	 * @return the UUID identifier.
+	 */
 	public UUID getId() {
 		return id;
 	}
 
+	/**
+	 * Sets the unique UUID identifier of this user.
+	 *
+	 * @param id the UUID identifier.
+	 */
 	public void setId(UUID id) {
 		this.id = id;
 	}
 
+	/**
+	 * Returns the username of this user.
+	 *
+	 * @return the username.
+	 */
 	public String getUsername() {
 		return username;
 	}
 
+	/**
+	 * Sets the username of this user.
+	 *
+	 * @param username the username.
+	 */
 	public void setUsername(String username) {
 		this.username = username;
 	}
 
+	/**
+	 * Returns the set of {@link DBVariable} records owned by this user.
+	 *
+	 * @return the set of variables.
+	 */
 	public Set<DBVariable> getVariables() {
 		return variables;
 	}
 
+	/**
+	 * Sets the set of {@link DBVariable} records owned by this user.
+	 *
+	 * @param variables the set of variables.
+	 */
 	public void setVariables(Set<DBVariable> variables) {
 		this.variables = variables;
 	}

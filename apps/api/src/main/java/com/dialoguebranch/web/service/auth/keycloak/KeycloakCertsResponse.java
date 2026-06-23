@@ -33,25 +33,56 @@ import nl.rrd.utils.json.JsonObject;
 
 import java.util.ArrayList;
 
+/**
+ * Represents the JSON response returned by the Keycloak JWKS (JSON Web Key Set) endpoint,
+ * containing a list of public keys used to verify JWT tokens issued by Keycloak.
+ *
+ * @author Harm op den Akker
+ */
 public class KeycloakCertsResponse extends JsonObject {
 
     @JsonProperty("keys")
     private ArrayList<KeycloakKey> keys;
 
+    /**
+     * Creates an instance of {@link KeycloakCertsResponse} with the given list of
+     * {@link KeycloakKey} objects.
+     *
+     * @param keys the list of Keycloak public keys.
+     */
     public KeycloakCertsResponse(ArrayList<KeycloakKey> keys) {
         this.keys = keys;
     }
 
+    /**
+     * Creates an empty instance of {@link KeycloakCertsResponse}.
+     */
     public KeycloakCertsResponse() { }
 
+    /**
+     * Returns the list of {@link KeycloakKey} objects in this response.
+     *
+     * @return the list of Keycloak public keys.
+     */
     public ArrayList<KeycloakKey> getKeys() {
         return keys;
     }
 
+    /**
+     * Sets the list of {@link KeycloakKey} objects in this response.
+     *
+     * @param keys the list of Keycloak public keys.
+     */
     public void setKeys(ArrayList<KeycloakKey> keys) {
         this.keys = keys;
     }
 
+    /**
+     * Returns a string representation of this {@link KeycloakCertsResponse}, listing all
+     * contained keys.
+     *
+     * @return a string representation of this response.
+     */
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder("KeycloakCertsResponse{");

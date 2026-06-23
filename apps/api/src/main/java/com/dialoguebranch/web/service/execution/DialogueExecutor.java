@@ -216,6 +216,15 @@ public class DialogueExecutor {
 		}
 	}
 
+	/**
+	 * Reverts the given dialogue to the previous agent interaction node, re-executing that node
+	 * at the given event time and returning its result.
+	 *
+	 * @param state the current dialogue state from which to go back.
+	 * @param eventTime the timestamp of the back-navigation event in the user's time zone.
+	 * @return the {@link ExecuteNodeResult} for the previous agent node.
+	 * @throws ExecutionException if the previous state cannot be determined.
+	 */
 	public ExecuteNodeResult backDialogue(DialogueState state, ZonedDateTime eventTime)
 			throws ExecutionException {
 		ServerLoggedDialogue serverLoggedDialogue = (ServerLoggedDialogue)state.getLoggedDialogue();
@@ -239,6 +248,14 @@ public class DialogueExecutor {
 		return start;
 	}
 
+	/**
+	 * Executes the current node of the given dialogue state at the given event time, resolving
+	 * variables and returning the result.
+	 *
+	 * @param state the current dialogue state whose node should be executed.
+	 * @param eventTime the timestamp of the event in the user's time zone.
+	 * @return the {@link ExecuteNodeResult} for the current node.
+	 */
 	public ExecuteNodeResult executeCurrentNode(DialogueState state, ZonedDateTime eventTime) {
 		ServerLoggedDialogue serverLoggedDialogue = (ServerLoggedDialogue)state.getLoggedDialogue();
 		ActiveDialogue dialogue = state.getActiveDialogue();

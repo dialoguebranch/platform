@@ -30,6 +30,12 @@ package com.dialoguebranch.web.service.exception;
 
 import com.dialoguebranch.exception.DialogueBranchException;
 
+/**
+ * Exception thrown when a JWT token contains role information that cannot be parsed or that does
+ * not match any known user role in the Dialogue Branch Web Service.
+ *
+ * @author Harm op den Akker
+ */
 public class InvalidRoleException extends DialogueBranchException {
 
 

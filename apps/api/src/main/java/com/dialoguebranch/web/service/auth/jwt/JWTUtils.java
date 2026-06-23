@@ -54,11 +54,23 @@ public class JWTUtils {
 
     private final DlbProperties dlbProperties;
 
+    /**
+     * Creates an instance of {@link JWTUtils}, injecting the application configuration properties
+     * needed to resolve token secrets and expiration settings.
+     *
+     * @param dlbProperties the application configuration properties.
+     */
     @Autowired
     public JWTUtils(DlbProperties dlbProperties) {
         this.dlbProperties = dlbProperties;
     }
 
+    /**
+     * Generates a signed JWT access token for the given user credentials.
+     *
+     * @param basicUserCredentials the credentials of the user for whom to generate the token.
+     * @return a compact signed JWT access token string.
+     */
     public String generateAccessToken(BasicUserCredentials basicUserCredentials) {
         DlbProperties.Auth auth = dlbProperties.getAuth();
         return Jwts.builder()
@@ -74,6 +86,12 @@ public class JWTUtils {
                 .compact();
     }
 
+    /**
+     * Generates a signed JWT refresh token for the given user credentials.
+     *
+     * @param basicUserCredentials the credentials of the user for whom to generate the token.
+     * @return a compact signed JWT refresh token string.
+     */
     public String generateRefreshToken(BasicUserCredentials basicUserCredentials) {
         DlbProperties.Auth auth = dlbProperties.getAuth();
         return Jwts.builder()
@@ -98,6 +116,14 @@ public class JWTUtils {
         return claimFunction.apply(claims);
     }
 
+    /**
+     * Validates the given JWT access token and returns the {@link AuthenticationInfo} extracted
+     * from its claims if the token is valid.
+     *
+     * @param token the JWT access token string to validate.
+     * @return the {@link AuthenticationInfo} extracted from the token.
+     * @throws JwtException if the token is invalid, expired, or cannot be parsed.
+     */
     public AuthenticationInfo isAccessTokenValid(String token) throws JwtException {
         final Claims claims = Jwts.parser()
                 .verifyWith(getAccessTokenSecret())
@@ -113,6 +139,14 @@ public class JWTUtils {
                 claims.getExpiration());
     }
 
+    /**
+     * Validates the given JWT refresh token and returns the {@link AuthenticationInfo} extracted
+     * from its claims if the token is valid.
+     *
+     * @param refreshToken the JWT refresh token string to validate.
+     * @return the {@link AuthenticationInfo} extracted from the token.
+     * @throws JwtException if the token is invalid, expired, or cannot be parsed.
+     */
     public AuthenticationInfo isRefreshTokenValid(String refreshToken) throws JwtException {
         final Claims claims = Jwts.parser()
                 .verifyWith(getRefreshTokenSecret())

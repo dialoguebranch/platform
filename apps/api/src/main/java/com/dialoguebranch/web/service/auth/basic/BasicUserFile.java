@@ -92,6 +92,16 @@ public class BasicUserFile {
 	private static class XMLHandler extends AbstractSimpleSAXHandler<List<BasicUserCredentials>> {
 		private final List<BasicUserCredentials> users = new ArrayList<>();
 
+		/**
+		 * Handles the start of an XML element during SAX parsing. Validates the element structure
+		 * and, for {@code <user>} elements, reads the user attributes and adds a new
+		 * {@link BasicUserCredentials} entry to the list.
+		 *
+		 * @param name the local name of the element.
+		 * @param attributes the element's attributes.
+		 * @param parents the list of ancestor element names.
+		 * @throws ParseException if an unexpected element name or invalid attribute value is found.
+		 */
 		@Override
 		public void startElement(String name, Attributes attributes, List<String> parents)
 				throws ParseException {
@@ -140,9 +150,23 @@ public class BasicUserFile {
 			users.add(new BasicUserCredentials(username, password, roles));
 		}
 
+		/**
+		 * Handles the end of an XML element during SAX parsing. No action is needed for this
+		 * file format.
+		 *
+		 * @param name the local name of the element.
+		 * @param parents the list of ancestor element names.
+		 */
 		@Override
 		public void endElement(String name, List<String> parents) { }
 
+		/**
+		 * Handles character data between XML elements during SAX parsing. No action is needed for
+		 * this file format.
+		 *
+		 * @param ch the character data.
+		 * @param parents the list of ancestor element names.
+		 */
 		@Override
 		public void characters(String ch, List<String> parents) { }
 

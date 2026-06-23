@@ -33,11 +33,23 @@ import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+/**
+ * Spring service class used for database bootstrapping and testing during development. Its
+ * {@link #start()} method is invoked automatically after construction and can be used to seed or
+ * verify the database; the test logic is currently commented out and the service is a no-op in
+ * production.
+ *
+ * @author Harm op den Akker
+ */
 @Service
 public class DatabaseTestService {
 	@Autowired
 	private SessionFactory sessionFactory;
 
+	/**
+	 * Invoked automatically by Spring after this bean is constructed. Contains commented-out
+	 * database seeding and verification logic that can be enabled during development or testing.
+	 */
 	@PostConstruct
 	public void start() {
 //		sessionFactory.inTransaction(session -> {

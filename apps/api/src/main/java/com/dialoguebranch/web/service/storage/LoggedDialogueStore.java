@@ -118,27 +118,69 @@ public class LoggedDialogueStore {
 	// -------------------- Public Operations -------------------- //
 	// ----------------------------------------------------------- //
 
+	/**
+	 * Finds and returns the {@link ServerLoggedDialogue} with the given {@code id} for this user,
+	 * or {@code null} if no such logged dialogue can be found.
+	 *
+	 * @param id the identifier of the logged dialogue to find.
+	 * @return the matching {@link ServerLoggedDialogue}, or {@code null}.
+	 * @throws DatabaseException in case of an error reading from the dialogue log files.
+	 * @throws IOException in case of an error reading from the dialogue log files.
+	 */
 	public ServerLoggedDialogue findLoggedDialogue(String id)
 			throws DatabaseException, IOException {
 		return readLatestDialogueWithConditions(false,null,id);
 	}
 
+	/**
+	 * Finds and returns the most recent ongoing (not cancelled, not completed) {@link
+	 * ServerLoggedDialogue} for this user, or {@code null} if none is found.
+	 *
+	 * @return the latest ongoing {@link ServerLoggedDialogue}, or {@code null}.
+	 * @throws IOException in case of an error reading from the dialogue log files.
+	 * @throws DatabaseException in case of an error reading from the dialogue log files.
+	 */
 	public ServerLoggedDialogue findLatestOngoingDialogue()
 			throws IOException, DatabaseException {
 		return readLatestDialogueWithConditions(true, null, null);
 	}
 
+	/**
+	 * Finds and returns the most recent ongoing (not cancelled, not completed) {@link
+	 * ServerLoggedDialogue} for this user with the given {@code dialogueName}, or {@code null} if
+	 * none is found.
+	 *
+	 * @param dialogueName the dialogue name to filter on.
+	 * @return the latest ongoing {@link ServerLoggedDialogue} with the given name, or {@code null}.
+	 * @throws DatabaseException in case of an error reading from the dialogue log files.
+	 * @throws IOException in case of an error reading from the dialogue log files.
+	 */
 	public ServerLoggedDialogue findLatestOngoingDialogue(String dialogueName)
 			throws DatabaseException, IOException {
 		return readLatestDialogueWithConditions(true,dialogueName,null);
 	}
 
+	/**
+	 * Marks the given {@link ServerLoggedDialogue} as cancelled and persists the change.
+	 *
+	 * @param serverLoggedDialogue the dialogue to mark as cancelled.
+	 * @throws DatabaseException in case of an error writing to the dialogue log files.
+	 * @throws IOException in case of an error writing to the dialogue log files.
+	 */
 	public void setDialogueCancelled(ServerLoggedDialogue serverLoggedDialogue)
 			throws DatabaseException, IOException {
 		serverLoggedDialogue.setCancelled(true);
 		saveToSession(serverLoggedDialogue);
 	}
 
+	/**
+	 * Persists the given {@link ServerLoggedDialogue} to the session log file, replacing any
+	 * previously stored entry with the same ID in that session.
+	 *
+	 * @param dialogue the {@link ServerLoggedDialogue} to save.
+	 * @throws DatabaseException in case of an error writing to the dialogue log files.
+	 * @throws IOException in case of an error writing to the dialogue log files.
+	 */
 	public void saveToSession(ServerLoggedDialogue dialogue)
 			throws DatabaseException, IOException {
 		this.latestStoredServerLoggedDialogue = dialogue;

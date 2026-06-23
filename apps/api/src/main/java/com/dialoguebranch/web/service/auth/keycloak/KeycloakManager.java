@@ -54,6 +54,8 @@ import java.security.spec.RSAPublicKeySpec;
 import java.util.*;
 
 /**
+ * Manages the connection to a Keycloak identity provider, including lazy initialization of the
+ * public key set and JWT access token validation for the Dialogue Branch Web Service.
  *
  * @author Harm op den Akker
  */
@@ -71,6 +73,13 @@ public class KeycloakManager {
     // -------------------- Constructor(s) -------------------- //
     // -------------------------------------------------------- //
 
+    /**
+     * Creates an instance of {@link KeycloakManager} configured with the Keycloak settings from
+     * the given {@link DlbProperties}. The manager is not initialized until the first token
+     * validation request triggers a call to the Keycloak JWKS endpoint.
+     *
+     * @param dlbProperties the application configuration properties containing the Keycloak config.
+     */
     public KeycloakManager(DlbProperties dlbProperties) {
         this.keycloakConfig = dlbProperties.getAuth().getKeycloak();
         this.publicKeys = new HashMap<>();
@@ -125,6 +134,16 @@ public class KeycloakManager {
         }
     }
 
+    /**
+     * Validates the given Keycloak-issued JWT access token and returns the {@link
+     * AuthenticationInfo} extracted from its claims. Initializes the public key cache from the
+     * Keycloak JWKS endpoint on the first call if not yet initialized.
+     *
+     * @param accessToken the JWT access token string to validate.
+     * @return the {@link AuthenticationInfo} extracted from the validated token.
+     * @throws UnauthorizedException if the token is invalid, expired, or the Keycloak service
+     *                               cannot be reached.
+     */
     public AuthenticationInfo validateAccessToken(String accessToken) throws UnauthorizedException {
 
         if (!this.isInitialized()) {
@@ -233,10 +252,20 @@ public class KeycloakManager {
     // -------------------- Getters & Setters -------------------- //
     // ----------------------------------------------------------- //
 
+    /**
+     * Returns whether this {@link KeycloakManager} has been successfully initialized with public
+     * keys from the Keycloak JWKS endpoint.
+     *
+     * @return {@code true} if initialized, {@code false} otherwise.
+     */
     public boolean isInitialized() {
         return initialized;
     }
 
+    /**
+     * Marks this {@link KeycloakManager} as initialized after successfully loading public keys
+     * from the Keycloak JWKS endpoint.
+     */
     public void setInitialized() {
         this.initialized = true;
     }

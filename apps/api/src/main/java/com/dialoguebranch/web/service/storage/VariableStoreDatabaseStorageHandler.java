@@ -50,11 +50,28 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Supplier;
 
+/**
+ * A {@link VariableStoreStorageHandler} implementation that persists Dialogue Branch Variable
+ * data to a MariaDB database via Hibernate JPA. Variable values are stored as JSON strings in
+ * the {@code variables} table and read back into a {@link com.dialoguebranch.execution.VariableStore}
+ * on demand.
+ *
+ * @author Harm op den Akker
+ */
 public class VariableStoreDatabaseStorageHandler implements VariableStoreStorageHandler {
 
     private final Logger logger =
             AppComponents.getLogger(ClassUtils.getUserClass(getClass()).getSimpleName());
 
+    /**
+     * Reads all stored Dialogue Branch Variables for the given user from the database and returns
+     * them as a populated {@link com.dialoguebranch.execution.VariableStore}.
+     *
+     * @param user the user for whom to load the variable store.
+     * @return a {@link com.dialoguebranch.execution.VariableStore} populated with the user's variables.
+     * @throws IOException if a database access error occurs.
+     * @throws ParseException if a variable value cannot be deserialized from JSON.
+     */
     @Override
     public VariableStore read(User user) throws IOException, ParseException {
 		final List<DBVariable> dbVariables = new ArrayList<>();
@@ -80,6 +97,14 @@ public class VariableStoreDatabaseStorageHandler implements VariableStoreStorage
 		return new VariableStore(user, variables.toArray(new Variable[0]));
     }
 
+    /**
+     * Writes the full contents of the given {@link com.dialoguebranch.execution.VariableStore} to
+     * the database, creating or updating records as needed and removing any variables that are no
+     * longer present in the store.
+     *
+     * @param variableStore the variable store to persist.
+     * @throws IOException if a database access error occurs.
+     */
     @Override
     public void write(VariableStore variableStore) throws IOException {
 		getSessionFactory().inTransaction(session -> {
@@ -118,6 +143,13 @@ public class VariableStoreDatabaseStorageHandler implements VariableStoreStorage
 		});
     }
 
+    /**
+     * Called when the variable store changes; immediately persists the full updated store to the
+     * database by delegating to {@link #write(VariableStore)}.
+     *
+     * @param variableStore the variable store that has changed.
+     * @param changes the list of changes that were applied.
+     */
     @Override
     public void onChange(VariableStore variableStore, List<VariableStoreChange> changes) {
         try {

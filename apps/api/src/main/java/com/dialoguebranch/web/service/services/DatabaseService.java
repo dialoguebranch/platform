@@ -46,16 +46,37 @@ import org.springframework.core.type.filter.AnnotationTypeFilter;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Spring {@link org.springframework.context.annotation.Configuration} class responsible for
+ * creating and providing the Hibernate {@link SessionFactory} bean used by the Dialogue Branch
+ * Web Service. It scans for JPA {@link jakarta.persistence.Entity} classes and configures the
+ * MariaDB connection from the application properties, retrying the connection on startup.
+ *
+ * @author Harm op den Akker
+ */
 @Configuration
 public class DatabaseService {
 
 	private final DlbProperties dlbProperties;
 
+	/**
+	 * Creates an instance of {@link DatabaseService} with the given application configuration
+	 * properties, used to configure the database connection.
+	 *
+	 * @param dlbProperties the application configuration properties.
+	 */
 	@Autowired
 	public DatabaseService(DlbProperties dlbProperties) {
 		this.dlbProperties = dlbProperties;
 	}
 
+	/**
+	 * Creates and returns the Hibernate {@link SessionFactory} bean for the Dialogue Branch Web
+	 * Service. Connects to the configured MariaDB instance, retrying up to 30 times if the
+	 * database is not yet available.
+	 *
+	 * @return the configured Hibernate {@link SessionFactory}.
+	 */
 	@Bean
 	public SessionFactory sessionFactory() {
 		DlbProperties.MariaDb cfg = dlbProperties.getMariadb();

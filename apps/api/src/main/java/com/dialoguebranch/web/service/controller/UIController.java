@@ -31,9 +31,20 @@ package com.dialoguebranch.web.service.controller;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
+/**
+ * Controller that serves the embedded Dialogue Branch administration UI. Requests to the
+ * {@code /admin} path are forwarded to the bundled {@code index.html} front-end application.
+ *
+ * @author Harm op den Akker
+ */
 @Controller
 public class UIController {
 
+	/**
+	 * Serves the admin UI by forwarding the request to the embedded {@code index.html} resource.
+	 *
+	 * @return the view name {@code "index.html"}.
+	 */
 	@GetMapping("/admin")
 	public String admin() {
 		return "index.html";

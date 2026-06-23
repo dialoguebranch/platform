@@ -73,6 +73,15 @@ public class VariableStoreJSONStorageHandler implements VariableStoreStorageHand
         this.dataDirectory = dataDirectory;
     }
 
+    /**
+     * Reads all stored Dialogue Branch Variables for the given user from a JSON file and returns
+     * them as a populated {@link VariableStore}.
+     *
+     * @param user the user for whom to load the variable store.
+     * @return a {@link VariableStore} populated with the user's variables.
+     * @throws IOException if the JSON file cannot be read.
+     * @throws ParseException if a variable value cannot be deserialized from JSON.
+     */
     @Override
     public VariableStore read(User user) throws IOException, ParseException {
         synchronized (LOCK) {
@@ -95,6 +104,13 @@ public class VariableStoreJSONStorageHandler implements VariableStoreStorageHand
         }
     }
 
+    /**
+     * Writes the full contents of the given {@link VariableStore} to a JSON file in the
+     * configured data directory.
+     *
+     * @param variableStore the variable store to persist.
+     * @throws IOException if the JSON file cannot be written.
+     */
     @Override
     public void write(VariableStore variableStore) throws IOException {
         synchronized (LOCK) {
@@ -114,6 +130,13 @@ public class VariableStoreJSONStorageHandler implements VariableStoreStorageHand
         }
     }
 
+    /**
+     * Called when the variable store changes; immediately persists the full updated store to the
+     * JSON file by delegating to {@link #write(VariableStore)}.
+     *
+     * @param variableStore the variable store that has changed.
+     * @param changes the list of changes that were applied.
+     */
     @Override
     public void onChange(VariableStore variableStore, List<VariableStoreChange> changes) {
         try {

@@ -166,10 +166,21 @@ public class ApplicationManager {
 		return null;
 	}
 
+	/**
+	 * Returns the {@link DlbProperties} configuration object for this service.
+	 *
+	 * @return the application configuration properties.
+	 */
 	public DlbProperties getDlbProperties() {
 		return dlbProperties;
 	}
 
+	/**
+	 * Returns the {@link KeycloakManager} used to validate Keycloak-issued JWT tokens, or
+	 * {@code null} if Keycloak authentication is not enabled.
+	 *
+	 * @return the {@link KeycloakManager}, or {@code null}.
+	 */
 	public KeycloakManager getKeycloakManager() {
 		return keycloakManager;
 	}

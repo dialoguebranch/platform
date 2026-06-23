@@ -33,6 +33,13 @@ import jakarta.persistence.*;
 
 import java.util.UUID;
 
+/**
+ * JPA entity representing a single Dialogue Branch Variable stored in the {@code variables}
+ * database table. Each variable belongs to a {@link DBUser} and stores a name/value pair where
+ * the value is serialized as a JSON string.
+ *
+ * @author Harm op den Akker
+ */
 @Entity
 @Table(
 	name = "variables",
@@ -55,42 +62,91 @@ public class DBVariable {
 
 	private String value;
 
+	/**
+	 * Creates an empty instance of {@link DBVariable}.
+	 */
 	public DBVariable() {
 	}
 
+	/**
+	 * Creates an instance of {@link DBVariable} with the given name and JSON-serialized value.
+	 *
+	 * @param name the variable name.
+	 * @param value the variable value as a JSON string.
+	 */
 	public DBVariable(String name, String value) {
 		this.name = name;
 		this.value = value;
 	}
 
+	/**
+	 * Returns the unique UUID identifier of this variable.
+	 *
+	 * @return the UUID identifier.
+	 */
 	public UUID getId() {
 		return id;
 	}
 
+	/**
+	 * Sets the unique UUID identifier of this variable.
+	 *
+	 * @param id the UUID identifier.
+	 */
 	public void setId(UUID id) {
 		this.id = id;
 	}
 
+	/**
+	 * Returns the {@link DBUser} that owns this variable.
+	 *
+	 * @return the owning user.
+	 */
 	public DBUser getUser() {
 		return user;
 	}
 
+	/**
+	 * Sets the {@link DBUser} that owns this variable.
+	 *
+	 * @param user the owning user.
+	 */
 	public void setUser(DBUser user) {
 		this.user = user;
 	}
 
+	/**
+	 * Returns the name of this variable.
+	 *
+	 * @return the variable name.
+	 */
 	public String getName() {
 		return name;
 	}
 
+	/**
+	 * Sets the name of this variable.
+	 *
+	 * @param name the variable name.
+	 */
 	public void setName(String name) {
 		this.name = name;
 	}
 
+	/**
+	 * Returns the JSON-serialized value of this variable.
+	 *
+	 * @return the value as a JSON string.
+	 */
 	public String getValue() {
 		return value;
 	}
 
+	/**
+	 * Sets the JSON-serialized value of this variable.
+	 *
+	 * @param value the value as a JSON string.
+	 */
 	public void setValue(String value) {
 		this.value = value;
 	}

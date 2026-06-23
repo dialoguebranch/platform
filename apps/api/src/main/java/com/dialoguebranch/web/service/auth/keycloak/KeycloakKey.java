@@ -32,6 +32,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.ArrayList;
 
+/**
+ * Represents a single JSON Web Key (JWK) as returned by the Keycloak JWKS endpoint, containing
+ * the key identifiers, algorithm, usage flags, and RSA public key components needed to verify
+ * JWT signatures.
+ *
+ * @author Harm op den Akker
+ */
 public class KeycloakKey {
 
     @JsonProperty("kid")
@@ -61,6 +68,19 @@ public class KeycloakKey {
     @JsonProperty("e")
     public String e;
 
+    /**
+     * Creates an instance of {@link KeycloakKey} with all key fields populated.
+     *
+     * @param keyId the key identifier ({@code kid}).
+     * @param keyType the key type ({@code kty}), e.g. {@code "RSA"}.
+     * @param algorithm the algorithm ({@code alg}), e.g. {@code "RS256"}.
+     * @param use the intended use ({@code use}), e.g. {@code "sig"}.
+     * @param x5c the X.509 certificate chain.
+     * @param x5t the X.509 SHA-1 thumbprint.
+     * @param x5tS256 the X.509 SHA-256 thumbprint.
+     * @param n the RSA modulus.
+     * @param e the RSA exponent.
+     */
     public KeycloakKey(String keyId, String keyType, String algorithm, String use, ArrayList<String> x5c, String x5t, String x5tS256, String n, String e) {
         this.keyId = keyId;
         this.keyType = keyType;
@@ -73,34 +93,74 @@ public class KeycloakKey {
         this.e = e;
     }
 
+    /**
+     * Returns the key identifier ({@code kid}).
+     *
+     * @return the key identifier.
+     */
     public String getKeyId() {
         return keyId;
     }
 
+    /**
+     * Sets the key identifier ({@code kid}).
+     *
+     * @param keyId the key identifier.
+     */
     public void setKeyId(String keyId) {
         this.keyId = keyId;
     }
 
+    /**
+     * Returns the key type ({@code kty}), e.g. {@code "RSA"}.
+     *
+     * @return the key type.
+     */
     public String getKeyType() {
         return keyType;
     }
 
+    /**
+     * Sets the key type ({@code kty}).
+     *
+     * @param keyType the key type.
+     */
     public void setKeyType(String keyType) {
         this.keyType = keyType;
     }
 
+    /**
+     * Returns the algorithm ({@code alg}), e.g. {@code "RS256"}.
+     *
+     * @return the algorithm.
+     */
     public String getAlgorithm() {
         return algorithm;
     }
 
+    /**
+     * Sets the algorithm ({@code alg}).
+     *
+     * @param algorithm the algorithm.
+     */
     public void setAlgorithm(String algorithm) {
         this.algorithm = algorithm;
     }
 
+    /**
+     * Returns the intended use ({@code use}), e.g. {@code "sig"}.
+     *
+     * @return the intended use.
+     */
     public String getUse() {
         return use;
     }
 
+    /**
+     * Sets the intended use ({@code use}).
+     *
+     * @param use the intended use.
+     */
     public void setUse(String use) {
         this.use = use;
     }
@@ -126,6 +186,11 @@ public class KeycloakKey {
         return x5c;
     }
 
+    /**
+     * Sets the X.509 certificate chain ({@code x5c}).
+     *
+     * @param x5c the certificate chain.
+     */
     public void setX5c(ArrayList<String> x5c) {
         this.x5c = x5c;
     }
@@ -143,30 +208,65 @@ public class KeycloakKey {
         return x5t;
     }
 
+    /**
+     * Sets the X.509 SHA-1 thumbprint ({@code x5t}).
+     *
+     * @param x5t the SHA-1 thumbprint.
+     */
     public void setX5t(String x5t) {
         this.x5t = x5t;
     }
 
+    /**
+     * Returns the X.509 SHA-256 thumbprint ({@code x5t#S256}).
+     *
+     * @return the SHA-256 thumbprint.
+     */
     public String getX5tS256() {
         return x5tS256;
     }
 
+    /**
+     * Sets the X.509 SHA-256 thumbprint ({@code x5t#S256}).
+     *
+     * @param x5tS256 the SHA-256 thumbprint.
+     */
     public void setX5tS256(String x5tS256) {
         this.x5tS256 = x5tS256;
     }
 
+    /**
+     * Returns the RSA modulus ({@code n}).
+     *
+     * @return the RSA modulus.
+     */
     public String getN() {
         return n;
     }
 
+    /**
+     * Sets the RSA modulus ({@code n}).
+     *
+     * @param n the RSA modulus.
+     */
     public void setN(String n) {
         this.n = n;
     }
 
+    /**
+     * Returns the RSA public exponent ({@code e}).
+     *
+     * @return the RSA exponent.
+     */
     public String getE() {
         return e;
     }
 
+    /**
+     * Sets the RSA public exponent ({@code e}).
+     *
+     * @param e the RSA exponent.
+     */
     public void setE(String e) {
         this.e = e;
     }

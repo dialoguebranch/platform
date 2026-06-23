@@ -48,6 +48,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Spring configuration class that builds and customizes the OpenAPI/Swagger documentation for the
+ * Dialogue Branch Web Service, including server entries for each supported {@link ProtocolVersion},
+ * the API security scheme, and grouped API end-point definitions.
+ *
+ * @author Harm op den Akker
+ */
 @Configuration
 @OpenAPIDefinition
 public class OpenApiSwaggerConfig {

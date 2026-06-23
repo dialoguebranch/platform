@@ -40,13 +40,35 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.stereotype.Component;
 
+/**
+ * A servlet {@link Filter} that adds CORS headers to every HTTP response, allowing cross-origin
+ * requests from any origin. This enables browser-based client applications hosted on a different
+ * domain to communicate with the Dialogue Branch Web Service.
+ *
+ * @author Harm op den Akker
+ */
 @Component
 public class CorsFilter implements Filter {
 
+	/**
+	 * Called by the servlet container when this filter is placed into service. No initialization
+	 * logic is required for this filter.
+	 *
+	 * @param filterConfig the filter configuration object provided by the servlet container.
+	 */
 	@Override
 	public void init(FilterConfig filterConfig) {
 	}
 
+	/**
+	 * Adds CORS response headers to every request and passes the request along the filter chain.
+	 *
+	 * @param request the servlet request.
+	 * @param response the servlet response.
+	 * @param chain the filter chain to pass the request/response to.
+	 * @throws IOException if an I/O error occurs during processing.
+	 * @throws ServletException if a servlet error occurs during processing.
+	 */
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response,
 			FilterChain chain)
@@ -67,6 +89,10 @@ public class CorsFilter implements Filter {
 		chain.doFilter(request, response);
 	}
 
+	/**
+	 * Called by the servlet container when this filter is taken out of service. No cleanup logic
+	 * is required for this filter.
+	 */
 	@Override
 	public void destroy() {
 	}

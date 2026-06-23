@@ -41,6 +41,11 @@ public enum ProtocolVersion {
 		this.versionName = versionName;
 	}
 	
+	/**
+	 * Returns the version name string for this protocol version (e.g. {@code "1"}).
+	 *
+	 * @return the version name string.
+	 */
 	public String versionName() {
 		return versionName;
 	}

@@ -30,6 +30,13 @@ package com.dialoguebranch.web.service.controller.schema;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import nl.rrd.utils.json.JsonObject;
 
+/**
+ * Represents the JSON response body returned by the Keycloak token endpoint after a successful
+ * login or token refresh, containing the access token, refresh token, and their respective
+ * expiration times.
+ *
+ * @author Harm op den Akker
+ */
 public class KeycloakTokenResponse extends JsonObject {
 
     @JsonProperty("access_token")
@@ -60,6 +67,18 @@ public class KeycloakTokenResponse extends JsonObject {
     // -------------------- Constructor(s) -------------------- //
     // -------------------------------------------------------- //
 
+    /**
+     * Creates an instance of {@link KeycloakTokenResponse} with all fields populated.
+     *
+     * @param accessToken the JWT access token.
+     * @param tokenType the token type, typically {@code "Bearer"}.
+     * @param expiresIn the access token lifetime in seconds.
+     * @param refreshToken the JWT refresh token.
+     * @param refreshExpiresIn the refresh token lifetime in seconds.
+     * @param notBeforePolicy the not-before policy timestamp.
+     * @param sessionState the Keycloak session state identifier.
+     * @param scope the granted OAuth scopes.
+     */
     public KeycloakTokenResponse(String accessToken, String tokenType, Integer expiresIn,
                                  String refreshToken, Integer refreshExpiresIn,
                                  Integer notBeforePolicy, String sessionState, String scope) {
@@ -77,66 +96,82 @@ public class KeycloakTokenResponse extends JsonObject {
     // -------------------- Getters & Setters -------------------- //
     // ----------------------------------------------------------- //
 
+    /** Returns the JWT access token. @return the access token. */
     public String getAccessToken() {
         return accessToken;
     }
 
+    /** Sets the JWT access token. @param accessToken the access token. */
     public void setAccessToken(String accessToken) {
         this.accessToken = accessToken;
     }
 
+    /** Returns the token type (typically {@code "Bearer"}). @return the token type. */
     public String getTokenType() {
         return tokenType;
     }
 
+    /** Sets the token type. @param tokenType the token type. */
     public void setTokenType(String tokenType) {
         this.tokenType = tokenType;
     }
 
+    /** Returns the access token lifetime in seconds. @return the expiration in seconds. */
     public Integer getExpiresIn() {
         return expiresIn;
     }
 
+    /** Sets the access token lifetime in seconds. @param expiresIn the expiration in seconds. */
     public void setExpiresIn(Integer expiresIn) {
         this.expiresIn = expiresIn;
     }
 
+    /** Returns the JWT refresh token. @return the refresh token. */
     public String getRefreshToken() {
         return refreshToken;
     }
 
+    /** Sets the JWT refresh token. @param refreshToken the refresh token. */
     public void setRefreshToken(String refreshToken) {
         this.refreshToken = refreshToken;
     }
 
+    /** Returns the refresh token lifetime in seconds. @return the expiration in seconds. */
     public Integer getRefreshExpiresIn() {
         return refreshExpiresIn;
     }
 
+    /** Sets the refresh token lifetime in seconds. @param refreshExpiresIn the expiration in seconds. */
     public void setRefreshExpiresIn(Integer refreshExpiresIn) {
         this.refreshExpiresIn = refreshExpiresIn;
     }
 
+    /** Returns the not-before policy timestamp. @return the not-before policy. */
     public Integer getNotBeforePolicy() {
         return notBeforePolicy;
     }
 
+    /** Sets the not-before policy timestamp. @param notBeforePolicy the not-before policy. */
     public void setNotBeforePolicy(Integer notBeforePolicy) {
         this.notBeforePolicy = notBeforePolicy;
     }
 
+    /** Returns the Keycloak session state identifier. @return the session state. */
     public String getSessionState() {
         return sessionState;
     }
 
+    /** Sets the Keycloak session state identifier. @param sessionState the session state. */
     public void setSessionState(String sessionState) {
         this.sessionState = sessionState;
     }
 
+    /** Returns the granted OAuth scopes. @return the scopes string. */
     public String getScope() {
         return scope;
     }
 
+    /** Sets the granted OAuth scopes. @param scope the scopes string. */
     public void setScope(String scope) {
         this.scope = scope;
     }

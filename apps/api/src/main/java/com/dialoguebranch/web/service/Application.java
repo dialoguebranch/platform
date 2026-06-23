@@ -81,6 +81,10 @@ ApplicationListener<ApplicationEvent> {
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
 
+	/**
+	 * Creates an instance of {@link Application}, registering a default uncaught exception handler
+	 * that logs any unhandled exceptions at error level.
+	 */
 	public Application() {
 		Thread.setDefaultUncaughtExceptionHandler((t, e) ->
                 logger.error("Uncaught exception: {}", e.getMessage(), e)
@@ -113,10 +117,20 @@ ApplicationListener<ApplicationEvent> {
 		return launchedTime;
 	}
 
+	/**
+	 * Returns the {@link DlbProperties} configuration object for this service.
+	 *
+	 * @return the {@link DlbProperties} configuration object.
+	 */
 	public DlbProperties getDlbProperties() {
 		return dlbProperties;
 	}
 
+	/**
+	 * Returns the {@link JWTUtils} bean used for generating and validating JWT tokens.
+	 *
+	 * @return the {@link JWTUtils} instance.
+	 */
 	public JWTUtils getJwtUtils() {
 		return jwtUtils;
 	}
@@ -135,6 +149,12 @@ ApplicationListener<ApplicationEvent> {
 	// -------------------- App Management -------------------- //
 	// -------------------------------------------------------- //
 
+	/**
+	 * Handles Spring application lifecycle events. Logs startup information on
+	 * {@link ContextRefreshedEvent} and logs a shutdown message on {@link ContextClosedEvent}.
+	 *
+	 * @param event the Spring application lifecycle event.
+	 */
 	@Override
 	public void onApplicationEvent(ApplicationEvent event) {
 		if(event instanceof ContextClosedEvent) {

@@ -39,6 +39,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Represents a single logged dialogue execution for a specific user, stored as part of the
+ * Dialogue Branch Web Service's dialogue logging mechanism. Each instance captures the start time,
+ * session information, dialogue name, language, and the list of {@link LoggedInteraction}s that
+ * make up the dialogue.
+ *
+ * @author Harm op den Akker
+ */
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class ServerLoggedDialogue implements LoggedDialogue {
 
@@ -55,6 +63,9 @@ public class ServerLoggedDialogue implements LoggedDialogue {
 	private boolean cancelled;
 	private List<LoggedInteraction> interactionList = new ArrayList<>();
 
+	/**
+	 * Creates an empty instance of {@link ServerLoggedDialogue}.
+	 */
 	public ServerLoggedDialogue() {
 	}
 
@@ -106,10 +117,22 @@ public class ServerLoggedDialogue implements LoggedDialogue {
 		this.sessionId = sessionId;
 	}
 
+	/**
+	 * Returns the UTC timestamp (milliseconds since Jan 1st 1970) at which this dialogue session
+	 * started.
+	 *
+	 * @return the session start time in milliseconds UTC.
+	 */
 	public long getSessionStartTime() {
 		return sessionStartTime;
 	}
 
+	/**
+	 * Sets the UTC timestamp (milliseconds since Jan 1st 1970) at which this dialogue session
+	 * started.
+	 *
+	 * @param sessionStartTime the session start time in milliseconds UTC.
+	 */
 	public void setSessionStartTime(long sessionStartTime) {
 		this.sessionStartTime = sessionStartTime;
 	}

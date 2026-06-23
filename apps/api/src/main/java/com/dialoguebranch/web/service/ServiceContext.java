@@ -43,6 +43,12 @@ public class ServiceContext {
 
     private static DlbProperties dlbProperties;
 
+    /**
+     * Creates an instance of {@link ServiceContext} and stores the given {@link DlbProperties}
+     * in a static field so that the static accessor methods remain usable from non-Spring code.
+     *
+     * @param dlbProperties the application configuration properties.
+     */
     @Autowired
     public ServiceContext(DlbProperties dlbProperties) {
         ServiceContext.dlbProperties = dlbProperties;

@@ -185,26 +185,56 @@ public class LoginResultPayload {
 		this.access_token = access_token;
 	}
 
+	/**
+	 * Returns the time (in seconds) in which the access token expires.
+	 *
+	 * @return the access token expiration in seconds.
+	 */
 	public int getExpiresIn() {
 		return this.expires_in;
 	}
 
+	/**
+	 * Sets the time (in seconds) in which the access token expires.
+	 *
+	 * @param expires_in the access token expiration in seconds.
+	 */
 	public void setExpiresIn(int expires_in) {
 		this.expires_in = expires_in;
 	}
 
+	/**
+	 * Returns the JWT refresh token string.
+	 *
+	 * @return the refresh token.
+	 */
 	public String getRefreshToken() {
 		return this.refresh_token;
 	}
 
+	/**
+	 * Sets the JWT refresh token string.
+	 *
+	 * @param refresh_token the refresh token.
+	 */
 	public void setRefreshToken(String refresh_token) {
 		this.refresh_token = refresh_token;
 	}
 
+	/**
+	 * Returns the time (in seconds) in which the refresh token expires.
+	 *
+	 * @return the refresh token expiration in seconds.
+	 */
 	public int getRefreshExpiresIn() {
 		return this.refresh_expires_in;
 	}
 
+	/**
+	 * Sets the time (in seconds) in which the refresh token expires.
+	 *
+	 * @param refresh_expires_in the refresh token expiration in seconds.
+	 */
 	public void setRefreshExpiresIn(int refresh_expires_in) {
 		this.refresh_expires_in = refresh_expires_in;
 	}
