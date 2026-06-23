@@ -1,5 +1,6 @@
 <script setup>
 import { nextTick, ref, useTemplateRef } from 'vue';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { BasicReply } from '@/dlb-lib/model/BasicReply';
 import { AutoForwardReply } from '@/dlb-lib/model/AutoForwardReply';
 
@@ -10,6 +11,7 @@ const props = defineProps([
 
 const emit = defineEmits([
     'selectReply',
+    'restartDialogue',
 ]);
 
 const sentinel = useTemplateRef('sentinel');
@@ -72,7 +74,7 @@ function getBasicReplyTextClasses(stepIndex, reply) {
     <div v-for="(step, stepIndex) in dialogueSteps" class="dialogue-step font-title p-2 mb-8">
         <div class="flex gap-5 mb-5">
             <div class="basis-0 grow-1 font-semibold text-right">{{ step.speaker }}:</div>
-            <div class="basis-0 grow-4 font-light">{{ step.statement.fullStatement() }}</div>
+            <div class="basis-0 grow-4 font-light" v-html="step.statement.fullStatement()"></div>
         </div>
         <div>
             <template v-for="(reply, replyIndex) in step.replies">
@@ -106,7 +108,10 @@ function getBasicReplyTextClasses(stepIndex, reply) {
                 </div>
             </template>
         </div>
-        <div v-if="dialogueEnded && stepIndex === dialogueSteps.length - 1" class="font-title text-sm font-bold italic text-center pt-4">The dialogue has finished.</div>
+        <div v-if="dialogueEnded && stepIndex === dialogueSteps.length - 1" class="font-title text-sm font-bold italic text-center pt-4 flex items-center justify-center gap-2">
+            The dialogue has finished.
+            <button title="Restart dialogue." class="cursor-pointer text-interaction-reply-option hover:text-interaction-reply-option-hover" @click="$emit('restartDialogue')"><FontAwesomeIcon icon="fa-solid fa-rotate-right" /></button>
+        </div>
     </div>
     <div ref="sentinel" :style="{ height: sentinelHeight + 'px' }"></div>
     </div>

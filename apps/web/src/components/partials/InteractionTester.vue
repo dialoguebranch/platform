@@ -108,8 +108,8 @@ function onSelectReply(dialogueStep, reply) {
             </template>
         </MainPagePanelHeader>
         <MainPagePanelContainer>
-            <BalloonDialogueComponent v-if="selectedMode == 'balloon'" ref="balloons" :dialogueSteps="dialogueSteps" :dialogueEnded="dialogueEnded" @selectReply="onSelectReply" />
-            <TextDialogueComponent v-if="selectedMode == 'text'" ref="text-component" :dialogueSteps="dialogueSteps" :dialogueEnded="dialogueEnded" @selectReply="onSelectReply" />
+            <BalloonDialogueComponent v-if="selectedMode == 'balloon'" ref="balloons" :dialogueSteps="dialogueSteps" :dialogueEnded="dialogueEnded" @selectReply="onSelectReply" @restartDialogue="loadDialogue(dialogueName)" />
+            <TextDialogueComponent v-if="selectedMode == 'text'" ref="text-component" :dialogueSteps="dialogueSteps" :dialogueEnded="dialogueEnded" @selectReply="onSelectReply" @restartDialogue="loadDialogue(dialogueName)" />
         </MainPagePanelContainer>
     </div>
 </template>
