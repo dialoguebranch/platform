@@ -1,5 +1,8 @@
 <script setup>
 import { computed, onMounted, useTemplateRef } from 'vue';
+
+const appVersion = __APP_VERSION__;
+const buildTimestamp = new Date(__BUILD_TIMESTAMP__).toLocaleString();
 import { useStateManagement } from '../../composables/state-management.js';
 import DialogueBrowser from '../partials/DialogueBrowser.vue';
 import HeaderMenuItem from '../widgets/HeaderMenuItem.vue';
@@ -55,7 +58,12 @@ function onResizePanels() {
             </div>
         </header>
 
-        <ResizablePanels
+        <footer class="shrink-0 flex items-center justify-end gap-4 px-4 py-1 bg-menu-bar text-xs font-title text-gray-400">
+        <span>v{{ appVersion }}</span>
+        <span>Built: {{ buildTimestamp }}</span>
+    </footer>
+
+    <ResizablePanels
             ref="panels"
             class="grow"
             cookiePrefix="mainPage"

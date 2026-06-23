@@ -1,4 +1,5 @@
 <script setup>
+import { nextTick, ref, useTemplateRef } from 'vue';
 import { BasicReply } from '@/dlb-lib/model/BasicReply';
 import { AutoForwardReply } from '@/dlb-lib/model/AutoForwardReply';
 
@@ -9,6 +10,28 @@ const props = defineProps([
 const emit = defineEmits([
     'selectReply',
 ]);
+
+const sentinel = useTemplateRef('sentinel');
+const sentinelHeight = ref(0);
+
+const scrollToBottom = () => {
+    nextTick(() => {
+        const container = sentinel.value?.closest('.overflow-y-auto');
+        const steps = container?.querySelectorAll('.dialogue-step');
+        const lastStep = steps?.[steps.length - 1];
+
+        if (container && lastStep) {
+            const stepMarginBottom = parseInt(getComputedStyle(lastStep).marginBottom);
+            sentinelHeight.value = Math.max(0, container.clientHeight - lastStep.offsetHeight - stepMarginBottom);
+        } else {
+            sentinelHeight.value = 0;
+        }
+
+        nextTick(() => sentinel.value?.scrollIntoView({ behavior: 'smooth' }));
+    });
+};
+
+defineExpose({ scrollToBottom });
 
 function getBasicReplyNumberClasses(stepIndex) {
     if (stepIndex === props.dialogueSteps.length - 1) {
@@ -28,7 +51,8 @@ function getBasicReplyTextClasses(stepIndex) {
 </script>
 
 <template>
-    <div v-for="(step, stepIndex) in dialogueSteps" class="font-title p-2 mb-8">
+    <div>
+    <div v-for="(step, stepIndex) in dialogueSteps" class="dialogue-step font-title p-2 mb-8">
         <div class="flex gap-5 mb-5">
             <div class="basis-0 grow-1 font-semibold text-right">{{ step.speaker }}:</div>
             <div class="basis-0 grow-4 font-light">{{ step.statement.fullStatement() }}</div>
@@ -65,5 +89,7 @@ function getBasicReplyTextClasses(stepIndex) {
                 </div>
             </template>
         </div>
+    </div>
+    <div ref="sentinel" :style="{ height: sentinelHeight + 'px' }"></div>
     </div>
 </template>

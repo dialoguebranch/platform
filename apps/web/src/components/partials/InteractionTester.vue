@@ -31,6 +31,11 @@ const selectedMode = ref('balloon');
 const client = useClient();
 
 const balloons = useTemplateRef('balloons');
+const textComponent = useTemplateRef('text-component');
+
+const scrollTextToBottom = () => {
+    if (textComponent.value) textComponent.value.scrollToBottom();
+};
 
 const loadDialogue = (name) => {
     dialogueName.value = name;
@@ -39,6 +44,7 @@ const loadDialogue = (name) => {
     .then((dialogueStep) => {
         dialogueSteps.value.push(dialogueStep);
         emit('newDialogueStep');
+        scrollTextToBottom();
     });
 };
 
@@ -49,6 +55,7 @@ const reloadStep = () => {
             dialogueSteps.value.pop();
             dialogueSteps.value.push(dialogueStep);
             emit('newDialogueStep');
+            scrollTextToBottom();
         });
     }
 };
@@ -73,6 +80,7 @@ function onSelectReply(dialogueStep, reply) {
             dialogueSteps.value.push(dialogueStep);
         }
         emit('newDialogueStep');
+        scrollTextToBottom();
     });
 }
 </script>
@@ -90,7 +98,7 @@ function onSelectReply(dialogueStep, reply) {
         </MainPagePanelHeader>
         <MainPagePanelContainer>
             <BalloonDialogueComponent v-if="selectedMode == 'balloon'" ref="balloons" :dialogueSteps="dialogueSteps" @selectReply="onSelectReply" />
-            <TextDialogueComponent v-if="selectedMode == 'text'" :dialogueSteps="dialogueSteps" @selectReply="onSelectReply" />
+            <TextDialogueComponent v-if="selectedMode == 'text'" ref="text-component" :dialogueSteps="dialogueSteps" @selectReply="onSelectReply" />
         </MainPagePanelContainer>
     </div>
 </template>
