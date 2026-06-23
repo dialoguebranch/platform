@@ -28,8 +28,25 @@
 
 package com.dialoguebranch.cli;
 
+import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.exception.InvalidInputException;
 import com.dialoguebranch.exception.ScriptParseException;
+import com.dialoguebranch.execution.ActiveDialogue;
+import com.dialoguebranch.execution.User;
+import com.dialoguebranch.execution.VariableStore;
+import com.dialoguebranch.execution.parser.ProjectFileLoader;
+import com.dialoguebranch.execution.parser.ProjectParser;
+import com.dialoguebranch.execution.parser.ProjectParserResult;
+import com.dialoguebranch.model.common.DialogueBranchConstants;
+import com.dialoguebranch.model.execute.Dialogue;
+import com.dialoguebranch.model.execute.ExecutableProject;
+import com.dialoguebranch.model.execute.Node;
+import com.dialoguebranch.model.execute.NodeBody;
+import com.dialoguebranch.model.execute.Reply;
+import com.dialoguebranch.model.execute.ResourcePointer;
+import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
+import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
+import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import com.dialoguebranch.model.execute.Language;
 import com.dialoguebranch.model.execute.LanguageSet;
 import com.dialoguebranch.model.common.ProjectMetaData;
@@ -42,9 +59,12 @@ import com.dialoguebranch.model.common.StorageSource;
 import com.dialoguebranch.editing.parser.EditableProjectParser;
 import com.dialoguebranch.editing.parser.EditableScriptParser;
 import nl.rrd.utils.exception.ParseException;
+import nl.rrd.utils.expressions.EvaluationException;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -117,6 +137,288 @@ public class ProjectTool {
         System.out.print("Choice: ");
     }
 
+    // ------------------------------------------------------------- //
+    // -------------------- Menu: Execute Script -------------------- //
+    // ------------------------------------------------------------- //
+
+    /**
+     * Prompts the user to choose a language and dialogue, then loads the project via the execution
+     * parser and runs the selected dialogue interactively in the terminal.
+     *
+     * @param scanner the shared {@link Scanner} for reading user input.
+     * @param projectFile the {@code dlb-project.xml} file to load the project from.
+     */
+    private static void executeDialogue(Scanner scanner, File projectFile) {
+        ExecutableProject execProject;
+        try {
+            ProjectFileLoader fileLoader = new ProjectFileLoader(projectFile);
+            ProjectParser parser = new ProjectParser(fileLoader);
+            ProjectParserResult result = parser.parse();
+            if (!result.getParseErrors().isEmpty()) {
+                System.err.println("Project contains parse errors:");
+                result.getParseErrors().forEach((file, errors) ->
+                        errors.forEach(e -> System.err.println("  [" + file + "] " + e.getMessage())));
+                return;
+            }
+            execProject = result.getProject();
+        } catch (IOException | ParseException e) {
+            System.err.println("Failed to load project for execution: " + e.getMessage() + "\n");
+            return;
+        }
+
+        // Collect the available languages from the loaded dialogues
+        List<String> languages = new ArrayList<>();
+        for (ResourcePointer rp : execProject.getDialogues().keySet()) {
+            if (!languages.contains(rp.getLanguage()))
+                languages.add(rp.getLanguage());
+        }
+
+        if (languages.isEmpty()) {
+            System.out.println("No dialogue scripts found in this project.\n");
+            return;
+        }
+
+        System.out.println("\nAvailable languages:");
+        for (int i = 0; i < languages.size(); i++)
+            System.out.println("  " + (i + 1) + ". " + languages.get(i));
+        System.out.print("Choose language (code or number): ");
+        String langInput = scanner.nextLine().trim();
+
+        String selectedLanguage = null;
+        try {
+            int idx = Integer.parseInt(langInput) - 1;
+            if (idx >= 0 && idx < languages.size())
+                selectedLanguage = languages.get(idx);
+        } catch (NumberFormatException ignored) {
+            if (languages.contains(langInput))
+                selectedLanguage = langInput;
+        }
+
+        if (selectedLanguage == null) {
+            System.out.println("Unknown language '" + langInput + "'.\n");
+            return;
+        }
+
+        // Collect dialogues available for the selected language
+        List<String> dialogueNames = new ArrayList<>();
+        for (ResourcePointer rp : execProject.getDialogues().keySet()) {
+            if (rp.getLanguage().equals(selectedLanguage))
+                dialogueNames.add(rp.getDialogueName());
+        }
+
+        System.out.println("\nAvailable dialogues for language '" + selectedLanguage + "':");
+        for (int i = 0; i < dialogueNames.size(); i++)
+            System.out.println("  " + (i + 1) + ". " + dialogueNames.get(i));
+        System.out.print("Choose dialogue (name or number): ");
+        String dlgInput = scanner.nextLine().trim();
+
+        String selectedDialogue = null;
+        try {
+            int idx = Integer.parseInt(dlgInput) - 1;
+            if (idx >= 0 && idx < dialogueNames.size())
+                selectedDialogue = dialogueNames.get(idx);
+        } catch (NumberFormatException ignored) {
+            if (dialogueNames.contains(dlgInput))
+                selectedDialogue = dlgInput;
+        }
+
+        if (selectedDialogue == null) {
+            System.out.println("Unknown dialogue '" + dlgInput + "'.\n");
+            return;
+        }
+
+        ResourcePointer pointer = null;
+        Dialogue dialogue = null;
+        for (Map.Entry<ResourcePointer, Dialogue> entry : execProject.getDialogues().entrySet()) {
+            ResourcePointer rp = entry.getKey();
+            if (rp.getLanguage().equals(selectedLanguage)
+                    && rp.getDialogueName().equals(selectedDialogue)) {
+                pointer = rp;
+                dialogue = entry.getValue();
+                break;
+            }
+        }
+        if (dialogue == null) {
+            System.out.println("Could not locate dialogue '" + selectedDialogue
+                    + "' (" + selectedLanguage + ") in the parsed project.\n");
+            return;
+        }
+
+        runDialogueLoop(scanner, execProject, pointer, dialogue);
+    }
+
+    /**
+     * Runs an interactive execution loop for the given {@link Dialogue}. Prints agent statements,
+     * lists reply options, and advances the dialogue until it ends or jumps to another script.
+     *
+     * @param scanner     the shared {@link Scanner} for reading user input.
+     * @param project     the {@link ExecutableProject} used for cross-dialogue navigation.
+     * @param pointer     the {@link ResourcePointer} identifying the starting dialogue.
+     * @param dialogue    the {@link Dialogue} to execute.
+     */
+    private static void runDialogueLoop(Scanner scanner, ExecutableProject project,
+                                        ResourcePointer pointer, Dialogue dialogue) {
+        User user = new User("cli-user");
+        VariableStore variableStore = new VariableStore(user);
+
+        ActiveDialogue activeDialogue = new ActiveDialogue(pointer, dialogue);
+        activeDialogue.setVariableStore(variableStore);
+
+        System.out.println("\n============================================================");
+        System.out.println(" Executing: " + pointer.getDialogueName()
+                + " [" + pointer.getLanguage() + "]");
+        System.out.println("============================================================\n");
+
+        Node currentNode;
+        try {
+            currentNode = activeDialogue.startDialogue(ZonedDateTime.now());
+        } catch (ExecutionException | EvaluationException e) {
+            System.err.println("Failed to start dialogue: " + e.getMessage() + "\n");
+            return;
+        }
+
+        while (currentNode != null) {
+            printAgentStatement(currentNode.getBody());
+            List<Reply> replies = currentNode.getBody().getReplies();
+
+            if (replies.isEmpty()) {
+                System.out.println("\n[Dialogue ended — no reply options.]\n");
+                break;
+            }
+
+            // Auto-forward if the only reply has no statement
+            if (replies.size() == 1 && replies.get(0).getStatement() == null) {
+                System.out.println("\n[Auto-forward]\n");
+                NodePointer np;
+                try {
+                    np = activeDialogue.processReplyAndGetNodePointer(
+                            replies.get(0).getReplyId(), ZonedDateTime.now());
+                } catch (EvaluationException e) {
+                    System.err.println("Evaluation error: " + e.getMessage() + "\n");
+                    break;
+                }
+                currentNode = advanceDialogue(activeDialogue, project, pointer, np, scanner);
+                continue;
+            }
+
+            printReplyOptions(replies);
+            System.out.print("Your reply: ");
+            String replyInput = scanner.nextLine().trim();
+
+            int chosenReplyId = -1;
+            try {
+                int chosenIndex = Integer.parseInt(replyInput) - 1;
+                if (chosenIndex >= 0 && chosenIndex < replies.size())
+                    chosenReplyId = replies.get(chosenIndex).getReplyId();
+            } catch (NumberFormatException ignored) { }
+
+            if (chosenReplyId == -1) {
+                System.out.println("Invalid choice. Please enter a number from the list.\n");
+                continue;
+            }
+
+            NodePointer np;
+            try {
+                np = activeDialogue.processReplyAndGetNodePointer(chosenReplyId, ZonedDateTime.now());
+            } catch (EvaluationException e) {
+                System.err.println("Evaluation error: " + e.getMessage() + "\n");
+                break;
+            }
+
+            currentNode = advanceDialogue(activeDialogue, project, pointer, np, scanner);
+        }
+
+        System.out.println("============================================================");
+        System.out.println(" Dialogue finished.");
+        System.out.println("============================================================\n");
+    }
+
+    /**
+     * Advances the dialogue based on a {@link NodePointer}. Handles both internal (same script)
+     * and external (different script) node pointers.
+     *
+     * @param activeDialogue the currently active dialogue
+     * @param project        the full executable project (for cross-dialogue lookup)
+     * @param currentPointer the {@link ResourcePointer} of the current dialogue
+     * @param np             the next node pointer
+     * @param scanner        the shared scanner for reading user input
+     * @return the next {@link Node} to present, or {@code null} if the dialogue has ended
+     */
+    private static Node advanceDialogue(ActiveDialogue activeDialogue, ExecutableProject project,
+                                        ResourcePointer currentPointer, NodePointer np,
+                                        Scanner scanner) {
+        if (np instanceof InternalNodePointer internalPointer) {
+            if (internalPointer.getTargetNodeId()
+                    .equalsIgnoreCase(DialogueBranchConstants.DLB_NODE_END_ID)) {
+                return null;
+            }
+            try {
+                return activeDialogue.progressDialogue(internalPointer, ZonedDateTime.now());
+            } catch (EvaluationException e) {
+                System.err.println("Evaluation error while progressing dialogue: "
+                        + e.getMessage() + "\n");
+                return null;
+            }
+        }
+
+        if (np instanceof ExternalNodePointer externalPointer) {
+            String targetDialogueName = externalPointer.getAbsoluteTargetDialogue();
+            String targetLanguage = currentPointer.getLanguage();
+            ResourcePointer targetPointer = null;
+            Dialogue targetDialogue = null;
+            for (Map.Entry<ResourcePointer, Dialogue> entry : project.getDialogues().entrySet()) {
+                ResourcePointer rp = entry.getKey();
+                if (rp.getLanguage().equals(targetLanguage)
+                        && rp.getDialogueName().equals(targetDialogueName)) {
+                    targetPointer = rp;
+                    targetDialogue = entry.getValue();
+                    break;
+                }
+            }
+            if (targetDialogue == null) {
+                System.err.println("Could not find external dialogue '" + targetDialogueName
+                        + "' (" + targetLanguage + ").\n");
+                return null;
+            }
+            System.out.println("\n[Jumping to dialogue: " + targetDialogueName + "]\n");
+            runDialogueLoop(scanner, project, targetPointer, targetDialogue);
+            return null;
+        }
+
+        return null;
+    }
+
+    /**
+     * Prints the agent's statement text from the given {@link NodeBody} (segments only, not
+     * replies).
+     *
+     * @param body the {@link NodeBody} whose text segments to render
+     */
+    private static void printAgentStatement(NodeBody body) {
+        StringBuilder sb = new StringBuilder();
+        for (NodeBody.Segment segment : body.getSegments())
+            sb.append(segment);
+        String text = sb.toString().trim();
+        System.out.println("\nAgent: " + text + "\n");
+    }
+
+    /**
+     * Prints the numbered list of reply options from the given list of {@link Reply} objects.
+     *
+     * @param replies the list of replies to render
+     */
+    private static void printReplyOptions(List<Reply> replies) {
+        System.out.println("---- Reply options ----");
+        for (int i = 0; i < replies.size(); i++) {
+            Reply reply = replies.get(i);
+            String label = reply.getStatement() != null
+                    ? reply.getStatement().toString().trim()
+                    : "(continue)";
+            System.out.println("  " + (i + 1) + ". " + label);
+        }
+        System.out.println("-----------------------");
+    }
+
     // --------------------------------------------------------------- //
     // -------------------- Menu: Project-Level  -------------------- //
     // --------------------------------------------------------------- //
@@ -156,6 +458,7 @@ public class ProjectTool {
             String choice = scanner.nextLine().trim();
             switch (choice) {
                 case "1" -> printProjectSummary(project);
+                case "2" -> executeDialogue(scanner, projectFile);
                 case "0" -> {
                     System.out.println("Returning to main menu.\n");
                     inProject = false;
@@ -169,6 +472,7 @@ public class ProjectTool {
         System.out.println("---- Project: " + projectName + " ----");
         System.out.println("""
               1. Print project summary
+              2. Execute a dialogue script
               0. Back to main menu
             -------------------------------------------------------""");
         System.out.print("Choice: ");
