@@ -1,5 +1,150 @@
 # Dialogue Branch Core Java Library
-Dialogue Branch Core Library in Java.
+
+The Dialogue Branch Core Java Library is the foundation of the Dialogue Branch platform. It
+provides everything needed to define, parse, translate, and execute Dialogue Branch scripts
+(`.dlb` files), as well as tooling for managing projects and generating translation artefacts.
+
+## Package Structure
+
+All classes live under the root package `com.dialoguebranch`. The source is divided into six
+top-level packages.
+
+---
+
+### `cli` — Command-Line Tools
+
+Runnable entry points for interacting with the library from the command line.
+
+| Class | Description |
+|---|---|
+| `ProjectTool` | Interactive menu-driven tool for inspecting Dialogue Branch projects. Loads a `dlb-project.xml` and presents options such as printing a full project summary (language map, node counts per dialogue). This is the default main class. |
+| `CommandLineRunner` | Earlier interactive runner covering a broader set of ad-hoc tasks: parsing individual scripts, generating translation files and TSV export files, and generating project summaries from a folder or metadata file. |
+
+---
+
+### `model` — Data Model
+
+The data model is split into three sub-packages reflecting the lifecycle of a Dialogue Branch
+project.
+
+#### `model/common` — Shared Structures
+
+Types used by both the editing and execution layers.
+
+| Class | Description |
+|---|---|
+| `ProjectMetaData` | Name, version, description, base path, and language map for a project. |
+| `ScriptTreeNode` | Node in a tree representing the folder/file hierarchy of scripts for one language. |
+| `StorageSource` / `FileStorageSource` | Abstraction over where a script or translation file is physically stored. |
+| `ResourceType` | Enum: `SCRIPT`, `TRANSLATION`, or `FOLDER`. |
+| `DialogueBranchConstants` | File extensions (`.dlb`, `.json`) and other shared constants. |
+
+#### `model/edit` — Editable Model
+
+A mutable, editor-friendly representation of a project and its scripts. Used by tools that need
+to inspect or modify scripts without executing them.
+
+| Class | Description |
+|---|---|
+| `EditableProject` | Top-level container for an editable project: metadata plus a map from language to `ScriptTreeNode`. Provides methods for generating translation `.json` files and TSV exports. |
+| `EditableScript` | An editable script: a list of `EditableNode`s with property-change support. |
+| `EditableNode` | A single dialogue node in its editable form, consisting of an `EditableHeader` and `EditableBody`. |
+| `EditableHeader` / `EditableBody` | Header (title, tags) and body (raw text content) of a node. |
+| `EditableTranslation` / `EditableTranslationSet` | Editable representation of a translation file and a set of such files. |
+| `Editable` | Base class providing `PropertyChangeSupport` for all editable model objects. |
+
+#### `model/execute` — Execution Model
+
+The fully parsed, immutable model used at runtime when executing dialogues.
+
+| Class | Description |
+|---|---|
+| `Project` | Top-level runtime project: source dialogues, translations, and lookup logic. |
+| `Dialogue` | A parsed dialogue script: an ordered list of `Node`s. |
+| `Node` | A single dialogue node with a `NodeHeader` and `NodeBody`. |
+| `NodeBody` | The body of a node: a list of segments that may be plain text, variable references, commands, or reply options. |
+| `NodeHeader` | The header of a node: title and optional tags. |
+| `Reply` | A reply option in a node body, pointing to another node via a `NodePointer`. |
+| `VariableString` | A string that may contain embedded variable references (`$varName`). |
+| `Language` / `LanguageSet` / `LanguageMap` | Language definitions and source-to-translation mappings as declared in `dlb-project.xml`. |
+| `FileDescriptor` | Identifies a dialogue by name and language code. |
+| `Project` | Holds all dialogues and translation maps; provides `getTranslatedDialogue()` for runtime lookup. |
+| `LoggedDialogue` / `LoggedInteraction` | Record types for persisting a user's dialogue session history. |
+| `DialogueState` / `DialogueStatus` | State tracking for a dialogue that is currently in progress. |
+| `command/` | `Command` subtypes: `SetCommand`, `IfCommand`, `RandomCommand`, `ActionCommand`, and the family of `InputCommand`s (`InputTextCommand`, `InputNumericCommand`, etc.). |
+| `nodepointer/` | `InternalNodePointer` (same script) and `ExternalNodePointer` (different script). |
+| `protocol/` | API-layer message types: `DialogueMessage`, `DialogueStatement`, `DialogueAction`, `ReplyMessage`. Used for serialising dialogue state to JSON for REST clients. |
+
+---
+
+### `execution` — Dialogue Execution Engine
+
+Runtime classes that drive an active dialogue session for a given user.
+
+| Class | Description |
+|---|---|
+| `ActiveDialogue` | Manages a single in-progress dialogue: tracks the current node, resolves variable references, and evaluates `<<if>>` conditions. |
+| `ExecuteNodeResult` | The result of executing one node: the rendered statement text, available reply options, and any triggered actions. |
+| `User` | Represents an end-user participating in dialogue sessions. |
+| `VariableStore` / `Variable` | Key-value store for dialogue variables, with change-listener support via `VariableStoreOnChangeListener` and `VariableStoreChange`. |
+| `parser/` | Low-level parsers for `.dlb` files: `DialogueBranchParser`, `BodyParser`, `BodyTokenizer`, `CommandParser`, `ReplyParser`, as well as project-level loaders (`ProjectParser`, `ProjectFileLoader`, `DirectoryFileLoader`, `ResourceFileLoader`) and their result types. |
+
+---
+
+### `editing` — Editing-Layer Parsers and Writers
+
+Parsers and writers for the editable model. These operate on raw files and produce or consume
+`model/edit` objects.
+
+| Class | Description |
+|---|---|
+| `parser/EditableScriptParser` | Parses a `.dlb` file into an `EditableScript`. |
+| `parser/EditableProjectParser` | Reads a `dlb-project.xml` and assembles an `EditableProject` by scanning the filesystem for scripts and translation files. |
+| `parser/EditableTranslationParser` | Parses a translation `.json` file into an `EditableTranslation`. |
+| `parser/EditableHeaderParser` / `EditableBodyParser` | Parsers for the header and body sections of a `.dlb` node. |
+| `writer/EditableScriptWriter` | Serialises an `EditableScript` back to `.dlb` format. |
+| `writer/EditableTranslationWriter` | Serialises translation data to a `.json` file. |
+| `writer/ProjectMetaDataWriter` | Writes a `ProjectMetaData` object back to `dlb-project.xml`. |
+| `warning/ParserWarning` | Carries a non-fatal warning message emitted during parsing. |
+
+---
+
+### `i18n` — Internationalisation
+
+Translation extraction, storage, and application.
+
+| Class | Description |
+|---|---|
+| `Translator` | Applies a set of translations to a `Dialogue`, returning a translated copy. Uses exact-match (trimmed) then normalised-whitespace fallback. |
+| `TranslatableExtractor` | Walks a node body and extracts all translatable text segments as `SourceTranslatable` records, descending into `<<if>>` and `<<random>>` branches. |
+| `Translatable` | A single segment of translatable text, which may span multiple body parts. |
+| `SourceTranslatable` | A `Translatable` paired with the speaker name that provides its translation context key. |
+| `TranslationContext` | Carries the locale/context in which a translation is applied. |
+| `ContextTranslation` | A translated string bound to a specific `TranslationContext`. |
+| `TranslationFile` | In-memory representation of a `.json` translation file, with read/write and TSV export support. |
+| `TranslationParser` / `TranslationParserResult` | Parses a `.json` translation file. |
+| `TranslationTerm` | A single source–translation pair within a translation file. |
+| `POEditorTools` | Utilities for generating POEditor-compatible export strings from translatable segments. |
+
+---
+
+### `exception` — Exception Types
+
+Typed exceptions thrown throughout the library.
+
+| Class | Meaning |
+|---|---|
+| `DialogueBranchException` | Base class for all library exceptions. |
+| `ScriptParseException` | Thrown when a `.dlb` file cannot be parsed. |
+| `NodeParseException` | Thrown when an individual node within a script cannot be parsed. |
+| `InvalidInputException` | Thrown on invalid user or programmatic input. |
+| `FileSystemException` | Thrown on filesystem errors (e.g. unable to create a directory). |
+| `ExecutionException` | Thrown during dialogue execution (e.g. missing node). |
+| `VariableException` | Thrown on invalid variable operations. |
+| `DuplicateLanguageCodeException` | Thrown when adding a language code that already exists in the project. |
+| `UnknownLanguageCodeException` | Thrown when looking up a language code that does not exist. |
+
+---
 
 ## Using the Gradle Build Script
 
@@ -14,10 +159,9 @@ with the Gradle build script.
 Here is a list of common useful tasks:
 - `./gradlew clean` - Cleans all generated output build files (deletes the `/build/` folder).
 - `./gradlew build` - Compiles and builds everything.
-- `./gradlew run -q --console=plain` - Runs the library's main class (CommandLineRunner). The `-q`
-  tells Gradle to be "quiet", while `--console=plain` hides the Gradle `<=========----> 75%
-  EXECUTING` progress bar. These additional parameters are needed to properly run the
-  CommandLineRunner, which requires command line input.
+- `./gradlew -q run` - Runs the library's main class (`ProjectTool`). The `-q` flag tells Gradle
+  to be "quiet", suppressing all Gradle lifecycle output so the interactive menu is presented
+  cleanly.
 - `./gradlew test` - Runs all unit tests. You can run a single test class with
   `./gradlew test --tests "com.dialoguebranch.ClassName"`, or a single method with
   `./gradlew test --tests "com.dialoguebranch.ClassName.methodName"`. The HTML test report is
