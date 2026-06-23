@@ -31,8 +31,9 @@ package com.dialoguebranch.web.service.execution;
 import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.i18n.TranslationContext;
 import com.dialoguebranch.model.execute.Dialogue;
-import com.dialoguebranch.model.execute.ResourcePointer;
 import com.dialoguebranch.model.execute.ExecutableProject;
+import com.dialoguebranch.model.execute.ResourcePointer;
+import com.dialoguebranch.model.common.DialogueBranchProject;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;
 import com.dialoguebranch.web.service.DlbProperties;
@@ -63,7 +64,7 @@ import java.util.Map;
  *
  * <p>On startup it scans the classpath for Dialogue Branch projects by looking for
  * {@code dlb-project.xml} files in direct sub-folders of {@code dlb-projects/}. Each sub-folder
- * that contains a {@code dlb-project.xml} is loaded as a separate {@link ExecutableProject} using a
+ * that contains a {@code dlb-project.xml} is loaded as a {@link DialogueBranchProject} using a
  * {@link SpringResourceFileLoader}.</p>
  *
  * @author Harm op den Akker
@@ -88,7 +89,7 @@ public class ApplicationManager {
 	private final Logger logger = AppComponents.getLogger(getClass().getSimpleName());
 
 	/** Loaded Dialogue Branch projects, keyed by project name (folder name). */
-	private final Map<String, ExecutableProject> projects = new LinkedHashMap<>();
+	private final Map<String, DialogueBranchProject> projects = new LinkedHashMap<>();
 
 	private final DlbProperties dlbProperties;
 	private final List<UserService> activeUserServices = new ArrayList<>();
@@ -139,7 +140,7 @@ public class ApplicationManager {
 	 *
 	 * @return the loaded projects.
 	 */
-	public Map<String, ExecutableProject> getProjects() {
+	public Map<String, DialogueBranchProject> getProjects() {
 		return projects;
 	}
 
@@ -287,8 +288,8 @@ public class ApplicationManager {
 	 */
 	public List<ResourcePointer> getDialogueDescriptions() {
 		List<ResourcePointer> result = new ArrayList<>();
-		for (ExecutableProject project : projects.values()) {
-			result.addAll(project.getDialogues().keySet());
+		for (DialogueBranchProject project : projects.values()) {
+			result.addAll(project.getResourcePointers());
 		}
 		return result;
 	}
@@ -315,12 +316,13 @@ public class ApplicationManager {
 	public Dialogue getDialogueDefinition(ResourcePointer dialogueDescription,
                                           TranslationContext translationContext)
 			throws ExecutionException {
-		for (ExecutableProject project : projects.values()) {
+		for (DialogueBranchProject project : projects.values()) {
+			if (!(project instanceof ExecutableProject execProject)) continue;
 			Dialogue dialogue;
 			if (translationContext == null) {
-				dialogue = project.getDialogues().get(dialogueDescription);
+				dialogue = execProject.getDialogues().get(dialogueDescription);
 			} else {
-				dialogue = project.getTranslatedDialogue(dialogueDescription, translationContext);
+				dialogue = execProject.getTranslatedDialogue(dialogueDescription, translationContext);
 			}
 			if (dialogue != null) return dialogue;
 		}
@@ -393,7 +395,7 @@ public class ApplicationManager {
 	/**
 	 * Loads the Dialogue Branch project from the classpath sub-folder
 	 * {@code dlb-projects/{projectName}/} using a {@link SpringResourceFileLoader} and stores the
-	 * resulting {@link Project} in {@link #projects}.
+	 * resulting {@link DialogueBranchProject} in {@link #projects}.
 	 *
 	 * @param projectName the name of the project folder to load.
 	 * @throws DLBServiceConfigurationException if the project contains parse errors.
