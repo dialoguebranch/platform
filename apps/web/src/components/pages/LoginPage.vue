@@ -68,21 +68,21 @@ function onLoginSuccess(responseJson) {
     console.log("The onLoginSuccess function has been called.");
     
     const user = new User(
-        responseJson.user, 
-        responseJson.roles, 
-        responseJson.accessToken, 
-        responseJson.accessTokenExpiresIn, 
+        responseJson.user,
+        responseJson.roles,
+        responseJson.accessToken,
+        responseJson.expiresIn,
         responseJson.refreshToken,
-        responseJson.refreshTokenExpiresIn
+        responseJson.refreshExpiresIn
     );
     
     const cookieExpiration = remember.value ? 365 : null;
     DocumentFunctions.setCookie('user.name', user.name, cookieExpiration);
     DocumentFunctions.setCookie('user.roles', user.roles, cookieExpiration);
     DocumentFunctions.setCookie('user.accessToken', user.accessToken, cookieExpiration);
-    DocumentFunctions.setCookie('user.accessTokenExpiresIn', user.accessTokenExpiresIn, cookieExpiration);
+    DocumentFunctions.setCookie('user.accessTokenExpiresIn', user.accessTokenExpirationSeconds, cookieExpiration);
     DocumentFunctions.setCookie('user.refreshToken', user.refreshToken, cookieExpiration);
-    DocumentFunctions.setCookie('user.refreshTokenExpiresIn', user.refreshTokenExpiresIn, cookieExpiration);
+    DocumentFunctions.setCookie('user.refreshTokenExpiresIn', user.refreshTokenExpirationSeconds, cookieExpiration);
     
     // App.vue defines that if state.user is set, switch to the MainPage.vue
     state.value.user = user;

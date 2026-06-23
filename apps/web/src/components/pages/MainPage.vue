@@ -1,5 +1,5 @@
 <script setup>
-import { inject, onMounted, ref, useTemplateRef } from 'vue';
+import { inject, onMounted, onUnmounted, ref, useTemplateRef } from 'vue';
 import { useClient } from '../../composables/client.js';
 import { useStateManagement } from '../../composables/state-management.js';
 import DialogueBrowser from '../partials/DialogueBrowser.vue';
@@ -9,6 +9,7 @@ import ResizablePanels from '../widgets/ResizablePanels.vue';
 import VariableBrowser from '../partials/VariableBrowser.vue';
 
 const config = inject('config');
+const state = inject('state');
 const client = useClient();
 const stateManagement = useStateManagement();
 
@@ -17,6 +18,11 @@ const interactionTester = useTemplateRef('interaction-tester');
 const variableBrowser = useTemplateRef('variable-browser');
 
 const appVersion = __APP_VERSION__;
+const sessionSecondsToLive = ref(Math.round(state.value.user.accessTokenSecondsToLive));
+const sessionTimer = setInterval(() => {
+    sessionSecondsToLive.value = Math.round(state.value.user.accessTokenSecondsToLive);
+}, 1000);
+onUnmounted(() => clearInterval(sessionTimer));
 const serviceUrl = new URL(config.baseUrl);
 const serviceHost = serviceUrl.hostname;
 const servicePort = serviceUrl.port;
@@ -59,7 +65,8 @@ function onResizePanels() {
     <div class="w-screen h-screen flex flex-col">
         <header class="flex bg-menu-bar shadow-md shadow-gray-400 z-1">
             <a class="shrink-0" href="/"><img class="box-content h-[60px] pl-4 py-3" src="../../assets/img/dlb-square.png"></a>
-            <div class="hidden sm:flex flex-col justify-end pl-2 pb-2 font-mono text-xs text-gray-500">
+            <div class="hidden sm:flex flex-col justify-center pl-2 font-mono text-xs text-gray-500">
+                <span>Logged in as {{ state.user.name }} (session valid for {{ sessionSecondsToLive }}s).</span>
                 <span>Dialogue Branch Web Client v{{ appVersion }}.</span>
                 <span>{{ connectionInfo }}</span>
             </div>
