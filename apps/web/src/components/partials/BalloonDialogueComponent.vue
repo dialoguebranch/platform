@@ -60,7 +60,7 @@ const currentStep = computed(() => {
                         sm: 'basis-0 grow overflow-x-hidden ml-12 mr-2 mt-0 items-start',
                     })"
                 >
-                    <template v-for="(reply, index) in currentStep.replies">
+                    <template v-if="!dialogueEnded" v-for="(reply, index) in currentStep.replies">
                         <button
                             v-if="reply instanceof BasicReply"
                             class="block rounded-xl bg-orange-dark hover:bg-orange-medium text-white text-left p-3 cursor-pointer"

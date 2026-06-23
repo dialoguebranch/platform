@@ -43,9 +43,11 @@ function onReplyClick(step, stepIndex, reply) {
 }
 
 function getBasicReplyNumberClasses(stepIndex, reply) {
-    if (stepIndex === props.dialogueSteps.length - 1) {
+    if (selectedReplies.value[stepIndex] === reply.replyId) {
         return 'text-interaction-reply-option';
-    } else if (selectedReplies.value[stepIndex] === reply.replyId) {
+    } else if (selectedReplies.value[stepIndex] !== undefined) {
+        return 'text-icon-button-disabled';
+    } else if (stepIndex === props.dialogueSteps.length - 1) {
         return 'text-interaction-reply-option';
     } else {
         return 'text-icon-button-disabled';
@@ -53,10 +55,12 @@ function getBasicReplyNumberClasses(stepIndex, reply) {
 }
 
 function getBasicReplyTextClasses(stepIndex, reply) {
-    if (stepIndex === props.dialogueSteps.length - 1) {
-        return 'cursor-pointer text-interaction-reply-option hover:text-interaction-reply-option-hover';
-    } else if (selectedReplies.value[stepIndex] === reply.replyId) {
+    if (selectedReplies.value[stepIndex] === reply.replyId) {
         return 'text-interaction-reply-option';
+    } else if (selectedReplies.value[stepIndex] !== undefined) {
+        return 'text-icon-button-disabled';
+    } else if (stepIndex === props.dialogueSteps.length - 1) {
+        return 'cursor-pointer text-interaction-reply-option hover:text-interaction-reply-option-hover';
     } else {
         return 'text-icon-button-disabled';
     }

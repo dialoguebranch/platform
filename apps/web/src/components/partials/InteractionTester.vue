@@ -87,6 +87,8 @@ function onSelectReply(dialogueStep, reply) {
         if (dialogueStep) {
             dialogueSteps.value.push(dialogueStep);
             dialogueEnded.value = dialogueStep.replies.length === 0;
+        } else {
+            dialogueEnded.value = true;
         }
         emit('newDialogueStep');
         scrollTextToBottom();
