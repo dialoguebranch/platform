@@ -1,5 +1,5 @@
 <script setup>
-import { ref, useTemplateRef } from 'vue';
+import { nextTick, ref, useTemplateRef, watch } from 'vue';
 import { useClient } from '@/composables/client.js';
 import IconButton from '../widgets/IconButton.vue';
 import BalloonDialogueComponent from './BalloonDialogueComponent.vue';
@@ -28,6 +28,12 @@ const modes = [
 ];
 
 const selectedMode = ref('balloon');
+
+watch(selectedMode, (mode) => {
+    if (mode === 'text') {
+        nextTick(() => scrollTextToBottom());
+    }
+});
 
 const client = useClient();
 
