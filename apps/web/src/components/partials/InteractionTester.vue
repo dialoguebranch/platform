@@ -50,6 +50,7 @@ const loadDialogue = (name) => {
     dialogueEnded.value = false;
     client.startDialogue(name, 'en')
     .then((dialogueStep) => {
+        dialogueName.value = dialogueStep.dialogueName;
         dialogueSteps.value.push(dialogueStep);
         emit('newDialogueStep');
         scrollTextToBottom();
@@ -85,6 +86,7 @@ function onSelectReply(dialogueStep, reply) {
         reply.replyId)
     .then((dialogueStep) => {
         if (dialogueStep) {
+            dialogueName.value = dialogueStep.dialogueName;
             dialogueSteps.value.push(dialogueStep);
             dialogueEnded.value = dialogueStep.replies.length === 0;
         } else {
