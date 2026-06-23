@@ -55,7 +55,7 @@ import java.util.Map;
 public class ActiveDialogue {
 
 	/** Metadata describing the file from which the dialogue definition was loaded. */
-	private final FileDescriptor dialogueFileDescription;
+	private final ResourcePointer dialogueFileDescription;
 
 	/** The static dialogue definition containing all nodes and their content. */
 	private final Dialogue dialogueDefinition;
@@ -72,14 +72,14 @@ public class ActiveDialogue {
 
 	/**
 	 * Creates an instance of an {@link ActiveDialogue} with a given
-	 * {@link FileDescriptor} and {@link Dialogue}.
+	 * {@link ResourcePointer} and {@link Dialogue}.
 	 *
-	 * @param dialogueFileDescription the {@link FileDescriptor} containing metadata
+	 * @param dialogueFileDescription the {@link ResourcePointer} containing metadata
 	 *                                of the dialogue file used in this {@link ActiveDialogue}.
 	 * @param dialogueDefinition the dialogue definition
 	 */
-	public ActiveDialogue(FileDescriptor dialogueFileDescription,
-						  Dialogue dialogueDefinition) {
+	public ActiveDialogue(ResourcePointer dialogueFileDescription,
+                          Dialogue dialogueDefinition) {
 		this.dialogueFileDescription = dialogueFileDescription;
 		this.dialogueDefinition = dialogueDefinition;
 	}
@@ -89,11 +89,11 @@ public class ActiveDialogue {
 	// ----------------------------------------------------------- //
 
 	/**
-	 * Returns the {@link FileDescriptor} of the dialogue file corresponding to this
+	 * Returns the {@link ResourcePointer} of the dialogue file corresponding to this
 	 * {@link ActiveDialogue} containing metadata for the file.
-	 * @return the dialogue file description as a {@link FileDescriptor}
+	 * @return the dialogue file description as a {@link ResourcePointer}
 	 */
-	public FileDescriptor getDialogueFileDescription() {
+	public ResourcePointer getDialogueFileDescription() {
 		return dialogueFileDescription;
 	}
 

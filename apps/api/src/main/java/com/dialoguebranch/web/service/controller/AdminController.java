@@ -28,7 +28,7 @@
 
 package com.dialoguebranch.web.service.controller;
 
-import com.dialoguebranch.model.execute.FileDescriptor;
+import com.dialoguebranch.model.execute.ResourcePointer;
 import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.ProtocolVersion;
@@ -143,13 +143,13 @@ public class AdminController {
      * @return a {@link DialogueListPayload} containing a list of all dialogue names.
      */
     private DialogueListPayload doListDialogues() {
-        List<FileDescriptor> files = application.getApplicationManager().getAvailableDialogues();
+        List<ResourcePointer> resources = application.getApplicationManager().getAvailableDialogues();
 
         List<String> scriptNames = new ArrayList<>();
 
-        for(FileDescriptor fileDescriptor : files) {
-            if(fileDescriptor.getFileType().equals(ResourceType.SCRIPT)) {
-                scriptNames.add(fileDescriptor.getDialogueName());
+        for(ResourcePointer resourcePointer : resources) {
+            if(resourcePointer.getResourceType().equals(ResourceType.SCRIPT)) {
+                scriptNames.add(resourcePointer.getDialogueName());
             }
         }
 

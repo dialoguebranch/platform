@@ -250,7 +250,7 @@ public class CommandLineRunner {
 
         try {
             EditableProject editableProject = EditableProjectParser.read(projectMetadataFile);
-			ProjectMetaData metaData = editableProject.getProjectMetaData();
+			ProjectMetaData metaData = editableProject.getMetaData();
 			System.out.println("Loaded EditableProject: ");
 			System.out.println("  - Name:        " + metaData.getName());
 			System.out.println("  - Version:     " + metaData.getVersion());
@@ -309,7 +309,7 @@ public class CommandLineRunner {
 		try {
 			// Read in the Dialogue Branch project as "Editable"
 			EditableProject editableProject = EditableProjectParser.read(projectMetadataFile);
-			ProjectMetaData metaData = editableProject.getProjectMetaData();
+			ProjectMetaData metaData = editableProject.getMetaData();
 
 			// Print out some project summary information
 			System.out.println("Loaded EditableProject: ");
@@ -399,7 +399,7 @@ public class CommandLineRunner {
 		try {
 			// Read in the Dialogue Branch project as "Editable"
 			EditableProject editableProject = EditableProjectParser.read(projectMetadataFile);
-			ProjectMetaData metaData = editableProject.getProjectMetaData();
+			ProjectMetaData metaData = editableProject.getMetaData();
 
 			// Print out some project summary information
 			System.out.println("Loaded EditableProject: ");

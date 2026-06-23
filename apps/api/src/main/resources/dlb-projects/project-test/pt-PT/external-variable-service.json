@@ -1,0 +1,17 @@
+{
+    "Martin McOwl": {
+        "This is a test script that allows you to test the use of the \"Dialogue Branch External Variable Service Dummy\" application.": "Este é um script de teste que lhe permite testar a utilização da aplicação \"Dialogue Branch External Variable Service Dummy\".",
+        "In Dialogue Branch, there are many ways you can cleverly use variables to make dialogues more personalized or interactive.": "No Dialogue Branch, existem muitas formas de usar variáveis de forma inteligente para tornar os diálogos mais personalizados ou interativos.",
+        "Variables may be defined within the dialogue script, like we set the 'varServiceExplained' variable right now, and the value is \"$varServiceExplained\".": "As variáveis podem ser definidas dentro do script de diálogo, como definimos a variável 'varServiceExplained' agora mesmo, e o valor é \"$varServiceExplained\".",
+        "But sometimes you need to collect data from an 'external' source, like a weather API, or your own user database.": "Mas por vezes precisa de recolher dados de uma fonte 'externa', como uma API meteorológica ou a sua própria base de dados de utilizadores.",
+        "That is what the 'Dialogue Branch External Variable Service' is for. It allows you to connect the Web Service to an external source of variable data, which you can build yourself to provide whatever data you like.": "É para isso que serve o 'Dialogue Branch External Variable Service'. Permite-lhe ligar o serviço web a uma fonte externa de dados de variáveis, que pode construir você mesmo para fornecer os dados que quiser.",
+        "Does that make a sense?": "Isso faz sentido?",
+        "Okay, the following information should be provided by the Dummy implementation of the External Variable Service. The current date is $currentDate, and the current time is $currentTime.": "Muito bem, as seguintes informações devem ser fornecidas pela implementação Dummy do External Variable Service. A data atual é $currentDate, e a hora atual é $currentTime."
+    },
+    "_user": {
+        "Whoah?! What is that all about?": "Uau?! De que se trata isso?",
+        "Okay, let's do the test.": "Está bem, façamos o teste.",
+        "Please, explain me again.": "Por favor, explique-me novamente.",
+        "Yes, let's run the test.": "Sim, vamos executar o teste."
+    }
+}

@@ -28,7 +28,7 @@
 
 package com.dialoguebranch.execution.parser;
 
-import com.dialoguebranch.model.execute.FileDescriptor;
+import com.dialoguebranch.model.execute.ResourcePointer;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -49,18 +49,18 @@ public interface FileLoader {
 	 * Lists all Dialogue Branch files in the project. The files should be dialogue files (.dlb) or
 	 * translation files (.json).
 	 *
-	 * @return the List of files as {@link FileDescriptor}s.
+	 * @return the List of files as {@link ResourcePointer}s.
 	 * @throws IOException if a reading error occurs
 	 */
-	List<FileDescriptor> listDialogueBranchFiles() throws IOException;
+	List<ResourcePointer> listDialogueBranchFiles() throws IOException;
 
 	/**
 	 * Opens the specified Dialogue Branch file. This should be a dialogue file (.dlb) or a
 	 * translation file (.json).
 	 *
-	 * @param fileDescription the {@link FileDescriptor} object.
+	 * @param fileDescription the {@link ResourcePointer} object.
 	 * @return the {@link Reader} for the file.
 	 * @throws IOException if the file cannot be opened.
 	 */
-	Reader openFile(FileDescriptor fileDescription) throws IOException;
+	Reader openFile(ResourcePointer fileDescription) throws IOException;
 }

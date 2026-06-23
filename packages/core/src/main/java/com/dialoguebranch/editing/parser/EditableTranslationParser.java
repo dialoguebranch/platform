@@ -89,7 +89,7 @@ public class EditableTranslationParser {
                                            Language language,
                                            FileStorageSource fileStorageSource)
             throws IOException, FileSystemException {
-        String projectBasePath = editableProject.getProjectMetaData().getBasePath();
+        String projectBasePath = editableProject.getMetaData().getBasePath();
 
         // First, make sure that the given fileStorageSource points to a file that is part of
         // the given project.

@@ -32,7 +32,7 @@ import com.dialoguebranch.execution.ActiveDialogue;
 
 /**
  * Captures the full runtime state of an in-progress dialogue session. It bundles together the
- * static dialogue definition ({@link FileDescriptor} and {@link Dialogue}), the persistent
+ * static dialogue definition ({@link ResourcePointer} and {@link Dialogue}), the persistent
  * execution log ({@link LoggedDialogue} and the current interaction index), and the live
  * {@link ActiveDialogue} wrapper that drives execution.
  *
@@ -41,7 +41,7 @@ import com.dialoguebranch.execution.ActiveDialogue;
  */
 public class DialogueState {
 
-	private final FileDescriptor dialogueDescription;
+	private final ResourcePointer dialogueDescription;
 	private final Dialogue dialogueDefinition;
 	private final LoggedDialogue loggedDialogue;
 	private final int loggedInteractionIndex;
@@ -50,16 +50,16 @@ public class DialogueState {
 	/**
 	 * Creates a fully populated {@link DialogueState}.
 	 *
-	 * @param dialogueDescription   the {@link FileDescriptor} identifying the dialogue file.
+	 * @param dialogueDescription   the {@link ResourcePointer} identifying the dialogue file.
 	 * @param dialogueDefinition    the parsed {@link Dialogue} definition.
 	 * @param loggedDialogue        the {@link LoggedDialogue} tracking the session history.
 	 * @param loggedInteractionIndex the index into the logged interaction list pointing to the
 	 *                               current step.
 	 * @param activeDialogue        the {@link ActiveDialogue} managing live execution state.
 	 */
-	public DialogueState(FileDescriptor dialogueDescription,
-						 Dialogue dialogueDefinition, LoggedDialogue loggedDialogue,
-						 int loggedInteractionIndex, ActiveDialogue activeDialogue) {
+	public DialogueState(ResourcePointer dialogueDescription,
+                         Dialogue dialogueDefinition, LoggedDialogue loggedDialogue,
+                         int loggedInteractionIndex, ActiveDialogue activeDialogue) {
 		this.dialogueDescription = dialogueDescription;
 		this.dialogueDefinition = dialogueDefinition;
 		this.loggedDialogue = loggedDialogue;
@@ -68,12 +68,12 @@ public class DialogueState {
 	}
 
 	/**
-	 * Returns the {@link FileDescriptor} that identifies the dialogue file associated with this
+	 * Returns the {@link ResourcePointer} that identifies the dialogue file associated with this
 	 * state.
 	 *
 	 * @return the dialogue file descriptor.
 	 */
-	public FileDescriptor getDialogueDescription() {
+	public ResourcePointer getDialogueDescription() {
 		return dialogueDescription;
 	}
 

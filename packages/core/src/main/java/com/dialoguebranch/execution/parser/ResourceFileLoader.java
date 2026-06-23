@@ -29,7 +29,7 @@
 package com.dialoguebranch.execution.parser;
 
 import com.dialoguebranch.model.common.DialogueBranchConstants;
-import com.dialoguebranch.model.execute.FileDescriptor;
+import com.dialoguebranch.model.execute.ResourcePointer;
 import com.dialoguebranch.model.common.ResourceType;
 import com.fasterxml.jackson.core.type.TypeReference;
 import nl.rrd.utils.exception.ParseException;
@@ -89,8 +89,8 @@ public class ResourceFileLoader implements FileLoader {
 	}
 
 	@Override
-	public List<FileDescriptor> listDialogueBranchFiles() throws IOException {
-		List<FileDescriptor> result = new ArrayList<>();
+	public List<ResourcePointer> listDialogueBranchFiles() throws IOException {
+		List<ResourcePointer> result = new ArrayList<>();
 		String path = resourcePath + "/" + INDEX_FILE;
 		InputStream input = getClass().getClassLoader().getResourceAsStream(
 				path);
@@ -110,7 +110,7 @@ public class ResourceFileLoader implements FileLoader {
 	}
 
 	private void parseLanguageValue(String language, Object value,
-			List<FileDescriptor> files) throws ParseException {
+			List<ResourcePointer> files) throws ParseException {
 		if (value instanceof List) {
 			parseDirectoryList(language, "", (List<?>)value, files);
 		} else if (value == null) {
@@ -123,7 +123,7 @@ public class ResourceFileLoader implements FileLoader {
 	}
 
 	private void parseDirectoryValue(String language, String prefix,
-			Map<?,?> entry, List<FileDescriptor> files)
+			Map<?,?> entry, List<ResourcePointer> files)
 			throws ParseException {
 		if (entry.size() != 1) {
 			throw new ParseException(String.format(
@@ -144,7 +144,7 @@ public class ResourceFileLoader implements FileLoader {
 	}
 
 	private void parseDirectoryList(String language, String prefix,
-			List<?> children, List<FileDescriptor> files)
+			List<?> children, List<ResourcePointer> files)
 			throws ParseException {
 		for (Object child : children) {
 			parseDirectoryChild(language, prefix, child, files);
@@ -152,7 +152,7 @@ public class ResourceFileLoader implements FileLoader {
 	}
 
 	private void parseDirectoryChild(String language, String prefix,
-			Object entry, List<FileDescriptor> files)
+			Object entry, List<ResourcePointer> files)
 			throws ParseException {
 		if (entry instanceof Map) {
 			parseDirectoryValue(language, prefix, (Map<?,?>)entry, files);
@@ -169,7 +169,7 @@ public class ResourceFileLoader implements FileLoader {
 	}
 
 	private void parseFileValue(String language, String prefix, String entry,
-			List<FileDescriptor> files) throws ParseException {
+			List<ResourcePointer> files) throws ParseException {
 		String path = prefix + entry;
 		if (!entry.endsWith(DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION) &&
 				!entry.endsWith(DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION)) {
@@ -178,18 +178,26 @@ public class ResourceFileLoader implements FileLoader {
 							+ " or " + DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION + ": " + path);
 		}
 		ResourceType resourceType;
+		String dialogueName;
 		if(entry.endsWith(DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION)) {
 			resourceType = ResourceType.SCRIPT;
+			dialogueName = path.substring(0, path.length() -
+					DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION.length());
 		} else {
 			resourceType = ResourceType.TRANSLATION;
+			dialogueName = path.substring(0, path.length() -
+					DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION.length());
 		}
-		files.add(new FileDescriptor(language, path, resourceType));
+		files.add(new ResourcePointer(language, dialogueName, resourceType));
 	}
 
 	@Override
-	public Reader openFile(FileDescriptor fileDescription) throws IOException {
+	public Reader openFile(ResourcePointer fileDescription) throws IOException {
+		String extension = fileDescription.getResourceType() == ResourceType.SCRIPT
+				? DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION
+				: DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION;
 		String path = resourcePath + "/" + fileDescription.getLanguage() + "/" +
-				fileDescription.getFilePath();
+				fileDescription.getDialogueName() + extension;
 		return new InputStreamReader(getClass().getClassLoader()
 				.getResourceAsStream(path), StandardCharsets.UTF_8);
 	}

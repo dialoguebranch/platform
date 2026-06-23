@@ -63,10 +63,10 @@ import com.dialoguebranch.i18n.Translator;
 public class ProjectParser {
 	private final FileLoader fileLoader;
 
-	private final Map<FileDescriptor, Dialogue> dialogues = new LinkedHashMap<>();
-	private final Map<FileDescriptor,Map<Translatable,List<ContextTranslation>>>
+	private final Map<ResourcePointer, Dialogue> dialogues = new LinkedHashMap<>();
+	private final Map<ResourcePointer,Map<Translatable,List<ContextTranslation>>>
 			translations = new LinkedHashMap<>();
-	private final Map<FileDescriptor, Dialogue> translatedDialogues = new LinkedHashMap<>();
+	private final Map<ResourcePointer, Dialogue> translatedDialogues = new LinkedHashMap<>();
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
@@ -90,7 +90,7 @@ public class ProjectParser {
 	/**
 	 * Parses the complete Dialogue Branch project (all script and translation files provided by
 	 * the {@link FileLoader}) and returns a {@link ProjectParserResult} containing either the
-	 * fully assembled {@link Project} or a map of per-file parse errors.
+	 * fully assembled {@link ExecutableProject} or a map of per-file parse errors.
 	 *
 	 * @return the result of parsing the project.
 	 * @throws IOException if a file cannot be read.
@@ -98,7 +98,7 @@ public class ProjectParser {
 	public ProjectParserResult parse() throws IOException {
 		ProjectParserResult projectParserResult = new ProjectParserResult(fileLoader);
 
-		List<FileDescriptor> files = fileLoader.listDialogueBranchFiles();
+		List<ResourcePointer> files = fileLoader.listDialogueBranchFiles();
 
 		parseFiles(files, projectParserResult);
 
@@ -110,18 +110,18 @@ public class ProjectParser {
 		if (!projectParserResult.getParseErrors().isEmpty())
 			return projectParserResult;
 
-		Project project = new Project();
+		ExecutableProject project = new ExecutableProject();
 		project.setDialogues(translatedDialogues);
 
-		Map<FileDescriptor, Dialogue> sourceDialogues = new LinkedHashMap<>();
-		for (FileDescriptor fileDescription : dialogues.keySet()) {
+		Map<ResourcePointer, Dialogue> sourceDialogues = new LinkedHashMap<>();
+		for (ResourcePointer fileDescription : dialogues.keySet()) {
 			sourceDialogues.put(fileDescription, dialogues.get(fileDescription));
 		}
 		project.setSourceDialogues(sourceDialogues);
 
-		Map<FileDescriptor,Map<Translatable,List<ContextTranslation>>> dlgTranslations =
+		Map<ResourcePointer,Map<Translatable,List<ContextTranslation>>> dlgTranslations =
 				new LinkedHashMap<>();
-		for (FileDescriptor fileDescription : translations.keySet()) {
+		for (ResourcePointer fileDescription : translations.keySet()) {
 			dlgTranslations.put(fileDescription, translations.get(fileDescription));
 		}
 
@@ -141,22 +141,22 @@ public class ProjectParser {
 	 * @param readResult the read result
 	 * @throws IOException if a reading error occurs
 	 */
-	private void parseFiles(List<FileDescriptor> fileDescriptions,
+	private void parseFiles(List<ResourcePointer> fileDescriptions,
 							ProjectParserResult readResult) throws IOException {
-		Set<FileDescriptor> fileDescriptionsSet = new HashSet<>();
-		List<FileDescriptor> dialogueFiles = new ArrayList<>();
-		List<FileDescriptor> translationFiles = new ArrayList<>();
+		Set<ResourcePointer> fileDescriptionsSet = new HashSet<>();
+		List<ResourcePointer> dialogueFiles = new ArrayList<>();
+		List<ResourcePointer> translationFiles = new ArrayList<>();
 
 		// Split the given fileDescriptions into dialogueFiles and translationFiles
-		for (FileDescriptor fileDescription : fileDescriptions) {
-			if (fileDescription.getFileType() == ResourceType.SCRIPT)
+		for (ResourcePointer fileDescription : fileDescriptions) {
+			if (fileDescription.getResourceType() == ResourceType.SCRIPT)
 				dialogueFiles.add(fileDescription);
-			else if (fileDescription.getFileType() == ResourceType.TRANSLATION)
+			else if (fileDescription.getResourceType() == ResourceType.TRANSLATION)
 				translationFiles.add(fileDescription);
 		}
 
 		Set<String> dialogueNames = new HashSet<>();
-		for (FileDescriptor fileDescription : dialogueFiles) {
+		for (ResourcePointer fileDescription : dialogueFiles) {
 			fileDescriptionsSet.add(fileDescription);
 			ParserResult dlgReadResult = parseDialogueFile(fileDescription);
 			if (dlgReadResult.getParseErrors().isEmpty()) {
@@ -169,7 +169,7 @@ public class ProjectParser {
 
 		if (readResult.getParseErrors().isEmpty()) {
 			// validate referenced dialogues in external node pointers
-			for (FileDescriptor fileDescription : dialogues.keySet()) {
+			for (ResourcePointer fileDescription : dialogues.keySet()) {
 				Dialogue dlg = dialogues.get(fileDescription);
 				for (String refName : dlg.getDialoguesReferenced()) {
 					if (!dialogueNames.contains(refName)) {
@@ -182,11 +182,11 @@ public class ProjectParser {
 			}
 		}
 
-		for (FileDescriptor fileDescription : translationFiles) {
+		for (ResourcePointer fileDescription : translationFiles) {
 			if (fileDescriptionsSet.contains(fileDescription)) {
 				getParseErrors(readResult, fileDescription).add(new ParseException(
 					String.format("Found both translation file \"%s\" and dialogue file \"%s.dlb\"",
-					fileDescription.getFilePath(), fileDescription.getFilePath()) + ": " +
+					fileDescription.getDialogueName(), fileDescription.getDialogueName()) + ": " +
 					fileDescription));
 				continue;
 			}
@@ -204,7 +204,7 @@ public class ProjectParser {
 	}
 
 	private List<ParseException> getParseErrors(ProjectParserResult readResult,
-												FileDescriptor fileDescription) {
+												ResourcePointer fileDescription) {
 		String path = fileDescriptionToPath(fileDescription);
 		List<ParseException> errors = readResult.getParseErrors().get(path);
 		if (errors != null)
@@ -215,7 +215,7 @@ public class ProjectParser {
 	}
 
 	private List<String> getWarnings(ProjectParserResult readResult,
-									 FileDescriptor fileDescription) {
+									 ResourcePointer fileDescription) {
 		String path = fileDescriptionToPath(fileDescription);
 		List<String> warnings = readResult.getWarnings().get(path);
 		if (warnings != null)
@@ -235,12 +235,12 @@ public class ProjectParser {
 	 * @param readResult the read result
 	 */
 	private void createTranslatedDialogues(ProjectParserResult readResult) {
-		for (FileDescriptor fileDescription : dialogues.keySet()) {
+		for (ResourcePointer fileDescription : dialogues.keySet()) {
 			Dialogue dlg = dialogues.get(fileDescription);
 			translatedDialogues.put(fileDescription, dlg);
 		}
 
-		for (FileDescriptor fileDescription : translations.keySet()) {
+		for (ResourcePointer fileDescription : translations.keySet()) {
 			Dialogue source = findSourceDialogue(fileDescription.getDialogueName());
 			if (source == null) {
 				getParseErrors(readResult, fileDescription).add(new ParseException(
@@ -255,8 +255,8 @@ public class ProjectParser {
 	}
 
 	private Dialogue findSourceDialogue(String dlgName) {
-		List<FileDescriptor> matches = new ArrayList<>();
-		for (FileDescriptor fileDescription : dialogues.keySet()) {
+		List<ResourcePointer> matches = new ArrayList<>();
+		for (ResourcePointer fileDescription : dialogues.keySet()) {
 			String currDlgName = fileDescription.getDialogueName();
 			if (currDlgName.equals(dlgName))
 				matches.add(fileDescription);
@@ -265,8 +265,8 @@ public class ProjectParser {
 			return null;
 		if (matches.size() == 1)
 			return dialogues.get(matches.get(0));
-		Map<String, FileDescriptor> lngMap = new HashMap<>();
-		for (FileDescriptor match : matches) {
+		Map<String, ResourcePointer> lngMap = new HashMap<>();
+		for (ResourcePointer match : matches) {
 			lngMap.put(match.getLanguage(), match);
 		}
 		I18nLanguageFinder finder = new I18nLanguageFinder(new ArrayList<>(
@@ -279,7 +279,7 @@ public class ProjectParser {
 			return dialogues.get(lngMap.get(language));
 	}
 
-	private ParserResult parseDialogueFile(FileDescriptor description)
+	private ParserResult parseDialogueFile(ResourcePointer description)
 			throws IOException {
 		String dlgName = description.getDialogueName();
 		try (DialogueBranchParser dialogueBranchParser = new DialogueBranchParser(dlgName,
@@ -288,14 +288,14 @@ public class ProjectParser {
 		}
 	}
 
-	private TranslationParserResult parseTranslationFile(FileDescriptor description)
+	private TranslationParserResult parseTranslationFile(ResourcePointer description)
 			throws IOException {
 		try (Reader reader = fileLoader.openFile(description)) {
 			return TranslationParser.parse(reader);
 		}
 	}
 
-	private String fileDescriptionToPath(FileDescriptor fileDescription) {
-		return fileDescription.getLanguage() + "/" + fileDescription.getFilePath();
+	private String fileDescriptionToPath(ResourcePointer fileDescription) {
+		return fileDescription.getLanguage() + "/" + fileDescription.getDialogueName();
 	}
 }

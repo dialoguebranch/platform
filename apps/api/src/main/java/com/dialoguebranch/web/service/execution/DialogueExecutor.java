@@ -89,9 +89,9 @@ public class DialogueExecutor {
 	 * @throws IOException if a communication error occurs.
 	 * @throws ExecutionException if the request is invalid.
 	 */
-	public ExecuteNodeResult startDialogue(FileDescriptor dialogueDescription,
-	                                       Dialogue dialogueDefinition, String nodeId,
-	                                       String sessionId, long sessionStartTime)
+	public ExecuteNodeResult startDialogue(ResourcePointer dialogueDescription,
+                                           Dialogue dialogueDefinition, String nodeId,
+                                           String sessionId, long sessionStartTime)
 			throws DatabaseException, IOException, ExecutionException {
 
 		ActiveDialogue dialogue = new ActiveDialogue(dialogueDescription,
@@ -203,7 +203,7 @@ public class DialogueExecutor {
 			String dialogueId = externalNodePointer.getAbsoluteTargetDialogue();
 			String nodeId = externalNodePointer.getTargetNodeId();
 
-			FileDescriptor dialogueDescription =
+			ResourcePointer dialogueDescription =
 					userService.getDialogueDescriptionFromId(dialogueId, language);
 			if (dialogueDescription == null) {
 				throw new ExecutionException(ExecutionException.Type.DIALOGUE_NOT_FOUND,

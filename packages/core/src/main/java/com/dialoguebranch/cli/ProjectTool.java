@@ -147,7 +147,7 @@ public class ProjectTool {
             return;
         }
 
-        ProjectMetaData meta = project.getProjectMetaData();
+        ProjectMetaData meta = project.getMetaData();
         System.out.println("\nLoaded project: " + meta.getName() + " (v" + meta.getVersion() + ")\n");
 
         boolean inProject = true;
@@ -183,7 +183,7 @@ public class ProjectTool {
      * language mappings, and node counts per dialogue.
      */
     private static void printProjectSummary(EditableProject project) {
-        ProjectMetaData meta = project.getProjectMetaData();
+        ProjectMetaData meta = project.getMetaData();
 
         System.out.println();
         System.out.println("============================================================");

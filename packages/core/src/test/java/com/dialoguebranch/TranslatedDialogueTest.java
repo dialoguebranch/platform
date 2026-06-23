@@ -32,7 +32,7 @@ import com.dialoguebranch.execution.ActiveDialogue;
 import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.model.execute.Dialogue;
-import com.dialoguebranch.model.execute.FileDescriptor;
+import com.dialoguebranch.model.execute.ResourcePointer;
 import com.dialoguebranch.model.execute.Node;
 import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.execution.parser.DirectoryFileLoader;
@@ -75,9 +75,9 @@ public class TranslatedDialogueTest {
      */
     private Dialogue findDialogue(ProjectParserResult result, String language, String dialogueName)
             throws Exception {
-        for (Map.Entry<FileDescriptor, Dialogue> entry
+        for (Map.Entry<ResourcePointer, Dialogue> entry
                 : result.getProject().getDialogues().entrySet()) {
-            FileDescriptor fd = entry.getKey();
+            ResourcePointer fd = entry.getKey();
             if (fd.getLanguage().equals(language)
                     && fd.getDialogueName().equals(dialogueName)) {
                 return entry.getValue();
@@ -120,7 +120,7 @@ public class TranslatedDialogueTest {
         Dialogue dutch = findDialogue(result, "nl", "basic");
         assertNotNull("Dutch translated dialogue not found", dutch);
 
-        FileDescriptor fd = new FileDescriptor("nl", "basic.dlb", ResourceType.TRANSLATION);
+        ResourcePointer fd = new ResourcePointer("nl", "basic", ResourceType.TRANSLATION);
         ActiveDialogue ad = new ActiveDialogue(fd, dutch);
         ad.setVariableStore(new VariableStore(new User("test")));
 
@@ -143,7 +143,7 @@ public class TranslatedDialogueTest {
         Dialogue english = findDialogue(result, "en", "basic");
         assertNotNull("English source dialogue not found", english);
 
-        FileDescriptor fd = new FileDescriptor("en", "basic.dlb", ResourceType.SCRIPT);
+        ResourcePointer fd = new ResourcePointer("en", "basic", ResourceType.SCRIPT);
         ActiveDialogue ad = new ActiveDialogue(fd, english);
         ad.setVariableStore(new VariableStore(new User("test")));
 

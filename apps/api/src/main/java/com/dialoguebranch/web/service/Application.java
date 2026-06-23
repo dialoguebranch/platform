@@ -31,7 +31,6 @@ package com.dialoguebranch.web.service;
 import com.dialoguebranch.web.service.auth.jwt.JWTUtils;
 import com.dialoguebranch.web.service.exception.DLBServiceConfigurationException;
 import com.dialoguebranch.web.service.execution.ApplicationManager;
-import com.dialoguebranch.execution.parser.ResourceFileLoader;
 import jakarta.annotation.PostConstruct;
 import nl.rrd.utils.AppComponents;
 import org.hibernate.SessionFactory;
@@ -93,8 +92,7 @@ ApplicationListener<ApplicationEvent> {
 		AppComponents.getInstance().addComponent(sessionFactory);
 
 		try {
-			applicationManager = new ApplicationManager(
-					new ResourceFileLoader("dialogues"), dlbProperties);
+			applicationManager = new ApplicationManager(dlbProperties);
 		} catch(DLBServiceConfigurationException e) {
 			logger.error("Unable to initialize DialogueBranch Web Service due to configuration " +
 					"errors.");

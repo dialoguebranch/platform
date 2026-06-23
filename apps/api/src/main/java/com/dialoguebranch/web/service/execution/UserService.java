@@ -74,7 +74,7 @@ public class UserService {
 	private TranslationContext translationContext = null;
 
 	// dialogueLanguageMap: map from dialogue name -> language -> dialogue description
-	protected Map<String, Map<String, FileDescriptor>> dialogueLanguageMap = new LinkedHashMap<>();
+	protected Map<String, Map<String, ResourcePointer>> dialogueLanguageMap = new LinkedHashMap<>();
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
@@ -121,9 +121,9 @@ public class UserService {
 				dialogueBranchUser.getId(), this, dlbProperties);
 
 		// create dialogueLanguageMap
-		List<FileDescriptor> dialogues = applicationManager.getDialogueDescriptions();
-		for (FileDescriptor dialogue : dialogues) {
-			Map<String, FileDescriptor> langMap =
+		List<ResourcePointer> dialogues = applicationManager.getDialogueDescriptions();
+		for (ResourcePointer dialogue : dialogues) {
+			Map<String, ResourcePointer> langMap =
 				dialogueLanguageMap.computeIfAbsent(dialogue.getDialogueName(),
 						k -> new LinkedHashMap<>());
 			langMap.put(dialogue.getLanguage(), dialogue);
@@ -223,7 +223,7 @@ public class UserService {
 
         logger.info("User '{}' is starting dialogue '{}'", dialogueBranchUser.getId(), dialogueId);
 
-		FileDescriptor dialogueDescription =
+		ResourcePointer dialogueDescription =
 				getDialogueDescriptionFromId(dialogueId, language);
 
 		if (dialogueDescription == null) {
@@ -446,8 +446,8 @@ public class UserService {
 	 * @param language an ISO language tag
 	 * @return a list of dialogue names
 	 */
-	public List<FileDescriptor> getAvailableDialogues(String language) {
-		List<FileDescriptor> filteredAvailableDialogues =
+	public List<ResourcePointer> getAvailableDialogues(String language) {
+		List<ResourcePointer> filteredAvailableDialogues =
 				new ArrayList<>();
 		Locale prefLocale;
 		try {
@@ -458,7 +458,7 @@ public class UserService {
                     language), ex.getMessage());
 			prefLocale = Locale.getDefault();
 		}
-		for (Map<String, FileDescriptor> langMap :
+		for (Map<String, ResourcePointer> langMap :
 				dialogueLanguageMap.values()) {
 			List<String> keys = new ArrayList<>(langMap.keySet());
 			I18nLanguageFinder i18nFinder = new I18nLanguageFinder(keys);
@@ -482,9 +482,9 @@ public class UserService {
 	 * @param language an ISO language tag or null
 	 * @return the dialogue description or null
 	 */
-	public FileDescriptor getDialogueDescriptionFromId(
+	public ResourcePointer getDialogueDescriptionFromId(
 			String dialogueId, String language) {
-		for (FileDescriptor dialogueDescription : this.getAvailableDialogues(language)) {
+		for (ResourcePointer dialogueDescription : this.getAvailableDialogues(language)) {
 			if (dialogueDescription.getDialogueName().equals(dialogueId)) {
 				return dialogueDescription;
 			}
@@ -503,7 +503,7 @@ public class UserService {
 	 * @throws ExecutionException if the dialogue definition is not found
 	 */
 	public Dialogue getDialogueDefinition(
-			FileDescriptor dialogueDescription) throws ExecutionException {
+			ResourcePointer dialogueDescription) throws ExecutionException {
 		return this.applicationManager.getDialogueDefinition(dialogueDescription,
 				translationContext);
 	}
@@ -523,7 +523,7 @@ public class UserService {
 	public DialogueState getDialogueState(ServerLoggedDialogue loggedDialogue,
 										  int loggedInteractionIndex) throws ExecutionException {
 		String dialogueName = loggedDialogue.getDialogueName();
-		FileDescriptor dialogueDescription =
+		ResourcePointer dialogueDescription =
 				getDialogueDescriptionFromId(dialogueName,
 				loggedDialogue.getLanguage());
 		if (dialogueDescription == null) {

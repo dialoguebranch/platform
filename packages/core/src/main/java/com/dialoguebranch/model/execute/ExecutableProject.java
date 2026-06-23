@@ -32,23 +32,25 @@ import com.dialoguebranch.i18n.ContextTranslation;
 import com.dialoguebranch.i18n.Translatable;
 import com.dialoguebranch.i18n.TranslationContext;
 import com.dialoguebranch.i18n.Translator;
+import com.dialoguebranch.model.common.DialogueBranchProject;
 import com.dialoguebranch.model.common.ProjectMetaData;
 import nl.rrd.utils.i18n.I18nLanguageFinder;
 
 import java.util.*;
 
 /**
- * A {@link Project} or Dialogue Branch Project is the top-level element of the Dialogue Branch
- * model.
+ * An {@link ExecutableProject} is the fully parsed, runtime representation of a Dialogue Branch
+ * project. It is the top-level element of the execution model, holding source dialogues,
+ * translated dialogues, and the raw translation maps used to produce them.
  *
  * @author Dennis Hofs
  * @author Harm op den Akker
  */
-public class Project {
+public class ExecutableProject implements DialogueBranchProject {
 	private ProjectMetaData metaData;
-	private Map<FileDescriptor, Dialogue> dialogues = new LinkedHashMap<>();
-	private Map<FileDescriptor, Dialogue> sourceDialogues = new LinkedHashMap<>();
-	private Map<FileDescriptor,
+	private Map<ResourcePointer, Dialogue> dialogues = new LinkedHashMap<>();
+	private Map<ResourcePointer, Dialogue> sourceDialogues = new LinkedHashMap<>();
+	private Map<ResourcePointer,
 			Map<Translatable,List<ContextTranslation>>> translations = new LinkedHashMap<>();
 
 	// -------------------------------------------------------- //
@@ -56,16 +58,16 @@ public class Project {
 	// -------------------------------------------------------- //
 
 	/**
-	 * Creates an empty {@link Project} with no metadata, dialogues, or translations.
+	 * Creates an empty {@link ExecutableProject} with no metadata, dialogues, or translations.
 	 */
-	public Project() { }
+	public ExecutableProject() { }
 
 	/**
-	 * Creates a {@link Project} with the given {@link ProjectMetaData}.
+	 * Creates an {@link ExecutableProject} with the given {@link ProjectMetaData}.
 	 *
 	 * @param metaData the metadata describing this project.
 	 */
-	public Project(ProjectMetaData metaData) {
+	public ExecutableProject(ProjectMetaData metaData) {
 		this.metaData = metaData;
 	}
 
@@ -79,7 +81,7 @@ public class Project {
 	 *
 	 * @return the available dialogues (source and translations with default context)
 	 */
-	public Map<FileDescriptor, Dialogue> getDialogues() {
+	public Map<ResourcePointer, Dialogue> getDialogues() {
 		return dialogues;
 	}
 
@@ -89,7 +91,7 @@ public class Project {
 	 *
 	 * @param dialogues the available dialogues (source and translations with default context)
 	 */
-	public void setDialogues(Map<FileDescriptor, Dialogue> dialogues) {
+	public void setDialogues(Map<ResourcePointer, Dialogue> dialogues) {
 		this.dialogues = dialogues;
 	}
 
@@ -98,7 +100,7 @@ public class Project {
 	 *
 	 * @return the source dialogues (no translations)
 	 */
-	public Map<FileDescriptor, Dialogue> getSourceDialogues() {
+	public Map<ResourcePointer, Dialogue> getSourceDialogues() {
 		return sourceDialogues;
 	}
 
@@ -107,7 +109,7 @@ public class Project {
 	 *
 	 * @param sourceDialogues the source dialogues (no translations)
 	 */
-	public void setSourceDialogues(Map<FileDescriptor, Dialogue> sourceDialogues) {
+	public void setSourceDialogues(Map<ResourcePointer, Dialogue> sourceDialogues) {
 		this.sourceDialogues = sourceDialogues;
 	}
 
@@ -120,7 +122,7 @@ public class Project {
 	 *
 	 * @return the translations
 	 */
-	public Map<FileDescriptor,Map<Translatable,List<ContextTranslation>>>
+	public Map<ResourcePointer,Map<Translatable,List<ContextTranslation>>>
 	getTranslations() {
 		return translations;
 	}
@@ -135,23 +137,23 @@ public class Project {
 	 * @param translations the translations
 	 */
 	public void setTranslations(
-			Map<FileDescriptor,Map<Translatable,List<ContextTranslation>>>
+			Map<ResourcePointer,Map<Translatable,List<ContextTranslation>>>
 					translations) {
 		this.translations = translations;
 	}
 
 	/**
-	 * Returns the {@link ProjectMetaData} associated with this {@link Project}, or
+	 * Returns the {@link ProjectMetaData} associated with this {@link ExecutableProject}, or
 	 * {@code null} if no metadata is associated with this project.
-	 * @return the {@link ProjectMetaData} associated with this {@link Project}.
+	 * @return the {@link ProjectMetaData} associated with this {@link ExecutableProject}.
 	 */
 	public ProjectMetaData getMetaData() {
 		return metaData;
 	}
 
 	/**
-	 * Sets the {@link ProjectMetaData} associated with this {@link Project}.
-	 * @param metaData the {@link ProjectMetaData} associated with this {@link Project}.
+	 * Sets the {@link ProjectMetaData} associated with this {@link ExecutableProject}.
+	 * @param metaData the {@link ProjectMetaData} associated with this {@link ExecutableProject}.
 	 */
 	public void setMetaData(ProjectMetaData metaData) {
 		this.metaData = metaData;
@@ -162,19 +164,19 @@ public class Project {
 	// ------------------------------------------------------- //
 
 	/**
-	 * Returns a list of all supported languages in this {@link Project}. In the case of a
+	 * Returns a list of all supported languages in this {@link ExecutableProject}. In the case of a
 	 * "simple" Dialogue Branch project (i.e. a folder with .dlb and possibly .json files without a
-	 * specific metadata file), this list is derived from the list of {@link FileDescriptor}s in
-	 * this {@link Project}. If a {@link ProjectMetaData} has been set (and a language map has
+	 * specific metadata file), this list is derived from the list of {@link ResourcePointer}s in
+	 * this {@link ExecutableProject}. If a {@link ProjectMetaData} has been set (and a language map has
 	 * been defined therein), this information will be used instead.
-	 * @return a list of all supported languages in this {@link Project}.
+	 * @return a list of all supported languages in this {@link ExecutableProject}.
 	 */
 	public List<String> getLanguages() {
 		List<String> result = new ArrayList<>();
 
 		// If no metaData has been defined, scrape languages from the set of available dialogues
 		if(metaData == null || metaData.getLanguageMap() == null) {
-			for(FileDescriptor fileDescription : dialogues.keySet()) {
+			for(ResourcePointer fileDescription : dialogues.keySet()) {
 				if(!result.contains(fileDescription.getLanguage()))
 					result.add(fileDescription.getLanguage());
 			}
@@ -201,8 +203,8 @@ public class Project {
 	 * @param context the translation context
 	 * @return the translated dialogue or null
 	 */
-	public Dialogue getTranslatedDialogue(FileDescriptor dialogueDescription,
-										  TranslationContext context) {
+	public Dialogue getTranslatedDialogue(ResourcePointer dialogueDescription,
+	                                      TranslationContext context) {
 		Dialogue dialogue = sourceDialogues.get(dialogueDescription);
 		if (dialogue != null)
 			return dialogue;
@@ -217,9 +219,14 @@ public class Project {
 		return translator.translate(dialogue);
 	}
 
+	@Override
+	public List<ResourcePointer> getResourcePointers() {
+		return new ArrayList<>(dialogues.keySet());
+	}
+
 	private Dialogue findSourceDialogue(String dialogueName) {
-		List<FileDescriptor> matches = new ArrayList<>();
-		for (FileDescriptor description : sourceDialogues.keySet()) {
+		List<ResourcePointer> matches = new ArrayList<>();
+		for (ResourcePointer description : sourceDialogues.keySet()) {
 			if (description.getDialogueName().equals(dialogueName))
 				matches.add(description);
 		}
@@ -227,8 +234,8 @@ public class Project {
 			return null;
 		if (matches.size() == 1)
 			return dialogues.get(matches.get(0));
-		Map<String, FileDescriptor> lngMap = new HashMap<>();
-		for (FileDescriptor match : matches) {
+		Map<String, ResourcePointer> lngMap = new HashMap<>();
+		for (ResourcePointer match : matches) {
 			lngMap.put(match.getLanguage(), match);
 		}
 		I18nLanguageFinder finder = new I18nLanguageFinder(new ArrayList<>(lngMap.keySet()));

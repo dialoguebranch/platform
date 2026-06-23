@@ -29,7 +29,7 @@
 package com.dialoguebranch.execution.parser;
 
 import com.dialoguebranch.model.common.DialogueBranchConstants;
-import com.dialoguebranch.model.execute.FileDescriptor;
+import com.dialoguebranch.model.execute.ResourcePointer;
 import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.model.common.ProjectMetaData;
 import nl.rrd.utils.exception.ParseException;
@@ -96,8 +96,8 @@ public class ProjectFileLoader implements FileLoader {
 	// ------------------------------------------------------------------- //
 
 	@Override
-	public List<FileDescriptor> listDialogueBranchFiles() {
-		List<FileDescriptor> result = new ArrayList<>();
+	public List<ResourcePointer> listDialogueBranchFiles() {
+		List<ResourcePointer> result = new ArrayList<>();
 
 		// Get a list of all the language folders
 		List<String> supportedLanguages = projectMetaData.getSupportedLanguageCodes();
@@ -119,10 +119,13 @@ public class ProjectFileLoader implements FileLoader {
 	}
 
 	@Override
-	public Reader openFile(FileDescriptor fileDescription) throws IOException {
+	public Reader openFile(ResourcePointer fileDescription) throws IOException {
+		String extension = fileDescription.getResourceType() == ResourceType.SCRIPT
+				? DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION
+				: DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION;
 		File file = new File(new File(projectMetaData.getBasePath()),
 				fileDescription.getLanguage() + File.separator +
-						fileDescription.getFilePath());
+						fileDescription.getDialogueName() + extension);
 		return new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8);
 	}
 
@@ -144,10 +147,10 @@ public class ProjectFileLoader implements FileLoader {
 	}
 
 	/**
-	 * Recursively generates a list of {@link FileDescriptor} objects from all .dlb
+	 * Recursively generates a list of {@link ResourcePointer} objects from all .dlb
 	 * and/or .json files in the given {@code directory} (and all its subdirectories), under the
 	 * given relative {@code pathName} (relative to the {@code rootDirectory} of this
-	 * {@link DirectoryFileLoader}). Each {@link FileDescriptor} will have its
+	 * {@link DirectoryFileLoader}). Each {@link ResourcePointer} will have its
 	 * language attribute set to the given {@code language} parameter, which is the direct
 	 * sub-folder of the {@code rootDirectory} under which it was found.
 	 *
@@ -155,10 +158,10 @@ public class ProjectFileLoader implements FileLoader {
 	 * @param pathName the relative pathName in which the given {@code directory} can be found.
 	 * @param directory the directory in which to look for .dlb and .json files.
 	 * @return a list of all encountered .dlb and .json files as
-	 *         {@code FileDescriptor}s.
+	 *         {@code ResourcePointer}s.
 	 */
-	private List<FileDescriptor> listDir(String language, String pathName, File directory) {
-		List<FileDescriptor> result = new ArrayList<>();
+	private List<ResourcePointer> listDir(String language, String pathName, File directory) {
+		List<ResourcePointer> result = new ArrayList<>();
 		File[] children = directory.listFiles();
 		if(children != null) {
 			for (File child : children) {
@@ -167,14 +170,18 @@ public class ProjectFileLoader implements FileLoader {
 							child.getName() + "/", child));
 				} else if (child.isFile()) {
 					if (child.getName().endsWith(DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION)) {
-						result.add(new FileDescriptor(
+						String name = child.getName();
+						result.add(new ResourcePointer(
 								language,
-								pathName + child.getName(),
+								pathName + name.substring(0, name.length() -
+										DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION.length()),
 								ResourceType.SCRIPT));
 					} else if (child.getName().endsWith(DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION)) {
-						result.add(new FileDescriptor(
+						String name = child.getName();
+						result.add(new ResourcePointer(
 								language,
-								pathName + child.getName(),
+								pathName + name.substring(0, name.length() -
+										DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION.length()),
 								ResourceType.TRANSLATION));
 					}
 				}

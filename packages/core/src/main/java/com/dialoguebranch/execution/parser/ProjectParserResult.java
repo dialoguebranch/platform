@@ -31,9 +31,9 @@ package com.dialoguebranch.execution.parser;
 import com.dialoguebranch.i18n.ContextTranslation;
 import com.dialoguebranch.i18n.Translatable;
 import com.dialoguebranch.model.execute.Dialogue;
-import com.dialoguebranch.model.execute.FileDescriptor;
+import com.dialoguebranch.model.execute.ResourcePointer;
 import nl.rrd.utils.exception.ParseException;
-import com.dialoguebranch.model.execute.Project;
+import com.dialoguebranch.model.execute.ExecutableProject;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -49,7 +49,7 @@ import java.util.Map;
 public class ProjectParserResult {
 
 	private FileLoader fileLoader;
-	private Project project = null;
+	private ExecutableProject project = null;
 	private Map<String,List<ParseException>> parseErrors = new LinkedHashMap<>();
 	private Map<String,List<String>> warnings = new LinkedHashMap<>();
 
@@ -98,7 +98,7 @@ public class ProjectParserResult {
 	 *
 	 * @return the project or null
 	 */
-	public Project getProject() {
+	public ExecutableProject getProject() {
 		return project;
 	}
 
@@ -107,7 +107,7 @@ public class ProjectParserResult {
 	 *
 	 * @param project the project
 	 */
-	public void setProject(Project project) {
+	public void setProject(ExecutableProject project) {
 		this.project = project;
 	}
 
@@ -209,39 +209,39 @@ public class ProjectParserResult {
 			}
 		}
 
-		Project project = this.getProject();
+		ExecutableProject project = this.getProject();
 		result.append("Project Summary:\n");
 		result.append("Location: ")
 				.append(projectLocationDescription)
 				.append("\n");
 
-		Map<FileDescriptor, Dialogue> sourceDialogues = project.getSourceDialogues();
+		Map<ResourcePointer, Dialogue> sourceDialogues = project.getSourceDialogues();
 		result.append("Number of Dialogue Scripts: ")
 				.append(sourceDialogues.size())
 				.append("\n");
-		for(FileDescriptor dialogueDescription : sourceDialogues.keySet()) {
+		for(ResourcePointer dialogueDescription : sourceDialogues.keySet()) {
 			result.append("  - ")
 					.append(dialogueDescription)
 					.append("\n");
 		}
 
-		Map<FileDescriptor,Map<Translatable,List<ContextTranslation>>> translations =
+		Map<ResourcePointer,Map<Translatable,List<ContextTranslation>>> translations =
 				project.getTranslations();
 		result.append("Number of Translation Scripts: ")
 				.append(translations.size())
 				.append("\n");
-		for(FileDescriptor dialogueDescription : translations.keySet()) {
+		for(ResourcePointer dialogueDescription : translations.keySet()) {
 			result.append("  - ")
 					.append(dialogueDescription)
 					.append("\n");
 		}
 
-		Map<FileDescriptor, Dialogue> dialogues = this.getProject().getDialogues();
+		Map<ResourcePointer, Dialogue> dialogues = this.getProject().getDialogues();
 
-		for (FileDescriptor dialogue : dialogues.keySet()) {
+		for (ResourcePointer dialogue : dialogues.keySet()) {
 			result.append("----------");
 			result.append("DIALOGUE ")
-					.append(dialogue.getFilePath())
+					.append(dialogue.getDialogueName())
 					.append(" (")
 					.append(dialogue.getLanguage())
 					.append(")\n");

@@ -35,6 +35,8 @@ import com.dialoguebranch.execution.parser.ParserResult;
 import com.dialoguebranch.model.common.*;
 import com.dialoguebranch.model.execute.*;
 
+import java.util.ArrayList;
+
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.*;
@@ -51,7 +53,7 @@ import java.util.Map;
  *
  * @author Harm op den Akker
  */
-public class EditableProject extends Editable implements PropertyChangeListener {
+public class EditableProject extends Editable implements DialogueBranchProject, PropertyChangeListener {
 
     /** The project metadata information */
     private ProjectMetaData projectMetaData;
@@ -103,24 +105,53 @@ public class EditableProject extends Editable implements PropertyChangeListener 
     // ----------------------------------------------------------- //
 
     /**
-     * Returns the project metadata object for this {@link EditableProject}.
+     * Returns the {@link ProjectMetaData} for this {@link EditableProject}.
      *
-     * @return the project metadata object for this {@link EditableProject}.
+     * @return the {@link ProjectMetaData} for this {@link EditableProject}.
      */
-    public ProjectMetaData getProjectMetaData() {
+    @Override
+    public ProjectMetaData getMetaData() {
         return this.projectMetaData;
     }
 
     /**
-     * Sets the project metadata object for this {@link EditableProject}.
+     * Sets the {@link ProjectMetaData} for this {@link EditableProject}.
      *
-     * @param projectMetaData the project metadata object for this {@link EditableProject}.
+     * @param metaData the {@link ProjectMetaData} for this {@link EditableProject}.
      */
-    public void setProjectMetaData(ProjectMetaData projectMetaData) {
+    @Override
+    public void setMetaData(ProjectMetaData metaData) {
         ProjectMetaData oldValue = this.projectMetaData;
-        this.projectMetaData = projectMetaData;
+        this.projectMetaData = metaData;
         this.getPropertyChangeSupport().firePropertyChange(
-                PROPERTY_PROJECT_METADATA,oldValue,projectMetaData);
+                PROPERTY_PROJECT_METADATA, oldValue, metaData);
+    }
+
+    /**
+     * Returns a flat list of {@link ResourcePointer}s representing all resources in this
+     * {@link EditableProject}, derived by traversing the available scripts tree.
+     *
+     * @return all resource pointers in this project.
+     */
+    @Override
+    public List<ResourcePointer> getResourcePointers() {
+        List<ResourcePointer> result = new ArrayList<>();
+        for (Map.Entry<Language, ScriptTreeNode> entry : availableScripts.entrySet()) {
+            collectResourcePointers(entry.getKey().getCode(), "", entry.getValue(), result);
+        }
+        return result;
+    }
+
+    private void collectResourcePointers(String language, String prefix,
+                                         ScriptTreeNode node, List<ResourcePointer> result) {
+        for (ScriptTreeNode child : node.getChildren()) {
+            if (child.getResourceType() == ResourceType.FOLDER) {
+                collectResourcePointers(language, prefix + child.getName() + "/", child, result);
+            } else {
+                result.add(new ResourcePointer(language, prefix + child.getName(),
+                        child.getResourceType()));
+            }
+        }
     }
 
     /**

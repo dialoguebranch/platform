@@ -1,0 +1,17 @@
+{
+    "Martin McOwl": {
+        "This is a test script that allows you to test the use of the \"Dialogue Branch External Variable Service Dummy\" application.": "Dit is een testscript waarmee u het gebruik van de \"Dialogue Branch External Variable Service Dummy\" applicatie kunt testen.",
+        "In Dialogue Branch, there are many ways you can cleverly use variables to make dialogues more personalized or interactive.": "In Dialogue Branch zijn er veel manieren om variabelen slim te gebruiken om dialogen persoonlijker of interactiever te maken.",
+        "Variables may be defined within the dialogue script, like we set the 'varServiceExplained' variable right now, and the value is \"$varServiceExplained\".": "Variabelen kunnen worden gedefinieerd binnen het dialoogscript, zoals we de variabele 'varServiceExplained' nu instellen, en de waarde is \"$varServiceExplained\".",
+        "But sometimes you need to collect data from an 'external' source, like a weather API, or your own user database.": "Maar soms moet u gegevens ophalen uit een 'externe' bron, zoals een weer-API of uw eigen gebruikersdatabase.",
+        "That is what the 'Dialogue Branch External Variable Service' is for. It allows you to connect the Web Service to an external source of variable data, which you can build yourself to provide whatever data you like.": "Daarvoor is de 'Dialogue Branch External Variable Service'. Hiermee kunt u de webservice verbinden met een externe bron van variabelengegevens, die u zelf kunt bouwen om welke gegevens u maar wilt aan te leveren.",
+        "Does that make a sense?": "Is dat duidelijk?",
+        "Okay, the following information should be provided by the Dummy implementation of the External Variable Service. The current date is $currentDate, and the current time is $currentTime.": "Oké, de volgende informatie zou geleverd moeten worden door de Dummy implementatie van de External Variable Service. De huidige datum is $currentDate, en de huidige tijd is $currentTime."
+    },
+    "_user": {
+        "Whoah?! What is that all about?": "Wauw?! Waar gaat dat allemaal over?",
+        "Okay, let's do the test.": "Oké, laten we de test uitvoeren.",
+        "Please, explain me again.": "Leg het me nog eens uit, alstublieft.",
+        "Yes, let's run the test.": "Ja, laten we de test uitvoeren."
+    }
+}

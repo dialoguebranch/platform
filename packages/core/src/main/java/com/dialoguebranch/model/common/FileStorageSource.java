@@ -36,7 +36,7 @@ import java.io.File;
  *
  * @author Harm op den Akker
  */
-public class FileStorageSource extends StorageSource {
+public class FileStorageSource implements StorageSource {
 
     File sourceFile;
 
@@ -45,7 +45,6 @@ public class FileStorageSource extends StorageSource {
      * @param sourceFile the source file.
      */
     public FileStorageSource(File sourceFile) {
-        super();
         this.sourceFile = sourceFile;
     }
 
