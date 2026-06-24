@@ -8,3 +8,7 @@ secrets.properties
 # Ignore Gradle project-specific cache directory
 .gradle
 .vscode/settings.json
+
+# API runtime-generated data (logs, dialogue sessions)
+apps/api/config/log/
+apps/api/config/dialogues/
