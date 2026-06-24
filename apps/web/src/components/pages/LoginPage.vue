@@ -68,8 +68,17 @@ function validateInput() {
 }
 
 function onLoginSuccess(responseJson) {
-    logEvent('auth', 'Login succeeded', { user: responseJson.user, roles: responseJson.roles });
-    
+    const roles = responseJson.roles ?? [];
+    const hasAccess = roles.includes('admin') || roles.includes('editor');
+    if (!hasAccess) {
+        logEvent('auth', 'Login rejected — insufficient privileges', { user: responseJson.user, roles });
+        inputs.username.focus();
+        errorMessage.value = 'Your account does not have the required privileges to access this application.';
+        return;
+    }
+
+    logEvent('auth', 'Login succeeded', { user: responseJson.user, roles });
+
     const user = new User(
         responseJson.user,
         responseJson.roles,
