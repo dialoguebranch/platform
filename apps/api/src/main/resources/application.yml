@@ -2,24 +2,35 @@
 #
 # Build-time values (version, buildTime) are injected from deployment.properties,
 # which is updated by the Gradle tasks updateVersion and updateConfig.
+#
+# All dlb.* properties can be overridden at runtime via environment variables:
+#   dlb.base-url                        → DLB_BASE_URL
+#   dlb.mariadb.host                    → DLB_MARIADB_HOST
+#   dlb.mariadb.password                → DLB_MARIADB_PASSWORD
+#   dlb.auth.service                    → DLB_AUTH_SERVICE
+#   dlb.auth.keycloak.client-secret     → DLB_AUTH_KEYCLOAK_CLIENT_SECRET
+#   dlb.auth.jwt-access-token-secret    → DLB_AUTH_JWT_ACCESS_TOKEN_SECRET
+#
+# The defaults below are tuned for local development (compose-dev.yml).
+# Production deployments must override all credentials via environment variables.
 
 spring:
   config:
     import:
       - optional:classpath:deployment.properties
   datasource:
-    url: jdbc:mariadb://${DLB_MARIADB_HOST:mariadb}:${DLB_MARIADB_PORT:3306}/${DLB_MARIADB_DATABASE:dialoguebranch}?createDatabaseIfNotExist=true
-    username: ${DLB_MARIADB_USER:root}
-    password: ${DLB_MARIADB_PASSWORD:}
+    url: jdbc:mariadb://${dlb.mariadb.host}:${dlb.mariadb.port}/${dlb.mariadb.database}?createDatabaseIfNotExist=true
+    username: ${dlb.mariadb.user}
+    password: ${dlb.mariadb.password}
     driver-class-name: org.mariadb.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: none
     open-in-view: false
   flyway:
-    url: jdbc:mariadb://${DLB_MARIADB_HOST:mariadb}:${DLB_MARIADB_PORT:3306}/${DLB_MARIADB_DATABASE:dialoguebranch}?createDatabaseIfNotExist=true
-    user: ${DLB_MARIADB_USER:root}
-    password: ${DLB_MARIADB_PASSWORD:}
+    url: jdbc:mariadb://${dlb.mariadb.host}:${dlb.mariadb.port}/${dlb.mariadb.database}?createDatabaseIfNotExist=true
+    user: ${dlb.mariadb.user}
+    password: ${dlb.mariadb.password}
     locations: classpath:db/migration
 
 management:
@@ -46,16 +57,6 @@ springdoc:
 
 # ----------------------------------------------------------------------------------
 # Dialogue Branch Web Service configuration (all properties under the "dlb" prefix).
-#
-# Any property can be overridden at runtime via an environment variable by converting
-# the property path to SCREAMING_SNAKE_CASE and prepending DLB_:
-#
-#   dlb.base-url                        → DLB_BASE_URL
-#   dlb.mariadb.host                    → DLB_MARIADB_HOST
-#   dlb.mariadb.password                → DLB_MARIADB_PASSWORD
-#   dlb.auth.service                    → DLB_AUTH_SERVICE
-#   dlb.auth.keycloak.client-secret     → DLB_AUTH_KEYCLOAK_CLIENT_SECRET
-#   dlb.auth.jwt-access-token-secret    → DLB_AUTH_JWT_ACCESS_TOKEN_SECRET
 # ----------------------------------------------------------------------------------
 
 dlb:
@@ -68,13 +69,13 @@ dlb:
 
   # ---- CORS ----
   cors:
-    # Origins allowed to make cross-origin requests. In production, set
-    # DLB_CORS_ALLOWED_ORIGINS to a comma-separated list of your actual domains.
     allowed-origins:
       - http://localhost:5173
 
-  # Filesystem path to the service data directory
-  data-dir: /usr/local/dialogue-branch/data/dlb-web-service
+  # Filesystem path to the service data directory.
+  # Relative paths resolve from the working directory (apps/api/ when using bootRun).
+  # Override with DLB_DATA_DIR in production.
+  data-dir: config
 
   # Whether anonymous user accounts may be created via the REST API
   allow-anonymous-users: false
@@ -84,7 +85,8 @@ dlb:
     host: localhost
     port: 3306
     user: root
-    password: ""
+    # Default matches compose-dev.yml. Override with DLB_MARIADB_PASSWORD in production.
+    password: dev
     database: dialoguebranch
 
   # ---- Authentication ----
@@ -94,15 +96,18 @@ dlb:
 
     # Keycloak settings (required when service = keycloak)
     keycloak:
-      base-url: http://keycloak:8080/
+      base-url: http://localhost:8081/
       realm: dialoguebranch
       client-id: dlb-web-service
-      client-secret: ""
+      # Default matches compose-dev.yml. Override with DLB_AUTH_KEYCLOAK_CLIENT_SECRET in production.
+      client-secret: dev-client-secret
 
-    # Native JWT settings (required when service = native)
-    jwt-access-token-secret: ""
+    # Native JWT settings (required when service = native).
+    # These are public development defaults — production MUST override with strong random secrets:
+    #   openssl rand -base64 64
+    jwt-access-token-secret: n47zoYup4MtUqBpGyQlXIzdAp9oDr8nuttJcfV1XUeG8R3LMyPcAYvTRFfuLrKuqeYRSY/h+ln8ve93jV24VNA==
     access-token-expiration-seconds: 300
-    jwt-refresh-token-secret: ""
+    jwt-refresh-token-secret: Fy01u/aRN3TmjDJB/nBQI+M5R7ZGlIpL0ZpX4M8VwflP+JKoJFb3FIQKwvaQCpDzW8dV9SgQXnhAZue3N15hAg==
     refresh-token-expiration-seconds: 1800
 
   # ---- External Variable Service ----
@@ -111,4 +116,3 @@ dlb:
     url: ""
     api-version: 1
     api-key: ""
-
