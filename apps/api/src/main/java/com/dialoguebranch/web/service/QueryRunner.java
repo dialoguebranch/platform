@@ -79,7 +79,8 @@ public class QueryRunner {
 	 *                   Internal Server Error.
 	 */
 	public static <T> T runQuery(AuthQuery<T> query, String versionName, String providedAccessToken,
-			HttpServletResponse response, String delegateUser, Application application)
+			HttpServletResponse response, String delegateUser, Application application,
+			String... requiredRoles)
 			throws HttpException {
 		ProtocolVersion version;
 		try {
@@ -92,6 +93,26 @@ public class QueryRunner {
 
 			if (providedAccessToken != null)
 				authenticationInfo = validateAccessToken(providedAccessToken, application);
+
+			// Check that the authenticated user has at least one of the required roles
+			if (requiredRoles.length > 0) {
+				boolean hasRequiredRole = false;
+				if (authenticationInfo != null) {
+					for (String role : requiredRoles) {
+						if (authenticationInfo.hasRole(role)) {
+							hasRequiredRole = true;
+							break;
+						}
+					}
+				}
+				if (!hasRequiredRole) {
+					String userIdentifier = authenticationInfo != null
+							? authenticationInfo.getUsername() : "Unknown";
+					throw new UnauthorizedException(ErrorCode.INSUFFICIENT_PRIVILEGES,
+							"User '" + userIdentifier + "' does not have the required role to " +
+							"access this endpoint.");
+				}
+			}
 
 			// If the request was made for "this" (authenticated) user
 			if(delegateUser == null || delegateUser.isEmpty()) {
@@ -230,28 +251,28 @@ public class QueryRunner {
 	}
 
 	private static String[] extractKeycloakRoles(Jwt jwt) {
-		try {
-			Map<String, Object> resourceAccess = jwt.getClaim("resource_access");
-			if (resourceAccess == null)
-				throw new IllegalStateException("No resource_access claim");
-
-			@SuppressWarnings("unchecked")
-			Map<String, Object> serviceRoles =
-					(Map<String, Object>) resourceAccess.get("dlb-web-service");
-			if (serviceRoles == null)
-				throw new IllegalStateException("No dlb-web-service entry in resource_access");
-
-			@SuppressWarnings("unchecked")
-			List<String> rolesList = (List<String>) serviceRoles.get("roles");
-			if (rolesList == null || rolesList.isEmpty())
-				throw new IllegalStateException("No roles found");
-
-			return rolesList.toArray(new String[0]);
-		} catch (Exception e) {
-			logger.warn("Unable to extract role information from Keycloak JWT: {}. " +
-					"Assuming role 'client'.", e.getMessage());
-			return new String[]{"client"};
+		Map<String, Object> resourceAccess = jwt.getClaim("resource_access");
+		if (resourceAccess == null) {
+			logger.warn("No resource_access claim found in Keycloak JWT — user has no roles.");
+			return new String[0];
 		}
+
+		Object serviceEntry = resourceAccess.get("dlb-web-service");
+		if (!(serviceEntry instanceof Map<?, ?> serviceRoles)) {
+			logger.warn("No dlb-web-service entry in resource_access claim — user has no roles.");
+			return new String[0];
+		}
+
+		Object rolesList = serviceRoles.get("roles");
+		if (!(rolesList instanceof List<?> rawList)) {
+			logger.warn("No roles list found under dlb-web-service in resource_access claim — user has no roles.");
+			return new String[0];
+		}
+
+		return rawList.stream()
+				.filter(r -> r instanceof String)
+				.map(r -> (String) r)
+				.toArray(String[]::new);
 	}
 
 }

@@ -40,6 +40,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.ProtocolVersion;
 import com.dialoguebranch.web.service.QueryRunner;
+import com.dialoguebranch.web.service.auth.basic.BasicUserCredentials;
 import com.dialoguebranch.web.service.controller.schema.OngoingDialoguePayload;
 import com.dialoguebranch.web.service.exception.BadRequestException;
 import com.dialoguebranch.web.service.exception.HttpException;
@@ -188,12 +189,12 @@ public class DialogueController {
 			return QueryRunner.runQuery(
 					(protocolVersion, user) -> doStartDialogue(user, dialogueName,
 							language, timeZone, sessionId),
-					version, accessToken, response, delegateUser, application);
+					version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
 					(protocolVersion, user) -> doStartDialogue(delegateUser, dialogueName,
 							language, timeZone, sessionId),
-					version, accessToken, response, delegateUser, application);
+					version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}
 	}
 
@@ -331,12 +332,12 @@ public class DialogueController {
 			return QueryRunner.runQuery(
 				(protocolVersion, user) -> doProgressDialogue(user, request,
 						loggedDialogueId, loggedInteractionIndex, replyId),
-				version, accessToken, response, delegateUser, application);
+				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
 				(protocolVersion, user) -> doProgressDialogue(delegateUser, request,
 					loggedDialogueId, loggedInteractionIndex, replyId),
-				version, accessToken, response, delegateUser, application);
+				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}
 	}
 
@@ -480,12 +481,12 @@ public class DialogueController {
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
 					(protocolVersion, user) -> doContinueDialogue(user, dialogueName, timeZone),
-					version, accessToken, response, delegateUser, application);
+					version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
 					(protocolVersion, user) ->
 							doContinueDialogue(delegateUser, dialogueName, timeZone),
-					version, accessToken, response, delegateUser, application);
+					version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}
 	}
 
@@ -608,10 +609,10 @@ public class DialogueController {
 
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			QueryRunner.runQuery((protocolVersion, user) -> doCancelDialogue(user,
-				loggedDialogueId), version, accessToken, response, delegateUser, application);
+				loggedDialogueId), version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
 			QueryRunner.runQuery((protocolVersion, user) -> doCancelDialogue(delegateUser,
-				loggedDialogueId), version, accessToken, response, delegateUser, application);
+				loggedDialogueId), version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}
 	}
 
@@ -728,12 +729,12 @@ public class DialogueController {
 			return QueryRunner.runQuery(
 				(protocolVersion, user) -> doBackDialogue(user, loggedDialogueId,
 						loggedInteractionIndex),
-				version, accessToken, response, delegateUser, application);
+				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
 				(protocolVersion, user) -> doBackDialogue(delegateUser, loggedDialogueId,
 						loggedInteractionIndex),
-				version, accessToken, response, delegateUser, application);
+				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}
 	}
 
@@ -853,11 +854,11 @@ public class DialogueController {
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
 					(protocolVersion, user) -> doGetOngoingDialogue(user, timeZone),
-					version, accessToken, response, delegateUser, application);
+					version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
 					(protocolVersion, user) -> doGetOngoingDialogue(delegateUser, timeZone),
-					version, accessToken, response, delegateUser, application);
+					version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}
 	}
 

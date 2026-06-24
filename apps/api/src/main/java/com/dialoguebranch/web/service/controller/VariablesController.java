@@ -34,6 +34,7 @@ import com.dialoguebranch.execution.VariableStoreChange;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.ProtocolVersion;
 import com.dialoguebranch.web.service.QueryRunner;
+import com.dialoguebranch.web.service.auth.basic.BasicUserCredentials;
 import com.dialoguebranch.web.service.exception.BadRequestException;
 import com.dialoguebranch.web.service.exception.ErrorCode;
 import com.dialoguebranch.web.service.exception.HttpError;
@@ -163,11 +164,11 @@ public class VariablesController {
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
 				(protocolVersion, user) -> doGetVariables(user, variableNameList, timeZone),
-				version, accessToken, response, delegateUser, application);
+				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
 				(protocolVersion, user) -> doGetVariables(delegateUser, variableNameList, timeZone),
-				version, accessToken, response, delegateUser, application);
+				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}
 	}
 
@@ -303,11 +304,11 @@ public class VariablesController {
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			QueryRunner.runQuery((protocolVersion, user) ->
 				doSetVariable(user, name, value, timeZone),
-				version, accessToken, response, delegateUser, application);
+				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
 			QueryRunner.runQuery((protocolVersion, user) ->
 				doSetVariable(delegateUser, name, value, timeZone),
-				version, accessToken, response, delegateUser, application);
+				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}
 	}
 
@@ -423,11 +424,11 @@ public class VariablesController {
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			QueryRunner.runQuery((protocolVersion, user) ->
 							doSetVariables(user, variables, timeZone),
-				version, accessToken, response, delegateUser, application);
+				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
 			QueryRunner.runQuery((protocolVersion, user) ->
 							doSetVariables(delegateUser, variables, timeZone),
-				version, accessToken, response, delegateUser, application);
+				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}
 	}
 
