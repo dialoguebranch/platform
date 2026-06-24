@@ -2,6 +2,7 @@ import { inject } from 'vue';
 import { DialogueBranchClient } from '../dlb-lib/DialogueBranchClient.js';
 import { User } from '../dlb-lib/model/User.js';
 import { DocumentFunctions } from '../dlb-lib/util/DocumentFunctions.js';
+import { logEvent } from './debug-log.js';
 
 class StateManagement {
     constructor(stateRef, config) {
@@ -10,6 +11,7 @@ class StateManagement {
     }
 
     logout() {
+        logEvent('auth', 'User logged out');
         DocumentFunctions.deleteCookie('user.name');
         DocumentFunctions.deleteCookie('user.roles');
         DocumentFunctions.deleteCookie('user.accessToken');
@@ -23,9 +25,11 @@ class StateManagement {
         const currentUser = this._stateRef.value.user;
         if (!currentUser) return Promise.reject('No user logged in');
 
+        logEvent('auth', 'Token refresh triggered', { secondsRemaining: Math.round(currentUser.accessTokenSecondsToLive) });
         const client = new DialogueBranchClient(this._config.baseUrl, null);
         return client.refresh(currentUser.refreshToken)
             .then((json) => {
+                logEvent('auth', 'Token refresh succeeded');
                 const user = new User(
                     currentUser.name,
                     currentUser.roles,
@@ -41,6 +45,7 @@ class StateManagement {
                 this._stateRef.value.user = user;
             })
             .catch(() => {
+                logEvent('auth', 'Token refresh failed — logging out');
                 this.logout();
             });
     }
