@@ -28,25 +28,32 @@
 
 package com.dialoguebranch.web.service;
 
-import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.auth.AuthenticationInfo;
 import com.dialoguebranch.web.service.auth.basic.BasicUserCredentials;
 import com.dialoguebranch.web.service.auth.jwt.JWTUtils;
 import com.dialoguebranch.web.service.exception.*;
-import nl.rrd.utils.AppComponents;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
-import org.slf4j.Logger;
-
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 /**
  * This class can run queries. It can validate an authentication token.
- * 
+ *
  * @author Dennis Hofs
  * @author Harm op den Akker
  */
 public class QueryRunner {
+
+	private static final Logger logger = LoggerFactory.getLogger(QueryRunner.class);
 
 	/** Utility class — not instantiated. */
 	private QueryRunner() { }
@@ -117,8 +124,7 @@ public class QueryRunner {
 		} catch (HttpException ex) {
 			throw ex;
 		} catch (Exception ex) {
-			Logger logger = AppComponents.getLogger(QueryRunner.class.getSimpleName());
-            logger.error("Internal Server Error: {}", ex.getMessage(), ex);
+			logger.error("Internal Server Error: {}", ex.getMessage(), ex);
 			throw new InternalServerErrorException();
 		}
 	}
@@ -140,12 +146,12 @@ public class QueryRunner {
 			throws UnauthorizedException {
 
 		if(application.getDlbProperties().getAuth().getService().equals(DlbProperties.AUTH_SERVICE_KEYCLOAK))
-			return validateKeycloakAccessToken(providedAccessToken, application);
+			return validateKeycloakAccessToken();
 		else
 			return validateNativeAccessToken(providedAccessToken, application);
 
 	}
-	
+
 	/**
 	 * Validates the given token from request header, using the built-in user management and token
 	 * system. If it's empty or invalid, it will throw an HttpException with 401 Unauthorized.
@@ -160,7 +166,6 @@ public class QueryRunner {
 	 */
 	private static AuthenticationInfo validateNativeAccessToken(String token, Application application)
 			throws UnauthorizedException {
-		Logger logger = AppComponents.getLogger(QueryRunner.class.getSimpleName());
 
 		AuthenticationInfo authenticationInfo;
 		try {
@@ -169,7 +174,7 @@ public class QueryRunner {
 			throw new UnauthorizedException(ErrorCode.AUTH_TOKEN_EXPIRED,
 					"Authentication token expired");
 		} catch (JwtException ex) {
-            logger.info("Invalid authentication token: failed to parse: {}", ex.getMessage());
+			logger.info("Invalid authentication token: failed to parse: {}", ex.getMessage());
 			throw new UnauthorizedException(ErrorCode.AUTH_TOKEN_INVALID,
 					"Authentication token invalid");
 		}
@@ -177,7 +182,7 @@ public class QueryRunner {
 		BasicUserCredentials userCredentials = application.getApplicationManager()
 				.getUserCredentialsForUsername(authenticationInfo.getUsername());
 		if (userCredentials == null) {
-            logger.info("Invalid authentication token: user not found: {}",
+			logger.info("Invalid authentication token: user not found: {}",
 					authenticationInfo.getUsername());
 			throw new UnauthorizedException(ErrorCode.AUTH_TOKEN_INVALID,
 					"Authentication token invalid");
@@ -193,19 +198,60 @@ public class QueryRunner {
 	}
 
 	/**
-	 * Validates the given Keycloak token from request header. If it's empty or invalid, it will
-	 * throw an HttpException with 401 Unauthorized. Otherwise, it will return the user object for
-	 * the authenticated user.
+	 * Extracts the validated Keycloak {@link AuthenticationInfo} from the Spring Security context.
+	 * Token validation has already been performed by the OAuth2 resource server filter before
+	 * this method is called.
 	 *
-	 * @param token the authentication token (not null)
-	 * @param application the {@link Application} context used to access the Keycloak manager in a
-	 *                    non-static way.
-	 * @return the {@link AuthenticationInfo} object representing the authenticated user
-	 * @throws UnauthorizedException if the token is empty or invalid
+	 * @return the {@link AuthenticationInfo} extracted from the validated JWT
+	 * @throws UnauthorizedException if no valid JWT authentication is found in the security context
 	 */
-	private static AuthenticationInfo validateKeycloakAccessToken(String token, Application application)
-			throws UnauthorizedException{
-		return application.getApplicationManager().getKeycloakManager().validateAccessToken(token);
+	private static AuthenticationInfo validateKeycloakAccessToken() throws UnauthorizedException {
+		var authentication = SecurityContextHolder.getContext().getAuthentication();
+		if (!(authentication instanceof JwtAuthenticationToken jwtAuth)) {
+			throw new UnauthorizedException(ErrorCode.AUTH_TOKEN_INVALID,
+					"Authentication token invalid");
+		}
+		return authenticationInfoFromKeycloakJwt(jwtAuth.getToken());
+	}
+
+	/**
+	 * Converts a Spring Security {@link Jwt} (issued by Keycloak) into an {@link AuthenticationInfo}
+	 * by extracting the {@code preferred_username} and {@code resource_access} claims.
+	 *
+	 * @param jwt the validated Keycloak JWT
+	 * @return the corresponding {@link AuthenticationInfo}
+	 */
+	public static AuthenticationInfo authenticationInfoFromKeycloakJwt(Jwt jwt) {
+		String username = jwt.getClaimAsString("preferred_username");
+		String[] roles = extractKeycloakRoles(jwt);
+		Date issuedAt = jwt.getIssuedAt() != null ? Date.from(jwt.getIssuedAt()) : new Date();
+		Date expiration = jwt.getExpiresAt() != null ? Date.from(jwt.getExpiresAt()) : null;
+		return new AuthenticationInfo(username, roles, issuedAt, expiration);
+	}
+
+	private static String[] extractKeycloakRoles(Jwt jwt) {
+		try {
+			Map<String, Object> resourceAccess = jwt.getClaim("resource_access");
+			if (resourceAccess == null)
+				throw new IllegalStateException("No resource_access claim");
+
+			@SuppressWarnings("unchecked")
+			Map<String, Object> serviceRoles =
+					(Map<String, Object>) resourceAccess.get("dlb-web-service");
+			if (serviceRoles == null)
+				throw new IllegalStateException("No dlb-web-service entry in resource_access");
+
+			@SuppressWarnings("unchecked")
+			List<String> rolesList = (List<String>) serviceRoles.get("roles");
+			if (rolesList == null || rolesList.isEmpty())
+				throw new IllegalStateException("No roles found");
+
+			return rolesList.toArray(new String[0]);
+		} catch (Exception e) {
+			logger.warn("Unable to extract role information from Keycloak JWT: {}. " +
+					"Assuming role 'client'.", e.getMessage());
+			return new String[]{"client"};
+		}
 	}
 
 }

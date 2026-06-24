@@ -51,6 +51,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
@@ -76,6 +77,9 @@ public class AuthController {
 
 	@Autowired
 	Application application;
+
+	@Autowired(required = false)
+	JwtDecoder jwtDecoder;
 
 	/** Used for executing QueryRunner operations in a thread-safe manner */
 	private static final Object AUTH_LOCK = new Object();
@@ -320,11 +324,10 @@ public class AuthController {
             logger.info("Call to Keycloak token end-point successful.");
             KeycloakTokenResponse keyCloakResponse = response.getBody();
             if (keyCloakResponse != null) {
-				// Validate the received token, in order to get the roles.
+				// Decode the received token to extract roles.
 				String accessToken = keyCloakResponse.getAccessToken();
 				AuthenticationInfo authenticationInfo =
-						application.getApplicationManager().getKeycloakManager()
-								.validateAccessToken(accessToken);
+						QueryRunner.authenticationInfoFromKeycloakJwt(jwtDecoder.decode(accessToken));
 
                 return new LoginResultPayload(
 						loginParametersPayload.getUser(),
@@ -498,11 +501,10 @@ public class AuthController {
 					" successful.");
 			KeycloakTokenResponse keyCloakResponse = response.getBody();
 			if (keyCloakResponse != null) {
-				// Validate the received token, in order to get the roles.
+				// Decode the received token to extract username and roles.
 				String accessToken = keyCloakResponse.getAccessToken();
 				AuthenticationInfo authenticationInfo =
-						application.getApplicationManager().getKeycloakManager()
-								.validateAccessToken(accessToken);
+						QueryRunner.authenticationInfoFromKeycloakJwt(jwtDecoder.decode(accessToken));
 
 				return new LoginResultPayload(
 						authenticationInfo.getUsername(),

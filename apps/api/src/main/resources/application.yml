@@ -49,6 +49,13 @@ dlb:
   # Public base URL where this service is reachable
   base-url: http://localhost:8089/dlb-web-service
 
+  # ---- CORS ----
+  cors:
+    # Origins allowed to make cross-origin requests. In production, set
+    # DLB_CORS_ALLOWED_ORIGINS to a comma-separated list of your actual domains.
+    allowed-origins:
+      - http://localhost:5173
+
   # Filesystem path to the service data directory
   data-dir: /usr/local/dialogue-branch/data/dlb-web-service
 
