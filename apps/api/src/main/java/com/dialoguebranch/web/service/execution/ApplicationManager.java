@@ -41,7 +41,7 @@ import com.dialoguebranch.web.service.auth.basic.BasicUserCredentials;
 import com.dialoguebranch.web.service.auth.basic.BasicUserFile;
 import com.dialoguebranch.web.service.auth.keycloak.KeycloakManager;
 import com.dialoguebranch.web.service.exception.DLBServiceConfigurationException;
-import com.dialoguebranch.web.service.storage.VariableStoreDatabaseStorageHandler;
+import com.dialoguebranch.web.service.storage.VariableStoreStorageHandler;
 import nl.rrd.utils.AppComponents;
 import nl.rrd.utils.exception.DatabaseException;
 import nl.rrd.utils.exception.ParseException;
@@ -111,13 +111,14 @@ public class ApplicationManager {
 	 * @throws DLBServiceConfigurationException if any project cannot be loaded due to parse errors
 	 *                                          or configuration problems.
 	 */
-	public ApplicationManager(DlbProperties dlbProperties) throws DLBServiceConfigurationException {
+	public ApplicationManager(DlbProperties dlbProperties,
+							  VariableStoreStorageHandler storageHandler)
+			throws DLBServiceConfigurationException {
 		this.dlbProperties = dlbProperties;
 
 		loadAllProjects();
 
-		this.userServiceFactory = new UserServiceFactory(this,
-				new VariableStoreDatabaseStorageHandler());
+		this.userServiceFactory = new UserServiceFactory(this, storageHandler);
 
 		if (dlbProperties.getAuth().getService().equals(DlbProperties.AUTH_SERVICE_KEYCLOAK)) {
 			keycloakManager = new KeycloakManager(dlbProperties);

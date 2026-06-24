@@ -1,31 +1,3 @@
-/*
- *
- *                 Copyright (c) 2023-2026 Dialogue Branch (www.dialoguebranch.com)
- *
- *
- *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
- *                                        as outlined below.
- *
- *                                            ----------
- *
- * Copyright (c) 2023-2026 Dialogue Branch (www.dialoguebranch.com)
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
- * associated documentation files (the "Software"), to deal in the Software without restriction,
- * including without limitation the rights to use, copy, modify, merge, publish, distribute,
- * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all copies or
- * substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
- * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
-
 package com.dialoguebranch.web.service.storage;
 
 import com.dialoguebranch.execution.User;
@@ -34,151 +6,93 @@ import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.VariableStoreChange;
 import com.dialoguebranch.web.service.models.DBUser;
 import com.dialoguebranch.web.service.models.DBVariable;
-import nl.rrd.utils.AppComponents;
+import com.dialoguebranch.web.service.repository.DBUserRepository;
+import com.dialoguebranch.web.service.repository.DBVariableRepository;
 import nl.rrd.utils.datetime.DateTimeUtils;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.json.JsonMapper;
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
 import org.slf4j.Logger;
-import org.springframework.util.ClassUtils;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Supplier;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-/**
- * A {@link VariableStoreStorageHandler} implementation that persists Dialogue Branch Variable
- * data to a MariaDB database via Hibernate JPA. Variable values are stored as JSON strings in
- * the {@code variables} table and read back into a {@link com.dialoguebranch.execution.VariableStore}
- * on demand.
- *
- * @author Harm op den Akker
- */
+@Service
 public class VariableStoreDatabaseStorageHandler implements VariableStoreStorageHandler {
 
-    /** Creates a new {@link VariableStoreDatabaseStorageHandler} instance. */
-    public VariableStoreDatabaseStorageHandler() { }
+    private static final Logger logger =
+            LoggerFactory.getLogger(VariableStoreDatabaseStorageHandler.class);
 
-    private final Logger logger =
-            AppComponents.getLogger(ClassUtils.getUserClass(getClass()).getSimpleName());
+    private final DBUserRepository userRepository;
+    private final DBVariableRepository variableRepository;
 
-    /**
-     * Reads all stored Dialogue Branch Variables for the given user from the database and returns
-     * them as a populated {@link com.dialoguebranch.execution.VariableStore}.
-     *
-     * @param user the user for whom to load the variable store.
-     * @return a {@link com.dialoguebranch.execution.VariableStore} populated with the user's variables.
-     * @throws IOException if a database access error occurs.
-     * @throws ParseException if a variable value cannot be deserialized from JSON.
-     */
+    public VariableStoreDatabaseStorageHandler(DBUserRepository userRepository,
+                                               DBVariableRepository variableRepository) {
+        this.userRepository = userRepository;
+        this.variableRepository = variableRepository;
+    }
+
     @Override
+    @Transactional
     public VariableStore read(User user) throws IOException, ParseException {
-		final List<DBVariable> dbVariables = new ArrayList<>();
+        DBUser dbUser = getOrCreateUser(user.getId());
+        List<DBVariable> dbVariables = variableRepository.findByUser(dbUser);
 
-		getSessionFactory().inTransaction(session -> {
-			DBUser dbUser = getDBUser(session, user.getId());
-
-			dbVariables.addAll(session.createSelectionQuery(
-					"from DBVariable where user.id = :userId", DBVariable.class)
-					.setParameter("userId", dbUser.getId())
-					.getResultList());
-		});
-
-		List<Variable> variables = new ArrayList<>();
-		for (DBVariable dbVariable : dbVariables) {
-			ZonedDateTime now = DateTimeUtils.nowMs();
-			variables.add(new Variable(dbVariable.getName(),
-					JsonMapper.parse(dbVariable.getValue(), Object.class),
-					now.toInstant().toEpochMilli(),
-					now.getZone().getId()));
-		}
-
-		return new VariableStore(user, variables.toArray(new Variable[0]));
+        List<Variable> variables = new ArrayList<>();
+        for (DBVariable dbVariable : dbVariables) {
+            ZonedDateTime now = DateTimeUtils.nowMs();
+            variables.add(new Variable(dbVariable.getName(),
+                    JsonMapper.parse(dbVariable.getValue(), Object.class),
+                    now.toInstant().toEpochMilli(),
+                    now.getZone().getId()));
+        }
+        return new VariableStore(user, variables.toArray(new Variable[0]));
     }
 
-    /**
-     * Writes the full contents of the given {@link com.dialoguebranch.execution.VariableStore} to
-     * the database, creating or updating records as needed and removing any variables that are no
-     * longer present in the store.
-     *
-     * @param variableStore the variable store to persist.
-     * @throws IOException if a database access error occurs.
-     */
     @Override
+    @Transactional
     public void write(VariableStore variableStore) throws IOException {
-		getSessionFactory().inTransaction(session -> {
-			DBUser dbUser = getDBUser(session, variableStore.getUser().getId());
+        DBUser dbUser = getOrCreateUser(variableStore.getUser().getId());
+        List<DBVariable> existingVars = variableRepository.findByUser(dbUser);
 
-			List<DBVariable> prevDbVariables = session.createSelectionQuery(
-					"from DBVariable where user.id = :userId", DBVariable.class)
-					.setParameter("userId", dbUser.getId())
-					.getResultList();
+        Set<String> newVarNames = Arrays.stream(variableStore.getVariables())
+                .map(Variable::getName)
+                .collect(Collectors.toSet());
 
-			// create or update current variables
-			for (Variable variable : variableStore.getVariables()) {
-				DBVariable dbVariable = prevDbVariables.stream()
-						.filter(prevDbVariable -> prevDbVariable.getName().equals(variable.getName()))
-						.findFirst()
-						.orElseGet(() -> {
-							DBVariable newDbVariable = new DBVariable(variable.getName(), null);
-							newDbVariable.setUser(dbUser);
-							return newDbVariable;
-						});
-				dbVariable.setValue(JsonMapper.generate(variable.getValue()));
-				session.persist(dbVariable);
-			}
+        // delete variables no longer present in the store
+        existingVars.stream()
+                .filter(v -> !newVarNames.contains(v.getName()))
+                .forEach(variableRepository::delete);
 
-			// delete old variables
-			List<String> varNames = Arrays.stream(variableStore.getVariables())
-					.map(Variable::getName)
-					.toList();
-			for (DBVariable prevDbVariable : prevDbVariables) {
-				if (!varNames.contains(prevDbVariable.getName())) {
-					session.createMutationQuery("delete from DBVariable where id = :id")
-							.setParameter("id", prevDbVariable.getId())
-							.executeUpdate();
-				}
-			}
-		});
+        // create or update current variables
+        for (Variable variable : variableStore.getVariables()) {
+            DBVariable dbVariable = variableRepository
+                    .findByUserAndName(dbUser, variable.getName())
+                    .orElse(new DBVariable(variable.getName(), null));
+            dbVariable.setUser(dbUser);
+            dbVariable.setValue(JsonMapper.generate(variable.getValue()));
+            variableRepository.save(dbVariable);
+        }
     }
 
-    /**
-     * Called when the variable store changes; immediately persists the full updated store to the
-     * database by delegating to {@link #write(VariableStore)}.
-     *
-     * @param variableStore the variable store that has changed.
-     * @param changes the list of changes that were applied.
-     */
     @Override
     public void onChange(VariableStore variableStore, List<VariableStoreChange> changes) {
         try {
             write(variableStore);
-        } catch(IOException e) {
-            logger.error("Failed to write variable store changes: " + e.getMessage(), e);
+        } catch (IOException e) {
+            logger.error("Failed to write variable store changes: {}", e.getMessage(), e);
         }
     }
 
-	private SessionFactory getSessionFactory() {
-		return AppComponents.get(SessionFactory.class);
-	}
-
-	private DBUser getDBUser(Session session, String username) {
-		DBUser dbUser = session.createSelectionQuery("from DBUser where username = :username",
-						DBUser.class)
-				.setParameter("username", username)
-				.getSingleResultOrNull();
-
-		if (dbUser != null) {
-			return dbUser;
-		}
-
-		dbUser = new DBUser(username);
-		session.persist(dbUser);
-
-		return dbUser;
-	}
+    private DBUser getOrCreateUser(String username) {
+        return userRepository.findByUsername(username)
+                .orElseGet(() -> userRepository.save(new DBUser(username)));
+    }
 }

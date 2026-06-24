@@ -33,7 +33,10 @@ import com.dialoguebranch.execution.*;
 import com.dialoguebranch.i18n.TranslationContext;
 import com.dialoguebranch.model.execute.*;
 import com.dialoguebranch.web.service.DlbProperties;
-import com.dialoguebranch.web.service.storage.*;
+import com.dialoguebranch.web.service.storage.ExternalVariableServiceUpdater;
+import com.dialoguebranch.web.service.storage.LoggedDialogueStore;
+import com.dialoguebranch.web.service.storage.ServerLoggedDialogue;
+import com.dialoguebranch.web.service.storage.VariableStoreStorageHandler;
 import nl.rrd.utils.AppComponents;
 import nl.rrd.utils.exception.DatabaseException;
 import nl.rrd.utils.exception.ParseException;
@@ -94,13 +97,12 @@ public class UserService {
 	 * @throws IOException if an error occurs initialising the logged dialogue store.
 	 */
 	public UserService(User dialogueBranchUser, ApplicationManager applicationManager,
-					   VariableStoreOnChangeListener onVarChangeListener)
+					   VariableStoreStorageHandler storageHandler)
 			throws DatabaseException, IOException {
 
 		this.dialogueBranchUser = dialogueBranchUser;
 		this.applicationManager = applicationManager;
 
-		VariableStoreStorageHandler storageHandler = new VariableStoreDatabaseStorageHandler();
 		try {
 			this.variableStore = storageHandler.read(dialogueBranchUser);
 		} catch (ParseException ex) {
@@ -110,7 +112,7 @@ public class UserService {
 
 		DlbProperties dlbProperties = applicationManager.getDlbProperties();
 
-		this.variableStore.addOnChangeListener(onVarChangeListener);
+		this.variableStore.addOnChangeListener(storageHandler);
 
 		if (dlbProperties.getExternalVariableService().isEnabled()) {
 			this.variableStore.addOnChangeListener(

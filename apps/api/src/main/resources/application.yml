@@ -7,6 +7,20 @@ spring:
   config:
     import:
       - optional:classpath:deployment.properties
+  datasource:
+    url: jdbc:mariadb://${DLB_MARIADB_HOST:mariadb}:${DLB_MARIADB_PORT:3306}/${DLB_MARIADB_DATABASE:dialoguebranch}?createDatabaseIfNotExist=true
+    username: ${DLB_MARIADB_USER:root}
+    password: ${DLB_MARIADB_PASSWORD:}
+    driver-class-name: org.mariadb.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+  flyway:
+    url: jdbc:mariadb://${DLB_MARIADB_HOST:mariadb}:${DLB_MARIADB_PORT:3306}/${DLB_MARIADB_DATABASE:dialoguebranch}?createDatabaseIfNotExist=true
+    user: ${DLB_MARIADB_USER:root}
+    password: ${DLB_MARIADB_PASSWORD:}
+    locations: classpath:db/migration
 
 springdoc:
   swagger-ui:

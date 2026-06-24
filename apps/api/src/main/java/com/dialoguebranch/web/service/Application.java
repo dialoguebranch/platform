@@ -31,9 +31,9 @@ package com.dialoguebranch.web.service;
 import com.dialoguebranch.web.service.auth.jwt.JWTUtils;
 import com.dialoguebranch.web.service.exception.DLBServiceConfigurationException;
 import com.dialoguebranch.web.service.execution.ApplicationManager;
+import com.dialoguebranch.web.service.storage.VariableStoreDatabaseStorageHandler;
 import jakarta.annotation.PostConstruct;
 import nl.rrd.utils.AppComponents;
-import org.hibernate.SessionFactory;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -68,11 +68,10 @@ public class Application implements ApplicationListener<ApplicationEvent> {
 	private DlbProperties dlbProperties;
 	@Autowired
 	private JWTUtils jwtUtils;
+	@Autowired
+	private VariableStoreDatabaseStorageHandler storageHandler;
 	private ApplicationManager applicationManager = null;
 	private final Long launchedTime = Instant.now().toEpochMilli();
-
-	@Autowired
-	private SessionFactory sessionFactory;
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
@@ -90,10 +89,8 @@ public class Application implements ApplicationListener<ApplicationEvent> {
 
 	@PostConstruct
 	private void initApp() {
-		AppComponents.getInstance().addComponent(sessionFactory);
-
 		try {
-			applicationManager = new ApplicationManager(dlbProperties);
+			applicationManager = new ApplicationManager(dlbProperties, storageHandler);
 		} catch(DLBServiceConfigurationException e) {
 			logger.error("Unable to initialize DialogueBranch Web Service due to configuration " +
 					"errors.");
@@ -175,9 +172,6 @@ public class Application implements ApplicationListener<ApplicationEvent> {
 				logger.info("===== Keycloak URL: {}", auth.getKeycloak().getBaseUrl());
 				logger.info("===== Keycloak Realm: {}", auth.getKeycloak().getRealm());
 				logger.info("===== Keycloak Client ID: {}", auth.getKeycloak().getClientId());
-			} else if(auth.getService().equals(DlbProperties.AUTH_SERVICE_NATIVE)) {
-				logger.info("===== JWT Access Token Secret: {}", auth.getJwtAccessTokenSecret());
-				logger.info("===== JWT Refresh Token Secret: {}", auth.getJwtRefreshTokenSecret());
 			}
 
 			DlbProperties.ExternalVariableService evs = dlbProperties.getExternalVariableService();
