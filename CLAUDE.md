@@ -15,6 +15,7 @@ The version for the entire monorepo is declared once in `global.json` at the roo
 ## Working with Claude Code
 
 - Never create git commits, push to remote, or open/close/comment on pull requests unless explicitly asked to do so.
+- Never add a `Co-Authored-By` trailer or any Claude co-attribution to commit messages.
 
 ## Build Commands
 
