@@ -82,7 +82,8 @@ public class SecurityConfig {
                         "/auth/refresh", "/v*/auth/refresh",
                         "/swagger-ui/**", "/swagger-ui.html",
                         "/v3/api-docs/**", "/api-docs/**",
-                        "/webjars/**"
+                        "/webjars/**",
+                        "/actuator/health", "/actuator/info"
                     ).permitAll()
                     .anyRequest().authenticated()
                 )
