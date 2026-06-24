@@ -50,6 +50,11 @@ info:
     version: ${dlb.version}
     build-time: ${dlb.build-time}
 
+server:
+  port: 8089
+  servlet:
+    context-path: /dlb-web-service
+
 springdoc:
   swagger-ui:
     operations-sorter: method

@@ -39,6 +39,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * Global exception handler that translates exceptions thrown by any controller into structured HTTP
@@ -74,6 +75,14 @@ public class GlobalExceptionHandler {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(cause.getMessage());
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid request body");
+    }
+
+    /**
+     * Handles requests for static resources or paths that don't exist. Returns 404 without logging.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Void> handleNoResource(NoResourceFoundException ex) {
+        return ResponseEntity.notFound().build();
     }
 
     /**

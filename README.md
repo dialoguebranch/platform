@@ -75,8 +75,8 @@ The web client starts on [http://localhost:5173](http://localhost:5173).
 
 1. Open the [Keycloak admin console](http://localhost:8081/admin) and log in with `admin` / `admin`.
 2. Select the **dialoguebranch** realm from the top-left dropdown.
-3. Go to **Users → Create new user**, fill in a username, and click **Create**.
-4. Go to the **Credentials** tab, click **Set password**, enter a password, disable **Temporary**, and click **Save**.
+3. Go to **Users → Create new user**. Fill in username `testuser`, email `testuser@example.com`, first name `Test`, last name `User`, and click **Create**.
+4. Go to the **Credentials** tab, click **Set password**, enter `password`, disable **Temporary**, and click **Save**.
 
 #### 2. Authenticate in Swagger UI
 
@@ -89,16 +89,16 @@ The web client starts on [http://localhost:5173](http://localhost:5173).
      -d grant_type=password \
      -d client_id=dlb-web-service \
      -d client_secret=dev-client-secret \
-     -d username=<user> \
-     -d password=<password> | jq -r .access_token
+     -d username=testuser \
+     -d password=password | jq -r .access_token
    ```
 
 4. Click **Authorize**, then **Close**.
 
 #### 3. Call an endpoint
 
-1. Expand the **Variables** section and click `GET /v{version}/variables/get`.
-2. Click **Try it out**, set `version` to `1` and `timeZone` to your local time zone (e.g. `Europe/Amsterdam`), then click **Execute**.
+1. Expand the **Variables** section and click `GET /variables/get`.
+2. Click **Try it out**, set `timeZone` to your local time zone (e.g. `Europe/Amsterdam`), then click **Execute**.
 3. You should get a `200` response with an empty list — no variables stored yet.
 
 ## Individual Packages & Apps
