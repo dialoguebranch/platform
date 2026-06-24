@@ -32,6 +32,7 @@ import { DialogueStep } from "./model/DialogueStep";
 import { Segment } from "./model/Segment";
 import { Statement } from "./model/Statement";
 import { Variable } from "./model/Variable";
+import { logApiCall } from "../composables/debug-log.js";
 
 export class DialogueBranchClient {
 
@@ -51,7 +52,7 @@ export class DialogueBranchClient {
     login(user, password) {
         const loginUrl = this._baseUrl + "/auth/login";
 
-        return fetch(loginUrl, {
+        return this._fetch(loginUrl, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -71,7 +72,7 @@ export class DialogueBranchClient {
     }
 
     refresh(refreshToken) {
-        return fetch(this._baseUrl + "/auth/refresh", {
+        return this._fetch(this._baseUrl + "/auth/refresh", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ refreshToken }),
@@ -80,7 +81,7 @@ export class DialogueBranchClient {
     }
 
     getServerInfo() {
-        return fetch(this._baseUrl + "/info/all", {
+        return this._fetch(this._baseUrl + "/info/all", {
             method: "GET",
             headers: { "Content-Type": "application/json" },
         })
@@ -90,7 +91,7 @@ export class DialogueBranchClient {
     listDialogues() {
         const url = this._baseUrl + "/admin/list-dialogues";
 
-        return fetch(url, {
+        return this._fetch(url, {
             method: "GET",
             headers: {
                 'Authorization': 'Bearer ' + this._accessToken,
@@ -107,7 +108,7 @@ export class DialogueBranchClient {
         url += "&language="+language;
         url += "&timeZone="+this._timeZone;
 
-        return fetch(url, {
+        return this._fetch(url, {
             method: "POST",
             headers: {
                 'Authorization': 'Bearer ' + this._accessToken,
@@ -125,7 +126,7 @@ export class DialogueBranchClient {
         url += "&loggedInteractionIndex="+loggedInteractionIndex;
         url += "&replyId="+replyId;
 
-        return fetch(url, {
+        return this._fetch(url, {
             method: "POST",
             headers: {
                 'Authorization': 'Bearer ' + this._accessToken,
@@ -142,7 +143,7 @@ export class DialogueBranchClient {
         url += "?dialogueName="+dialogueName;
         url += "&timeZone="+this._timeZone;
 
-        return fetch(url, {
+        return this._fetch(url, {
             method: "POST",
             headers: {
                 'Authorization': 'Bearer ' + this._accessToken,
@@ -150,7 +151,7 @@ export class DialogueBranchClient {
             }
         })
         .then((response) => this._handleResponse(response))
-        .then((data) => { 
+        .then((data) => {
             if('value' in data) {
                 var dialogueData = data.value;
                 if('dialogue' in dialogueData) {
@@ -167,7 +168,7 @@ export class DialogueBranchClient {
 
         url += "?timeZone="+this._timeZone;
 
-        return fetch(url, {
+        return this._fetch(url, {
             method: "GET",
             headers: {
                 'Authorization': 'Bearer ' + this._accessToken,
@@ -175,7 +176,7 @@ export class DialogueBranchClient {
             }
         })
         .then((response) => this._handleResponse(response))
-        .then((data) => { 
+        .then((data) => {
             if(data == null || data.length == 0) {
                 return new Array();
             } else {
@@ -202,7 +203,7 @@ export class DialogueBranchClient {
         if(variableValue != null) url += "&value="+variableValue;
         url += "&timeZone="+this._timeZone;
 
-        return fetch(url, {
+        return this._fetch(url, {
             method: "POST",
             headers: {
                 'Authorization': 'Bearer ' + this._accessToken,
@@ -264,6 +265,16 @@ export class DialogueBranchClient {
             }
         );
         return dialogueStep;
+    }
+
+    _fetch(url, options) {
+        return fetch(url, options).then(async (response) => {
+            const cloned = response.clone();
+            const text = await cloned.text().catch(() => null);
+            const path = url.startsWith(this._baseUrl) ? url.slice(this._baseUrl.length) : url;
+            logApiCall(options?.method || 'GET', path, response.status, text);
+            return response;
+        });
     }
 
     _handleResponse(response) {

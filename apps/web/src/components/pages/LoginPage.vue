@@ -3,6 +3,7 @@ import { inject, onMounted, ref } from 'vue';
 import { useClient } from '../../composables/client.js';
 import { DocumentFunctions } from '../../dlb-lib/util/DocumentFunctions.js';
 import { User } from '../../dlb-lib/model/User.js';
+import { logEvent } from '../../composables/debug-log.js';
 import TextInput from '../widgets/TextInput.vue';
 import PushButton from '../widgets/PushButton.vue';
 
@@ -36,8 +37,10 @@ function onLoginClick() {
         inputs.username.focus();
         if (error instanceof Response && (error.status === 400 || error.status === 401)) {
             errorMessage.value = 'The username or password is incorrect.';
+            logEvent('auth', 'Login failed — invalid credentials', { status: error.status });
         } else {
             errorMessage.value = 'An unknown error has occured.';
+            logEvent('auth', 'Login failed — unknown error');
         }
     });
 }
@@ -65,7 +68,7 @@ function validateInput() {
 }
 
 function onLoginSuccess(responseJson) {
-    console.log("The onLoginSuccess function has been called.");
+    logEvent('auth', 'Login succeeded', { user: responseJson.user, roles: responseJson.roles });
     
     const user = new User(
         responseJson.user,
