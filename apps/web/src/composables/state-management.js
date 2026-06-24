@@ -10,7 +10,14 @@ class StateManagement {
         this._config = config;
     }
 
-    logout() {
+    async logout() {
+        const currentUser = this._stateRef.value.user;
+        if (currentUser?.accessToken) {
+            try {
+                const client = new DialogueBranchClient(this._config.baseUrl, currentUser.accessToken);
+                await client.logout();
+            } catch (_) { /* best-effort — proceed with local logout regardless */ }
+        }
         logEvent('auth', 'User logged out');
         DocumentFunctions.deleteCookie('user.name');
         DocumentFunctions.deleteCookie('user.roles');

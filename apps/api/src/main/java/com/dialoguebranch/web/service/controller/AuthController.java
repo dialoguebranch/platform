@@ -353,6 +353,60 @@ public class AuthController {
 
     }
 
+	// -------------------------------------------------------------------- //
+	// -------------------- END-POINT: "/auth/logout" -------------------- //
+	// -------------------------------------------------------------------- //
+
+	/**
+	 * Log out the currently authenticated user.
+	 *
+	 * <p>Destroys the in-memory {@link com.dialoguebranch.web.service.execution.UserService}
+	 * for the authenticated user, releasing any associated dialogue state. Token invalidation
+	 * is the responsibility of the client.</p>
+	 *
+	 * @param request the HTTP request (used to extract the bearer token).
+	 * @param response the HTTP response.
+	 * @param version the API version, e.g. '1'.
+	 * @throws HttpException if the token is missing or invalid.
+	 */
+	@SecurityRequirement(name = "bearerAuth")
+	@Operation(summary = "Log out the currently authenticated user.",
+		description = "Destroys the in-memory UserService for the authenticated user, releasing " +
+			"any associated dialogue state.")
+	@RequestMapping(value = "/logout", method = RequestMethod.POST)
+	public void logout(
+			HttpServletRequest request,
+			HttpServletResponse response,
+
+			@Parameter(hidden = true, description = "API Version to use, e.g. '1'")
+			@PathVariable(value = "version")
+			String version
+	) throws HttpException {
+
+		if (version == null || version.isEmpty()) {
+			version = ProtocolVersion.getLatestVersion().versionName();
+		}
+
+		logger.info("POST /v{}/auth/logout", version);
+
+		String accessToken = ControllerFunctions.extractAccessToken(request);
+		QueryRunner.runQuery(
+				(protocolVersion, userId) -> doLogout(userId),
+				version, accessToken, response, "", application);
+	}
+
+	private Void doLogout(String userId) {
+		com.dialoguebranch.web.service.execution.UserService userService =
+				application.getApplicationManager().getActiveUserService(userId);
+		if (userService != null) {
+			application.getApplicationManager().removeUserService(userService);
+			logger.info("UserService for user '{}' removed on logout.", userId);
+		} else {
+			logger.info("Logout called for user '{}' but no active UserService found.", userId);
+		}
+		return null;
+	}
+
 	// --------------------------------------------------------------------- //
 	// -------------------- END-POINT: "/auth/validate" -------------------- //
 	// --------------------------------------------------------------------- //

@@ -71,6 +71,13 @@ export class DialogueBranchClient {
         });
     }
 
+    logout() {
+        return this._fetch(this._baseUrl + "/auth/logout", {
+            method: "POST",
+            headers: { 'Authorization': 'Bearer ' + this._accessToken },
+        }).then((response) => this._handleResponse(response));
+    }
+
     refresh(refreshToken) {
         return this._fetch(this._baseUrl + "/auth/refresh", {
             method: "POST",
