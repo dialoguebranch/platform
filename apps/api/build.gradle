@@ -1,5 +1,5 @@
 plugins {
-	id 'war'
+	id 'java'
 	id 'org.springframework.boot' version '3.5.4'
 }
 
@@ -28,10 +28,6 @@ java {
 	}
 }
 
-configurations {
-	providedRuntime
-}
-
 dependencies {
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:3.5.4'
 
@@ -58,9 +54,6 @@ dependencies {
 
 	// https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-web
 	implementation 'org.springframework.boot:spring-boot-starter-web:3.5.4'
-
-	// https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-tomcat
-	providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat:3.5.4'
 
 	// https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-starter-webmvc-ui
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
@@ -143,36 +136,11 @@ tasks.register('listDialogueFiles', ListDialogueFilesTask) {
 	description = 'Lists dialogue files and writes them to dialogues.json'
 }
 
-abstract class UpdateVersionTask extends DefaultTask {
-	private ProviderFactory providerFactory
-
-	@Input
-	abstract Property<String> getVersion()
-
-	@Inject
-	UpdateVersionTask(ProviderFactory providerFactory) {
-		this.providerFactory = providerFactory
-	}
-
-	@TaskAction
-	void doTaskAction() {
-		ant.replaceregexp(file: 'src/main/webapp/WEB-INF/web.xml',
-			match: "<display-name>DialogueBranch Web Service .+</display-name>",
-			replace: "<display-name>DialogueBranch Web Service ${version.get()}</display-name>")
-	}
-}
-
 Provider<String> versionProvider = project.provider { project.version }
 
 tasks.register('updateConfig', UpdateConfigTask) {
 	group = "configuration"
 	description = "Generates deployment.properties with the current version and build timestamp."
-	version = versionProvider
-}
-
-tasks.register('updateVersion', UpdateVersionTask) {
-	group = 'versioning'
-	description = 'Writes the current version to files containing the version number.'
 	version = versionProvider
 }
 

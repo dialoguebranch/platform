@@ -38,10 +38,8 @@ import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.system.JavaVersion;
-import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextClosedEvent;
@@ -62,8 +60,7 @@ import java.time.Instant;
 @SpringBootApplication
 @EnableScheduling
 @EnableConfigurationProperties(DlbProperties.class)
-public class Application extends SpringBootServletInitializer implements
-ApplicationListener<ApplicationEvent> {
+public class Application implements ApplicationListener<ApplicationEvent> {
 
 	private final Logger logger =
 			AppComponents.getLogger(ClassUtils.getUserClass(getClass()).getSimpleName());
@@ -192,11 +189,6 @@ ApplicationListener<ApplicationEvent> {
 
 			logger.info("===================================================");
 		}
-	}
-
-	@Override
-	protected SpringApplicationBuilder configure(SpringApplicationBuilder builder) {
-		return builder.sources(Application.class);
 	}
 
 	/**
