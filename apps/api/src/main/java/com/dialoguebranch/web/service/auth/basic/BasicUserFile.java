@@ -28,7 +28,7 @@
 
 package com.dialoguebranch.web.service.auth.basic;
 
-import nl.rrd.utils.AppComponents;
+import org.slf4j.LoggerFactory;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.xml.AbstractSimpleSAXHandler;
 import nl.rrd.utils.xml.SimpleSAXParser;
@@ -47,6 +47,8 @@ import java.util.List;
  * @author Harm op den Akker
  */
 public class BasicUserFile {
+
+	private static final Logger logger = LoggerFactory.getLogger(BasicUserFile.class);
 
 	/** Creates a new {@link BasicUserFile} instance. */
 	public BasicUserFile() { }
@@ -144,7 +146,6 @@ public class BasicUserFile {
 			} catch (ParseException pe) {
 				rolesString = BasicUserCredentials.USER_ROLE_CLIENT;
 				roles = rolesString.split(",");
-				Logger logger = AppComponents.getLogger(BasicUserFile.class.getSimpleName());
 				logger.warn("Warning while reading users.xml file: User role not defined " +
 						"for user '{}', assuming role '{}'.", username, rolesString);
 			}

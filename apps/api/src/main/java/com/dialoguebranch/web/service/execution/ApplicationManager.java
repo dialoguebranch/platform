@@ -41,7 +41,7 @@ import com.dialoguebranch.web.service.auth.basic.BasicUserCredentials;
 import com.dialoguebranch.web.service.auth.basic.BasicUserFile;
 import com.dialoguebranch.web.service.exception.DLBServiceConfigurationException;
 import com.dialoguebranch.web.service.storage.VariableStoreStorageHandler;
-import nl.rrd.utils.AppComponents;
+import org.slf4j.LoggerFactory;
 import nl.rrd.utils.exception.DatabaseException;
 import nl.rrd.utils.exception.ParseException;
 import org.slf4j.Logger;
@@ -85,7 +85,7 @@ public class ApplicationManager {
 	// -------------------- Fields -------------------- //
 	// --------------------------------------------------- //
 
-	private final Logger logger = AppComponents.getLogger(getClass().getSimpleName());
+	private static final Logger logger = LoggerFactory.getLogger(ApplicationManager.class);
 
 	/** Loaded Dialogue Branch projects, keyed by project name (folder name). */
 	private final Map<String, DialogueBranchProject> projects = new LinkedHashMap<>();

@@ -31,7 +31,7 @@ package com.dialoguebranch.web.service.exception;
 import com.dialoguebranch.web.service.controller.ErrorController;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import nl.rrd.utils.AppComponents;
+import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -52,7 +52,7 @@ import java.util.List;
 @ResponseStatus(value=HttpStatus.BAD_REQUEST)
 public class BadRequestException extends HttpException {
 
-	private static final Logger logger = AppComponents.getLogger("BadRequestException");
+	private static final Logger logger = LoggerFactory.getLogger(BadRequestException.class);
 
 	@Serial
 	private static final long serialVersionUID = 1L;

@@ -28,7 +28,7 @@
 
 package com.dialoguebranch.web.varservice;
 
-import nl.rrd.utils.AppComponents;
+import org.slf4j.LoggerFactory;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.http.HttpURL;
 
@@ -59,7 +59,7 @@ public class ServiceContext {
 	 * @return the base URL
 	 */
 	public static String getBaseUrl() {
-		Configuration config = AppComponents.get(Configuration.class);
+		Configuration config = Configuration.getInstance();
 		return config.get(Configuration.BASE_URL);
 	}
 	

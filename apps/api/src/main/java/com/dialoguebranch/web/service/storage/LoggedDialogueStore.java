@@ -33,7 +33,7 @@ import com.dialoguebranch.web.service.execution.UserService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import nl.rrd.utils.AppComponents;
+import org.slf4j.LoggerFactory;
 import nl.rrd.utils.exception.DatabaseException;
 import nl.rrd.utils.io.FileUtils;
 import nl.rrd.utils.json.JsonMapper;
@@ -60,6 +60,7 @@ public class LoggedDialogueStore {
 	private final String userId;
 	private final File userLogDirectory;
 	private static final Object LOCK = new Object();
+	private static final Logger logger = LoggerFactory.getLogger(LoggedDialogueStore.class);
 	private ServerLoggedDialogue latestStoredServerLoggedDialogue = null;
 
 	// -------------------------------------------------------- //
@@ -79,7 +80,6 @@ public class LoggedDialogueStore {
 	 */
 	public LoggedDialogueStore(String userId, UserService userService,
 							   DlbProperties dlbProperties) throws IOException {
-        Logger logger = AppComponents.getLogger(getClass().getSimpleName());
         logger.info("Initializing LoggedDialogueStore for user '" + userId + "'.");
 
 		this.userService = userService;

@@ -33,10 +33,9 @@ import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.VariableStoreChange;
 import com.dialoguebranch.execution.VariableStoreOnChangeListener;
 import com.dialoguebranch.web.service.DlbProperties;
-import nl.rrd.utils.AppComponents;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
-import org.springframework.util.ClassUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponents;
@@ -54,8 +53,8 @@ import java.util.*;
  */
 public class ExternalVariableServiceUpdater implements VariableStoreOnChangeListener {
 
-	private final Logger logger =
-			AppComponents.getLogger(ClassUtils.getUserClass(getClass()).getSimpleName());
+	private static final Logger logger =
+			LoggerFactory.getLogger(ExternalVariableServiceUpdater.class);
 	private final DlbProperties dlbProperties;
 
 	/**

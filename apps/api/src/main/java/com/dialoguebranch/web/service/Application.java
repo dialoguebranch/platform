@@ -33,7 +33,7 @@ import com.dialoguebranch.web.service.exception.DLBServiceConfigurationException
 import com.dialoguebranch.web.service.execution.ApplicationManager;
 import com.dialoguebranch.web.service.storage.VariableStoreDatabaseStorageHandler;
 import jakarta.annotation.PostConstruct;
-import nl.rrd.utils.AppComponents;
+import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -46,7 +46,6 @@ import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.core.SpringVersion;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.util.ClassUtils;
 
 import java.time.Instant;
 
@@ -62,8 +61,7 @@ import java.time.Instant;
 @EnableConfigurationProperties(DlbProperties.class)
 public class Application implements ApplicationListener<ApplicationEvent> {
 
-	private final Logger logger =
-			AppComponents.getLogger(ClassUtils.getUserClass(getClass()).getSimpleName());
+	private static final Logger logger = LoggerFactory.getLogger(Application.class);
 	@Autowired
 	private DlbProperties dlbProperties;
 	@Autowired

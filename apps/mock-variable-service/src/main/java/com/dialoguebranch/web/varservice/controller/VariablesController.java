@@ -32,7 +32,7 @@ import com.dialoguebranch.web.varservice.Application;
 import com.dialoguebranch.web.varservice.ProtocolVersion;
 import com.dialoguebranch.web.varservice.exception.ErrorCode;
 import com.dialoguebranch.web.varservice.exception.UnauthorizedException;
-import nl.rrd.utils.AppComponents;
+import org.slf4j.LoggerFactory;
 import com.dialoguebranch.web.varservice.controller.schema.DLBVariablePayload;
 import com.dialoguebranch.web.varservice.exception.BadRequestException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -79,7 +79,7 @@ public class VariablesController {
 	Application application;
 
 	/** The logger used for logging (debug) info to log files. */
-	private final Logger logger = AppComponents.getLogger(getClass().getSimpleName());
+	private static final Logger logger = LoggerFactory.getLogger(VariablesController.class);
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //

@@ -44,7 +44,7 @@ import com.dialoguebranch.web.service.auth.jwt.JWTUtils;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import nl.rrd.utils.AppComponents;
+import org.slf4j.LoggerFactory;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -85,7 +85,7 @@ public class AuthController {
 	private static final Object AUTH_LOCK = new Object();
 
 	/** Used for writing logging information */
-	private final Logger logger = AppComponents.getLogger(getClass().getSimpleName());
+	private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
