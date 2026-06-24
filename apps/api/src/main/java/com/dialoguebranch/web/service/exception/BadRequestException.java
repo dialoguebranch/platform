@@ -28,7 +28,6 @@
 
 package com.dialoguebranch.web.service.exception;
 
-import com.dialoguebranch.web.service.controller.ErrorController;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.LoggerFactory;
@@ -43,8 +42,8 @@ import java.util.List;
 
 /**
  * This exception results in an HTTP response with status 400 Bad Request. The exception message
- * (default "Bad Request") will be written to the response. It is handled by the {@link
- * ErrorController}.
+ * (default "Bad Request") will be written to the response. It is handled by
+ * {@link com.dialoguebranch.web.service.controller.GlobalExceptionHandler}.
  * 
  * @author Dennis Hofs
  * @author Harm op den Akker
