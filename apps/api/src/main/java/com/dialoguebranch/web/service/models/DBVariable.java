@@ -46,7 +46,7 @@ import java.util.UUID;
 	uniqueConstraints = {
 		@UniqueConstraint(
 			name = "user_name",
-			columnNames = { "user, name" }
+			columnNames = { "user_id", "name" }
 		)
 	})
 public class DBVariable {
