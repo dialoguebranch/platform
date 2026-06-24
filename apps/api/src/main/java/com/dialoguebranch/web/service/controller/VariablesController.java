@@ -45,7 +45,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import nl.rrd.utils.AppComponents;
+import org.slf4j.LoggerFactory;
 import nl.rrd.utils.datetime.DateTimeUtils;
 import nl.rrd.utils.exception.DatabaseException;
 import org.slf4j.Logger;
@@ -65,7 +65,7 @@ import java.util.*;
  * @author Harm op den Akker
  */
 @RestController
-@SecurityRequirement(name = "X-Auth-Token")
+@SecurityRequirement(name = "bearerAuth")
 @RequestMapping(value = {"/v{version}/variables", "/variables"})
 @Tag(name = "3. Variables", description = "End-points for retrieving or setting DialogueBranch " +
 		"Variables.")
@@ -74,7 +74,7 @@ public class VariablesController {
 	@Autowired
 	Application application;
 
-	private final Logger logger = AppComponents.getLogger(getClass().getSimpleName());
+	private static final Logger logger = LoggerFactory.getLogger(VariablesController.class);
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //

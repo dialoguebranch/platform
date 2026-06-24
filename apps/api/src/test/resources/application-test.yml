@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false;MODE=MySQL;NON_KEYWORDS=VALUE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: false
+
+dlb:
+  base-url: http://localhost
+  data-dir: ${user.dir}/src/test/resources/test-data
+  auth:
+    service: native
+    jwt-access-token-secret: dGVzdC1hY2Nlc3MtdG9rZW4tc2VjcmV0LWxvbmctZW5vdWdoISE=
+    access-token-expiration-seconds: 300
+    jwt-refresh-token-secret: dGVzdC1yZWZyZXNoLXRva2VuLXNlY3JldC1sb25nLWVub3VnaCE=
+    refresh-token-expiration-seconds: 1800
+  cors:
+    allowed-origins:
+      - http://localhost:5173

@@ -44,7 +44,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import nl.rrd.utils.AppComponents;
+import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -61,7 +61,7 @@ import java.util.List;
  * @author Harm op den Akker
  */
 @RestController
-@SecurityRequirement(name = "X-Auth-Token")
+@SecurityRequirement(name = "bearerAuth")
 @RequestMapping(value = {"/v{version}/admin", "/admin"})
 @Tag(name = "6. Admin", description = "End-points for administrative control of the Dialogue " +
     "Branch Web Service.")
@@ -71,7 +71,7 @@ public class AdminController {
     Application application;
 
     /** Used for writing logging information */
-    private final Logger logger = AppComponents.getLogger(getClass().getSimpleName());
+    private static final Logger logger = LoggerFactory.getLogger(AdminController.class);
 
     // -------------------------------------------------------- //
     // -------------------- Constructor(s) -------------------- //

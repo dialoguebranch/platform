@@ -28,7 +28,6 @@
 
 package com.dialoguebranch.web.service.exception;
 
-import com.dialoguebranch.web.service.controller.ErrorController;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.io.Serial;
@@ -36,7 +35,7 @@ import java.io.Serial;
 /**
  * Base class for exceptions that result in an HTTP error response. Subclasses should be annotated
  * with {@link ResponseStatus ResponseStatus}. They are handled by
- * {@link ErrorController ErrorController}.
+ * {@link com.dialoguebranch.web.service.controller.GlobalExceptionHandler}.
  * 
  * @author Dennis Hofs
  * @author Harm op den Akker

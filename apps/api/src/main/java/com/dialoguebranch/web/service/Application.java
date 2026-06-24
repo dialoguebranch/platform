@@ -31,24 +31,21 @@ package com.dialoguebranch.web.service;
 import com.dialoguebranch.web.service.auth.jwt.JWTUtils;
 import com.dialoguebranch.web.service.exception.DLBServiceConfigurationException;
 import com.dialoguebranch.web.service.execution.ApplicationManager;
+import com.dialoguebranch.web.service.storage.VariableStoreDatabaseStorageHandler;
 import jakarta.annotation.PostConstruct;
-import nl.rrd.utils.AppComponents;
-import org.hibernate.SessionFactory;
+import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.system.JavaVersion;
-import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.core.SpringVersion;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.util.ClassUtils;
 
 import java.time.Instant;
 
@@ -62,20 +59,17 @@ import java.time.Instant;
 @SpringBootApplication
 @EnableScheduling
 @EnableConfigurationProperties(DlbProperties.class)
-public class Application extends SpringBootServletInitializer implements
-ApplicationListener<ApplicationEvent> {
+public class Application implements ApplicationListener<ApplicationEvent> {
 
-	private final Logger logger =
-			AppComponents.getLogger(ClassUtils.getUserClass(getClass()).getSimpleName());
+	private static final Logger logger = LoggerFactory.getLogger(Application.class);
 	@Autowired
 	private DlbProperties dlbProperties;
 	@Autowired
 	private JWTUtils jwtUtils;
+	@Autowired
+	private VariableStoreDatabaseStorageHandler storageHandler;
 	private ApplicationManager applicationManager = null;
 	private final Long launchedTime = Instant.now().toEpochMilli();
-
-	@Autowired
-	private SessionFactory sessionFactory;
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
@@ -93,10 +87,8 @@ ApplicationListener<ApplicationEvent> {
 
 	@PostConstruct
 	private void initApp() {
-		AppComponents.getInstance().addComponent(sessionFactory);
-
 		try {
-			applicationManager = new ApplicationManager(dlbProperties);
+			applicationManager = new ApplicationManager(dlbProperties, storageHandler);
 		} catch(DLBServiceConfigurationException e) {
 			logger.error("Unable to initialize DialogueBranch Web Service due to configuration " +
 					"errors.");
@@ -178,9 +170,6 @@ ApplicationListener<ApplicationEvent> {
 				logger.info("===== Keycloak URL: {}", auth.getKeycloak().getBaseUrl());
 				logger.info("===== Keycloak Realm: {}", auth.getKeycloak().getRealm());
 				logger.info("===== Keycloak Client ID: {}", auth.getKeycloak().getClientId());
-			} else if(auth.getService().equals(DlbProperties.AUTH_SERVICE_NATIVE)) {
-				logger.info("===== JWT Access Token Secret: {}", auth.getJwtAccessTokenSecret());
-				logger.info("===== JWT Refresh Token Secret: {}", auth.getJwtRefreshTokenSecret());
 			}
 
 			DlbProperties.ExternalVariableService evs = dlbProperties.getExternalVariableService();
@@ -192,11 +181,6 @@ ApplicationListener<ApplicationEvent> {
 
 			logger.info("===================================================");
 		}
-	}
-
-	@Override
-	protected SpringApplicationBuilder configure(SpringApplicationBuilder builder) {
-		return builder.sources(Application.class);
 	}
 
 	/**

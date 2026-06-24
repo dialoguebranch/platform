@@ -9,5 +9,6 @@
 !/src/main/resources/dialogues/README.md
 !/src/main/resources/dialogues/en/basic.dlb
 !/src/main/resources/dialogues/nl/basic.dlb
+/config/log/
 /config/users.xml
 

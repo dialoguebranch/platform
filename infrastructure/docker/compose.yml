@@ -1,0 +1,113 @@
+# Dialogue Branch — local development services.
+#
+# Starts MariaDB, phpMyAdmin, and Keycloak with hard-coded dev credentials.
+# No configuration files are required. Run from infrastructure/docker/:
+#
+#   docker compose up -d                    # supporting services only
+#   docker compose --profile api up -d     # also build and run the API
+#
+# Then run the web client locally (see README.md).
+
+name: dlb-dev
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # MariaDB — relational database
+  # ---------------------------------------------------------------------------
+
+  mariadb:
+    image: mariadb:11
+    container_name: dlb-dev-mariadb
+    environment:
+      MARIADB_ROOT_PASSWORD: dev
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb-data:/var/lib/mysql
+      - ./import/mariadb/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # phpMyAdmin — database browser
+  # ---------------------------------------------------------------------------
+
+  phpmyadmin:
+    image: phpmyadmin:5
+    container_name: dlb-dev-phpmyadmin
+    environment:
+      PMA_HOST: mariadb
+      PMA_USER: root
+      PMA_PASSWORD: dev
+    ports:
+      - "8100:80"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Keycloak — identity and access management
+  #
+  # The entrypoint injects the dev client secret into the realm export before
+  # importing it, so no secrets file is needed.
+  # ---------------------------------------------------------------------------
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2
+    container_name: dlb-dev-keycloak
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        mkdir -p /opt/keycloak/data/import
+        sed 's/"secret": "\*\*\*\*\*\*\*\*\*\*"/"secret": "dev-client-secret"/' \
+          /opt/keycloak/data/import-source/dialoguebranch-realm.json \
+          > /opt/keycloak/data/import/dialoguebranch-realm.json
+        exec /opt/keycloak/bin/kc.sh start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: mariadb
+      KC_DB_URL_HOST: mariadb
+      KC_DB_USERNAME: root
+      KC_DB_PASSWORD: dev
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./import/dialoguebranch-realm.json:/opt/keycloak/data/import-source/dialoguebranch-realm.json:ro
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Dialogue Branch Web Service — the API (optional, start with --profile api)
+  # ---------------------------------------------------------------------------
+
+  dlb-web-service:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    profiles:
+      - api
+    container_name: dlb-dev-api
+    environment:
+      DLB_AUTH_SERVICE: keycloak
+      DLB_AUTH_KEYCLOAK_BASE_URL: http://keycloak:8080/
+      DLB_AUTH_KEYCLOAK_CLIENT_SECRET: dev-client-secret
+      DLB_MARIADB_HOST: mariadb
+      DLB_MARIADB_PASSWORD: dev
+    ports:
+      - "8089:8089"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+
+volumes:
+  mariadb-data:

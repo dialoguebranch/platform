@@ -37,11 +37,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import nl.rrd.utils.AppComponents;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.io.FileUtils;
 import org.slf4j.Logger;
-import org.springframework.util.ClassUtils;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,8 +59,8 @@ public class VariableStoreJSONStorageHandler implements VariableStoreStorageHand
 
     private final String dataDirectory;
     private static final Object LOCK = new Object();
-    private final Logger logger =
-            AppComponents.getLogger(ClassUtils.getUserClass(getClass()).getSimpleName());
+    private static final Logger logger =
+            LoggerFactory.getLogger(VariableStoreJSONStorageHandler.class);
 
     /**
      * Creates an instance of a {@link VariableStoreJSONStorageHandler} that can read and write

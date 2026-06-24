@@ -1,0 +1,21 @@
+spring:
+  config:
+    import:
+      - optional:classpath:deployment.properties
+
+server:
+  port: 8090
+
+springdoc:
+  swagger-ui:
+    operations-sorter: method
+    tags-sorter: alpha
+
+# !! WARNING: Override dlb.auth.api-key in production via DLB_AUTH_API_KEY !!
+dlb:
+  version: ${version:unknown}
+  build-time: ${buildTime:}
+  base-url: http://localhost:8090/dlb-external-var-service
+  data-dir: config
+  auth:
+    api-key: change-me-in-production

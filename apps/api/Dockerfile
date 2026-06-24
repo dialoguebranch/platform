@@ -1,15 +1,10 @@
 # Standalone Dialogue Branch Web Service Docker image.
 #
 # Build context must be the platform/ root of the monorepo:
-#   docker build -t dlb-web-service -f apps/api/standalone.Dockerfile .
+#   docker build -t dlb-web-service -f apps/api/Dockerfile .
 #
 # Run the resulting image:
 #   docker run -p 8089:8089 dlb-web-service
-#
-# To override the service configuration at runtime, mount a custom service.properties:
-#   docker run -p 8089:8089 \
-#     -v /path/to/your/service.properties:/usr/local/dialogue-branch/data/dlb-web-service/service.properties \
-#     dlb-web-service
 
 # ---------------------------------------------------------- #
 # -------------------- Stage 1: Builder -------------------- #
@@ -19,7 +14,6 @@ FROM eclipse-temurin:17-jdk AS builder
 
 WORKDIR /build
 
-# Copy the monorepo source needed for this service
 COPY global.json global.json
 COPY packages/core/ packages/core/
 COPY apps/api/ apps/api/
@@ -28,17 +22,17 @@ RUN chmod +x apps/api/gradlew
 
 WORKDIR /build/apps/api
 
-# Build the WAR, skipping tests and Javadoc for a faster image build.
+# Build the JAR, skipping tests and Javadoc for a faster image build.
 # All runtime configuration is supplied via environment variables — see Stage 2.
-RUN ./gradlew clean updateVersion build -x test -PbuildEnv=dev --no-daemon
+RUN ./gradlew clean build -x test -PbuildEnv=dev --no-daemon
 
 # ---------------------------------------------------------- #
 # -------------------- Stage 2: Runtime -------------------- #
 # ---------------------------------------------------------- #
 
-FROM tomcat:11.0.22-jre17-temurin
+FROM eclipse-temurin:17-jre-alpine
 
-# The HTTP port Tomcat listens on inside the container (default: 8089).
+# The HTTP port Spring Boot listens on inside the container (default: 8089).
 # Override with -e SERVER_PORT=... or in docker-compose.yml.
 # Remember to match your -p host:container port mapping accordingly.
 ENV SERVER_PORT=8089
@@ -47,9 +41,8 @@ EXPOSE ${SERVER_PORT}
 # Create the data directory used by the service
 RUN mkdir -p /usr/local/dialogue-branch/data/dlb-web-service/
 
-# Copy the built WAR from the builder stage into Tomcat
-COPY --from=builder /build/apps/api/build/libs/dlb-web-service-*.war \
-    ${CATALINA_HOME}/webapps/dlb-web-service.war
+# Copy the built JAR from the builder stage
+COPY --from=builder /build/apps/api/build/libs/dlb-web-service-*.jar /app/dlb-web-service.jar
 
 # Bundle the example users file so the entrypoint can use it as a fallback.
 # At startup, the entrypoint copies this to users.xml only if no users.xml
@@ -106,5 +99,3 @@ ENV DLB_EXTERNAL_VARIABLE_SERVICE_API_VERSION=1
 #   DLB_EXTERNAL_VARIABLE_SERVICE_URL        — URL of the external variable service
 #   DLB_EXTERNAL_VARIABLE_SERVICE_API_KEY    — API key for the external variable service
 # -------------------------------------------------------------------------
-
-CMD []

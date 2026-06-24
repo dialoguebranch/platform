@@ -29,7 +29,7 @@
 package com.dialoguebranch.web.varservice.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import nl.rrd.utils.AppComponents;
+import org.slf4j.LoggerFactory;
 import com.dialoguebranch.web.varservice.exception.HttpException;
 import io.swagger.v3.oas.annotations.Hidden;
 import org.slf4j.Logger;
@@ -67,7 +67,7 @@ import jakarta.servlet.http.HttpServletResponse;
 @RestController
 public class ErrorController implements org.springframework.boot.web.servlet.error.ErrorController {
 
-	private final Logger logger = AppComponents.getLogger(getClass().getSimpleName());
+	private static final Logger logger = LoggerFactory.getLogger(ErrorController.class);
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //

@@ -91,6 +91,9 @@ public class DlbProperties {
     private boolean allowAnonymousUsers = false;
 
     @NestedConfigurationProperty
+    private Cors cors = new Cors();
+
+    @NestedConfigurationProperty
     private MariaDb mariadb = new MariaDb();
 
     @NestedConfigurationProperty
@@ -98,6 +101,57 @@ public class DlbProperties {
 
     @NestedConfigurationProperty
     private ExternalVariableService externalVariableService = new ExternalVariableService();
+
+    /**
+     * Returns the CORS configuration.
+     *
+     * @return the CORS configuration.
+     */
+    public Cors getCors() { return cors; }
+
+    /**
+     * Sets the CORS configuration.
+     *
+     * @param cors the CORS configuration.
+     */
+    public void setCors(Cors cors) { this.cors = cors; }
+
+    // --------------------------------------------------------- //
+    // -------------------- Nested: Cors ----------------------- //
+    // --------------------------------------------------------- //
+
+    /**
+     * Holds the CORS configuration for the Dialogue Branch Web Service.
+     */
+    public static class Cors {
+
+        /** Creates a new {@link Cors} configuration instance with default values. */
+        public Cors() { }
+
+        /**
+         * List of origins permitted to make cross-origin requests.
+         * Set {@code DLB_CORS_ALLOWED_ORIGINS} at runtime (comma-separated).
+         * Defaults to the local Vue dev server for development convenience.
+         */
+        private java.util.List<String> allowedOrigins =
+                new java.util.ArrayList<>(java.util.List.of("http://localhost:5173"));
+
+        /**
+         * Returns the list of allowed origins.
+         *
+         * @return the allowed origins.
+         */
+        public java.util.List<String> getAllowedOrigins() { return allowedOrigins; }
+
+        /**
+         * Sets the list of allowed origins.
+         *
+         * @param allowedOrigins the allowed origins.
+         */
+        public void setAllowedOrigins(java.util.List<String> allowedOrigins) {
+            this.allowedOrigins = allowedOrigins;
+        }
+    }
 
     // --------------------------------------------------------- //
     // -------------------- Nested: MariaDB -------------------- //

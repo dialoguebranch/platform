@@ -39,10 +39,9 @@ import com.dialoguebranch.execution.parser.ProjectParserResult;
 import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.auth.basic.BasicUserCredentials;
 import com.dialoguebranch.web.service.auth.basic.BasicUserFile;
-import com.dialoguebranch.web.service.auth.keycloak.KeycloakManager;
 import com.dialoguebranch.web.service.exception.DLBServiceConfigurationException;
-import com.dialoguebranch.web.service.storage.VariableStoreDatabaseStorageHandler;
-import nl.rrd.utils.AppComponents;
+import com.dialoguebranch.web.service.storage.VariableStoreStorageHandler;
+import org.slf4j.LoggerFactory;
 import nl.rrd.utils.exception.DatabaseException;
 import nl.rrd.utils.exception.ParseException;
 import org.slf4j.Logger;
@@ -86,7 +85,7 @@ public class ApplicationManager {
 	// -------------------- Fields -------------------- //
 	// --------------------------------------------------- //
 
-	private final Logger logger = AppComponents.getLogger(getClass().getSimpleName());
+	private static final Logger logger = LoggerFactory.getLogger(ApplicationManager.class);
 
 	/** Loaded Dialogue Branch projects, keyed by project name (folder name). */
 	private final Map<String, DialogueBranchProject> projects = new LinkedHashMap<>();
@@ -94,7 +93,6 @@ public class ApplicationManager {
 	private final DlbProperties dlbProperties;
 	private final List<UserService> activeUserServices = new ArrayList<>();
 	private final List<BasicUserCredentials> basicUserCredentials;
-	private KeycloakManager keycloakManager = null;
 	private final UserServiceFactory userServiceFactory;
 
 	// -------------------------------------------------------- //
@@ -111,16 +109,16 @@ public class ApplicationManager {
 	 * @throws DLBServiceConfigurationException if any project cannot be loaded due to parse errors
 	 *                                          or configuration problems.
 	 */
-	public ApplicationManager(DlbProperties dlbProperties) throws DLBServiceConfigurationException {
+	public ApplicationManager(DlbProperties dlbProperties,
+							  VariableStoreStorageHandler storageHandler)
+			throws DLBServiceConfigurationException {
 		this.dlbProperties = dlbProperties;
 
 		loadAllProjects();
 
-		this.userServiceFactory = new UserServiceFactory(this,
-				new VariableStoreDatabaseStorageHandler());
+		this.userServiceFactory = new UserServiceFactory(this, storageHandler);
 
 		if (dlbProperties.getAuth().getService().equals(DlbProperties.AUTH_SERVICE_KEYCLOAK)) {
-			keycloakManager = new KeycloakManager(dlbProperties);
 			basicUserCredentials = new ArrayList<>();
 		} else {
 			try {
@@ -174,16 +172,6 @@ public class ApplicationManager {
 	 */
 	public DlbProperties getDlbProperties() {
 		return dlbProperties;
-	}
-
-	/**
-	 * Returns the {@link KeycloakManager} used to validate Keycloak-issued JWT tokens, or
-	 * {@code null} if Keycloak authentication is not enabled.
-	 *
-	 * @return the {@link KeycloakManager}, or {@code null}.
-	 */
-	public KeycloakManager getKeycloakManager() {
-		return keycloakManager;
 	}
 
 	// ------------------------------------------------------------ //

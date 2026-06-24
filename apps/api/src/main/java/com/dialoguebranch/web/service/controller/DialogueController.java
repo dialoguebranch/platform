@@ -51,7 +51,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import nl.rrd.utils.AppComponents;
+import org.slf4j.LoggerFactory;
 import nl.rrd.utils.datetime.DateTimeUtils;
 import nl.rrd.utils.exception.DatabaseException;
 import nl.rrd.utils.exception.ParseException;
@@ -76,7 +76,7 @@ import java.util.UUID;
  * @author Harm op den Akker
  */
 @RestController
-@SecurityRequirement(name = "X-Auth-Token")
+@SecurityRequirement(name = "bearerAuth")
 @RequestMapping(value = {"/v{version}/dialogue", "/dialogue"})
 @Tag(name = "2. Dialogue", description = "End-points for starting and controlling the lifecycle " +
 		"of remotely executed dialogues.")
@@ -85,7 +85,7 @@ public class DialogueController {
 	@Autowired
 	Application application;
 
-	private final Logger logger = AppComponents.getLogger(getClass().getSimpleName());
+	private static final Logger logger = LoggerFactory.getLogger(DialogueController.class);
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //

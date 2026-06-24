@@ -28,11 +28,11 @@
 
 package com.dialoguebranch.web.varservice.controller;
 
-import com.dialoguebranch.web.varservice.Application;
+import com.dialoguebranch.web.varservice.DlbVarServiceProperties;
 import com.dialoguebranch.web.varservice.ProtocolVersion;
 import com.dialoguebranch.web.varservice.exception.ErrorCode;
 import com.dialoguebranch.web.varservice.exception.UnauthorizedException;
-import nl.rrd.utils.AppComponents;
+import org.slf4j.LoggerFactory;
 import com.dialoguebranch.web.varservice.controller.schema.DLBVariablePayload;
 import com.dialoguebranch.web.varservice.exception.BadRequestException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -76,10 +76,10 @@ import java.util.Random;
 public class VariablesController {
 
 	@Autowired
-	Application application;
+	DlbVarServiceProperties properties;
 
 	/** The logger used for logging (debug) info to log files. */
-	private final Logger logger = AppComponents.getLogger(getClass().getSimpleName());
+	private static final Logger logger = LoggerFactory.getLogger(VariablesController.class);
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
@@ -183,7 +183,7 @@ public class VariablesController {
 			throw new BadRequestException("Missing 'userId' in request.");
 		} else {
 			String providedAPIKey = ControllerFunctions.extractAPIKey(request);
-			if(application.getConfiguration().getAuthAPIKey().equals(providedAPIKey)) {
+			if(properties.getAuth().getApiKey().equals(providedAPIKey)) {
 				return executeRetrieveUpdates(userId, timeZone, dlbVariables);
 			} else {
 				throw new UnauthorizedException(ErrorCode.ACCESS_TOKEN_INVALID,
@@ -376,7 +376,7 @@ public class VariablesController {
 			throw new BadRequestException("Missing 'userId' in request.");
 		} else {
 			String providedAPIKey = ControllerFunctions.extractAPIKey(request);
-			if(application.getConfiguration().getAuthAPIKey().equals(providedAPIKey)) {
+			if(properties.getAuth().getApiKey().equals(providedAPIKey)) {
 				return executeNotifyUpdated(userId, timeZone, dlbVariables);
 			} else {
 				throw new UnauthorizedException(ErrorCode.ACCESS_TOKEN_INVALID,
@@ -479,7 +479,7 @@ public class VariablesController {
 			throw new BadRequestException("Missing 'userId' in request.");
 		} else {
 			String providedAPIKey = ControllerFunctions.extractAPIKey(request);
-			if(application.getConfiguration().getAuthAPIKey().equals(providedAPIKey)) {
+			if(properties.getAuth().getApiKey().equals(providedAPIKey)) {
 				return executeNotifyCleared(userId, timeZone);
 			} else {
 				throw new UnauthorizedException(ErrorCode.ACCESS_TOKEN_INVALID,

@@ -64,10 +64,15 @@ public class OpenApiSwaggerConfig {
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
 
+	private final DlbVarServiceProperties properties;
+
 	/**
 	 * Instantiation of this class is handled through Spring.
+	 * @param properties the bound service configuration properties
 	 */
-	public OpenApiSwaggerConfig() { }
+	public OpenApiSwaggerConfig(DlbVarServiceProperties properties) {
+		this.properties = properties;
+	}
 
 	// -------------------------------------------------------- //
 	// -------------------- Other Methods --------------------- //
@@ -88,13 +93,13 @@ public class OpenApiSwaggerConfig {
 		ProtocolVersion[] allVersions = ProtocolVersion.values();
 		for(int i=allVersions.length-1; i>=0; i--) {
 			Server server = new Server();
-			server.url(ServiceContext.getBaseUrl()+"/v"+allVersions[i].versionName());
+			server.url(properties.getBaseUrl()+"/v"+allVersions[i].versionName());
 			openAPI.addServersItem(server);
 		}
 
 		// Finally, add the base server path (without version)
 		Server server = new Server();
-		server.url(ServiceContext.getBaseUrl());
+		server.url(properties.getBaseUrl());
 		openAPI.addServersItem(server);
 
 		// Add the security scheme

@@ -28,7 +28,6 @@
 
 package com.dialoguebranch.web.service.exception;
 
-import com.dialoguebranch.web.service.controller.ErrorController;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -37,7 +36,7 @@ import java.io.Serial;
 /**
  * This exception results in an HTTP response with status 501 Not Implemented. The exception message
  * (default "Not Implemented") will be written to the response. It is handled by the
- * {@link ErrorController ErrorController}.
+ * {@link com.dialoguebranch.web.service.controller.GlobalExceptionHandler}.
  * 
  * @author Dennis Hofs
  * @author Harm op den Akker

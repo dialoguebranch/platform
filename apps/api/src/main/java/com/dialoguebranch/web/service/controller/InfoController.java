@@ -29,7 +29,7 @@
 package com.dialoguebranch.web.service.controller;
 
 import com.dialoguebranch.web.service.controller.schema.ServiceInfoPayload;
-import nl.rrd.utils.AppComponents;
+import org.slf4j.LoggerFactory;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.ProtocolVersion;
 import com.dialoguebranch.web.service.ServiceContext;
@@ -58,7 +58,7 @@ public class InfoController {
 	Application application;
 
 	/** Used for writing logging information */
-	private final Logger logger = AppComponents.getLogger(getClass().getSimpleName());
+	private static final Logger logger = LoggerFactory.getLogger(InfoController.class);
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //

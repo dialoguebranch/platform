@@ -44,13 +44,14 @@ import com.dialoguebranch.web.service.auth.jwt.JWTUtils;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import nl.rrd.utils.AppComponents;
+import org.slf4j.LoggerFactory;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
@@ -77,11 +78,14 @@ public class AuthController {
 	@Autowired
 	Application application;
 
+	@Autowired(required = false)
+	JwtDecoder jwtDecoder;
+
 	/** Used for executing QueryRunner operations in a thread-safe manner */
 	private static final Object AUTH_LOCK = new Object();
 
 	/** Used for writing logging information */
-	private final Logger logger = AppComponents.getLogger(getClass().getSimpleName());
+	private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
@@ -320,11 +324,10 @@ public class AuthController {
             logger.info("Call to Keycloak token end-point successful.");
             KeycloakTokenResponse keyCloakResponse = response.getBody();
             if (keyCloakResponse != null) {
-				// Validate the received token, in order to get the roles.
+				// Decode the received token to extract roles.
 				String accessToken = keyCloakResponse.getAccessToken();
 				AuthenticationInfo authenticationInfo =
-						application.getApplicationManager().getKeycloakManager()
-								.validateAccessToken(accessToken);
+						QueryRunner.authenticationInfoFromKeycloakJwt(jwtDecoder.decode(accessToken));
 
                 return new LoginResultPayload(
 						loginParametersPayload.getUser(),
@@ -369,7 +372,7 @@ public class AuthController {
 	 * @return 'true' if the token is correct, otherwise it will throw an exception.
 	 * @throws UnauthorizedException if the given authentication token is not (or no longer) valid.
 	 */
-	@SecurityRequirement(name = "X-Auth-Token")
+	@SecurityRequirement(name = "bearerAuth")
 	@Operation(summary = "Validate a given authentication token.",
 		description = "If your client application has a stored authentication token you may use" +
 			"this method to check whether or not that is a valid token. This method will either" +
@@ -416,7 +419,7 @@ public class AuthController {
 	 * @return 'true' if the token is correct, otherwise it will throw an exception.
 	 * @throws UnauthorizedException if the given authentication token is not (or no longer) valid.
 	 */
-	@SecurityRequirement(name = "X-Auth-Token")
+	@SecurityRequirement(name = "bearerAuth")
 	@Operation(summary = "Use a refresh token to generate a new access token.",
 			description = "If your client's access token has expired, it may use the refresh" +
 					"token to generate a new access token (if the refresh token has not expired" +
@@ -498,11 +501,10 @@ public class AuthController {
 					" successful.");
 			KeycloakTokenResponse keyCloakResponse = response.getBody();
 			if (keyCloakResponse != null) {
-				// Validate the received token, in order to get the roles.
+				// Decode the received token to extract username and roles.
 				String accessToken = keyCloakResponse.getAccessToken();
 				AuthenticationInfo authenticationInfo =
-						application.getApplicationManager().getKeycloakManager()
-								.validateAccessToken(accessToken);
+						QueryRunner.authenticationInfoFromKeycloakJwt(jwtDecoder.decode(accessToken));
 
 				return new LoginResultPayload(
 						authenticationInfo.getUsername(),

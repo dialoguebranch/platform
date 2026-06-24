@@ -136,13 +136,8 @@ The app uses Tailwind CSS v4 (Vite plugin) and Font Awesome for icons. `__APP_VE
 
 ## Versioning
 
-All version bumps go in `global.json` only. Both Gradle build scripts read from it with `new groovy.json.JsonSlurper().parse(new File(..., 'global.json')).version`. The web client syncs via `npm run sync-version`. After updating `global.json`, run `./gradlew updateConfig` (API) and `./gradlew updateVersion` (API) if building outside Docker.
+All version bumps go in `global.json` only. Both Gradle build scripts read from it with `new groovy.json.JsonSlurper().parse(new File(..., 'global.json')).version`. The web client syncs via `npm run sync-version`. After updating `global.json`, run `./gradlew updateConfig` in each Gradle project (`apps/api`, `apps/mock-variable-service`) if building outside Docker.
 
 ## Required Config Files (not in version control)
 
-Before running locally:
-- `packages/core/gradle.properties` — GPG signing + Sonatype Portal credentials (for publishing only)
-- `apps/api/gradle.properties` — build-time properties
-- `apps/api/config/users.xml` — native auth user list (copy from example)
-- `apps/mock-variable-service/gradle.properties` and `config/service-users.xml`
-- `infrastructure/docker/secrets.env` — secrets for the Docker stack (copy from `secrets.env.example`)
+- `packages/core/gradle.properties` — GPG signing + Sonatype Portal credentials (required only for publishing to Maven Central)
