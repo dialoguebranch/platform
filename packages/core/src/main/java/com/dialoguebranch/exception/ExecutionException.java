@@ -64,7 +64,13 @@ public class ExecutionException extends DialogueBranchException {
 		INTERACTION_NOT_FOUND,
 
 		/** An operation was attempted that requires an active dialogue, but none is in progress. */
-		NO_ACTIVE_DIALOGUE
+		NO_ACTIVE_DIALOGUE,
+
+		/** An operation was attempted on a dialogue that has been cancelled. */
+		DIALOGUE_CANCELLED,
+
+		/** An operation was attempted on a dialogue that has already completed. */
+		DIALOGUE_COMPLETED
 	}
 
 	/** The type of this {@link ExecutionException} as {@link Type}. */

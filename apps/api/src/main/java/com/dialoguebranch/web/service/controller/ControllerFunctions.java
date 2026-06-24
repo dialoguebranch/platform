@@ -107,6 +107,9 @@ public class ControllerFunctions {
 				REPLY_NOT_FOUND,
 				NO_ACTIVE_DIALOGUE ->
 					new NotFoundException(exception.getMessage());
+			case DIALOGUE_CANCELLED,
+				DIALOGUE_COMPLETED ->
+					new BadRequestException(exception.getMessage());
 			default ->
 					throw new RuntimeException("Unexpected ExecutionException: " +
 							exception.getMessage(), exception);

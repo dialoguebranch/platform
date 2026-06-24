@@ -562,6 +562,14 @@ public class UserService {
 			throw new ExecutionException(ExecutionException.Type.DIALOGUE_NOT_FOUND,
 					"Logged dialogue not found");
 		}
+		if (loggedDialogue.isCancelled()) {
+			throw new ExecutionException(ExecutionException.Type.DIALOGUE_CANCELLED,
+					"Dialogue '" + loggedDialogueId + "' has been cancelled and cannot be progressed.");
+		}
+		if (loggedDialogue.isCompleted()) {
+			throw new ExecutionException(ExecutionException.Type.DIALOGUE_COMPLETED,
+					"Dialogue '" + loggedDialogueId + "' has already completed and cannot be progressed.");
+		}
 		return getDialogueState(loggedDialogue, loggedInteractionIndex);
 	}
 
