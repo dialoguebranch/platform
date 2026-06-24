@@ -12,6 +12,10 @@ The Dialogue Branch Platform is a monorepo for authoring, executing, and serving
 
 The version for the entire monorepo is declared once in `global.json` at the root. Both Gradle builds and the web `package.json` read from this file.
 
+## Working with Claude Code
+
+- Never create git commits, push to remote, or open/close/comment on pull requests unless explicitly asked to do so.
+
 ## Build Commands
 
 All Gradle commands use the wrapper (`./gradlew`). Docker builds must be run from the **repo root** (`platform/`) because the build context spans both `apps/api/` and `packages/core/`.
