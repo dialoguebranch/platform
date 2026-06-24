@@ -280,14 +280,32 @@ export class DialogueBranchClient {
         return dialogueStep;
     }
 
-    _fetch(url, options) {
-        return fetch(url, options).then(async (response) => {
-            const cloned = response.clone();
-            const text = await cloned.text().catch(() => null);
-            const path = url.startsWith(this._baseUrl) ? url.slice(this._baseUrl.length) : url;
-            logApiCall(options?.method || 'GET', path, response.status, text);
-            return response;
-        });
+    async _fetch(url, options) {
+        const path = url.startsWith(this._baseUrl) ? url.slice(this._baseUrl.length) : url;
+        const method = options?.method || 'GET';
+        const hasAuth = !!options?.headers?.['Authorization'];
+
+        const response = await fetch(url, options);
+        const cloned = response.clone();
+        const text = await cloned.text().catch(() => null);
+        logApiCall(method, path, response.status, text);
+
+        if (response.status === 401 && hasAuth && this._onUnauthorized) {
+            const newToken = await this._onUnauthorized().catch(() => null);
+            if (newToken) {
+                const retryOptions = {
+                    ...options,
+                    headers: { ...options.headers, 'Authorization': 'Bearer ' + newToken },
+                };
+                const retryResponse = await fetch(url, retryOptions);
+                const retryCloned = retryResponse.clone();
+                const retryText = await retryCloned.text().catch(() => null);
+                logApiCall(method + ' [retried]', path, retryResponse.status, retryText);
+                return retryResponse;
+            }
+        }
+
+        return response;
     }
 
     _handleResponse(response) {
@@ -298,11 +316,6 @@ export class DialogueBranchClient {
             } else {
                 return response.text();
             }
-        } else if (response.status == 401) {
-            if (this._onUnauthorized) {
-                this._onUnauthorized(response);
-            }
-            return Promise.reject(response);
         } else {
             return Promise.reject(response);
         }
