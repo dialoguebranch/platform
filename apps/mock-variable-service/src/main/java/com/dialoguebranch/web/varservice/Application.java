@@ -28,13 +28,12 @@
 
 package com.dialoguebranch.web.varservice;
 
-import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.system.JavaVersion;
-import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextClosedEvent;
@@ -42,22 +41,21 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.core.SpringVersion;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-import java.net.URL;
 import java.time.Instant;
 
 /**
  * The main entry point for the External Variable Service Dummy as a Spring Boot Application.
- * 
+ *
  * @author Harm op den Akker
  */
 @SpringBootApplication
 @EnableScheduling
-public class Application extends SpringBootServletInitializer implements
-ApplicationListener<ApplicationEvent> {
+@EnableConfigurationProperties(DlbVarServiceProperties.class)
+public class Application implements ApplicationListener<ApplicationEvent> {
 
 	private static final Logger logger = LoggerFactory.getLogger(Application.class);
-	private final Configuration config;
 
+	private final DlbVarServiceProperties properties;
 	private final Long launchedTime = Instant.now().toEpochMilli();
 
 	// -------------------------------------------------------- //
@@ -65,35 +63,14 @@ ApplicationListener<ApplicationEvent> {
 	// -------------------------------------------------------- //
 
 	/**
-	 * Constructs a new application. It reads service.properties and
-	 * initializes the {@link Configuration Configuration} and the {@link
-	 * {@link Configuration} singleton.
-	 * 
-	 * @throws Exception if the application can't be initialised
+	 * Constructs a new application instance. Spring injects the configuration properties.
+	 *
+	 * @param properties the bound configuration properties
 	 */
-	public Application() throws Exception {
-		// Initialize a Configuration object
-		config = Configuration.getInstance();
-
-		// Load the values from service.properties into the Configuration
-		URL propertiesUrl = getClass().getClassLoader().getResource(
-				"service.properties");
-		if (propertiesUrl == null) {
-			throw new Exception("Can't find resource service.properties. " +
-					"Did you run gradlew updateConfig?");
-		}
-		config.loadProperties(propertiesUrl);
-
-		// Load the values from deployment.properties into the Configuration (app version number)
-		propertiesUrl = getClass().getClassLoader().getResource(
-				"deployment.properties");
-		config.loadProperties(propertiesUrl);
-
-		// By default, log uncaught exceptions to this logger
+	public Application(DlbVarServiceProperties properties) {
+		this.properties = properties;
 		Thread.setDefaultUncaughtExceptionHandler((t, e) ->
-                logger.error("Uncaught exception: {}", e.getMessage(), e)
-		);
-
+				logger.error("Uncaught exception: {}", e.getMessage(), e));
 	}
 
 	// ----------------------------------------------------------- //
@@ -110,26 +87,21 @@ ApplicationListener<ApplicationEvent> {
 	}
 
 	/**
-	 * Returns the {@link Configuration} object containing service parameters.
+	 * Returns the bound configuration properties for this service.
 	 *
-	 * @return the {@link Configuration} object containing service parameters.
+	 * @return the bound configuration properties for this service.
 	 */
-	public Configuration getConfiguration() {
-		return config;
+	public DlbVarServiceProperties getProperties() {
+		return properties;
 	}
 
 	// ------------------------------------------------------- //
 	// -------------------- Other Methods -------------------- //
 	// ------------------------------------------------------- //
-	
-	@Override
-	protected SpringApplicationBuilder configure(SpringApplicationBuilder builder) {
-		return builder.sources(Application.class);
-	}
 
 	/**
 	 * Run the application with the provided arguments.
-	 * @param args optional run arguments (non supported).
+	 * @param args optional run arguments (not supported).
 	 */
 	public static void main(String[] args) {
 		SpringApplication.run(Application.class, args);
@@ -137,18 +109,18 @@ ApplicationListener<ApplicationEvent> {
 
 	@Override
 	public void onApplicationEvent(ApplicationEvent event) {
-		if(event instanceof ContextClosedEvent) {
+		if (event instanceof ContextClosedEvent) {
 			logger.info("Shutdown DialogueBranch External Variable Service Dummy.");
 		}
 
-		if(event instanceof ContextRefreshedEvent) {
+		if (event instanceof ContextRefreshedEvent) {
 			logger.info("========== DialogueBranch External Variable Service Dummy Startup Info ==========");
-            logger.info("=== Version: {}", config.get(Configuration.VERSION));
-            logger.info("=== API Version: {}", ProtocolVersion.getLatestVersion().versionName());
-            logger.info("=== Build: {}", config.getBuildTime());
-            logger.info("=== Spring Version: {}", SpringVersion.getVersion());
-            logger.info("=== JDK Version: {}", System.getProperty("java.version"));
-            logger.info("=== Java Version: {}", JavaVersion.getJavaVersion().toString());
+			logger.info("=== Version: {}", properties.getVersion());
+			logger.info("=== API Version: {}", ProtocolVersion.getLatestVersion().versionName());
+			logger.info("=== Build: {}", properties.getBuildTime());
+			logger.info("=== Spring Version: {}", SpringVersion.getVersion());
+			logger.info("=== JDK Version: {}", System.getProperty("java.version"));
+			logger.info("=== Java Version: {}", JavaVersion.getJavaVersion().toString());
 			logger.info("=======================================================================");
 		}
 	}

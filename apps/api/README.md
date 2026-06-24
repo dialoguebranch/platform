@@ -8,8 +8,8 @@ and the documentation at [www.dialoguebranch.com/docs](https://www.dialoguebranc
 
 ## Requirements
 
-- Java 17 or higher
-- Docker & Docker Compose
+- JDK 21+
+- Docker
 
 ---
 
@@ -24,28 +24,13 @@ context needs access to both `apps/api/` and `packages/core/`.
 docker build -t dlb-web-service -f apps/api/Dockerfile .
 ```
 
-The build uses a two-stage process: the first stage compiles the Java source and produces a
-WAR file; the second stage copies only the WAR into a clean Tomcat image. The JDK and Gradle
-are not included in the final image.
+The build uses a two-stage process: the first stage compiles the Java source and produces an
+executable JAR; the second stage copies only the JAR into a clean JRE image.
 
-### 1.2. Running the full local development stack
+### 1.2. Local development
 
-A local development stack (API + MariaDB + Keycloak + Web Client) is defined in
-[`infrastructure/docker/docker-compose.local-dev.yml`](../../infrastructure/docker/docker-compose.local-dev.yml).
-See [`infrastructure/docker/README.md`](../../infrastructure/docker/README.md) for setup
-instructions.
-
-### 1.4. Minimal deployment (API + MariaDB only)
-
-A minimal compose file for deploying the API with native authentication and no Keycloak is
-provided at
-[`infrastructure/docker/docker-compose.minimal.yml`](../../infrastructure/docker/docker-compose.minimal.yml).
-
-```bash
-cp infrastructure/docker/secrets.minimal.env.example infrastructure/docker/secrets.minimal.env
-# edit secrets.minimal.env with your values
-docker compose -f infrastructure/docker/docker-compose.minimal.yml up
-```
+For local development, use the Docker Compose stack in `infrastructure/docker/`. See the
+[root README](../../README.md) for full setup instructions.
 
 ---
 
@@ -58,7 +43,7 @@ every supported variable, its default value, and whether it is required.
 
 | Variable | Default | Required | Description |
 |---|---|---|---|
-| `SERVER_PORT` | `8089` | No | Port Tomcat listens on inside the container |
+| `SERVER_PORT` | `8089` | No | Port Spring Boot listens on inside the container |
 | `DLB_BASE_URL` | `http://localhost:8089/dlb-web-service` | Yes | Public base URL of the service |
 | `DLB_DATA_DIR` | `/usr/local/dialogue-branch/data/dlb-web-service` | No | Path to the service data directory |
 
@@ -95,7 +80,7 @@ openssl rand -base64 64
 
 | Variable | Default | Required | Description |
 |---|---|---|---|
-| `DLB_MARIADB_HOST` | `mariadb` | Yes | MariaDB hostname |
+| `DLB_MARIADB_HOST` | `localhost` | Yes | MariaDB hostname |
 | `DLB_MARIADB_PORT` | `3306` | No | MariaDB port |
 | `DLB_MARIADB_USER` | `root` | Yes | MariaDB username |
 | `DLB_MARIADB_PASSWORD` | — | **Yes** | MariaDB password |
@@ -146,11 +131,3 @@ following settings:
 - **IntelliJ IDEA → Settings → Build, Execution, Deployment → Build Tools → Gradle**:
   Gradle JVM version 17+.
 
-### 4.2. Configuration files
-
-Before deploying, create the following files (copy from the provided examples):
-
-- `apps/api/gradle.properties`
-- `apps/api/config/users.xml`
-- `apps/mock-variable-service/gradle.properties`
-- `apps/mock-variable-service/config/service-users.xml`

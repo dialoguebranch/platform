@@ -28,65 +28,44 @@
 
 package com.dialoguebranch.web.varservice;
 
-import org.slf4j.LoggerFactory;
-import nl.rrd.utils.exception.ParseException;
-import nl.rrd.utils.http.HttpURL;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * A collection of static methods that provide information about the running context of this
- * service.
+ * Typed configuration properties for the Dialogue Branch External Variable Service, bound from
+ * {@code application.yml} under the {@code dlb} prefix. Environment variables follow Spring's
+ * relaxed binding convention: {@code DLB_AUTH_API_KEY} overrides {@code dlb.auth.api-key}.
  *
+ * @author Dennis Hofs
  * @author Harm op den Akker
  */
-public class ServiceContext {
+@ConfigurationProperties(prefix = "dlb")
+public class DlbVarServiceProperties {
 
-	// -------------------------------------------------------- //
-	// -------------------- Constructor(s) -------------------- //
-	// -------------------------------------------------------- //
+	private String version = "unknown";
+	private String buildTime = "";
+	private String baseUrl = "http://localhost:8090/dlb-external-var-service";
+	private String dataDir = "config";
+	private Auth auth = new Auth();
 
-	/**
-	 * This class is used in a static context.
-	 */
-	public ServiceContext() { }
+	public String getVersion() { return version; }
+	public void setVersion(String version) { this.version = version; }
 
-	// ------------------------------------------------------- //
-	// -------------------- Other Methods -------------------- //
-	// ------------------------------------------------------- //
+	public String getBuildTime() { return buildTime; }
+	public void setBuildTime(String buildTime) { this.buildTime = buildTime; }
 
-	/**
-	 * Returns the base URL.
-	 * 
-	 * @return the base URL
-	 */
-	public static String getBaseUrl() {
-		Configuration config = Configuration.getInstance();
-		return config.get(Configuration.BASE_URL);
+	public String getBaseUrl() { return baseUrl; }
+	public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
+
+	public String getDataDir() { return dataDir; }
+	public void setDataDir(String dataDir) { this.dataDir = dataDir; }
+
+	public Auth getAuth() { return auth; }
+	public void setAuth(Auth auth) { this.auth = auth; }
+
+	public static class Auth {
+		private String apiKey = "";
+
+		public String getApiKey() { return apiKey; }
+		public void setApiKey(String apiKey) { this.apiKey = apiKey; }
 	}
-	
-	/**
-	 * Returns the base path.
-	 * 
-	 * @return the base path
-	 */
-	public static String getBasePath() {
-		String url = getBaseUrl();
-		HttpURL httpUrl;
-		try {
-			httpUrl = HttpURL.parse(url);
-		} catch (ParseException ex) {
-			throw new RuntimeException("Invalid base URL: " + url + ": " + ex.getMessage(), ex);
-		}
-		return httpUrl.getPath();
-	}
-
-	/**
-	 * Returns the current protocol version.
-	 *
-	 * @return the current protocol version
-	 */
-	public static String getCurrentVersion() {
-		ProtocolVersion[] versions = ProtocolVersion.values();
-		return versions[versions.length - 1].versionName();
-	}
-
 }

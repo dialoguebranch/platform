@@ -28,7 +28,7 @@
 
 package com.dialoguebranch.web.varservice.controller;
 
-import com.dialoguebranch.web.varservice.ServiceContext;
+import com.dialoguebranch.web.varservice.DlbVarServiceProperties;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.view.RedirectView;
@@ -42,14 +42,19 @@ import org.springframework.web.servlet.view.RedirectView;
 @Controller
 public class SwaggerController {
 
+	private final DlbVarServiceProperties properties;
+
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
 
 	/**
 	 * Instances of this class are managed by Spring.
+	 * @param properties the bound service configuration properties
 	 */
-	public SwaggerController() { }
+	public SwaggerController(DlbVarServiceProperties properties) {
+		this.properties = properties;
+	}
 
 	// ------------------------------------------------------- //
 	// -------------------- Other Methods -------------------- //
@@ -61,8 +66,7 @@ public class SwaggerController {
 	 */
 	@RequestMapping("/")
 	public RedirectView redirectRoot() {
-		return new RedirectView(ServiceContext.getBaseUrl() +
-				"/swagger-ui/index.html");
+		return new RedirectView(properties.getBaseUrl() + "/swagger-ui/index.html");
 	}
 
 }

@@ -28,12 +28,11 @@
 
 package com.dialoguebranch.web.varservice.controller;
 
+import com.dialoguebranch.web.varservice.DlbVarServiceProperties;
 import com.dialoguebranch.web.varservice.ProtocolVersion;
-import com.dialoguebranch.web.varservice.ServiceContext;
 import com.dialoguebranch.web.varservice.controller.schema.ServiceInfoPayload;
 import org.slf4j.LoggerFactory;
 import com.dialoguebranch.web.varservice.Application;
-import com.dialoguebranch.web.varservice.Configuration;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -59,6 +58,9 @@ public class InfoController {
 
 	@Autowired
 	Application application;
+
+	@Autowired
+	DlbVarServiceProperties properties;
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
@@ -115,9 +117,9 @@ public class InfoController {
 		String upTimeString = days + "d " + hours + "h " + minutes + "m";
 
 		return new ServiceInfoPayload(
-				Configuration.getInstance().get(Configuration.BUILD_TIME),
-				ServiceContext.getCurrentVersion(),
-				Configuration.getInstance().get(Configuration.VERSION),
+				properties.getBuildTime(),
+				ProtocolVersion.getLatestVersion().versionName(),
+				properties.getVersion(),
 				upTimeString);
 	}
 
