@@ -65,7 +65,7 @@ import java.util.*;
  * @author Harm op den Akker
  */
 @RestController
-@SecurityRequirement(name = "X-Auth-Token")
+@SecurityRequirement(name = "bearerAuth")
 @RequestMapping(value = {"/v{version}/variables", "/variables"})
 @Tag(name = "3. Variables", description = "End-points for retrieving or setting DialogueBranch " +
 		"Variables.")

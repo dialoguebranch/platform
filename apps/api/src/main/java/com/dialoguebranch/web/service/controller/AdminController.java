@@ -61,7 +61,7 @@ import java.util.List;
  * @author Harm op den Akker
  */
 @RestController
-@SecurityRequirement(name = "X-Auth-Token")
+@SecurityRequirement(name = "bearerAuth")
 @RequestMapping(value = {"/v{version}/admin", "/admin"})
 @Tag(name = "6. Admin", description = "End-points for administrative control of the Dialogue " +
     "Branch Web Service.")

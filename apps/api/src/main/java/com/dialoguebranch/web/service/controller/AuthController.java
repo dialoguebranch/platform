@@ -372,7 +372,7 @@ public class AuthController {
 	 * @return 'true' if the token is correct, otherwise it will throw an exception.
 	 * @throws UnauthorizedException if the given authentication token is not (or no longer) valid.
 	 */
-	@SecurityRequirement(name = "X-Auth-Token")
+	@SecurityRequirement(name = "bearerAuth")
 	@Operation(summary = "Validate a given authentication token.",
 		description = "If your client application has a stored authentication token you may use" +
 			"this method to check whether or not that is a valid token. This method will either" +
@@ -419,7 +419,7 @@ public class AuthController {
 	 * @return 'true' if the token is correct, otherwise it will throw an exception.
 	 * @throws UnauthorizedException if the given authentication token is not (or no longer) valid.
 	 */
-	@SecurityRequirement(name = "X-Auth-Token")
+	@SecurityRequirement(name = "bearerAuth")
 	@Operation(summary = "Use a refresh token to generate a new access token.",
 			description = "If your client's access token has expired, it may use the refresh" +
 					"token to generate a new access token (if the refresh token has not expired" +

@@ -99,13 +99,12 @@ public class OpenApiSwaggerConfig {
 		server.url(ServiceContext.getBaseUrl());
 		openAPI.addServersItem(server);
 
-		openAPI.components(new Components().addSecuritySchemes("X-Auth-Token",
+		openAPI.components(new Components().addSecuritySchemes("bearerAuth",
 			new SecurityScheme()
-				.name("X-Auth-Token")
-				.scheme("basic")
-				.type(SecurityScheme.Type.APIKEY)
-				.in(SecurityScheme.In.HEADER)
-
+				.name("bearerAuth")
+				.scheme("bearer")
+				.type(SecurityScheme.Type.HTTP)
+				.bearerFormat("JWT")
 		));
 
 		openAPI.info(

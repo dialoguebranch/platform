@@ -55,7 +55,7 @@ import java.util.List;
  * @author Harm op den Akker
 */
 @RestController
-@SecurityRequirement(name = "X-Auth-Token")
+@SecurityRequirement(name = "bearerAuth")
 @RequestMapping(value = {"/v{version}/log", "/log"})
 @Tag(name = "4. Logging", description = "End-points for retrieving information about logged" +
 		" dialogues.")

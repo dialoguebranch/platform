@@ -76,7 +76,7 @@ import java.util.UUID;
  * @author Harm op den Akker
  */
 @RestController
-@SecurityRequirement(name = "X-Auth-Token")
+@SecurityRequirement(name = "bearerAuth")
 @RequestMapping(value = {"/v{version}/dialogue", "/dialogue"})
 @Tag(name = "2. Dialogue", description = "End-points for starting and controlling the lifecycle " +
 		"of remotely executed dialogues.")

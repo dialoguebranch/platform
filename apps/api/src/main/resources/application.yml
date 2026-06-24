@@ -96,8 +96,8 @@ dlb:
 
   # ---- Authentication ----
   auth:
-    # "native" or "keycloak"
-    service: native
+    # "keycloak" or "native" (native to be removed)
+    service: keycloak
 
     # Keycloak settings (required when service = keycloak)
     keycloak:
