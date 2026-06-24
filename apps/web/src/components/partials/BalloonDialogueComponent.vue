@@ -8,6 +8,7 @@ import { AutoForwardReply } from '@/dlb-lib/model/AutoForwardReply';
 const props = defineProps([
     'dialogueSteps',
     'dialogueEnded',
+    'dialogueCancelled',
 ]);
 
 defineEmits([
@@ -42,7 +43,7 @@ const currentStep = computed(() => {
                 <div class="bg-speech-bubble text-white text-lg rounded-2xl p-5" v-html="currentStep.statement.fullStatement()"></div>
                 <div class="border-20 border-transparent border-t-speech-bubble self-end mr-[10%]"></div>
                 <div v-if="dialogueEnded" class="absolute top-full font-title text-sm font-bold italic text-center pt-2 w-full flex items-center justify-center gap-2">
-                    The dialogue has finished.
+                    {{ dialogueCancelled ? 'This dialogue has been cancelled.' : 'The dialogue has finished.' }}
                     <button title="Restart dialogue." class="cursor-pointer text-interaction-reply-option hover:text-interaction-reply-option-hover" @click="$emit('restartDialogue')"><FontAwesomeIcon icon="fa-solid fa-rotate-right" /></button>
                 </div>
             </div>

@@ -163,6 +163,19 @@ export class DialogueBranchClient {
         });
     }
 
+    cancelDialogue(loggedDialogueId) {
+        const url = this._baseUrl + "/dialogue/cancel?loggedDialogueId=" + loggedDialogueId;
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            }
+        })
+        .then((response) => this._handleResponse(response));
+    }
+
     getVariables() {
         var url = this._baseUrl + "/variables/get";
 

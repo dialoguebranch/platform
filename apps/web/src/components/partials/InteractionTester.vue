@@ -15,15 +15,18 @@ const emit = defineEmits([
 const dialogueName = ref(null);
 const dialogueSteps = ref([]);
 const dialogueEnded = ref(false);
+const dialogueCancelled = ref(false);
 
 const modes = [
     {
         name: 'balloon',
         icon: 'fa-regular fa-comments',
+        title: 'Balloon style — shows dialogue as speech bubbles with an avatar',
     },
     {
         name: 'text',
         icon: 'fa-solid fa-paragraph',
+        title: 'Text style — shows dialogue as a plain scrollable transcript',
     },
 ];
 
@@ -48,6 +51,7 @@ const loadDialogue = (name) => {
     dialogueName.value = name;
     dialogueSteps.value = [];
     dialogueEnded.value = false;
+    dialogueCancelled.value = false;
     client.startDialogue(name, 'en')
     .then((dialogueStep) => {
         dialogueName.value = dialogueStep.dialogueName;
@@ -82,6 +86,16 @@ defineExpose({
     resize,
 });
 
+function onCancelClick() {
+    const lastStep = dialogueSteps.value[dialogueSteps.value.length - 1];
+    if (!lastStep) return;
+    client.cancelDialogue(lastStep.loggedDialogueId)
+    .then(() => {
+        dialogueCancelled.value = true;
+        dialogueEnded.value = true;
+    });
+}
+
 function onSelectReply(dialogueStep, reply) {
     client.progressDialogue(dialogueStep.loggedDialogueId, dialogueStep.loggedInteractionIndex,
         reply.replyId)
@@ -107,12 +121,12 @@ function onSelectReply(dialogueStep, reply) {
         >
             <template #buttons>
                 <ModeSelector :modes="modes" v-model="selectedMode" />
-                <IconButton icon="fa-solid fa-circle-xmark" color="warning" :disabled="dialogueName === null" />
+                <IconButton icon="fa-solid fa-circle-xmark" color="warning" :disabled="dialogueName === null || dialogueEnded" :title="dialogueName && !dialogueEnded ? 'Cancel the current dialogue' : 'Cancel the current dialogue (no dialogue active)'" @click="onCancelClick" />
             </template>
         </MainPagePanelHeader>
         <MainPagePanelContainer>
-            <BalloonDialogueComponent v-if="selectedMode == 'balloon'" ref="balloons" :dialogueSteps="dialogueSteps" :dialogueEnded="dialogueEnded" @selectReply="onSelectReply" @restartDialogue="loadDialogue(dialogueName)" />
-            <TextDialogueComponent v-if="selectedMode == 'text'" ref="text-component" :dialogueSteps="dialogueSteps" :dialogueEnded="dialogueEnded" @selectReply="onSelectReply" @restartDialogue="loadDialogue(dialogueName)" />
+            <BalloonDialogueComponent v-if="selectedMode == 'balloon'" ref="balloons" :dialogueSteps="dialogueSteps" :dialogueEnded="dialogueEnded" :dialogueCancelled="dialogueCancelled" @selectReply="onSelectReply" @restartDialogue="loadDialogue(dialogueName)" />
+            <TextDialogueComponent v-if="selectedMode == 'text'" ref="text-component" :dialogueSteps="dialogueSteps" :dialogueEnded="dialogueEnded" :dialogueCancelled="dialogueCancelled" @selectReply="onSelectReply" @restartDialogue="loadDialogue(dialogueName)" />
         </MainPagePanelContainer>
     </div>
 </template>

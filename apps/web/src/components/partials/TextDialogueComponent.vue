@@ -7,6 +7,7 @@ import { AutoForwardReply } from '@/dlb-lib/model/AutoForwardReply';
 const props = defineProps([
     'dialogueSteps',
     'dialogueEnded',
+    'dialogueCancelled',
 ]);
 
 const emit = defineEmits([
@@ -109,7 +110,7 @@ function getBasicReplyTextClasses(stepIndex, reply) {
             </template>
         </div>
         <div v-if="dialogueEnded && stepIndex === dialogueSteps.length - 1" class="font-title text-sm font-bold italic text-center pt-4 flex items-center justify-center gap-2">
-            The dialogue has finished.
+            {{ dialogueCancelled ? 'This dialogue has been cancelled.' : 'The dialogue has finished.' }}
             <button title="Restart dialogue." class="cursor-pointer text-interaction-reply-option hover:text-interaction-reply-option-hover" @click="$emit('restartDialogue')"><FontAwesomeIcon icon="fa-solid fa-rotate-right" /></button>
         </div>
     </div>

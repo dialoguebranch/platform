@@ -20,6 +20,7 @@ const offClasses = ['bg-mode-selector-off', 'hover:bg-mode-selector-off-hover'];
         <button v-for="mode in modes"
             class="rounded-full w-6.5 h-6.5 cursor-pointer"
             :class="model === mode.name ? onClasses : offClasses"
+            :title="mode.title"
             @click="onModeClick(mode)"
         >
             <FontAwesomeIcon class="text-white w-4 h-4" :icon="mode.icon" />
