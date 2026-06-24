@@ -81,6 +81,7 @@ public class SecurityConfig {
                         "/", "/index.html",
                         "/auth/login", "/v*/auth/login",
                         "/auth/refresh", "/v*/auth/refresh",
+                        "/info/all", "/v*/info/all",
                         "/swagger-ui/**", "/swagger-ui.html",
                         "/v3/api-docs/**", "/api-docs/**",
                         "/webjars/**",
