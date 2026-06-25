@@ -139,7 +139,9 @@ public class JWTUtils {
                 .parseSignedClaims(token)
                 .getPayload();
         String rolesString = (String) claims.get("roles");
-        String[] roles = rolesString.split(",");
+        String[] roles = (rolesString != null && !rolesString.isEmpty())
+                ? rolesString.split(",")
+                : new String[0];
         return new AuthenticationInfo(
                 claims.getSubject(),
                 roles,
