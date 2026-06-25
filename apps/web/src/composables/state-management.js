@@ -34,7 +34,7 @@ class StateManagement {
         const currentUser = this._stateRef.value.user;
         if (!currentUser) return Promise.reject('No user logged in');
 
-        logEvent('auth', 'Token refresh triggered', { secondsRemaining: Math.round(currentUser.accessTokenSecondsToLive) });
+        logEvent('auth', 'Token refresh triggered ($1 seconds remaining)', Math.round(currentUser.accessTokenSecondsToLive));
         const client = new DialogueBranchClient(this._config.baseUrl, null);
         return client.refresh(currentUser.refreshToken)
             .then((json) => {

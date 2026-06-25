@@ -6,12 +6,41 @@ import { debugLog } from '../../composables/debug-log.js';
 const open = ref(false);
 const showApi = ref(true);
 const showEvents = ref(true);
+const keyword = ref('');
 const expanded = ref(new Set());
 const logBody = ref(null);
 
+const panelWidth = ref(720);
+const panelHeight = ref(250);
+
+function onResizeStart(e) {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startW = panelWidth.value;
+    const startH = panelHeight.value;
+
+    function onMove(e) {
+        panelWidth.value  = Math.max(320, startW - (e.clientX - startX));
+        panelHeight.value = Math.max(150, startH - (e.clientY - startY));
+    }
+    function onUp() {
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+    }
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+}
+
 const entries = computed(() => {
+    const kw = keyword.value.trim().toLowerCase();
     return [...debugLog.value]
-        .filter(e => (e.type === 'api' && showApi.value) || (e.type === 'event' && showEvents.value));
+        .filter(e => (e.type === 'api' && showApi.value) || (e.type === 'event' && showEvents.value))
+        .filter(e => {
+            if (!kw) return true;
+            if (e.type === 'api') return (e.method + ' ' + e.path + ' ' + e.status + ' ' + (e.responseBody ?? '')).toLowerCase().includes(kw);
+            return (e.category + ' ' + e.message + ' ' + JSON.stringify(e.detail ?? '')).toLowerCase().includes(kw);
+        });
 });
 
 watchEffect(() => {
@@ -79,8 +108,19 @@ function statusClass(status) {
     <!-- Panel -->
     <div
         v-if="open"
-        class="fixed bottom-4 right-[60px] z-50 w-[720px] h-[250px] flex flex-col bg-white shadow-[0_0_4px_black] overflow-hidden text-xs"
+        class="fixed bottom-4 right-[60px] z-50 flex flex-col bg-white shadow-[0_0_4px_black] overflow-hidden text-xs"
+        :style="{ width: panelWidth + 'px', height: panelHeight + 'px' }"
     >
+        <!-- Resize handle (top-left corner) -->
+        <div
+            class="absolute top-0 left-0 w-4 h-4 cursor-nw-resize z-10 flex items-center justify-center"
+            @mousedown="onResizeStart"
+        >
+            <svg width="8" height="8" viewBox="0 0 8 8" class="text-orange-light opacity-60">
+                <line x1="1" y1="7" x2="7" y2="1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="1" y1="4" x2="4" y2="1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+        </div>
         <!-- Header -->
         <div class="flex items-center gap-2 px-3 py-1.5 bg-box text-white shrink-0">
             <FontAwesomeIcon icon="fa-solid fa-bug" />
@@ -88,6 +128,20 @@ function statusClass(status) {
             <span class="text-orange-light text-[11px]">({{ debugLog.length }} entries)</span>
 
             <div class="grow"></div>
+
+            <!-- Keyword filter -->
+            <div class="relative flex items-center">
+                <FontAwesomeIcon icon="fa-solid fa-magnifying-glass" class="absolute left-1.5 text-orange-light text-[10px] pointer-events-none" />
+                <input
+                    v-model="keyword"
+                    type="text"
+                    placeholder="Filter..."
+                    class="pl-5 pr-1 py-0.5 rounded text-[11px] bg-orange-darker border border-orange-medium text-white placeholder-orange-light font-title focus:outline-none focus:border-orange-light w-28"
+                />
+                <button v-if="keyword" class="absolute right-1 text-orange-light hover:text-white cursor-pointer" @click="keyword = ''">
+                    <FontAwesomeIcon icon="fa-solid fa-xmark" class="text-[10px]" />
+                </button>
+            </div>
 
             <!-- Filter toggles -->
             <button
@@ -119,48 +173,51 @@ function statusClass(status) {
                 :key="entry.id"
                 class="border-b border-grey-lighter"
             >
-                <!-- Entry header row -->
-                <div
-                    class="flex items-baseline gap-2 px-3 py-1 hover:bg-grey-lighter cursor-pointer select-none"
-                    @click="toggleEntry(entry.id, $event)"
-                >
-                    <FontAwesomeIcon
-                        :icon="expanded.has(entry.id) ? 'fa-solid fa-caret-down' : 'fa-solid fa-caret-right'"
-                        class="text-lines w-3 shrink-0"
-                    />
-                    <span class="text-text-subtle shrink-0">{{ formatTime(entry.timestamp) }}</span>
-
-                    <!-- API entry -->
-                    <template v-if="entry.type === 'api'">
+                <!-- API entry (collapsable) -->
+                <template v-if="entry.type === 'api'">
+                    <div
+                        class="flex items-baseline gap-2 px-3 py-1 hover:bg-grey-lighter cursor-pointer select-none"
+                        @click="toggleEntry(entry.id, $event)"
+                    >
+                        <FontAwesomeIcon
+                            :icon="expanded.has(entry.id) ? 'fa-solid fa-caret-down' : 'fa-solid fa-caret-right'"
+                            class="text-lines w-3 shrink-0"
+                        />
+                        <span class="text-text-subtle shrink-0">{{ formatTime(entry.timestamp) }}</span>
                         <span class="px-1.5 py-0.5 rounded bg-box text-orange-light text-[10px] shrink-0">API</span>
                         <span class="text-orange-darker font-bold shrink-0">{{ entry.method }}</span>
                         <span class="text-text truncate grow">{{ entry.path }}</span>
                         <span :class="['shrink-0 font-bold', statusClass(entry.status)]">{{ entry.status }}</span>
-                    </template>
+                    </div>
+                    <div v-if="expanded.has(entry.id)" class="px-8 pb-2 bg-grey-lighter">
+                        <template v-if="entry.responseBody">
+                            <pre class="text-orange-darker whitespace-pre-wrap break-all text-[11px] leading-relaxed">{{ prettyBody(entry.responseBody) }}</pre>
+                        </template>
+                        <template v-else>
+                            <span class="text-text-subtle italic">No response body.</span>
+                        </template>
+                    </div>
+                </template>
 
-                    <!-- Event entry -->
-                    <template v-else>
+                <!-- Event entry (always expanded) -->
+                <template v-else>
+                    <div class="flex items-baseline gap-2 px-3 py-1">
+                        <FontAwesomeIcon icon="fa-solid fa-circle-exclamation" class="text-lines w-3 shrink-0" />
+                        <span class="text-text-subtle shrink-0">{{ formatTime(entry.timestamp) }}</span>
                         <span class="px-1.5 py-0.5 rounded bg-lines text-white text-[10px] shrink-0">EVENT</span>
                         <span class="text-orange-darker font-bold shrink-0">{{ entry.category }}</span>
-                        <span class="text-text truncate grow">{{ entry.message }}</span>
-                    </template>
-                </div>
-
-                <!-- Expanded detail -->
-                <div v-if="expanded.has(entry.id)" class="px-8 pb-2 bg-grey-lighter">
-                    <template v-if="entry.type === 'api' && entry.responseBody">
-                        <pre class="text-orange-darker whitespace-pre-wrap break-all text-[11px] leading-relaxed">{{ prettyBody(entry.responseBody) }}</pre>
-                    </template>
-                    <template v-else-if="entry.type === 'api'">
-                        <span class="text-text-subtle italic">No response body.</span>
-                    </template>
-                    <template v-else-if="entry.detail !== null">
-                        <pre class="text-orange-darker whitespace-pre-wrap break-all text-[11px] leading-relaxed">{{ JSON.stringify(entry.detail, null, 2) }}</pre>
-                    </template>
-                    <template v-else>
-                        <span class="text-text-subtle italic">No detail.</span>
-                    </template>
-                </div>
+                        <span class="text-text">
+                            <template v-if="entry.parts">
+                                <template v-for="(part, i) in entry.parts" :key="i">
+                                    <code v-if="part.code" class="font-mono bg-grey-lighter px-0.5 rounded text-orange-darker">{{ part.text }}</code>
+                                    <span v-else>{{ part.text }}</span>
+                                </template>
+                            </template>
+                            <template v-else>{{ entry.message }}</template>
+                        </span>
+                        <span v-if="entry.detail && !entry.parts" class="text-text-subtle">— {{ JSON.stringify(entry.detail) }}</span>
+                    </div>
+                </template>
             </div>
         </div>
     </div>

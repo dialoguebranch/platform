@@ -6,6 +6,7 @@ export default { inheritAttrs: false };
 import { onMounted, ref, useAttrs } from 'vue';
 const attrs = useAttrs();
 import { useClient } from '@/composables/client.js';
+import { logEvent } from '@/composables/debug-log.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import IconButton from '../widgets/IconButton.vue';
 import MainPagePanelHeader from '../widgets/MainPagePanelHeader.vue';
@@ -69,6 +70,7 @@ defineExpose({
 
 function deleteVariable(name) {
     confirmingDelete.value = null;
+    logEvent('variable', 'Variable $1 deleted', name);
     const next = new Set(deletingVariables.value);
     next.add(name);
     deletingVariables.value = next;
@@ -89,6 +91,7 @@ function onVariableInput(variable) {
 
 function submitVariable(variable) {
     if (!dirtyVariables.value.has(variable.name)) return;
+    logEvent('variable', 'Variable $1 updated to $2', variable.name, variable.value);
     client.setVariable(variable.name, variable.value)
     .then(() => {
         const next = new Set(dirtyVariables.value);

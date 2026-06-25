@@ -1,6 +1,7 @@
 <script setup>
 import { nextTick, ref, computed, useTemplateRef, watch } from 'vue';
 import { useClient } from '@/composables/client.js';
+import { logEvent } from '@/composables/debug-log.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import IconButton from '../widgets/IconButton.vue';
 import BalloonDialogueComponent from './BalloonDialogueComponent.vue';
@@ -107,11 +108,13 @@ const loadDialogue = (name) => {
     tab.dialogueSteps = [];
     tab.dialogueEnded = false;
     tab.dialogueCancelled = false;
+    logEvent('dialogue', 'Dialogue started: $1', name);
     client.startDialogue(name, 'en')
     .then((dialogueStep) => {
         tab.dialogueName = dialogueStep.dialogueName;
         tab.dialogueSteps.push(dialogueStep);
         tab.dialogueEnded = dialogueStep.replies.length === 0;
+        if (tab.dialogueEnded) logEvent('dialogue', 'Dialogue ended immediately: $1', name);
         emit('newDialogueStep');
         scrollTextToBottom();
     });
@@ -150,6 +153,7 @@ function onCancelClick() {
     const tab = activeTab.value;
     const lastStep = tab.dialogueSteps[tab.dialogueSteps.length - 1];
     if (!lastStep) return;
+    logEvent('dialogue', 'Dialogue cancelled: $1', tab.dialogueName);
     client.cancelDialogue(lastStep.loggedDialogueId)
     .then(() => {
         tab.dialogueCancelled = true;
@@ -159,15 +163,19 @@ function onCancelClick() {
 
 function onSelectReply(dialogueStep, reply) {
     const tab = activeTab.value;
+    const replyText = reply.statement?.segments?.map(s => s.text).join('') ?? String(reply.replyId);
+    logEvent('dialogue', 'Reply selected: $1', replyText);
     client.progressDialogue(dialogueStep.loggedDialogueId, dialogueStep.loggedInteractionIndex,
         reply.replyId)
-    .then((dialogueStep) => {
-        if (dialogueStep) {
-            tab.dialogueName = dialogueStep.dialogueName;
-            tab.dialogueSteps.push(dialogueStep);
-            tab.dialogueEnded = dialogueStep.replies.length === 0;
+    .then((nextStep) => {
+        if (nextStep) {
+            tab.dialogueName = nextStep.dialogueName;
+            tab.dialogueSteps.push(nextStep);
+            tab.dialogueEnded = nextStep.replies.length === 0;
+            if (tab.dialogueEnded) logEvent('dialogue', 'Dialogue ended: $1', tab.dialogueName);
         } else {
             tab.dialogueEnded = true;
+            logEvent('dialogue', `Dialogue ended: ${tab.dialogueName}`, null, eventParts('Dialogue ended: ', tab.dialogueName));
         }
         emit('newDialogueStep');
         scrollTextToBottom();
