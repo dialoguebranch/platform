@@ -77,7 +77,7 @@ function onLoginSuccess(responseJson) {
         return;
     }
 
-    logEvent('auth', 'Login succeeded', { user: responseJson.user, roles });
+    logEvent('auth', 'User $1 logged in successfully', responseJson.user);
 
     const user = new User(
         responseJson.user,

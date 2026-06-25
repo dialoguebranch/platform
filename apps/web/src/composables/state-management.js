@@ -19,7 +19,7 @@ class StateManagement {
                 await client.logout();
             } catch (_) { /* best-effort — proceed with local logout regardless */ }
         }
-        logEvent('auth', 'User logged out');
+        logEvent('auth', 'User $1 logged out', currentUser?.name ?? 'unknown');
         resetClient();
         DocumentFunctions.deleteCookie('user.name');
         DocumentFunctions.deleteCookie('user.roles');
