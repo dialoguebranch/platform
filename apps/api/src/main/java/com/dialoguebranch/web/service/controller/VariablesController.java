@@ -163,11 +163,11 @@ public class VariablesController {
 
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
-				(protocolVersion, user) -> doGetVariables(user, variableNameList, timeZone),
+				(protocolVersion, authenticatedUser) -> doGetVariables(authenticatedUser, variableNameList, timeZone),
 				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
-				(protocolVersion, user) -> doGetVariables(delegateUser, variableNameList, timeZone),
+				(protocolVersion, authenticatedUser) -> doGetVariables(delegateUser, variableNameList, timeZone),
 				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}
 	}
@@ -302,11 +302,11 @@ public class VariablesController {
 		String accessToken = ControllerFunctions.extractAccessToken(request);
 
 		if(delegateUser == null || delegateUser.isEmpty()) {
-			QueryRunner.runQuery((protocolVersion, user) ->
-				doSetVariable(user, name, value, timeZone),
+			QueryRunner.runQuery((protocolVersion, authenticatedUser) ->
+				doSetVariable(authenticatedUser, name, value, timeZone),
 				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
-			QueryRunner.runQuery((protocolVersion, user) ->
+			QueryRunner.runQuery((protocolVersion, authenticatedUser) ->
 				doSetVariable(delegateUser, name, value, timeZone),
 				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}
@@ -422,11 +422,11 @@ public class VariablesController {
 		String accessToken = ControllerFunctions.extractAccessToken(request);
 
 		if(delegateUser == null || delegateUser.isEmpty()) {
-			QueryRunner.runQuery((protocolVersion, user) ->
-							doSetVariables(user, variables, timeZone),
+			QueryRunner.runQuery((protocolVersion, authenticatedUser) ->
+							doSetVariables(authenticatedUser, variables, timeZone),
 				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
-			QueryRunner.runQuery((protocolVersion, user) ->
+			QueryRunner.runQuery((protocolVersion, authenticatedUser) ->
 							doSetVariables(delegateUser, variables, timeZone),
 				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}

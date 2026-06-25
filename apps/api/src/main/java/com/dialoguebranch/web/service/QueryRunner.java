@@ -116,20 +116,20 @@ public class QueryRunner {
 
 			// If the request was made for "this" (authenticated) user
 			if(delegateUser == null || delegateUser.isEmpty()) {
-				String queryUserName = "";
-				if(authenticationInfo != null) queryUserName = authenticationInfo.getUsername();
-				return query.runQuery(version, queryUserName);
+				String authenticatedUser = "";
+				if(authenticationInfo != null) authenticatedUser = authenticationInfo.getUsername();
+				return query.runQuery(version, authenticatedUser);
 
 			// If the request was made for a specific delegateUser that happens to be "this"
 			// (authenticated) user
 			} else if((authenticationInfo != null) && delegateUser.equals(
 					authenticationInfo.getUsername())) {
-				return query.runQuery(version, authenticationInfo.getUsername());
+				return query.runQuery(version, delegateUser);
 
-			// If "this" user is an admin
+			// If "this" user is an admin making a delegated call
 			} else if((authenticationInfo != null) && (authenticationInfo.hasRole(
 					BasicUserCredentials.USER_ROLE_ADMIN))) {
-				return query.runQuery(version, authenticationInfo.getUsername());
+				return query.runQuery(version, delegateUser);
 
 			// Otherwise, something is wrong
 			} else {

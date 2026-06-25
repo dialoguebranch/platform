@@ -123,11 +123,11 @@ public class LogController {
 
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
-					(protocolVersion, user) -> doGetSession(user, sessionId),
+					(protocolVersion, authenticatedUser) -> doGetSession(authenticatedUser, sessionId),
 					version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
-					(protocolVersion, user) -> doGetSession(delegateUser, sessionId),
+					(protocolVersion, authenticatedUser) -> doGetSession(delegateUser, sessionId),
 					version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}
 	}
@@ -201,11 +201,11 @@ public class LogController {
 
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
-					(protocolVersion, user) -> doVerifyId(user, sessionId),
+					(protocolVersion, authenticatedUser) -> doVerifyId(authenticatedUser, sessionId),
 					version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
-					(protocolVersion, user) -> doVerifyId(delegateUser, sessionId),
+					(protocolVersion, authenticatedUser) -> doVerifyId(delegateUser, sessionId),
 					version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}
 

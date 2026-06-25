@@ -47,12 +47,12 @@ public interface AuthQuery<T> {
 	 * called. If no token was specified, the user will be null.
 	 * 
 	 * @param version the protocol version
-	 * @param user the user or null
+	 * @param authenticatedUser the authenticated user, or null if no token was provided
 	 * @return the query result
 	 * @throws HttpException if the query should return an HTTP error status
 	 * @throws Exception if an unexpected error occurs. This results in HTTP
 	 * error status 500 Internal Server Error.
 	 */
-	T runQuery(ProtocolVersion version, String user)
+	T runQuery(ProtocolVersion version, String authenticatedUser)
 			throws HttpException, Exception;
 }

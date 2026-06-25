@@ -187,12 +187,12 @@ public class DialogueController {
 
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
-					(protocolVersion, user) -> doStartDialogue(user, dialogueName,
+					(protocolVersion, authenticatedUser) -> doStartDialogue(authenticatedUser, dialogueName,
 							language, timeZone, sessionId),
 					version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
-					(protocolVersion, user) -> doStartDialogue(delegateUser, dialogueName,
+					(protocolVersion, authenticatedUser) -> doStartDialogue(delegateUser, dialogueName,
 							language, timeZone, sessionId),
 					version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}
@@ -330,12 +330,12 @@ public class DialogueController {
 
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
-				(protocolVersion, user) -> doProgressDialogue(user, request,
+				(protocolVersion, authenticatedUser) -> doProgressDialogue(authenticatedUser, request,
 						loggedDialogueId, loggedInteractionIndex, replyId),
 				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
-				(protocolVersion, user) -> doProgressDialogue(delegateUser, request,
+				(protocolVersion, authenticatedUser) -> doProgressDialogue(delegateUser, request,
 					loggedDialogueId, loggedInteractionIndex, replyId),
 				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}
@@ -480,11 +480,11 @@ public class DialogueController {
 
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
-					(protocolVersion, user) -> doContinueDialogue(user, dialogueName, timeZone),
+					(protocolVersion, authenticatedUser) -> doContinueDialogue(authenticatedUser, dialogueName, timeZone),
 					version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
-					(protocolVersion, user) ->
+					(protocolVersion, authenticatedUser) ->
 							doContinueDialogue(delegateUser, dialogueName, timeZone),
 					version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}
@@ -608,10 +608,10 @@ public class DialogueController {
 		String accessToken = ControllerFunctions.extractAccessToken(request);
 
 		if(delegateUser == null || delegateUser.isEmpty()) {
-			QueryRunner.runQuery((protocolVersion, user) -> doCancelDialogue(user,
+			QueryRunner.runQuery((protocolVersion, authenticatedUser) -> doCancelDialogue(authenticatedUser,
 				loggedDialogueId), version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
-			QueryRunner.runQuery((protocolVersion, user) -> doCancelDialogue(delegateUser,
+			QueryRunner.runQuery((protocolVersion, authenticatedUser) -> doCancelDialogue(delegateUser,
 				loggedDialogueId), version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}
 	}
@@ -727,12 +727,12 @@ public class DialogueController {
 
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
-				(protocolVersion, user) -> doBackDialogue(user, loggedDialogueId,
+				(protocolVersion, authenticatedUser) -> doBackDialogue(authenticatedUser, loggedDialogueId,
 						loggedInteractionIndex),
 				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
-				(protocolVersion, user) -> doBackDialogue(delegateUser, loggedDialogueId,
+				(protocolVersion, authenticatedUser) -> doBackDialogue(delegateUser, loggedDialogueId,
 						loggedInteractionIndex),
 				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}
@@ -853,11 +853,11 @@ public class DialogueController {
 
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
-					(protocolVersion, user) -> doGetOngoingDialogue(user, timeZone),
+					(protocolVersion, authenticatedUser) -> doGetOngoingDialogue(authenticatedUser, timeZone),
 					version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
-					(protocolVersion, user) -> doGetOngoingDialogue(delegateUser, timeZone),
+					(protocolVersion, authenticatedUser) -> doGetOngoingDialogue(delegateUser, timeZone),
 					version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}
 	}
