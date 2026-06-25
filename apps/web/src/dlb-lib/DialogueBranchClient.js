@@ -43,10 +43,15 @@ export class DialogueBranchClient {
         this._baseUrl = baseUrl;
         this._accessTokenFn = typeof accessTokenFn === 'function' ? accessTokenFn : () => accessTokenFn;
         this._timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        this.delegateUser = null;
     }
 
     get _accessToken() {
         return this._accessTokenFn();
+    }
+
+    get _delegateParam() {
+        return this.delegateUser ? '&delegateUser=' + encodeURIComponent(this.delegateUser) : '';
     }
 
     onUnauthorized(onUnauthorized) {
@@ -118,6 +123,7 @@ export class DialogueBranchClient {
         url += "?dialogueName="+dialogueName;
         url += "&language="+language;
         url += "&timeZone="+this._timeZone;
+        url += this._delegateParam;
 
         return this._fetch(url, {
             method: "POST",
@@ -136,6 +142,7 @@ export class DialogueBranchClient {
         url += "?loggedDialogueId="+loggedDialogueId;
         url += "&loggedInteractionIndex="+loggedInteractionIndex;
         url += "&replyId="+replyId;
+        url += this._delegateParam;
 
         return this._fetch(url, {
             method: "POST",
@@ -153,6 +160,7 @@ export class DialogueBranchClient {
 
         url += "?dialogueName="+dialogueName;
         url += "&timeZone="+this._timeZone;
+        url += this._delegateParam;
 
         return this._fetch(url, {
             method: "POST",
@@ -191,6 +199,7 @@ export class DialogueBranchClient {
         var url = this._baseUrl + "/variables/get";
 
         url += "?timeZone="+this._timeZone;
+        url += this._delegateParam;
 
         return this._fetch(url, {
             method: "GET",
@@ -227,6 +236,7 @@ export class DialogueBranchClient {
         url += "?name="+variableName;
         if(variableValue != null) url += "&value="+variableValue;
         url += "&timeZone="+this._timeZone;
+        url += this._delegateParam;
 
         return this._fetch(url, {
             method: "POST",

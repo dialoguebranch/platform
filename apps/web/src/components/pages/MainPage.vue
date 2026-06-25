@@ -1,5 +1,6 @@
 <script setup>
 import { inject, onMounted, onUnmounted, ref, useTemplateRef } from 'vue';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useClient } from '../../composables/client.js';
 import { useStateManagement } from '../../composables/state-management.js';
 import DialogueBrowser from '../partials/DialogueBrowser.vue';
@@ -48,6 +49,35 @@ function onLogoutClick() {
     stateManagement.logout();
 }
 
+const advancedOpen = ref(false);
+const delegateUserInput = ref('');
+const activeDelegateUser = ref(null);
+const delegateConfirmAction = ref(null); // pending function to run on confirm
+
+function applyDelegateUser() {
+    delegateConfirmAction.value = () => {
+        const val = delegateUserInput.value.trim();
+        client.delegateUser = val || null;
+        activeDelegateUser.value = client.delegateUser;
+        variableBrowser.value?.loadVariables();
+    };
+}
+
+function clearDelegateUser() {
+    delegateConfirmAction.value = () => {
+        delegateUserInput.value = '';
+        client.delegateUser = null;
+        activeDelegateUser.value = null;
+        variableBrowser.value?.loadVariables();
+    };
+}
+
+function confirmDelegateAction() {
+    interactionTester.value?.clearAllTabs();
+    delegateConfirmAction.value?.();
+    delegateConfirmAction.value = null;
+}
+
 function onSelectDialogue(dialogueName) {
     panels.value.selectMobileTab(1);
     interactionTester.value.loadDialogue(dialogueName);
@@ -81,6 +111,52 @@ function onResizePanels() {
                 <HeaderMenuItem text="Log out" @click="onLogoutClick" />
             </div>
         </header>
+
+        <!-- Advanced Options bar -->
+        <div class="shrink-0 bg-grey-lighter border-b border-grey-light text-xs font-title">
+            <button
+                type="button"
+                class="flex items-center gap-1.5 w-full px-3 py-1 text-grey-dark hover:text-orange-darker cursor-pointer select-none"
+                @click="advancedOpen = !advancedOpen"
+            >
+                <FontAwesomeIcon :icon="advancedOpen ? 'fa-solid fa-caret-down' : 'fa-solid fa-caret-right'" class="w-3" />
+                <span>Advanced Options<template v-if="activeDelegateUser"> (acting as <code class="font-mono font-bold text-orange-darker">{{ activeDelegateUser }}</code>)</template></span>
+            </button>
+            <div v-if="advancedOpen" class="flex items-center gap-3 px-4 pb-2">
+                <label class="text-grey-dark shrink-0">Delegate User:</label>
+                <input
+                    v-model="delegateUserInput"
+                    type="text"
+                    placeholder="Username..."
+                    class="px-2 py-0.5 border border-grey-light rounded bg-white text-grey-dark focus:outline-none focus:border-orange-dark w-48"
+                    @keyup.enter="applyDelegateUser"
+                />
+                <button
+                    type="button"
+                    class="px-2 py-0.5 rounded bg-orange-darker text-white hover:bg-orange-dark cursor-pointer"
+                    @click="applyDelegateUser"
+                >Apply</button>
+                <button
+                    v-if="activeDelegateUser"
+                    type="button"
+                    class="px-2 py-0.5 rounded border border-grey-light text-grey-dark hover:bg-grey-lighter cursor-pointer"
+                    @click="clearDelegateUser"
+                >Clear</button>
+            </div>
+        </div>
+
+        <Teleport to="body">
+            <div v-if="delegateConfirmAction" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
+                <div class="bg-white rounded shadow-lg p-4 font-title text-sm w-80">
+                    <div class="font-semibold text-orange-darker mb-2">Change Delegate User</div>
+                    <p class="text-grey-dark mb-4">All ongoing dialogues will be lost. Are you sure you want to proceed?</p>
+                    <div class="flex gap-2 justify-end">
+                        <button type="button" class="px-3 py-1.5 rounded border border-grey-light text-grey-dark hover:bg-grey-lighter text-xs font-semibold cursor-pointer" @click="delegateConfirmAction = null">Cancel</button>
+                        <button type="button" class="px-3 py-1.5 rounded bg-orange-darker text-white hover:bg-orange-dark text-xs font-semibold cursor-pointer" @click="confirmDelegateAction">Okay, proceed</button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
 
         <ResizablePanels
             ref="panels"

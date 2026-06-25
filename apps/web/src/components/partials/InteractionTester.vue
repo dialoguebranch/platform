@@ -146,10 +146,17 @@ const resize = () => {
     if (balloons.value) balloons.value.resize();
 };
 
+function clearAllTabs() {
+    tabs.value = [createTab()];
+    activeTabId.value = tabs.value[0].id;
+    nextTick(updateScrollState);
+}
+
 defineExpose({
     loadDialogue,
     reloadStep,
     resize,
+    clearAllTabs,
 });
 
 // ---- Tab bar scroll ----
