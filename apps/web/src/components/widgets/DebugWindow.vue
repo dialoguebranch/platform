@@ -1,11 +1,27 @@
 <script setup>
-import { ref, computed, watchEffect, nextTick } from 'vue';
+import { ref, computed, watch, watchEffect, nextTick } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { debugLog } from '../../composables/debug-log.js';
 
 const open = ref(false);
 const showApi = ref(true);
 const showEvents = ref(true);
+const showCookies = ref(false);
+const cookies = ref([]);
+
+function readCookies() {
+    cookies.value = document.cookie
+        .split(';')
+        .map(s => s.trim())
+        .filter(Boolean)
+        .map(s => {
+            const eq = s.indexOf('=');
+            return { name: s.slice(0, eq), value: decodeURIComponent(s.slice(eq + 1)) };
+        })
+        .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+watch(open, (val) => { if (val) readCookies(); });
 const keyword = ref('');
 const expanded = ref(new Set());
 const logBody = ref(null);
@@ -152,6 +168,10 @@ function statusClass(status) {
                 :class="['px-2 py-0.5 rounded text-[11px] border transition-colors cursor-pointer font-title', showEvents ? 'bg-orange-dark border-orange-medium text-white' : 'bg-transparent border-orange-medium text-orange-light hover:bg-orange-darker']"
                 @click="showEvents = !showEvents"
             >Events</button>
+            <button
+                :class="['px-2 py-0.5 rounded text-[11px] border transition-colors cursor-pointer font-title', showCookies ? 'bg-orange-dark border-orange-medium text-white' : 'bg-transparent border-orange-medium text-orange-light hover:bg-orange-darker']"
+                @click="showCookies = !showCookies; if (showCookies) readCookies()"
+            >Cookies</button>
 
             <button
                 class="ml-1 px-2 py-0.5 rounded text-[11px] border border-red-dark text-red-dark hover:bg-red-dark hover:text-white cursor-pointer font-title flex items-center gap-1"
@@ -162,6 +182,25 @@ function statusClass(status) {
                 class="ml-1 text-orange-light hover:text-white cursor-pointer"
                 @click="open = false"
             ><FontAwesomeIcon icon="fa-solid fa-xmark" /></button>
+        </div>
+
+        <!-- Cookies panel -->
+        <div v-if="showCookies" class="shrink-0 border-b border-grey-light bg-grey-lighter font-mono overflow-x-auto mb-2 shadow-[0_4px_6px_-2px_rgba(0,0,0,0.15)]" style="z-index:1; position:relative;">
+            <div class="flex items-center gap-2 px-3 py-1 border-b border-grey-light">
+                <FontAwesomeIcon icon="fa-solid fa-cookie-bite" class="text-orange-darker" />
+                <span class="font-title font-bold text-orange-darker text-[11px]">Cookies</span>
+                <div class="grow"></div>
+                <button class="text-orange-light hover:text-orange-darker cursor-pointer" title="Refresh cookies" @click="readCookies">
+                    <FontAwesomeIcon icon="fa-solid fa-arrows-rotate" class="text-[10px]" />
+                </button>
+            </div>
+            <div class="overflow-y-auto" :style="{ maxHeight: (panelHeight * 0.3) + 'px' }">
+                <div v-if="cookies.length === 0" class="px-3 py-1 text-text-subtle italic">No cookies.</div>
+                <div v-for="cookie in cookies" :key="cookie.name" class="flex gap-2 px-3 py-0.5 border-b border-grey-lighter last:border-0">
+                    <span class="font-bold text-orange-darker shrink-0">{{ cookie.name }}</span>
+                    <span class="text-text truncate">{{ cookie.value }}</span>
+                </div>
+            </div>
         </div>
 
         <!-- Log entries -->
