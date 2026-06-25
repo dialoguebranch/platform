@@ -110,14 +110,6 @@ public class VariableStore {
 	}
 
 	/**
-	 * Notifies all {@link VariableStoreOnChangeListener} that are listening for changes to this
-	 * {@link VariableStore} of one or more changes as represented by the list of {@link
-	 * VariableStoreChange} {@code changes}.
-	 *
-	 * @param changes one or multiple {@link VariableStoreChange}s representing a modification
-	 *                to this {@link VariableStore}.
-	 */
-	/**
 	 * Notifies all registered {@link VariableStoreOnChangeListener}s of one or more changes to
 	 * this {@link VariableStore}. Listeners are snapshot-copied before iteration so that
 	 * listeners added or removed during notification do not affect the current dispatch.
@@ -230,7 +222,7 @@ public class VariableStore {
 	 */
 	public void setValue(String name, Object value, boolean notifyObservers,
 						 ZonedDateTime eventTime) {
-		setValue(name,value,notifyObservers,eventTime, VariableStoreChange.Source.UNKNOWN);
+		setValue(name,value,notifyObservers,eventTime, VariableUpdatedSource.UNKNOWN);
 	}
 
 	/**
@@ -246,9 +238,9 @@ public class VariableStore {
 	 * @param source the source of the update to this {@link VariableStore}.
 	 */
 	public void setValue(String name, Object value, boolean notifyObservers,
-						 ZonedDateTime eventTime, VariableStoreChange.Source source) {
+						 ZonedDateTime eventTime, VariableUpdatedSource source) {
 		synchronized (variables) {
-			Variable Variable = new Variable(name, value, eventTime);
+			Variable Variable = new Variable(name, value, eventTime, source);
 			variables.put(name, Variable);
 			if (notifyObservers) {
 				notifyOnChange(new VariableStoreChange.Put(Variable, eventTime, source));
@@ -270,7 +262,7 @@ public class VariableStore {
 	 */
 	public Variable removeByName(String name, boolean notifyObservers,
                                  ZonedDateTime eventTime) {
-		return removeByName(name,notifyObservers,eventTime, VariableStoreChange.Source.UNKNOWN);
+		return removeByName(name,notifyObservers,eventTime, VariableUpdatedSource.UNKNOWN);
 	}
 
 	/**
@@ -288,7 +280,7 @@ public class VariableStore {
 	 */
 	public Variable removeByName(String name, boolean notifyObservers,
                                  ZonedDateTime eventTime,
-                                 VariableStoreChange.Source source) {
+                                 VariableUpdatedSource source) {
 		Variable result;
 		synchronized (variables) {
 			result = variables.remove(name);
@@ -315,7 +307,7 @@ public class VariableStore {
 	 */
 	public void addAll(Map<? extends String, ?> variablesToAdd, boolean notifyObservers,
 					   ZonedDateTime eventTime) {
-		addAll(variablesToAdd,notifyObservers,eventTime, VariableStoreChange.Source.UNKNOWN);
+		addAll(variablesToAdd,notifyObservers,eventTime, VariableUpdatedSource.UNKNOWN);
 	}
 
 	/**
@@ -330,13 +322,13 @@ public class VariableStore {
 	 * @param source the source of the update to this {@link VariableStore}.
 	 */
 	public void addAll(Map<? extends String, ?> variablesToAdd, boolean notifyObservers,
-					   ZonedDateTime eventTime, VariableStoreChange.Source source) {
+					   ZonedDateTime eventTime, VariableUpdatedSource source) {
 		List<Variable> VariablesToAdd = new ArrayList<>();
 
 		for (Map.Entry<? extends String, ?> entry : variablesToAdd.entrySet()) {
 			String name = entry.getKey();
 			Object value = entry.getValue();
-			Variable Variable = new Variable(name,value,eventTime);
+			Variable Variable = new Variable(name, value, eventTime, source);
 			VariablesToAdd.add(Variable);
 		}
 
@@ -387,7 +379,7 @@ public class VariableStore {
 	 */
 	public Map<String, Object> getModifiableMap(boolean notifyObservers, ZonedDateTime eventTime) {
 		return new VariableMap(notifyObservers, eventTime,
-				VariableStoreChange.Source.UNKNOWN);
+				VariableUpdatedSource.UNKNOWN);
 	}
 
 	/**
@@ -400,7 +392,7 @@ public class VariableStore {
 	 * @return the modifiable map
 	 */
 	public Map<String, Object> getModifiableMap(boolean notifyObservers, ZonedDateTime eventTime,
-												VariableStoreChange.Source source) {
+												VariableUpdatedSource source) {
 		return new VariableMap(notifyObservers, eventTime, source);
 	}
 
@@ -413,7 +405,7 @@ public class VariableStore {
 
 		private final boolean notifyObservers;
 		private final ZonedDateTime eventTime;
-		private final VariableStoreChange.Source source;
+		private final VariableUpdatedSource source;
 
 		// -------------------------------------------------------- //
 		// -------------------- Constructor(s) -------------------- //
@@ -428,7 +420,7 @@ public class VariableStore {
 		 *                  {@link VariableMap}.
 		 */
 		public VariableMap(boolean notifyObservers, ZonedDateTime eventTime,
-						   VariableStoreChange.Source source) {
+						   VariableUpdatedSource source) {
 			this.notifyObservers = notifyObservers;
 			this.eventTime = eventTime;
 			this.source = source;

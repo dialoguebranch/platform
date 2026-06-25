@@ -211,7 +211,7 @@ public class ActiveDialogue {
 		Reply selectedReply = currentNode.getBody().findReplyById(replyId);
 		Map<String,Object> variableMap =
 				variableStore.getModifiableMap(true, eventTime,
-					VariableStoreChange.Source.DLB_SCRIPT);
+					VariableUpdatedSource.DLB_SCRIPT);
 		for (Command command : selectedReply.getCommands()) {
 			if (command instanceof SetCommand setCommand) {
 				setCommand.getExpression().evaluate(variableMap);
@@ -256,7 +256,7 @@ public class ActiveDialogue {
 	 */
 	public void storeReplyInput(Map<String,?> variables, ZonedDateTime eventTime) {
 		variableStore.addAll(variables,true,eventTime,
-				VariableStoreChange.Source.INPUT_REPLY);
+				VariableUpdatedSource.INPUT_REPLY);
 	}
 
 	/**
@@ -316,7 +316,7 @@ public class ActiveDialogue {
 		NodeBody processedBody = new NodeBody();
 		Map<String,Object> variables =
 				variableStore.getModifiableMap(true, eventTime,
-						VariableStoreChange.Source.DLB_SCRIPT);
+						VariableUpdatedSource.DLB_SCRIPT);
 		node.getBody().execute(variables, true, processedBody);
 		processedNode.setBody(processedBody);
 		return processedNode;

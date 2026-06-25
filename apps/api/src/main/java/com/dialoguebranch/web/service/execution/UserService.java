@@ -90,9 +90,8 @@ public class UserService {
 	 * @param dialogueBranchUser The {@link User} for which this {@link UserService} is handling the
 	 *                           interactions.
 	 * @param applicationManager the server's {@link ApplicationManager} instance.
-	 * @param onVarChangeListener the {@link VariableStoreOnChangeListener} that will be added
-	 *                            to the {@link VariableStore} instance that this
-	 *                            {@link UserService} creates.
+	 * @param storageHandler the {@link VariableStoreStorageHandler} used to read and persist
+	 *                       variables for this user.
 	 * @throws DatabaseException if an error occurs reading existing variables from the database.
 	 * @throws IOException if an error occurs initialising the logged dialogue store.
 	 */
@@ -345,7 +344,7 @@ public class UserService {
 	public void storeReplyInput(Map<String,?> variables, ZonedDateTime eventTime)
 			throws ExecutionException {
 		variableStore.addAll(variables,true,eventTime,
-				VariableStoreChange.Source.INPUT_REPLY);
+				VariableUpdatedSource.INPUT_REPLY);
 	}
 
 
@@ -444,11 +443,11 @@ public class UserService {
 						if(varValue != null) {
 							variableStore.setValue(varName, varValue, true,
 									varUpdated,
-									VariableStoreChange.Source.EXTERNAL_VARIABLE_SERVICE);
+									VariableUpdatedSource.EXTERNAL);
 						// If a 'null' value is received, we delete the variable
 						} else {
 							variableStore.removeByName(varName, true, varUpdated,
-									VariableStoreChange.Source.EXTERNAL_VARIABLE_SERVICE);
+									VariableUpdatedSource.EXTERNAL);
 						}
 					}
 				}

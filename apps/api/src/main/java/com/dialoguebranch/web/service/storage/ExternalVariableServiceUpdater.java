@@ -31,6 +31,7 @@ package com.dialoguebranch.web.service.storage;
 import com.dialoguebranch.execution.Variable;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.VariableStoreChange;
+import com.dialoguebranch.execution.VariableUpdatedSource;
 import com.dialoguebranch.execution.VariableStoreOnChangeListener;
 import com.dialoguebranch.web.service.DlbProperties;
 import org.slf4j.Logger;
@@ -84,9 +85,9 @@ public class ExternalVariableServiceUpdater implements VariableStoreOnChangeList
 		List<Variable> variablesToUpdate = new ArrayList<>();
 
 		for (VariableStoreChange change : changes) {
-			VariableStoreChange.Source source = change.getSource();
+			VariableUpdatedSource source = change.getSource();
 
-			if (!source.equals(VariableStoreChange.Source.EXTERNAL_VARIABLE_SERVICE)) {
+			if (!source.equals(VariableUpdatedSource.EXTERNAL)) {
 
 				if (evs.isEnabled()) {
 					logger.info("An external Dialogue Branch Variable Service is enabled at {}/v{}/",
@@ -127,7 +128,7 @@ public class ExternalVariableServiceUpdater implements VariableStoreOnChangeList
 							long updatedTime = change.getTime().toEpochSecond() * 1000;
 							variablesToUpdate.add(
 									new Variable(variableName, null, updatedTime,
-											userTimeZoneString));
+											userTimeZoneString, change.getSource()));
 						}
 					} else if (change instanceof VariableStoreChange.Put) {
 						Map<String, Object> changedVariables =
@@ -139,7 +140,7 @@ public class ExternalVariableServiceUpdater implements VariableStoreOnChangeList
 							Object variableValue = changedVariables.get(variableName);
 							variablesToUpdate.add(
 									new Variable(variableName, variableValue, updatedTime,
-											userTimeZoneString));
+											userTimeZoneString, change.getSource()));
 						}
 					}
 				}

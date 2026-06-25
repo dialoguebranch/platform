@@ -35,8 +35,8 @@ import java.io.Serial;
 
 /**
  * This exception results in a HTTP response with status 404 Not Found. The exception message
- * (default "Not Found") will be written to the response. It is handled by the {@link
- * GlobalExceptionHandler}.
+ * (default "Not Found") will be written to the response. It is handled by the
+ * {@link com.dialoguebranch.web.service.controller.GlobalExceptionHandler}.
  * 
  * @author Dennis Hofs
  * @author Harm op den Akker

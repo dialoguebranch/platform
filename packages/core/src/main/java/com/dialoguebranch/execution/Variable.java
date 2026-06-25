@@ -41,6 +41,12 @@ import java.time.ZonedDateTime;
  * of a {@link VariableStore}, using easily serializable parameters (i.e. avoiding Time-related
  * objects).
  *
+ * <p>Instances of this class are immutable: all fields are {@code final} and no setters are
+ * provided. This is intentional — a {@link Variable} represents a snapshot of state, not a mutable
+ * container. When a variable's value changes, the {@link VariableStore} constructs a new
+ * {@link Variable} instance and replaces the old one, rather than mutating an existing object.
+ * This makes instances safe to share across threads without synchronization.</p>
+ *
  * @author Harm op den Akker
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -58,14 +64,18 @@ public class Variable {
 	/** The time zone in which this variable was last updated (as IANA string). */
 	private final String updatedTimeZone;
 
+	/** The source of the last update to this variable. */
+	private final VariableUpdatedSource updatedSource;
+
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
 
 	/**
 	 * Creates an instance of a Variable with a given {@code name}, and {@code value}, as well as
-	 * the time at which it was last updated in epoch time ({@code updatedTime}), and the timeZone
-	 * in which this update took place as IANA code (e.g. "Europe/Lisbon").
+	 * the time at which it was last updated in epoch time ({@code updatedTime}), the timeZone
+	 * in which this update took place as IANA code (e.g. "Europe/Lisbon"), and the source of the
+	 * update.
 	 *
 	 * @param name the name (or 'identifier') of the variable.
 	 * @param value the value of the variable.
@@ -73,6 +83,7 @@ public class Variable {
 	 *                    time in milliseconds)
 	 * @param updatedTimeZone the timezone corresponding to the {@code updatedTime} in which this
 	 *                        variable was updated (as IANA Code, e.g. "Europe/Lisbon")
+	 * @param updatedSource the {@link VariableUpdatedSource} indicating what caused this update.
 	 */
 	public Variable(
 			@JsonProperty("name")
@@ -82,28 +93,34 @@ public class Variable {
 			@JsonProperty("updatedTime")
 			Long updatedTime,
 			@JsonProperty("updatedTimeZone")
-			String updatedTimeZone) {
+			String updatedTimeZone,
+			@JsonProperty("updatedSource")
+			VariableUpdatedSource updatedSource) {
 		this.name = name;
 		this.value = value;
 		this.updatedTime = updatedTime;
 		this.updatedTimeZone = updatedTimeZone;
+		this.updatedSource = updatedSource != null ? updatedSource : VariableUpdatedSource.UNKNOWN;
 	}
 
 	/**
 	 * Creates an instance of a Variable with a given {@code name}, and {@code value}, as well as
-	 * the time at which it was last updated as a {@link ZonedDateTime} object. From this {@code
-	 * lastUpdated} time, the time in epoch milliseconds and timezone will be extracted.
+	 * the time at which it was last updated as a {@link ZonedDateTime} object, and the source of
+	 * the update. From {@code lastUpdated}, the epoch milliseconds and timezone are extracted.
 	 *
 	 * @param name the name (or 'identifier') of the variable
 	 * @param value the value of the variable.
 	 * @param lastUpdated the last updated time for this variable in the timezone of the user.
+	 * @param updatedSource the {@link VariableUpdatedSource} indicating what caused this update.
 	 */
 	@JsonIgnore
-	public Variable(String name, Object value, ZonedDateTime lastUpdated) {
+	public Variable(String name, Object value, ZonedDateTime lastUpdated,
+					VariableUpdatedSource updatedSource) {
 		this.name = name;
 		this.value = value;
 		this.updatedTime = lastUpdated.toInstant().toEpochMilli();
 		this.updatedTimeZone = lastUpdated.getZone().toString();
+		this.updatedSource = updatedSource;
 	}
 
 	// ----------------------------------------------------------- //
@@ -150,6 +167,16 @@ public class Variable {
 		return updatedTimeZone;
 	}
 
+	/**
+	 * Returns the {@link VariableUpdatedSource} indicating what caused the last update to this
+	 * {@link Variable}.
+	 *
+	 * @return the source of the last update.
+	 */
+	public VariableUpdatedSource getUpdatedSource() {
+		return updatedSource;
+	}
+
 	// ------------------------------------------------------- //
 	// -------------------- Other Methods -------------------- //
 	// ------------------------------------------------------- //
@@ -189,8 +216,9 @@ public class Variable {
 		return "Variable{" +
 				"name='" + name + '\'' +
 				", value=" + value +
-				", lastUpdatedTime=" + updatedTime +
-				", lastUpdatedTimeZone='" + updatedTimeZone + '\'' +
+				", updatedTime=" + updatedTime +
+				", updatedTimeZone='" + updatedTimeZone + '\'' +
+				", updatedSource=" + updatedSource +
 				'}';
 	}
 

@@ -31,6 +31,7 @@ package com.dialoguebranch.web.service.controller;
 import com.dialoguebranch.execution.Variable;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.VariableStoreChange;
+import com.dialoguebranch.execution.VariableUpdatedSource;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.ProtocolVersion;
 import com.dialoguebranch.web.service.QueryRunner;
@@ -348,10 +349,10 @@ public class VariablesController {
             logger.info("Received request to remove Dialogue Branch Variable '{}' at eventTime" +
 					" '{}' in time zone '{}'", name, eventTime.format(formatter), timeZone);
 			userService.getVariableStore().removeByName(name,true,
-					eventTime, VariableStoreChange.Source.WEB_SERVICE);
+					eventTime, VariableUpdatedSource.WEB_SERVICE);
 		} else {
 			userService.getVariableStore().setValue(name, value, true, eventTime,
-					VariableStoreChange.Source.WEB_SERVICE);
+					VariableUpdatedSource.WEB_SERVICE);
 		}
 		return null;
 	}
@@ -472,7 +473,7 @@ public class VariablesController {
 					entry.getValue(),
 					true,
 					DateTimeUtils.nowMs(userService.getDialogueBranchUser().getTimeZone()),
-					VariableStoreChange.Source.WEB_SERVICE);
+					VariableUpdatedSource.WEB_SERVICE);
 		}
 		return null;
 	}

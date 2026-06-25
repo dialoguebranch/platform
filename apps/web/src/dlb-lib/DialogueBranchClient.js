@@ -208,6 +208,7 @@ export class DialogueBranchClient {
                     variable.value = entry.value;
                     variable.updatedTime = entry.updatedTime;
                     variable.updatedTimeZone = entry.updatedTimeZone;
+                    variable.updatedSource = entry.updatedSource;
                     variables.push(variable);
                 });
 

@@ -4,11 +4,11 @@ import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.Variable;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.VariableStoreChange;
-import com.dialoguebranch.web.service.models.DBUser;
-import com.dialoguebranch.web.service.models.DBVariable;
+import com.dialoguebranch.execution.VariableUpdatedSource;
+import com.dialoguebranch.web.service.storage.model.DBUser;
+import com.dialoguebranch.web.service.storage.model.DBVariable;
 import com.dialoguebranch.web.service.repository.DBUserRepository;
 import com.dialoguebranch.web.service.repository.DBVariableRepository;
-import nl.rrd.utils.datetime.DateTimeUtils;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.json.JsonMapper;
 import org.slf4j.Logger;
@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -41,17 +40,20 @@ public class VariableStoreDatabaseStorageHandler implements VariableStoreStorage
 
     @Override
     @Transactional
-    public VariableStore read(User user) throws IOException, ParseException {
+    public VariableStore read(User user) throws ParseException {
         DBUser dbUser = getOrCreateUser(user.getId());
         List<DBVariable> dbVariables = variableRepository.findByUser(dbUser);
 
         List<Variable> variables = new ArrayList<>();
         for (DBVariable dbVariable : dbVariables) {
-            ZonedDateTime now = DateTimeUtils.nowMs();
-            variables.add(new Variable(dbVariable.getName(),
+            VariableUpdatedSource source = dbVariable.getUpdatedSource() != null
+                    ? dbVariable.getUpdatedSource() : VariableUpdatedSource.UNKNOWN;
+            variables.add(new Variable(
+                    dbVariable.getName(),
                     JsonMapper.parse(dbVariable.getValue(), Object.class),
-                    now.toInstant().toEpochMilli(),
-                    now.getZone().getId()));
+                    dbVariable.getUpdatedTime(),
+                    dbVariable.getUpdatedTimeZone(),
+                    source));
         }
         return new VariableStore(user, variables.toArray(new Variable[0]));
     }
@@ -78,6 +80,10 @@ public class VariableStoreDatabaseStorageHandler implements VariableStoreStorage
                     .orElse(new DBVariable(variable.getName(), null));
             dbVariable.setUser(dbUser);
             dbVariable.setValue(JsonMapper.generate(variable.getValue()));
+            dbVariable.setUpdatedTime(variable.getUpdatedTime());
+            dbVariable.setUpdatedTimeZone(variable.getUpdatedTimeZone());
+            dbVariable.setUpdatedSource(variable.getUpdatedSource() != null
+                    ? variable.getUpdatedSource() : VariableUpdatedSource.UNKNOWN);
             variableRepository.save(dbVariable);
         }
     }

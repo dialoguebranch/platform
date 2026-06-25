@@ -43,8 +43,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 /**
  * Global exception handler that translates exceptions thrown by any controller into structured HTTP
- * responses. Replaces the servlet error redirect pattern previously handled by
- * {@link com.dialoguebranch.web.service.controller.ErrorController}.
+ * responses.
  *
  * @author Dennis Hofs
  */

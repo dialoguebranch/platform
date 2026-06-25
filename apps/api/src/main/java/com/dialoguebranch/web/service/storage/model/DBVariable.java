@@ -26,8 +26,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.dialoguebranch.web.service.models;
+package com.dialoguebranch.web.service.storage.model;
 
+import com.dialoguebranch.execution.VariableUpdatedSource;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
@@ -35,8 +36,9 @@ import java.util.UUID;
 
 /**
  * JPA entity representing a single Dialogue Branch Variable stored in the {@code variables}
- * database table. Each variable belongs to a {@link DBUser} and stores a name/value pair where
- * the value is serialized as a JSON string.
+ * database table. Each variable belongs to a {@link DBUser} and stores the full state of a
+ * {@link com.dialoguebranch.execution.Variable}: name, JSON-serialized value, last-updated
+ * timestamp (epoch milliseconds), timezone (IANA string), and update source.
  *
  * @author Harm op den Akker
  */
@@ -61,6 +63,16 @@ public class DBVariable {
 	private String name;
 
 	private String value;
+
+	@Column(name = "updated_time")
+	private Long updatedTime;
+
+	@Column(name = "updated_time_zone")
+	private String updatedTimeZone;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "updated_source")
+	private VariableUpdatedSource updatedSource;
 
 	/**
 	 * Creates an empty instance of {@link DBVariable}.
@@ -150,4 +162,63 @@ public class DBVariable {
 	public void setValue(String value) {
 		this.value = value;
 	}
+
+	/**
+	 * Returns the timestamp of when this variable was last updated (as epoch time in milliseconds).
+	 *
+	 * @return the last-updated timestamp in epoch milliseconds, or {@code null} if unknown.
+	 */
+	public Long getUpdatedTime() {
+		return updatedTime;
+	}
+
+	/**
+	 * Sets the timestamp of when this variable was last updated (as epoch time in milliseconds).
+	 *
+	 * @param updatedTime the last-updated timestamp in epoch milliseconds.
+	 */
+	public void setUpdatedTime(Long updatedTime) {
+		this.updatedTime = updatedTime;
+	}
+
+	/**
+	 * Returns the time zone in which this variable was last updated (as IANA string,
+	 * e.g. "Europe/Lisbon").
+	 *
+	 * @return the IANA time zone string, or {@code null} if unknown.
+	 */
+	public String getUpdatedTimeZone() {
+		return updatedTimeZone;
+	}
+
+	/**
+	 * Sets the time zone in which this variable was last updated (as IANA string,
+	 * e.g. "Europe/Lisbon").
+	 *
+	 * @param updatedTimeZone the IANA time zone string.
+	 */
+	public void setUpdatedTimeZone(String updatedTimeZone) {
+		this.updatedTimeZone = updatedTimeZone;
+	}
+
+	/**
+	 * Returns the {@link VariableUpdatedSource} indicating what caused the last update to this
+	 * variable.
+	 *
+	 * @return the update source, or {@code null} if unknown.
+	 */
+	public VariableUpdatedSource getUpdatedSource() {
+		return updatedSource;
+	}
+
+	/**
+	 * Sets the {@link VariableUpdatedSource} indicating what caused the last update to this
+	 * variable.
+	 *
+	 * @param updatedSource the update source.
+	 */
+	public void setUpdatedSource(VariableUpdatedSource updatedSource) {
+		this.updatedSource = updatedSource;
+	}
+
 }

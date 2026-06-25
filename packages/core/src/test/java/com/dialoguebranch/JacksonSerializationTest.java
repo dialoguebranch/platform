@@ -29,6 +29,7 @@
 package com.dialoguebranch;
 
 import com.dialoguebranch.execution.Variable;
+import com.dialoguebranch.execution.VariableUpdatedSource;
 import com.dialoguebranch.i18n.TranslationFile;
 import com.dialoguebranch.model.execute.protocol.DialogueStatement;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -189,7 +190,7 @@ public class JacksonSerializationTest {
      */
     @Test
     public void testVariableRoundTrip() throws Exception {
-        Variable original = new Variable("userName", "Alice", ZonedDateTime.now());
+        Variable original = new Variable("userName", "Alice", ZonedDateTime.now(), VariableUpdatedSource.UNKNOWN);
 
         String json = mapper.writeValueAsString(original);
 
@@ -211,7 +212,7 @@ public class JacksonSerializationTest {
      */
     @Test
     public void testVariableWithNumericValue() throws Exception {
-        Variable original = new Variable("score", 42, ZonedDateTime.now());
+        Variable original = new Variable("score", 42, ZonedDateTime.now(), VariableUpdatedSource.UNKNOWN);
         String json = mapper.writeValueAsString(original);
         Variable restored = mapper.readValue(json, Variable.class);
 
