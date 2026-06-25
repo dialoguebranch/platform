@@ -1,5 +1,5 @@
 <script setup>
-import { nextTick, ref, computed, useTemplateRef, watch } from 'vue';
+import { nextTick, ref, computed, useTemplateRef, watch, onMounted } from 'vue';
 import { useClient } from '@/composables/client.js';
 import { logEvent } from '@/composables/debug-log.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
@@ -52,6 +52,7 @@ function addTab() {
     const tab = createTab();
     tabs.value.push(tab);
     activeTabId.value = tab.id;
+    nextTick(updateScrollState);
 }
 
 const closeConfirm = ref(null); // { id }
@@ -75,6 +76,7 @@ function doCloseTab(id) {
     if (activeTabId.value === id) {
         activeTabId.value = tabs.value[Math.min(index, tabs.value.length - 1)].id;
     }
+    nextTick(updateScrollState);
 }
 
 function cancelAndCloseTab(id) {
@@ -108,6 +110,7 @@ const loadDialogue = (name) => {
     tab.dialogueSteps = [];
     tab.dialogueEnded = false;
     tab.dialogueCancelled = false;
+    scrollActiveTabIntoView();
     logEvent('dialogue', 'Dialogue started: $1', name);
     client.startDialogue(name, 'en')
     .then((dialogueStep) => {
@@ -149,6 +152,52 @@ defineExpose({
     resize,
 });
 
+// ---- Tab bar scroll ----
+
+const tabBar = useTemplateRef('tab-bar');
+const canScrollLeft = ref(false);
+const canScrollRight = ref(false);
+
+function updateScrollState() {
+    const el = tabBar.value;
+    if (!el) return;
+    canScrollLeft.value = el.scrollLeft > 0;
+    canScrollRight.value = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+}
+
+function scrollTabs(dir) {
+    const el = tabBar.value;
+    if (!el) return;
+    el.scrollBy({ left: dir * 120, behavior: 'smooth' });
+}
+
+function scrollActiveTabIntoView() {
+    nextTick(() => {
+        const bar = tabBar.value;
+        if (!bar) return;
+        const active = bar.querySelector('[data-active="true"]');
+        if (!active) return;
+        const barLeft = bar.scrollLeft;
+        const barRight = barLeft + bar.clientWidth;
+        const tabLeft = active.offsetLeft;
+        const tabRight = tabLeft + active.offsetWidth;
+        if (tabLeft < barLeft) {
+            bar.scrollTo({ left: tabLeft, behavior: 'smooth' });
+        } else if (tabRight > barRight) {
+            bar.scrollTo({ left: tabRight - bar.clientWidth, behavior: 'smooth' });
+        }
+        updateScrollState();
+    });
+}
+
+watch(activeTabId, scrollActiveTabIntoView);
+
+onMounted(() => {
+    updateScrollState();
+    tabBar.value?.addEventListener('scroll', updateScrollState);
+    new ResizeObserver(updateScrollState).observe(tabBar.value);
+});
+
 function onCancelClick() {
     const tab = activeTab.value;
     const lastStep = tab.dialogueSteps[tab.dialogueSteps.length - 1];
@@ -175,7 +224,7 @@ function onSelectReply(dialogueStep, reply) {
             if (tab.dialogueEnded) logEvent('dialogue', 'Dialogue ended: $1', tab.dialogueName);
         } else {
             tab.dialogueEnded = true;
-            logEvent('dialogue', `Dialogue ended: ${tab.dialogueName}`, null, eventParts('Dialogue ended: ', tab.dialogueName));
+            logEvent('dialogue', 'Dialogue ended: $1', tab.dialogueName);
         }
         emit('newDialogueStep');
         scrollTextToBottom();
@@ -205,35 +254,62 @@ function onSelectReply(dialogueStep, reply) {
             </template>
         </MainPagePanelHeader>
 
+        <!-- Tab bar + content (no gap between them) -->
+        <div class="flex flex-col grow min-h-0">
+
         <!-- Tab bar -->
-        <div class="flex items-end gap-0.5 px-1 overflow-x-auto">
+        <div class="flex items-end bg-white pt-2 relative z-[100]">
+            <div class="absolute bottom-0 left-0 right-0 h-px bg-grey-light pointer-events-none z-0"></div>
             <button
-                v-for="tab in tabs"
-                :key="tab.id"
                 type="button"
-                class="flex items-center gap-1 px-2 py-0.5 font-title text-xs rounded-t border border-b-0 shrink-0 cursor-pointer"
-                :class="tab.id === activeTabId
-                    ? 'bg-white border-grey-light text-orange-darker font-semibold'
-                    : 'bg-grey-lighter border-grey-light text-grey-dark hover:bg-white'"
-                @click="activeTabId = tab.id"
+                class="flex items-center justify-center w-5 h-6 shrink-0 mx-1.5"
+                :class="canScrollLeft ? 'text-orange-darker hover:text-orange-dark cursor-pointer' : 'text-grey-light cursor-not-allowed'"
+                :disabled="!canScrollLeft"
+                title="Scroll tabs left"
+                @click="scrollTabs(-1)"
             >
-                <span>{{ tab.dialogueName ?? 'New' }}</span>
-                <span
-                    class="w-3.5 h-3.5 flex items-center justify-center hover:text-icon-button-warning-hover"
-                    @click.stop="closeTab(tab.id)"
+                <FontAwesomeIcon icon="fa-solid fa-circle-chevron-left" />
+            </button>
+            <div ref="tab-bar" class="flex items-end gap-0.5 px-1 overflow-x-auto flex-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <button
+                    v-for="tab in tabs"
+                    :key="tab.id"
+                    type="button"
+                    :data-active="tab.id === activeTabId"
+                    class="flex items-center gap-1 px-2 py-0.5 font-title text-xs rounded-t border shrink-0 cursor-pointer"
+                    :class="tab.id === activeTabId
+                        ? 'bg-white border-grey-light border-b-2 border-b-white text-orange-darker font-semibold relative z-[100] -mb-px'
+                        : 'bg-grey-lighter border-grey-light border-b-0 text-grey-dark hover:bg-white'"
+                    @click="activeTabId = tab.id"
                 >
-                    <FontAwesomeIcon icon="fa-solid fa-xmark" />
-                </span>
-            </button>
+                    <span>{{ tab.dialogueName ?? 'New' }}</span>
+                    <span
+                        class="w-3.5 h-3.5 flex items-center justify-center hover:text-icon-button-warning-hover"
+                        @click.stop="closeTab(tab.id)"
+                    >
+                        <FontAwesomeIcon icon="fa-solid fa-xmark" />
+                    </span>
+                </button>
+                <button
+                    type="button"
+                    class="flex items-center justify-center w-5 h-5 mb-0.5 font-title text-xs text-orange-darker hover:text-orange-dark cursor-pointer shrink-0"
+                    title="Open new tab"
+                    @click="addTab"
+                >
+                    <FontAwesomeIcon icon="fa-solid fa-plus" />
+                </button>
+            </div>
             <button
                 type="button"
-                class="flex items-center justify-center w-5 h-5 mb-0.5 font-title text-xs text-orange-darker hover:text-orange-dark cursor-pointer shrink-0"
-                title="Open new tab"
-                @click="addTab"
+                class="flex items-center justify-center w-5 h-6 shrink-0 mx-1.5"
+                :class="canScrollRight ? 'text-orange-darker hover:text-orange-dark cursor-pointer' : 'text-grey-light cursor-not-allowed'"
+                :disabled="!canScrollRight"
+                title="Scroll tabs right"
+                @click="scrollTabs(1)"
             >
-                <FontAwesomeIcon icon="fa-solid fa-plus" />
+                <FontAwesomeIcon icon="fa-solid fa-circle-chevron-right" />
             </button>
-        </div>
+        </div><!-- end tab bar -->
 
         <!-- Close tab confirmation modal -->
         <Teleport to="body">
@@ -251,7 +327,7 @@ function onSelectReply(dialogueStep, reply) {
         </Teleport>
 
         <!-- Active tab content -->
-        <MainPagePanelContainer>
+        <MainPagePanelContainer class="-mt-px">
             <BalloonDialogueComponent
                 v-if="selectedMode === 'balloon'"
                 ref="balloons"
@@ -271,5 +347,7 @@ function onSelectReply(dialogueStep, reply) {
                 @restartDialogue="loadDialogue(activeTab.dialogueName)"
             />
         </MainPagePanelContainer>
+
+        </div><!-- end tab bar + content wrapper -->
     </div>
 </template>
