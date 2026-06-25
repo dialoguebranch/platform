@@ -903,7 +903,8 @@ public class DialogueController {
 					(long) Math.floor((System.currentTimeMillis() -
 							latestInteractionTimestamp) / 1000.0);
 			OngoingDialoguePayload ongoingDialoguePayload =
-					new OngoingDialoguePayload(dialogueName, secondsSinceLastEngagement);
+					new OngoingDialoguePayload(dialogueName, latestOngoingDialogue.getId(),
+							secondsSinceLastEngagement);
 			return new NullableResponse<>(ongoingDialoguePayload);
 		} else {
 			return new NullableResponse<>(null);

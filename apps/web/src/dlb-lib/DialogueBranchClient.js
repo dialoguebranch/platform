@@ -230,6 +230,22 @@ export class DialogueBranchClient {
         })
     }
 
+    getOngoingDialogue() {
+        let url = this._baseUrl + "/dialogue/get-ongoing";
+        url += "?timeZone=" + this._timeZone;
+        url += this._delegateParam;
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            }
+        })
+        .then((response) => this._handleResponse(response))
+        .then((data) => data?.value ?? null);
+    }
+
     setVariable(variableName, variableValue) {
         var url = this._baseUrl + "/variables/set-single";
 

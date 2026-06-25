@@ -45,6 +45,10 @@ public class OngoingDialoguePayload {
 			example = "dialogue-name")
 	private String dialogueName;
 
+	@Schema(description = "The unique identifier of the ongoing logged dialogue.",
+			example = "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+	private String loggedDialogueId;
+
 	@Schema(description = "How many seconds ago was the latest engagement with this dialogue.",
 			example = "60")
 	private long secondsSinceLastEngagement;
@@ -65,8 +69,10 @@ public class OngoingDialoguePayload {
 	 * @param secondsSinceLastEngagement the number of seconds since the user last engaged with this
 	 *                                   dialogue.
 	 */
-	public OngoingDialoguePayload(String dialogueName, long secondsSinceLastEngagement) {
+	public OngoingDialoguePayload(String dialogueName, String loggedDialogueId,
+								  long secondsSinceLastEngagement) {
 		this.dialogueName = dialogueName;
+		this.loggedDialogueId = loggedDialogueId;
 		this.secondsSinceLastEngagement = secondsSinceLastEngagement;
 	}
 
@@ -88,6 +94,22 @@ public class OngoingDialoguePayload {
 	 */
 	public void setDialogueName(String dialogueName) {
 		this.dialogueName = dialogueName;
+	}
+
+	/**
+	 * Returns the unique identifier of the ongoing logged dialogue.
+	 * @return the unique identifier of the ongoing logged dialogue.
+	 */
+	public String getLoggedDialogueId() {
+		return loggedDialogueId;
+	}
+
+	/**
+	 * Sets the unique identifier of the ongoing logged dialogue.
+	 * @param loggedDialogueId the unique identifier of the ongoing logged dialogue.
+	 */
+	public void setLoggedDialogueId(String loggedDialogueId) {
+		this.loggedDialogueId = loggedDialogueId;
 	}
 
 	/**

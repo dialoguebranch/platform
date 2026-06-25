@@ -83,6 +83,11 @@ function onSelectDialogue(dialogueName) {
     interactionTester.value.loadDialogue(dialogueName);
 }
 
+function onResumeDialogue(dialogueName) {
+    panels.value.selectMobileTab(1);
+    interactionTester.value.resumeDialogue(dialogueName);
+}
+
 function onNewDialogueStep() {
     variableBrowser.value.loadVariables();
 }
@@ -166,7 +171,7 @@ function onResizePanels() {
             @resize="onResizePanels()"
         >
             <template #left>
-                <DialogueBrowser class="grow" @selectDialogue="onSelectDialogue" />
+                <DialogueBrowser class="grow" @selectDialogue="onSelectDialogue" @resumeDialogue="onResumeDialogue" />
             </template>
             <template #main>
                 <InteractionTester ref="interaction-tester" class="grow" @newDialogueStep="onNewDialogueStep" />

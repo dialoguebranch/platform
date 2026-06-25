@@ -146,6 +146,28 @@ const resize = () => {
     if (balloons.value) balloons.value.resize();
 };
 
+const resumeDialogue = (name) => {
+    const newTab = createTab();
+    newTab.dialogueName = name;
+    tabs.value.push(newTab);
+    activeTabId.value = newTab.id;
+    nextTick(updateScrollState);
+    client.continueDialogue(name)
+    .then((dialogueStep) => {
+        const tab = tabs.value.find(t => t.id === newTab.id);
+        if (!tab) return;
+        if (dialogueStep) {
+            tab.dialogueSteps.push(dialogueStep);
+            tab.dialogueEnded = dialogueStep.replies.length === 0;
+        } else {
+            tab.dialogueEnded = true;
+        }
+        logEvent('dialogue', 'Dialogue resumed: $1', name);
+        emit('newDialogueStep');
+        scrollTextToBottom();
+    });
+};
+
 function clearAllTabs() {
     tabs.value = [createTab()];
     activeTabId.value = tabs.value[0].id;
@@ -154,6 +176,7 @@ function clearAllTabs() {
 
 defineExpose({
     loadDialogue,
+    resumeDialogue,
     reloadStep,
     resize,
     clearAllTabs,
