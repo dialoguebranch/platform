@@ -112,8 +112,8 @@ function onResizePanels() {
             </div>
         </header>
 
-        <!-- Advanced Options bar -->
-        <div class="shrink-0 bg-grey-lighter border-b border-grey-light text-xs font-title">
+        <!-- Advanced Options bar (admin only) -->
+        <div v-if="state.user?.roles?.includes('admin')" class="shrink-0 bg-grey-lighter border-b border-grey-light text-xs font-title">
             <button
                 type="button"
                 class="flex items-center gap-1.5 w-full px-3 py-1 text-grey-dark hover:text-orange-darker cursor-pointer select-none"
