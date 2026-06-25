@@ -105,7 +105,7 @@ export class DialogueBranchClient {
     }
 
     listDialogues() {
-        const url = this._baseUrl + "/admin/list-dialogues";
+        const url = this._baseUrl + "/dialogue/list-dialogues";
 
         return this._fetch(url, {
             method: "GET",

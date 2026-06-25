@@ -37,13 +37,19 @@ import com.dialoguebranch.model.execute.protocol.DialogueMessage;
 import com.dialoguebranch.model.execute.protocol.DialogueMessageFactory;
 import com.dialoguebranch.model.execute.protocol.NullableResponse;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.dialoguebranch.model.common.ResourceType;
+import com.dialoguebranch.model.execute.ResourcePointer;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.ProtocolVersion;
 import com.dialoguebranch.web.service.QueryRunner;
+import com.dialoguebranch.web.service.auth.AuthenticationInfo;
 import com.dialoguebranch.web.service.auth.basic.BasicUserCredentials;
+import com.dialoguebranch.web.service.controller.schema.DialogueListPayload;
 import com.dialoguebranch.web.service.controller.schema.OngoingDialoguePayload;
 import com.dialoguebranch.web.service.exception.BadRequestException;
+import com.dialoguebranch.web.service.exception.ErrorCode;
 import com.dialoguebranch.web.service.exception.HttpException;
+import com.dialoguebranch.web.service.exception.UnauthorizedException;
 import com.dialoguebranch.web.service.execution.UserService;
 import com.dialoguebranch.web.service.storage.ServerLoggedDialogue;
 import io.swagger.v3.oas.annotations.Operation;
@@ -66,7 +72,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -900,6 +908,70 @@ public class DialogueController {
 		} else {
 			return new NullableResponse<>(null);
 		}
+	}
+
+	// ------------------------------------------------------------------------------ //
+	// -------------------- END-POINT: "/dialogue/list-dialogues" -------------------- //
+	// ------------------------------------------------------------------------------ //
+
+	/**
+	 * Retrieve a list of all available dialogues in the Web Service.
+	 *
+	 * <p>This method returns a JSON object encapsulating a list of all dialogue names that are
+	 * hosted by the running instance of this Dialogue Branch Web Service.</p>
+	 *
+	 * @param request the HTTPRequest object (to retrieve authentication headers and optional body
+	 *                parameters).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version The API Version to use, e.g. '1'.
+	 * @return a {@link DialogueListPayload} object containing a list of all available dialogues
+	 *         in the Web Service.
+	 * @throws UnauthorizedException in case the logged-in user does not have the 'editor' or
+	 *                               'admin' role.
+	 */
+	@Operation(
+		summary = "Retrieve a list of all available dialogues in the Web Service.",
+		description = "This method returns a JSON object encapsulating a list of all dialogue " +
+			"names that are hosted by the running instance of this Dialogue Branch Web Service. " +
+			"Accessible for users with the 'editor' or 'admin' role.")
+	@RequestMapping(value="/list-dialogues", method=RequestMethod.GET)
+	public DialogueListPayload listDialogues(
+		HttpServletRequest request,
+		HttpServletResponse response,
+
+		@Parameter(hidden = true, description = "API Version to use, e.g. '1'")
+		@PathVariable(value = "version")
+		String version
+	) throws UnauthorizedException {
+
+		if (version == null || version.isEmpty()) {
+			version = ProtocolVersion.getLatestVersion().versionName();
+		}
+
+		String logInfo = "GET /v" + version + "/dialogue/list-dialogues";
+		logger.info(logInfo);
+
+		AuthenticationInfo authenticationInfo = QueryRunner.validateAccessToken(
+				ControllerFunctions.extractAccessToken(request), application);
+		if (authenticationInfo.hasRole(BasicUserCredentials.USER_ROLE_EDITOR)
+				|| authenticationInfo.hasRole(BasicUserCredentials.USER_ROLE_ADMIN)) {
+			return doListDialogues();
+		} else {
+			throw new UnauthorizedException(ErrorCode.INSUFFICIENT_PRIVILEGES,
+				"This user does not have the rights to access this function.");
+		}
+	}
+
+	private DialogueListPayload doListDialogues() {
+		List<ResourcePointer> resources = application.getApplicationManager().getAvailableDialogues();
+		List<String> scriptNames = new ArrayList<>();
+		for (ResourcePointer resourcePointer : resources) {
+			if (resourcePointer.getResourceType().equals(ResourceType.SCRIPT)) {
+				scriptNames.add(resourcePointer.getDialogueName());
+			}
+		}
+		return new DialogueListPayload(scriptNames.toArray(new String[0]));
 	}
 
 }
