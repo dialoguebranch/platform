@@ -3,6 +3,7 @@ import { DialogueBranchClient } from '../dlb-lib/DialogueBranchClient.js';
 import { User } from '../dlb-lib/model/User.js';
 import { DocumentFunctions } from '../dlb-lib/util/DocumentFunctions.js';
 import { logEvent } from './debug-log.js';
+import { resetClient } from './client.js';
 
 class StateManagement {
     constructor(stateRef, config) {
@@ -19,6 +20,7 @@ class StateManagement {
             } catch (_) { /* best-effort — proceed with local logout regardless */ }
         }
         logEvent('auth', 'User logged out');
+        resetClient();
         DocumentFunctions.deleteCookie('user.name');
         DocumentFunctions.deleteCookie('user.roles');
         DocumentFunctions.deleteCookie('user.accessToken');

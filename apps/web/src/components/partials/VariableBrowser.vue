@@ -150,9 +150,11 @@ onMounted(() => {
             :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }">
             <div class="font-semibold text-orange-darker mb-1">Variable Info</div>
             <table class="whitespace-nowrap">
-                <tr><td class="font-semibold pr-2 text-right">Updated:</td><td :class="{ italic: !tooltip.variable.updatedTime }">{{ formatUpdatedTime(tooltip.variable) }}</td></tr>
-                <tr><td class="font-semibold pr-2 text-right">Timezone:</td><td :class="{ italic: !tooltip.variable.updatedTimeZone }">{{ tooltip.variable.updatedTimeZone || 'Unknown' }}</td></tr>
-                <tr><td class="font-semibold pr-2 text-right">Source:</td><td :class="{ italic: formatUpdatedSource(tooltip.variable).italic }">{{ formatUpdatedSource(tooltip.variable).label }}</td></tr>
+                <tbody>
+                    <tr><td class="font-semibold pr-2 text-right">Updated:</td><td :class="{ italic: !tooltip.variable.updatedTime }">{{ formatUpdatedTime(tooltip.variable) }}</td></tr>
+                    <tr><td class="font-semibold pr-2 text-right">Timezone:</td><td :class="{ italic: !tooltip.variable.updatedTimeZone }">{{ tooltip.variable.updatedTimeZone || 'Unknown' }}</td></tr>
+                    <tr><td class="font-semibold pr-2 text-right">Source:</td><td :class="{ italic: formatUpdatedSource(tooltip.variable).italic }">{{ formatUpdatedSource(tooltip.variable).label }}</td></tr>
+                </tbody>
             </table>
         </div>
 </Teleport>

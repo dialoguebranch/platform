@@ -39,10 +39,14 @@ export class DialogueBranchClient {
     // TODO: Create a generic "call protected end-point" function that will inject the accessToken
     // in the header, and will automatically attempt access token refresh upon "expired token" errors.
 
-    constructor(baseUrl, accessToken) {
+    constructor(baseUrl, accessTokenFn) {
         this._baseUrl = baseUrl;
-        this._accessToken = accessToken;
+        this._accessTokenFn = typeof accessTokenFn === 'function' ? accessTokenFn : () => accessTokenFn;
         this._timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    }
+
+    get _accessToken() {
+        return this._accessTokenFn();
     }
 
     onUnauthorized(onUnauthorized) {
