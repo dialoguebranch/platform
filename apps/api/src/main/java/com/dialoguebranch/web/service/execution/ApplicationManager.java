@@ -62,7 +62,7 @@ import java.util.Map;
  * individual users of the Dialogue Branch Web Service, as well as other application-wide objects.
  *
  * <p>On startup it scans the classpath for Dialogue Branch projects by looking for
- * {@code dlb-project.xml} files in direct sub-folders of {@code dlb-projects/}. Each sub-folder
+ * {@code dlb-project.xml} files in direct sub-folders of {@code projects-seed/}. Each sub-folder
  * that contains a {@code dlb-project.xml} is loaded as a {@link DialogueBranchProject} using a
  * {@link SpringResourceFileLoader}.</p>
  *
@@ -75,8 +75,8 @@ public class ApplicationManager {
 	// -------------------- Constants -------------------- //
 	// ---------------------------------------------------- //
 
-	/** Classpath resource path that contains all Dialogue Branch project sub-folders. */
-	private static final String DLB_PROJECTS_ROOT = "dlb-projects";
+	/** Classpath resource path that contains seed project sub-folders. */
+	private static final String DLB_PROJECTS_ROOT = "projects-seed";
 
 	/** Name of the marker file that identifies a folder as a Dialogue Branch project. */
 	private static final String PROJECT_MARKER_FILE = "dlb-project.xml";
@@ -101,7 +101,7 @@ public class ApplicationManager {
 
 	/**
 	 * Creates an instance of an {@link ApplicationManager}. On construction this scans
-	 * {@code dlb-projects/} on the classpath for sub-folders that contain a
+	 * {@code projects-seed/} on the classpath for sub-folders that contain a
 	 * {@code dlb-project.xml} file. Each such folder is loaded as a separate Dialogue Branch
 	 * project.
 	 *
@@ -283,12 +283,36 @@ public class ApplicationManager {
 	}
 
 	/**
+	 * Returns the {@link ResourcePointer}s of all dialogues available in the named project, or an
+	 * empty list if no project with that name is loaded.
+	 *
+	 * @param projectName the project folder name / slug.
+	 * @return a list of {@link ResourcePointer}s for the named project.
+	 */
+	public List<ResourcePointer> getDialogueDescriptionsForProject(String projectName) {
+		DialogueBranchProject project = projects.get(projectName);
+		if (project == null) return new ArrayList<>();
+		return new ArrayList<>(project.getResourcePointers());
+	}
+
+	/**
 	 * Returns all available dialogues across all loaded Dialogue Branch projects.
 	 *
 	 * @return a list of {@link ResourcePointer}s for all available dialogues.
 	 */
 	public List<ResourcePointer> getAvailableDialogues() {
 		return getDialogueDescriptions();
+	}
+
+	/**
+	 * Returns all available dialogues in the named project, or an empty list if no project with
+	 * that name is loaded.
+	 *
+	 * @param projectName the project folder name / slug.
+	 * @return a list of {@link ResourcePointer}s for the named project.
+	 */
+	public List<ResourcePointer> getAvailableDialoguesForProject(String projectName) {
+		return getDialogueDescriptionsForProject(projectName);
 	}
 
 	/**
@@ -320,13 +344,42 @@ public class ApplicationManager {
 						dialogueDescription.getLanguage() + "'.");
 	}
 
+	/**
+	 * Returns the {@link Dialogue} identified by the given {@code dialogueDescription} and
+	 * {@code translationContext}, searching only within the named project.
+	 *
+	 * @param projectName         the project folder name / slug.
+	 * @param dialogueDescription the {@link ResourcePointer} identifying the requested dialogue.
+	 * @param translationContext  the translation context to apply, or {@code null} for the source.
+	 * @return the requested {@link Dialogue}.
+	 * @throws ExecutionException with type {@link ExecutionException.Type#DIALOGUE_NOT_FOUND} if the
+	 *                            project is not loaded or the dialogue is not found within it.
+	 */
+	public Dialogue getDialogueDefinitionForProject(String projectName,
+			ResourcePointer dialogueDescription, TranslationContext translationContext)
+			throws ExecutionException {
+		DialogueBranchProject project = projects.get(projectName);
+		if (project instanceof ExecutableProject execProject) {
+			Dialogue dialogue;
+			if (translationContext == null) {
+				dialogue = execProject.getDialogues().get(dialogueDescription);
+			} else {
+				dialogue = execProject.getTranslatedDialogue(dialogueDescription, translationContext);
+			}
+			if (dialogue != null) return dialogue;
+		}
+		throw new ExecutionException(ExecutionException.Type.DIALOGUE_NOT_FOUND,
+				"Dialogue '" + dialogueDescription.getDialogueName() + "' not found in project '" +
+						projectName + "' for language '" + dialogueDescription.getLanguage() + "'.");
+	}
+
 	// ---------------------------------------------------------------- //
 	// -------------------- Private Helper Methods -------------------- //
 	// ---------------------------------------------------------------- //
 
 	/**
 	 * Scans the classpath for {@code dlb-project.xml} files in direct sub-folders of
-	 * {@code dlb-projects/} and loads each discovered project.
+	 * {@code projects-seed/} and loads each discovered project.
 	 *
 	 * @throws DLBServiceConfigurationException if any discovered project fails to load.
 	 */
@@ -382,7 +435,7 @@ public class ApplicationManager {
 
 	/**
 	 * Loads the Dialogue Branch project from the classpath sub-folder
-	 * {@code dlb-projects/{projectName}/} using a {@link SpringResourceFileLoader} and stores the
+	 * {@code projects-seed/{projectName}/} using a {@link SpringResourceFileLoader} and stores the
 	 * resulting {@link DialogueBranchProject} in {@link #projects}.
 	 *
 	 * @param projectName the name of the project folder to load.

@@ -152,6 +152,10 @@ public class DialogueController {
 		@PathVariable(value = "version")
 		String version,
 
+		@Parameter(description = "Name of the project that contains the dialogue to start")
+		@RequestParam(value="projectName")
+		String projectName,
+
 		@Parameter(description = "Name of the DialogueBranch Dialogue to start (excluding .dlb)")
 		@RequestParam(value="dialogueName")
 		String dialogueName,
@@ -183,8 +187,8 @@ public class DialogueController {
 		}
 
 		// Log this call to the service log
-		String logInfo = "POST /v" + version + "/dialogue/start?dialogueName=" + dialogueName +
-				"&language=" + language + "&timeZone=" + timeZone;
+		String logInfo = "POST /v" + version + "/dialogue/start?projectName=" + projectName +
+				"&dialogueName=" + dialogueName + "&language=" + language + "&timeZone=" + timeZone;
 		if(delegateUser != null && !delegateUser.isEmpty())
 			logInfo += "&delegateUser=" + delegateUser;
 		if(sessionId != null && !sessionId.isEmpty()) logInfo += "&sessionId=" + sessionId;
@@ -195,13 +199,13 @@ public class DialogueController {
 
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
-					(protocolVersion, authenticatedUser) -> doStartDialogue(authenticatedUser, dialogueName,
-							language, timeZone, sessionId),
+					(protocolVersion, authenticatedUser) -> doStartDialogue(authenticatedUser,
+							projectName, dialogueName, language, timeZone, sessionId),
 					version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
-					(protocolVersion, authenticatedUser) -> doStartDialogue(delegateUser, dialogueName,
-							language, timeZone, sessionId),
+					(protocolVersion, authenticatedUser) -> doStartDialogue(delegateUser,
+							projectName, dialogueName, language, timeZone, sessionId),
 					version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}
 	}
@@ -221,8 +225,8 @@ public class DialogueController {
 	 * @throws DatabaseException in case of an error in retrieving the current active user.
 	 * @throws IOException in case of any network error.
 	 */
-	private DialogueMessage doStartDialogue(String userId, String dialogueName, String language,
-			String timeZone, String sessionId)
+	private DialogueMessage doStartDialogue(String userId, String projectName, String dialogueName,
+			String language, String timeZone, String sessionId)
 			throws HttpException, IOException, DatabaseException {
 
 		// Get or create a UserService for the user in the given time zone
@@ -248,10 +252,9 @@ public class DialogueController {
 
 		try {
 			ExecuteNodeResult node = userService.startDialogueSession(
-					dialogueName, null, language, sessionId, System.currentTimeMillis());
+					projectName, dialogueName, null, language, sessionId, System.currentTimeMillis());
 			return DialogueMessageFactory.generateDialogueMessage(node);
-		} catch (
-				ExecutionException e) {
+		} catch (ExecutionException e) {
 			throw ControllerFunctions.createHttpException(e);
 		}
 	}
@@ -456,6 +459,10 @@ public class DialogueController {
 		@PathVariable(value = "version")
 		String version,
 
+		@Parameter(description = "Name of the project that contains the dialogue to continue")
+		@RequestParam(value="projectName")
+		String projectName,
+
 		@Parameter(description = "Name of the DialogueBranch Dialogue to continue (excluding .dlb)")
 		@RequestParam(value="dialogueName")
 		String dialogueName,
@@ -477,8 +484,8 @@ public class DialogueController {
 		}
 
 		// Log this call to the service log
-		String logInfo = "POST /v" + version + "/dialogue/continue?dialogueName="
-				+ dialogueName + "&timeZone=" + timeZone;
+		String logInfo = "POST /v" + version + "/dialogue/continue?projectName=" + projectName +
+				"&dialogueName=" + dialogueName + "&timeZone=" + timeZone;
 		if(!(delegateUser == null) && (!delegateUser.isEmpty()))
 			logInfo += "&delegateUser="+delegateUser;
 		logger.info(logInfo);
@@ -488,12 +495,13 @@ public class DialogueController {
 
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
-					(protocolVersion, authenticatedUser) -> doContinueDialogue(authenticatedUser, dialogueName, timeZone),
+					(protocolVersion, authenticatedUser) -> doContinueDialogue(authenticatedUser,
+							projectName, dialogueName, timeZone),
 					version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
 					(protocolVersion, authenticatedUser) ->
-							doContinueDialogue(delegateUser, dialogueName, timeZone),
+							doContinueDialogue(delegateUser, projectName, dialogueName, timeZone),
 					version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}
 	}
@@ -513,8 +521,8 @@ public class DialogueController {
 	 *                           database.
 	 * @throws IOException in case of a file io error.
 	 */
-	private NullableResponse<DialogueMessage> doContinueDialogue(String userId, String dialogueName,
-																 String timeZone)
+	private NullableResponse<DialogueMessage> doContinueDialogue(String userId, String projectName,
+			String dialogueName, String timeZone)
 			throws HttpException, DatabaseException, IOException {
 
 		// Get or create a UserService for the user in the given time zone
@@ -934,8 +942,8 @@ public class DialogueController {
 	@Operation(
 		summary = "Retrieve a list of all available dialogues in the Web Service.",
 		description = "This method returns a JSON object encapsulating a list of all dialogue " +
-			"names that are hosted by the running instance of this Dialogue Branch Web Service. " +
-			"Accessible for users with the 'editor' or 'admin' role.")
+			"names available in the specified project. Accessible for users with the 'editor' " +
+			"or 'admin' role.")
 	@RequestMapping(value="/list-dialogues", method=RequestMethod.GET)
 	public DialogueListPayload listDialogues(
 		HttpServletRequest request,
@@ -943,29 +951,34 @@ public class DialogueController {
 
 		@Parameter(hidden = true, description = "API Version to use, e.g. '1'")
 		@PathVariable(value = "version")
-		String version
+		String version,
+
+		@Parameter(description = "Name of the project to list dialogues for")
+		@RequestParam(value="projectName")
+		String projectName
 	) throws UnauthorizedException {
 
 		if (version == null || version.isEmpty()) {
 			version = ProtocolVersion.getLatestVersion().versionName();
 		}
 
-		String logInfo = "GET /v" + version + "/dialogue/list-dialogues";
+		String logInfo = "GET /v" + version + "/dialogue/list-dialogues?projectName=" + projectName;
 		logger.info(logInfo);
 
 		AuthenticationInfo authenticationInfo = QueryRunner.validateAccessToken(
 				ControllerFunctions.extractAccessToken(request), application);
 		if (authenticationInfo.hasRole(BasicUserCredentials.USER_ROLE_EDITOR)
 				|| authenticationInfo.hasRole(BasicUserCredentials.USER_ROLE_ADMIN)) {
-			return doListDialogues();
+			return doListDialogues(projectName);
 		} else {
 			throw new UnauthorizedException(ErrorCode.INSUFFICIENT_PRIVILEGES,
 				"This user does not have the rights to access this function.");
 		}
 	}
 
-	private DialogueListPayload doListDialogues() {
-		List<ResourcePointer> resources = application.getApplicationManager().getAvailableDialogues();
+	private DialogueListPayload doListDialogues(String projectName) {
+		List<ResourcePointer> resources =
+				application.getApplicationManager().getAvailableDialoguesForProject(projectName);
 		List<String> scriptNames = new ArrayList<>();
 		for (ResourcePointer resourcePointer : resources) {
 			if (resourcePointer.getResourceType().equals(ResourceType.SCRIPT)) {
