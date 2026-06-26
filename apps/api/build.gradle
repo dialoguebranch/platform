@@ -96,53 +96,6 @@ abstract class UpdateConfigTask extends DefaultTask {
 }
 
 
-class ListDialogueFilesTask extends DefaultTask {
-	def listDirFiles(dir, writer) {
-		writer.write('[')
-		def first = true
-		dir.eachFile() { child ->
-			if (!child.name.startsWith('.')) {
-				if (!first)
-					writer.write(',')
-				if (child.isDirectory()) {
-					writer.write('{"' + child.name + '":')
-					listDirFiles(child, writer)
-					writer.write('}')
-					first = false
-				} else if (child.name.endsWith('.json') || child.name.endsWith('.dlb')) {
-					writer.write('"' + child.name + '"')
-					first = false
-				}
-			}
-		}
-		writer.write(']')
-	}
-
-	@TaskAction
-	void doTaskAction() {
-		def dlgDir = new File('src/main/resources/dialogues')
-		def dlgFile = new File('src/main/resources/dialogues/dialogues.json')
-		dlgFile.withWriter('UTF-8') { writer ->
-			writer.write('{')
-			def first = true
-			dlgDir.eachDir() { dir ->
-				if (first)
-					first = false
-				else
-					writer.write(',')
-				writer.write('"' + dir.name + '":')
-				listDirFiles(dir, writer)
-			}
-			writer.write('}')
-		}
-	}
-}
-
-tasks.register('listDialogueFiles', ListDialogueFilesTask) {
-	group = 'configuration'
-	description = 'Lists dialogue files and writes them to dialogues.json'
-}
-
 Provider<String> versionProvider = project.provider { project.version }
 
 tasks.register('updateConfig', UpdateConfigTask) {
@@ -155,7 +108,7 @@ tasks.register('checkResources') {
 	group = 'build'
 	description = 'Checks if required resource files exist and are up-to-date.'
 
-	dependsOn updateConfig, listDialogueFiles
+	dependsOn updateConfig
 }
 
 test {

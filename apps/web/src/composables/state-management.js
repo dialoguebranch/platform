@@ -27,7 +27,9 @@ class StateManagement {
         DocumentFunctions.deleteCookie('user.accessTokenExpiresIn');
         DocumentFunctions.deleteCookie('user.refreshToken');
         DocumentFunctions.deleteCookie('user.refreshTokenExpiresIn');
+        DocumentFunctions.deleteCookie('state.selectedProject');
         this._stateRef.value.user = null;
+        this._stateRef.value.selectedProject = null;
     }
 
     refreshSession() {

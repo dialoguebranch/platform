@@ -31,8 +31,6 @@ package com.dialoguebranch.execution.parser;
 import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.execute.ResourcePointer;
 import com.dialoguebranch.model.common.ResourceType;
-import com.dialoguebranch.model.common.ProjectMetaData;
-import nl.rrd.utils.exception.ParseException;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -40,55 +38,55 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A {@link FileLoader} implementation that discovers and opens Dialogue Branch resource files
- * (scripts and translations) based on a Dialogue Branch project metadata XML file. The metadata
- * file describes the project name, version, and the supported language mappings; this loader uses
- * that information to enumerate all files under the project's base directory.
+ * An implementation of a {@link ScriptLoader} that can generate a list of
+ * {@link ResourcePointer}s by finding all .dlb and .json files in a given directory.
+ * The directory provided when creating this {@link DirectoryScriptLoader} is assumed to have one
+ * or many subdirectories, representing different languages, that contain .dlb and/or .json files.
+ * For example:
+ * <br/>
+ * <ul>
+ *   <li>/directory/</li>
+ *   <li>
+ *     <ul>
+ *       <li>en/</li>
+ *       <li>
+ *         <ul>
+ *           <li>script1.dlb</li>
+ *           <li>script2.dlb</li>
+ *           <li>...</li>
+ *         </ul>
+ *       </li>
+ *       <li>pt/</li>
+ *       <li>
+ *         <ul>
+ *           <li>script1.json</li>
+ *           <li>script2.json</li>
+ *           <li>...</li>
+ *         </ul>
+ *      </li>
+ *     </ul>
+ *   </li>
+ * </ul>
  *
+ * @author Dennis Hofs
  * @author Harm op den Akker
+ *
+ * @param rootDirectory the root directory for this {@link DirectoryScriptLoader}.
  */
-public class ProjectFileLoader implements FileLoader {
-
-	private final File projectMetadataFile;
-	private final ProjectMetaData projectMetaData;
-
-	// -------------------------------------------------------- //
-	// -------------------- Constructor(s) -------------------- //
-	// -------------------------------------------------------- //
-
-	/**
-	 * Creates an instance of a {@link ProjectFileLoader} with a given pointer to a project metadata
-	 * xml file, which is immediately parsed into a {@link ProjectMetaData} object.
-	 *
-	 * @param projectMetadataFile the Dialogue Branch project metadata .xml file
-	 * @throws IOException in case of a read error when parsing the project metadata file.
-	 * @throws ParseException in case of a parse error when parsing the project metadata file.
-	 */
-	public ProjectFileLoader(File projectMetadataFile) throws IOException, ParseException {
-		this.projectMetadataFile = projectMetadataFile;
-		this.projectMetaData = loadProjectMetaDataFile(projectMetadataFile);
-	}
+public record DirectoryScriptLoader(File rootDirectory) implements ScriptLoader {
 
 	// ----------------------------------------------------------- //
 	// -------------------- Getters & Setters -------------------- //
 	// ----------------------------------------------------------- //
 
 	/**
-	 * Returns the Dialogue Branch project metadata (.xml) {@link File} from which this
-	 * {@link ProjectFileLoader} can load its resource files.
-	 * @return the Dialogue Branch project metadata (.xml) {@link File}.
+	 * Returns the root directory for this {@link DirectoryScriptLoader}.
+	 *
+	 * @return the root directory for this {@link DirectoryScriptLoader}.
 	 */
-	public File getProjectMetadataFile() {
-		return projectMetadataFile;
-	}
-
-	/**
-	 * Returns the Dialogue Branch project metadata object from which this {@link ProjectFileLoader}
-	 * can load its resource files.
-	 * @return the Dialogue Branch Project MetaData {@link ProjectMetaData} object.
-	 */
-	public ProjectMetaData getProjectMetaData() {
-		return projectMetaData;
+	@Override
+	public File rootDirectory() {
+		return rootDirectory;
 	}
 
 	// ------------------------------------------------------------------- //
@@ -98,21 +96,13 @@ public class ProjectFileLoader implements FileLoader {
 	@Override
 	public List<ResourcePointer> listDialogueBranchFiles() {
 		List<ResourcePointer> result = new ArrayList<>();
-
-		// Get a list of all the language folders
-		List<String> supportedLanguages = projectMetaData.getSupportedLanguageCodes();
-
-		File rootDirectory = new File(projectMetaData.getBasePath());
-
 		File[] children = rootDirectory.listFiles();
-		if(children != null) {
+		if (children != null) {
 			for (File child : children) {
 				if (!child.isDirectory() || child.getName().startsWith("."))
 					continue;
 				String language = child.getName();
-				if(supportedLanguages.contains(language)) {
-					result.addAll(listDir(language, "", child));
-				}
+				result.addAll(listDir(language, "", child));
 			}
 		}
 		return result;
@@ -123,9 +113,8 @@ public class ProjectFileLoader implements FileLoader {
 		String extension = fileDescription.getResourceType() == ResourceType.SCRIPT
 				? DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION
 				: DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION;
-		File file = new File(new File(projectMetaData.getBasePath()),
-				fileDescription.getLanguage() + File.separator +
-						fileDescription.getDialogueName() + extension);
+		File file = new File(rootDirectory, fileDescription.getLanguage() + File.separator +
+				fileDescription.getDialogueName() + extension);
 		return new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8);
 	}
 
@@ -134,40 +123,26 @@ public class ProjectFileLoader implements FileLoader {
 	// --------------------------------------------------------- //
 
 	/**
-	 * Parses the given Dialogue Branch project metadata XML file and returns the resulting
-	 * {@link ProjectMetaData} object.
-	 * @param metaDataFile the project metadata ({@code .xml}) file.
-	 * @return the parsed {@link ProjectMetaData}.
-	 * @throws IOException if the file cannot be read.
-	 * @throws ParseException if the file content is invalid.
-	 */
-	public static ProjectMetaData loadProjectMetaDataFile(File metaDataFile)
-			throws IOException, ParseException {
-		return ProjectMetaDataParser.parse(metaDataFile);
-	}
-
-	/**
-	 * Recursively generates a list of {@link ResourcePointer} objects from all .dlb
-	 * and/or .json files in the given {@code directory} (and all its subdirectories), under the
-	 * given relative {@code pathName} (relative to the {@code rootDirectory} of this
-	 * {@link DirectoryFileLoader}). Each {@link ResourcePointer} will have its
-	 * language attribute set to the given {@code language} parameter, which is the direct
-	 * sub-folder of the {@code rootDirectory} under which it was found.
+	 * Recursively generates a list of {@link ResourcePointer} objects from all .dlb and/or .json
+	 * files in the given {@code directory} (and all its subdirectories), under the given relative
+	 * {@code pathName} (relative to the {@code rootDirectory} of this {@link DirectoryScriptLoader}).
+	 * Each {@link ResourcePointer} will have its language attribute set to the given {@code
+	 * language} parameter, which is the direct sub-folder of the {@code rootDirectory} under which
+	 * it was found.
 	 *
 	 * @param language the language code, or name of the main folder.
 	 * @param pathName the relative pathName in which the given {@code directory} can be found.
 	 * @param directory the directory in which to look for .dlb and .json files.
-	 * @return a list of all encountered .dlb and .json files as
-	 *         {@code ResourcePointer}s.
+	 * @return a list of all encountered .dlb and .json files as {@code ResourcePointer}s.
 	 */
 	private List<ResourcePointer> listDir(String language, String pathName, File directory) {
 		List<ResourcePointer> result = new ArrayList<>();
 		File[] children = directory.listFiles();
-		if(children != null) {
+		if (children != null) {
 			for (File child : children) {
 				if (child.isDirectory() && !child.getName().startsWith(".")) {
-					result.addAll(listDir(language, pathName +
-							child.getName() + "/", child));
+					result.addAll(listDir(language, pathName + child.getName()
+							+ "/", child));
 				} else if (child.isFile()) {
 					if (child.getName().endsWith(DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION)) {
 						String name = child.getName();

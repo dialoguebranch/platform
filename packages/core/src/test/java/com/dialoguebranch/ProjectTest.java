@@ -31,7 +31,7 @@ package com.dialoguebranch;
 import com.dialoguebranch.execution.ActiveDialogue;
 import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.VariableStore;
-import com.dialoguebranch.execution.parser.ProjectFileLoader;
+import com.dialoguebranch.execution.parser.ProjectScriptLoader;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;
 import com.dialoguebranch.model.common.ProjectMetaData;
@@ -90,7 +90,7 @@ public class ProjectTest {
         assertNotNull("project-test/dlb-project.xml not found on test classpath", xmlUrl);
         File projectFile = new File(xmlUrl.toURI());
 
-        ProjectFileLoader loader = new ProjectFileLoader(projectFile);
+        ProjectScriptLoader loader = new ProjectScriptLoader(projectFile);
         parseResult = new ProjectParser(loader).parse();
     }
 

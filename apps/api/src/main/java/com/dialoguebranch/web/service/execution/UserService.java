@@ -217,8 +217,8 @@ public class UserService {
 	 * @throws IOException if an I/O error occurs.
 	 * @throws ExecutionException if the dialogue cannot be executed.
 	 */
-	public ExecuteNodeResult startDialogueSession(String dialogueId, String nodeId, String language,
-												  String sessionId, long sessionStartTime)
+	public ExecuteNodeResult startDialogueSession(String projectName, String dialogueId,
+			String nodeId, String language, String sessionId, long sessionStartTime)
 			throws DatabaseException, IOException, ExecutionException {
 
 		// This should not happen as this method should only be called by
@@ -227,16 +227,17 @@ public class UserService {
 			throw new DatabaseException("The provided sessionId for a new dialogue session is " +
 					"already in use.");
 
-        logger.info("User '{}' is starting dialogue '{}'", dialogueBranchUser.getId(), dialogueId);
+        logger.info("User '{}' is starting dialogue '{}' in project '{}'",
+				dialogueBranchUser.getId(), dialogueId, projectName);
 
 		ResourcePointer dialogueDescription =
-				getDialogueDescriptionFromId(dialogueId, language);
+				getDialogueDescriptionFromProject(projectName, dialogueId, language);
 
 		if (dialogueDescription == null) {
 			throw new ExecutionException(ExecutionException.Type.DIALOGUE_NOT_FOUND,
-					"Dialogue not found: " + dialogueId);
+					"Dialogue '" + dialogueId + "' not found in project '" + projectName + "'.");
 		}
-		Dialogue dialogue = getDialogueDefinition(dialogueDescription);
+		Dialogue dialogue = getDialogueDefinitionForProject(projectName, dialogueDescription);
 
 		return dialogueExecutor.startDialogue(dialogueDescription, dialogue, nodeId, sessionId,
 				sessionStartTime);
@@ -506,10 +507,10 @@ public class UserService {
 	}
 
 	/**
-	 * Returns the dialogue description for the specified dialogue ID and preferred language.
+	 * Returns the dialogue description for the specified dialogue ID and preferred language,
+	 * searching across all loaded projects.
 	 *
-	 * <p>If no dialogue with the specified ID is found, then this method
-	 * returns null.</p>
+	 * <p>If no dialogue with the specified ID is found, then this method returns null.</p>
 	 *
 	 * @param dialogueId the dialogue ID
 	 * @param language an ISO language tag or null
@@ -526,11 +527,51 @@ public class UserService {
 	}
 
 	/**
+	 * Returns the dialogue description for the specified dialogue ID and preferred language,
+	 * searching only within the named project.
+	 *
+	 * <p>If no dialogue with the specified ID is found in the project, this method returns
+	 * {@code null}.</p>
+	 *
+	 * @param projectName the project folder name / slug.
+	 * @param dialogueId the dialogue ID.
+	 * @param language an ISO language tag or null.
+	 * @return the dialogue description or null.
+	 */
+	public ResourcePointer getDialogueDescriptionFromProject(String projectName, String dialogueId,
+			String language) {
+		List<ResourcePointer> projectDialogues =
+				applicationManager.getDialogueDescriptionsForProject(projectName);
+		// Apply same language-matching logic as getAvailableDialogues
+		Map<String, ResourcePointer> langMap = new LinkedHashMap<>();
+		for (ResourcePointer pointer : projectDialogues) {
+			if (pointer.getDialogueName().equals(dialogueId)) {
+				langMap.put(pointer.getLanguage(), pointer);
+			}
+		}
+		if (langMap.isEmpty()) return null;
+		if (language != null) {
+			Locale prefLocale;
+			try {
+				prefLocale = I18nUtils.languageTagToLocale(language);
+			} catch (ParseException ex) {
+				prefLocale = Locale.getDefault();
+			}
+			List<String> keys = new ArrayList<>(langMap.keySet());
+			I18nLanguageFinder i18nFinder = new I18nLanguageFinder(keys);
+			i18nFinder.setUserLocale(prefLocale);
+			String lang = i18nFinder.find();
+			if (lang != null) return langMap.get(lang);
+		}
+		return langMap.values().iterator().next();
+	}
+
+	/**
 	 * Retrieves the dialogue definition for the specified description, or throws
 	 * a {@link ExecutionException} with {@link
 	 * ExecutionException.Type#DIALOGUE_NOT_FOUND DIALOGUE_NOT_FOUND} if no such
 	 * dialogue definition exists in this service manager.
-	 * 
+	 *
 	 * @param dialogueDescription the sought dialogue description
 	 * @return the {@link Dialogue} containing the Dialogue Branch dialogue representation.
 	 * @throws ExecutionException if the dialogue definition is not found
@@ -539,6 +580,22 @@ public class UserService {
 			ResourcePointer dialogueDescription) throws ExecutionException {
 		return this.applicationManager.getDialogueDefinition(dialogueDescription,
 				translationContext);
+	}
+
+	/**
+	 * Retrieves the dialogue definition from the named project for the specified description, or
+	 * throws a {@link ExecutionException} with
+	 * {@link ExecutionException.Type#DIALOGUE_NOT_FOUND DIALOGUE_NOT_FOUND} if not found.
+	 *
+	 * @param projectName the project folder name / slug.
+	 * @param dialogueDescription the sought dialogue description.
+	 * @return the {@link Dialogue} containing the Dialogue Branch dialogue representation.
+	 * @throws ExecutionException if the dialogue definition is not found in the named project.
+	 */
+	public Dialogue getDialogueDefinitionForProject(String projectName,
+			ResourcePointer dialogueDescription) throws ExecutionException {
+		return this.applicationManager.getDialogueDefinitionForProject(
+				projectName, dialogueDescription, translationContext);
 	}
 
 	/**

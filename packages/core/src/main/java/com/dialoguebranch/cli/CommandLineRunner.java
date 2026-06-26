@@ -136,8 +136,8 @@ public class CommandLineRunner {
 
 		ProjectParserResult readResult;
 		try {
-			FileLoader fileLoader = new DirectoryFileLoader(rootDirectory);
-			ProjectParser parser = new ProjectParser(fileLoader);
+			ScriptLoader scriptLoader = new DirectoryScriptLoader(rootDirectory);
+			ProjectParser parser = new ProjectParser(scriptLoader);
 			readResult = parser.parse();
 		} catch (IOException ex) {
 			System.err.println("ERROR: Can't read DialogueBranch project from directory: " +
@@ -171,8 +171,8 @@ public class CommandLineRunner {
 
 		ProjectParserResult readResult;
 		try {
-			ProjectFileLoader fileLoader = new ProjectFileLoader(projectMetadataFile);
-			ProjectParser parser = new ProjectParser(fileLoader);
+			ProjectScriptLoader scriptLoader = new ProjectScriptLoader(projectMetadataFile);
+			ProjectParser parser = new ProjectParser(scriptLoader);
 			readResult = parser.parse();
 		} catch (IOException ex) {
 			System.err.println("ERROR: Can't read DialogueBranch project from given project XML " +

@@ -26,41 +26,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.dialoguebranch.execution.parser;
-
-import com.dialoguebranch.model.execute.ResourcePointer;
-
-import java.io.IOException;
-import java.io.Reader;
-import java.util.List;
+package com.dialoguebranch.web.service.controller.schema.authoring;
 
 /**
- * A Dialogue Branch file loader is used by a {@link ProjectParser} to list and open
- * Dialogue Branch dialogue files (.dlb) and translation files (.json) within a Dialogue Branch
- * project. The default implementation is {@link ResourceFileLoader}, which can load files from
- * resources on the classpath.
+ * Request payload for creating a new draft dialogue.
  *
- * @author Dennis Hofs
  * @author Harm op den Akker
  */
-public interface FileLoader {
+public class CreateDialoguePayload {
+	private String name;
 
-	/**
-	 * Lists all Dialogue Branch files in the project. The files should be dialogue files (.dlb) or
-	 * translation files (.json).
-	 *
-	 * @return the List of files as {@link ResourcePointer}s.
-	 * @throws IOException if a reading error occurs
-	 */
-	List<ResourcePointer> listDialogueBranchFiles() throws IOException;
-
-	/**
-	 * Opens the specified Dialogue Branch file. This should be a dialogue file (.dlb) or a
-	 * translation file (.json).
-	 *
-	 * @param fileDescription the {@link ResourcePointer} object.
-	 * @return the {@link Reader} for the file.
-	 * @throws IOException if the file cannot be opened.
-	 */
-	Reader openFile(ResourcePointer fileDescription) throws IOException;
+	public String getName() { return name; }
+	public void setName(String name) { this.name = name; }
 }

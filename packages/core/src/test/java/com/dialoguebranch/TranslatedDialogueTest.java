@@ -35,7 +35,7 @@ import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.ResourcePointer;
 import com.dialoguebranch.model.execute.Node;
 import com.dialoguebranch.model.common.ResourceType;
-import com.dialoguebranch.execution.parser.DirectoryFileLoader;
+import com.dialoguebranch.execution.parser.DirectoryScriptLoader;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;
 import org.junit.Test;
@@ -65,7 +65,7 @@ public class TranslatedDialogueTest {
         URL resourceUrl = getClass().getClassLoader().getResource("examples");
         assertNotNull("Test resource folder 'examples' not found on classpath", resourceUrl);
         File examplesDir = new File(resourceUrl.toURI());
-        DirectoryFileLoader loader = new DirectoryFileLoader(examplesDir);
+        DirectoryScriptLoader loader = new DirectoryScriptLoader(examplesDir);
         return new ProjectParser(loader).parse();
     }
 
