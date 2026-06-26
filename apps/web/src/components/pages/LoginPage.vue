@@ -4,6 +4,7 @@ import { useClient } from '../../composables/client.js';
 import { DocumentFunctions } from '../../dlb-lib/util/DocumentFunctions.js';
 import { User } from '../../dlb-lib/model/User.js';
 import { logEvent } from '../../composables/debug-log.js';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import TextInput from '../widgets/TextInput.vue';
 import PushButton from '../widgets/PushButton.vue';
 
@@ -15,6 +16,7 @@ const password = ref('');
 const remember = ref(false);
 const errors = ref({});
 const errorMessage = ref('');
+const loading = ref(false);
 
 const inputs = {};
 
@@ -29,6 +31,7 @@ function onLoginClick() {
     if (input === false) {
         return;
     }
+    loading.value = true;
     client.login(input.username, input.password)
     .then((json) => {
         onLoginSuccess(json);
@@ -38,10 +41,16 @@ function onLoginClick() {
         if (error instanceof Response && (error.status === 400 || error.status === 401)) {
             errorMessage.value = 'The username or password is incorrect.';
             logEvent('auth', 'Login failed — invalid credentials', { status: error.status });
+        } else if (error instanceof TypeError) {
+            errorMessage.value = 'Could not reach the server. Please check your connection.';
+            logEvent('auth', 'Login failed — server unreachable');
         } else {
-            errorMessage.value = 'An unknown error has occured.';
+            errorMessage.value = 'An unknown error has occurred.';
             logEvent('auth', 'Login failed — unknown error');
         }
+    })
+    .finally(() => {
+        loading.value = false;
     });
 }
 
@@ -107,7 +116,7 @@ function onLoginSuccess(responseJson) {
         <div class="mt-3 font-title font-bold">Web Client Test Application</div>
 
         <div class="w-full px-4 my-6">
-            <div class="sm:w-[448px] bg-box rounded-2xl px-5 py-5 mx-auto">
+            <div class="sm:w-[448px] bg-box rounded-2xl px-5 py-5 mx-auto border border-orange-medium/50 shadow-2xl">
                 <form @submit.prevent>
                     <div class="sm:flex sm:items-center mt-2">
                         <label class="font-title font-bold text-right sm:basis-[130px] sm:pr-4" for="username">Username:</label>
@@ -122,9 +131,12 @@ function onLoginSuccess(responseJson) {
                         <input type="checkbox" name="remember" v-model="remember" />
                     </div>
                     <div class="text-right mt-4">
-                        <PushButton text="Log in" type="submit" @click="onLoginClick" />
+                        <PushButton text="Log in" type="submit" variant="green" :loading="loading" @click="onLoginClick" />
                     </div>
-                    <div v-if="errorMessage" class="bg-white font-title font-bold text-sm text-red-500 rounded-3xl px-4 py-2 mt-4">{{ errorMessage }}</div>
+                    <div v-if="errorMessage" class="flex items-start gap-2 border border-red-dark/40 bg-red-dark/10 text-red-dark rounded-xl px-4 py-3 mt-4">
+                        <FontAwesomeIcon icon="fa-solid fa-circle-exclamation" class="mt-0.5 shrink-0" />
+                        <span class="font-title text-sm">{{ errorMessage }}</span>
+                    </div>
                 </form>
             </div>
         </div>

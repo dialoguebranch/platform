@@ -114,7 +114,7 @@ const loadDialogue = (name) => {
     tab.dialogueCancelled = false;
     scrollActiveTabIntoView();
     logEvent('dialogue', 'Dialogue started: $1', name);
-    client.startDialogue(state.value.selectedProject, name, 'en')
+    client.startDialogue(state.value.selectedProject?.name, name, 'en')
     .then((dialogueStep) => {
         tab.dialogueName = dialogueStep.dialogueName;
         tab.dialogueSteps.push(dialogueStep);
@@ -131,7 +131,7 @@ const reloadStep = () => {
     const tab = activeTab.value;
     if (tab.dialogueName) {
         reloading.value = true;
-        client.continueDialogue(state.value.selectedProject, tab.dialogueName)
+        client.continueDialogue(state.value.selectedProject?.name, tab.dialogueName)
         .then((dialogueStep) => {
             tab.dialogueSteps.pop();
             tab.dialogueSteps.push(dialogueStep);
@@ -154,7 +154,7 @@ const resumeDialogue = (name) => {
     tabs.value.push(newTab);
     activeTabId.value = newTab.id;
     nextTick(updateScrollState);
-    client.continueDialogue(state.value.selectedProject, name)
+    client.continueDialogue(state.value.selectedProject?.name, name)
     .then((dialogueStep) => {
         const tab = tabs.value.find(t => t.id === newTab.id);
         if (!tab) return;

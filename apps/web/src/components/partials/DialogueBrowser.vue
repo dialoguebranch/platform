@@ -42,7 +42,7 @@ function buildTree(names) {
 }
 
 function listDialogues() {
-    client.listDialogues(state.value.selectedProject)
+    client.listDialogues(state.value.selectedProject?.name)
     .then((json) => {
         const root = buildTree(json.dialogueNames);
         tree.value = Object.entries(root).sort(([, a], [, b]) => {

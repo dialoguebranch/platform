@@ -43,7 +43,7 @@ function loadProjects() {
 }
 
 function selectProject(project) {
-    state.value.selectedProject = project.name;
+    state.value.selectedProject = { name: project.name, displayName: project.displayName ?? project.name };
 }
 
 function onLogoutClick() {
@@ -104,10 +104,11 @@ function submitCreateProject() {
             <div class="flex items-center justify-between mb-4">
                 <h2 class="font-title font-bold text-lg">Select a Project</h2>
                 <button
-                    v-if="isAdmin"
                     type="button"
-                    class="flex items-center gap-1.5 px-3 py-1.5 rounded bg-orange-darker text-white text-xs font-title font-semibold hover:bg-orange-dark cursor-pointer"
-                    @click="toggleCreateForm"
+                    :class="['flex items-center gap-1.5 px-3 py-1.5 rounded text-white text-xs font-title font-semibold transition-colors', isAdmin ? 'bg-orange-darker hover:bg-orange-dark cursor-pointer' : 'bg-orange-medium cursor-not-allowed opacity-60']"
+                    :disabled="!isAdmin"
+                    :title="isAdmin ? '' : 'Only administrators can create new projects'"
+                    @click="isAdmin && toggleCreateForm()"
                 >
                     <FontAwesomeIcon :icon="showCreateForm ? 'fa-solid fa-xmark' : 'fa-solid fa-plus'" />
                     {{ showCreateForm ? 'Cancel' : 'New Project' }}
@@ -174,7 +175,7 @@ function submitCreateProject() {
             <div v-else-if="projects.length === 0" class="text-center py-12 text-grey-dark font-title text-sm">
                 <FontAwesomeIcon icon="fa-solid fa-folder-open" class="text-3xl mb-3 text-grey-light" />
                 <p>No projects available.</p>
-                <p v-if="isAdmin" class="mt-1">Use the <strong>New Project</strong> button above to create one.</p>
+                <p class="mt-1">{{ isAdmin ? 'Use the New Project button above to create one.' : 'Contact an administrator to have a project created for you.' }}</p>
             </div>
 
             <!-- Project list -->
@@ -193,11 +194,11 @@ function submitCreateProject() {
                             </div>
                             <div class="font-mono text-xs text-grey-dark mt-0.5 truncate">{{ project.name }}</div>
                         </div>
-                        <FontAwesomeIcon icon="fa-solid fa-circle-arrow-right" class="text-grey-light group-hover:text-orange-darker transition-colors shrink-0 mt-0.5" />
+                        <FontAwesomeIcon icon="fa-solid fa-circle-arrow-right" class="text-orange-medium group-hover:text-orange-darker transition-colors shrink-0 mt-0.5" />
                     </div>
                     <p v-if="project.description" class="text-xs text-grey-dark mt-2 line-clamp-2">{{ project.description }}</p>
                     <div v-if="project.latestVersion" class="text-xs text-grey-dark mt-2">
-                        Version {{ project.latestVersion.versionNumber }}
+                        <span class="font-bold">Version</span> {{ project.latestVersion.versionNumber }}
                     </div>
                     <div v-else class="text-xs text-orange-darker mt-2 italic">No published version</div>
                 </button>

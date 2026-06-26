@@ -1,7 +1,10 @@
 <script setup>
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+
 const props = defineProps([
     'link',
     'text',
+    'icon',
 ]);
 
 const emit = defineEmits([
@@ -18,7 +21,10 @@ function onclick() {
 </script>
 
 <template>
-    <button class="font-title font-medium text-menu-text text-l sm:text-xl text-center hover:text-menu-text-highlight bg-menu-item hover:bg-menu-item-highlight px-2 sm:px-4 cursor-pointer whitespace-nowrap"
+    <button class="flex items-center gap-2 h-full px-5 font-title font-medium text-sm text-orange-light hover:text-white hover:bg-orange-dark border-r border-orange-dark cursor-pointer whitespace-nowrap transition-colors"
         @click="onclick"
-    >{{ text }}</button>
+    >
+        <FontAwesomeIcon v-if="icon" :icon="icon" class="opacity-80" />
+        {{ text }}
+    </button>
 </template>

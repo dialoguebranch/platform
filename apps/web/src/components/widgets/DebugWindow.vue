@@ -107,7 +107,7 @@ function prettyBody(raw) {
 function statusClass(status) {
     if (status >= 200 && status < 300) return 'text-icon-button';
     if (status >= 400 && status < 500) return 'text-orange-dark';
-    return 'text-red-dark';
+    return 'text-red-dark'; // covers 5xx and 0 (network error)
 }
 
 const copiedId = ref(null);
@@ -116,7 +116,8 @@ function copyEntry(entry) {
     let text;
     if (entry.type === 'api') {
         text = `[${formatTime(entry.timestamp)}] API ${entry.method} ${entry.path} → ${entry.status}`;
-        if (entry.responseBody) text += '\n' + prettyBody(entry.responseBody);
+        if (entry.requestBody) text += '\nRequest: ' + prettyBody(entry.requestBody);
+        if (entry.responseBody) text += '\nResponse: ' + prettyBody(entry.responseBody);
     } else {
         const message = entry.parts
             ? entry.parts.map(p => p.text).join('')
@@ -256,7 +257,10 @@ function copyEntry(entry) {
                         </button>
                     </div>
                     <div v-if="expanded.has(entry.id)" class="px-8 pb-2 bg-grey-lighter">
-                        <template v-if="entry.responseBody">
+                        <template v-if="entry.status === 0">
+                            <span class="text-red-dark italic text-[11px]">Network error — no response received.</span>
+                        </template>
+                        <template v-else-if="entry.responseBody">
                             <pre class="text-orange-darker whitespace-pre-wrap break-all text-[11px] leading-relaxed">{{ prettyBody(entry.responseBody) }}</pre>
                         </template>
                         <template v-else>

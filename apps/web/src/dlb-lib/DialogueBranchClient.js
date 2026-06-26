@@ -70,7 +70,7 @@ export class DialogueBranchClient {
                 user: user,
                 password: password
             }),
-        })
+        }, JSON.stringify({ user: user, password: '***' }))
         .then((response) => {
             if (response.ok) {
                 return response.json();
@@ -347,15 +347,25 @@ export class DialogueBranchClient {
         return dialogueStep;
     }
 
-    async _fetch(url, options) {
+    async _fetch(url, options, logRequestBody = null) {
         const path = url.startsWith(this._baseUrl) ? url.slice(this._baseUrl.length) : url;
         const method = options?.method || 'GET';
         const hasAuth = !!options?.headers?.['Authorization'];
 
-        const response = await fetch(url, options);
-        const cloned = response.clone();
-        const text = await cloned.text().catch(() => null);
-        logApiCall(method, path, response.status, text);
+        let response;
+        try {
+            response = await fetch(url, options);
+        } catch (networkError) {
+            logApiCall(method, path, 0, null, logRequestBody);
+            throw networkError;
+        }
+        const text = await response.text().catch(() => null);
+        logApiCall(method, path, response.status, text, logRequestBody);
+        const reconstructed = new Response(text, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers,
+        });
 
         if (response.status === 401 && hasAuth && this._onUnauthorized) {
             const newToken = await this._onUnauthorized().catch(() => null);
@@ -365,14 +375,17 @@ export class DialogueBranchClient {
                     headers: { ...options.headers, 'Authorization': 'Bearer ' + newToken },
                 };
                 const retryResponse = await fetch(url, retryOptions);
-                const retryCloned = retryResponse.clone();
-                const retryText = await retryCloned.text().catch(() => null);
-                logApiCall(method + ' [retried]', path, retryResponse.status, retryText);
-                return retryResponse;
+                const retryText = await retryResponse.text().catch(() => null);
+                logApiCall(method + ' [retried]', path, retryResponse.status, retryText, logRequestBody);
+                return new Response(retryText, {
+                    status: retryResponse.status,
+                    statusText: retryResponse.statusText,
+                    headers: retryResponse.headers,
+                });
             }
         }
 
-        return response;
+        return reconstructed;
     }
 
     _handleResponse(response) {

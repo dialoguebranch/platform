@@ -108,29 +108,21 @@ function onResizePanels() {
 
 <template>
     <div class="w-screen h-screen flex flex-col">
-        <header class="flex bg-menu-bar shadow-md shadow-gray-400 z-1">
-            <a class="shrink-0" href="/"><img class="box-content h-[60px] pl-4 py-3" src="../../assets/img/dlb-square.png"></a>
-            <div class="hidden sm:flex flex-col justify-center pl-2 font-mono text-xs text-gray-500">
-                <span>Logged in as {{ state.user.name }} (session valid for {{ sessionSecondsToLive }}s).</span>
-                <span>Dialogue Branch Web Client v{{ appVersion }}.</span>
-                <span>{{ connectionInfo }}</span>
+        <header class="flex items-stretch bg-orange-darker shadow-md shadow-gray-400 z-1">
+            <a class="shrink-0 border-r border-orange-dark" href="/"><img class="box-content h-[60px] pl-4 pr-4 py-3" src="../../assets/img/dlb-logo-medium-bright.png"></a>
+            <div class="hidden sm:flex items-center px-4 border-r border-orange-dark gap-3">
+                <div class="flex flex-col justify-center leading-tight">
+                    <span class="font-title text-[10px] text-orange-light uppercase tracking-wide">Project</span>
+                    <span class="font-title text-sm font-bold text-white">{{ state.selectedProject?.displayName }}</span>
+                    <span class="font-mono text-[10px] text-orange-light">{{ state.selectedProject?.name }}</span>
+                </div>
             </div>
-            <div class="hidden sm:flex items-center ml-4 pl-4 border-l border-grey-light gap-2">
-                <span class="font-title text-xs font-semibold text-orange-darker">{{ state.selectedProject }}</span>
-                <button
-                    type="button"
-                    class="font-title text-xs text-grey-dark hover:text-orange-darker cursor-pointer"
-                    title="Switch project"
-                    @click="onSwitchProjectClick"
-                >
-                    <FontAwesomeIcon icon="fa-solid fa-right-left" />
-                </button>
+            <div class="hidden sm:flex self-stretch">
+                <HeaderMenuItem text="Documentation" icon="fa-solid fa-arrow-up-right-from-square" link="https://www.dialoguebranch.com/docs/dialogue-branch/dev/index.html" />
+                <HeaderMenuItem text="Close Project" icon="fa-solid fa-folder-minus" @click="onSwitchProjectClick" />
+                <HeaderMenuItem text="Log out" icon="fa-solid fa-right-from-bracket" @click="onLogoutClick" />
             </div>
             <div class="grow"></div>
-            <div class="flex basis-0">
-                <HeaderMenuItem text="Documentation" link="https://www.dialoguebranch.com/docs/dialogue-branch/dev/index.html" />
-                <HeaderMenuItem text="Log out" @click="onLogoutClick" />
-            </div>
         </header>
 
         <!-- Advanced Options bar (admin only) -->
@@ -196,5 +188,13 @@ function onResizePanels() {
                 <VariableBrowser ref="variable-browser" class="grow" @changeVariable="onChangeVariable" />
             </template>
         </ResizablePanels>
+
+        <footer class="shrink-0 hidden sm:flex items-center gap-4 px-4 py-1 bg-grey-lighter border-t border-grey-light font-mono text-[11px] text-gray-400">
+            <span>Logged in as <span class="text-gray-500 font-semibold">{{ state.user.name }}</span></span>
+            <span class="text-grey-light">|</span>
+            <span>Dialogue Branch Web Client v{{ appVersion }}</span>
+            <span class="text-grey-light">|</span>
+            <span>{{ connectionInfo }}</span>
+        </footer>
     </div>
 </template>

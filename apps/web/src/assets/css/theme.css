@@ -14,7 +14,7 @@
     
     /* Definition of color elements */
     --color-background: var(--color-grey-light);
-    --color-box: var(--color-orange-darker);
+    --color-box: rgb(210, 190, 160);
     --color-lines: var(--color-orange-dark);
     --color-lines-highlight: var(--color-orange-light);
     --color-text: var(--color-black);

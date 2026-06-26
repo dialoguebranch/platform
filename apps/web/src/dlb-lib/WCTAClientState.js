@@ -125,7 +125,7 @@ export class WCTAClientState extends ClientState {
     set selectedProject(selectedProject) {
         this._selectedProject = selectedProject;
         if (selectedProject) {
-            DocumentFunctions.setCookie('state.selectedProject', selectedProject, 365);
+            DocumentFunctions.setCookie('state.selectedProject', JSON.stringify(selectedProject), 365);
         } else {
             DocumentFunctions.deleteCookie('state.selectedProject');
         }
@@ -183,7 +183,9 @@ export class WCTAClientState extends ClientState {
         }
 
         cookieValue = DocumentFunctions.getCookie('state.selectedProject');
-        if (cookieValue) this._selectedProject = cookieValue;
+        if (cookieValue) {
+            try { this._selectedProject = JSON.parse(cookieValue); } catch { this._selectedProject = null; }
+        }
 
         var cookieUserName = DocumentFunctions.getCookie('user.name');
         var cookieUserRoles = DocumentFunctions.getCookie('user.roles');

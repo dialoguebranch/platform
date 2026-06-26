@@ -4,7 +4,7 @@ let _nextId = 0;
 
 export const debugLog = ref([]);
 
-export function logApiCall(method, path, status, responseBody) {
+export function logApiCall(method, path, status, responseBody, requestBody = null) {
     debugLog.value.push({
         id: _nextId++,
         type: 'api',
@@ -12,6 +12,7 @@ export function logApiCall(method, path, status, responseBody) {
         method,
         path,
         status,
+        requestBody,
         responseBody,
     });
 }
