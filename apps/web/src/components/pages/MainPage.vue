@@ -1,9 +1,11 @@
 <script setup>
 import { inject, onMounted, onUnmounted, ref, useTemplateRef } from 'vue';
+import { logEvent } from '../../composables/debug-log.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useClient } from '../../composables/client.js';
 import { useStateManagement } from '../../composables/state-management.js';
 import DialogueBrowser from '../partials/DialogueBrowser.vue';
+import EditProjectMetadataModal from '../partials/EditProjectMetadataModal.vue';
 import HeaderMenuItem from '../widgets/HeaderMenuItem.vue';
 import InteractionTester from '../partials/InteractionTester.vue';
 import ResizablePanels from '../widgets/ResizablePanels.vue';
@@ -28,13 +30,17 @@ const sessionTimer = setInterval(() => {
         stateManagement.refreshSession().finally(() => { refreshing = false; });
     }
 }, 1000);
-onUnmounted(() => clearInterval(sessionTimer));
+onUnmounted(() => {
+    clearInterval(sessionTimer);
+    document.removeEventListener('click', onClickOutsideProjectMenu);
+});
 const serviceUrl = new URL(config.baseUrl);
 const serviceHost = serviceUrl.hostname;
 const servicePort = serviceUrl.port;
 const connectionInfo = ref('Not connected.');
 
 onMounted(() => {
+    document.addEventListener('click', onClickOutsideProjectMenu);
     panels.value.selectMobileTab(0);
     client.getServerInfo()
         .then((info) => {
@@ -45,13 +51,58 @@ onMounted(() => {
         });
 });
 
+const projectMenuOpen = ref(false);
+const projectMenuRef = ref(null);
+const projectMenuPos = ref({ top: 0, left: 0 });
+
+function toggleProjectMenu() {
+    if (!projectMenuOpen.value && projectMenuRef.value) {
+        const rect = projectMenuRef.value.getBoundingClientRect();
+        projectMenuPos.value = { top: rect.bottom, left: rect.left };
+    }
+    projectMenuOpen.value = !projectMenuOpen.value;
+}
+
+function closeProjectMenu() {
+    projectMenuOpen.value = false;
+}
+
+function onClickOutsideProjectMenu(e) {
+    if (projectMenuRef.value && !projectMenuRef.value.contains(e.target)) {
+        projectMenuOpen.value = false;
+    }
+}
+
 function onLogoutClick() {
     stateManagement.logout();
 }
 
 function onSwitchProjectClick() {
+    closeProjectMenu();
     interactionTester.value?.clearAllTabs();
     state.value.selectedProject = null;
+}
+
+const showEditMetadata = ref(false);
+
+function onEditMetadataClick() {
+    closeProjectMenu();
+    showEditMetadata.value = true;
+}
+
+function onMetadataSaved(updated) {
+    showEditMetadata.value = false;
+    state.value.selectedProject = { name: updated.name, displayName: updated.displayName };
+}
+
+function onSaveProjectClick() {
+    closeProjectMenu();
+    logEvent('project', 'Save project — not yet implemented');
+}
+
+function onDeleteProjectClick() {
+    closeProjectMenu();
+    logEvent('project', 'Delete project — not yet implemented');
 }
 
 const advancedOpen = ref(false);
@@ -108,18 +159,52 @@ function onResizePanels() {
 
 <template>
     <div class="w-screen h-screen flex flex-col">
-        <header class="flex items-stretch bg-orange-darker shadow-md shadow-gray-400 z-1">
+        <header class="flex items-stretch bg-orange-darker shadow-md shadow-gray-400 z-[100]">
             <a class="shrink-0 border-r border-orange-dark" href="/"><img class="box-content h-[60px] pl-4 pr-4 py-3" src="../../assets/img/dlb-logo-medium-bright.png"></a>
-            <div class="hidden sm:flex items-center px-4 border-r border-orange-dark gap-3">
-                <div class="flex flex-col justify-center leading-tight">
-                    <span class="font-title text-[10px] text-orange-light uppercase tracking-wide">Project</span>
-                    <span class="font-title text-sm font-bold text-white">{{ state.selectedProject?.displayName }}</span>
-                    <span class="font-mono text-[10px] text-orange-light">{{ state.selectedProject?.name }}</span>
-                </div>
+            <!-- Project dropdown -->
+            <div ref="projectMenuRef" class="hidden sm:flex items-stretch relative border-r border-orange-dark">
+                <button
+                    type="button"
+                    class="flex items-center gap-3 px-4 hover:bg-orange-dark cursor-pointer transition-colors"
+                    @click="toggleProjectMenu"
+                >
+                    <div class="flex flex-col justify-center leading-tight text-left">
+                        <span class="font-title text-[10px] text-orange-light uppercase tracking-wide">Project</span>
+                        <span class="font-title text-sm font-bold text-white">{{ state.selectedProject?.displayName }}</span>
+                        <span class="font-mono text-[10px] text-orange-light">{{ state.selectedProject?.name }}</span>
+                    </div>
+                    <FontAwesomeIcon :icon="projectMenuOpen ? 'fa-solid fa-caret-up' : 'fa-solid fa-caret-down'" class="text-orange-light text-xs" />
+                </button>
+
             </div>
+
+            <Teleport to="body">
+                <div v-if="projectMenuOpen"
+                    class="fixed z-[9999] min-w-[200px] bg-white shadow-lg border border-grey-light rounded-b overflow-hidden"
+                    :style="{ top: projectMenuPos.top + 'px', left: projectMenuPos.left + 'px' }"
+                >
+                    <button type="button" class="flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm text-orange-darker hover:bg-grey-lighter cursor-pointer transition-colors" @click="onEditMetadataClick">
+                        <FontAwesomeIcon icon="fa-solid fa-pen" class="w-4 text-orange-medium" />
+                        Edit Metadata
+                    </button>
+                    <button type="button" class="flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm text-orange-darker hover:bg-grey-lighter cursor-pointer transition-colors" @click="onSaveProjectClick">
+                        <FontAwesomeIcon icon="fa-solid fa-floppy-disk" class="w-4 text-orange-medium" />
+                        Save Project
+                    </button>
+                    <div class="border-t border-grey-light mx-3"></div>
+                    <button type="button" class="flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm text-orange-darker hover:bg-grey-lighter cursor-pointer transition-colors" @click="onSwitchProjectClick">
+                        <FontAwesomeIcon icon="fa-solid fa-folder-minus" class="w-4 text-orange-medium" />
+                        Close Project
+                    </button>
+                    <button type="button" class="flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm text-red-dark hover:bg-grey-lighter cursor-pointer transition-colors" @click="onDeleteProjectClick">
+                        <FontAwesomeIcon icon="fa-solid fa-trash" class="w-4 text-red-dark" />
+                        Delete Project
+                    </button>
+                </div>
+            </Teleport>
+
             <div class="hidden sm:flex self-stretch">
                 <HeaderMenuItem text="Documentation" icon="fa-solid fa-arrow-up-right-from-square" link="https://www.dialoguebranch.com/docs/dialogue-branch/dev/index.html" />
-                <HeaderMenuItem text="Close Project" icon="fa-solid fa-folder-minus" @click="onSwitchProjectClick" />
                 <HeaderMenuItem text="Log out" icon="fa-solid fa-right-from-bracket" @click="onLogoutClick" />
             </div>
             <div class="grow"></div>
@@ -188,6 +273,13 @@ function onResizePanels() {
                 <VariableBrowser ref="variable-browser" class="grow" @changeVariable="onChangeVariable" />
             </template>
         </ResizablePanels>
+
+        <EditProjectMetadataModal
+            v-if="showEditMetadata"
+            :projectName="state.selectedProject?.name"
+            @close="showEditMetadata = false"
+            @saved="onMetadataSaved"
+        />
 
         <footer class="shrink-0 hidden sm:flex items-center gap-4 px-4 py-1 bg-grey-lighter border-t border-grey-light font-mono text-[11px] text-gray-400">
             <span>Logged in as <span class="text-gray-500 font-semibold">{{ state.user.name }}</span></span>

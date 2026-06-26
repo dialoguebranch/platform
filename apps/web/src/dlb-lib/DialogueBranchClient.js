@@ -131,6 +131,36 @@ export class DialogueBranchClient {
         .then((response) => this._handleResponse(response));
     }
 
+    getProject(projectName) {
+        return this._fetch(this._baseUrl + "/authoring/project/" + encodeURIComponent(projectName), {
+            method: "GET",
+            headers: { 'Authorization': 'Bearer ' + this._accessToken, "Content-Type": "application/json" },
+        }).then((response) => this._handleResponse(response));
+    }
+
+    updateProject(projectName, displayName, description) {
+        return this._fetch(this._baseUrl + "/authoring/project/" + encodeURIComponent(projectName), {
+            method: "PUT",
+            headers: { 'Authorization': 'Bearer ' + this._accessToken, "Content-Type": "application/json" },
+            body: JSON.stringify({ displayName, description }),
+        }).then((response) => this._handleResponse(response));
+    }
+
+    addLanguageMapping(projectName, sourceLanguageName, sourceLanguageCode, translationLanguageName, translationLanguageCode) {
+        return this._fetch(this._baseUrl + "/authoring/project/" + encodeURIComponent(projectName) + "/language-mapping", {
+            method: "POST",
+            headers: { 'Authorization': 'Bearer ' + this._accessToken, "Content-Type": "application/json" },
+            body: JSON.stringify({ sourceLanguageName, sourceLanguageCode, translationLanguageName, translationLanguageCode }),
+        }).then((response) => this._handleResponse(response));
+    }
+
+    removeLanguageMapping(projectName, mappingId) {
+        return this._fetch(this._baseUrl + "/authoring/project/" + encodeURIComponent(projectName) + "/language-mapping/" + mappingId, {
+            method: "DELETE",
+            headers: { 'Authorization': 'Bearer ' + this._accessToken },
+        }).then((response) => { if (!response.ok) return Promise.reject(response); });
+    }
+
     listDialogues(projectName) {
         const url = this._baseUrl + "/dialogue/list-dialogues?projectName=" + encodeURIComponent(projectName);
 

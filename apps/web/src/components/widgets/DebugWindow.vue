@@ -159,7 +159,7 @@ function copyEntry(entry) {
             </svg>
         </div>
         <!-- Header -->
-        <div class="flex items-center gap-2 px-3 py-1.5 bg-box text-white shrink-0">
+        <div class="flex items-center gap-2 px-3 py-1.5 bg-orange-darker text-white shrink-0">
             <FontAwesomeIcon icon="fa-solid fa-bug" />
             <span class="font-title font-bold">Debug Log</span>
             <span class="text-orange-light text-[11px]">({{ debugLog.length }} entries)</span>
@@ -244,7 +244,7 @@ function copyEntry(entry) {
                             class="text-lines w-3 shrink-0"
                         />
                         <span class="text-text-subtle shrink-0">{{ formatTime(entry.timestamp) }}</span>
-                        <span class="px-1.5 py-0.5 rounded bg-box text-orange-light text-[10px] shrink-0">API</span>
+                        <span class="px-1.5 py-0.5 rounded bg-orange-darker text-orange-light text-[10px] shrink-0">API</span>
                         <span class="text-orange-darker font-bold shrink-0">{{ entry.method }}</span>
                         <span class="text-text truncate grow">{{ entry.path }}</span>
                         <span :class="['shrink-0 font-bold', statusClass(entry.status)]">{{ entry.status }}</span>
