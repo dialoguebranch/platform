@@ -35,7 +35,7 @@ import com.dialoguebranch.model.common.ProjectMetaData;
 import com.dialoguebranch.model.execute.Language;
 import com.dialoguebranch.model.execute.LanguageSet;
 import com.dialoguebranch.model.execute.ResourcePointer;
-import com.dialoguebranch.web.service.execution.SpringResourceFileLoader;
+import com.dialoguebranch.web.service.execution.SpringResourceScriptLoader;
 import com.dialoguebranch.web.service.repository.DBProjectVersionRepository;
 import com.dialoguebranch.web.service.repository.DBPublishedDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBPublishedTranslationRepository;
@@ -48,6 +48,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.annotation.Order;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Service;
@@ -55,7 +56,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.*;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.List;
@@ -104,6 +104,7 @@ public class ProjectSeedService {
 	 * in the database.
 	 */
 	@EventListener(ApplicationReadyEvent.class)
+	@Order(0)
 	public void seedOnStartup() {
 		PathMatchingResourcePatternResolver resolver =
 				new PathMatchingResourcePatternResolver(getClass().getClassLoader());
@@ -165,10 +166,10 @@ public class ProjectSeedService {
 
 		// -- Step 2: Validate the full project --
 		String resourcePath = SEED_ROOT + "/" + projectFolderName;
-		SpringResourceFileLoader fileLoader = new SpringResourceFileLoader(resourcePath);
+		SpringResourceScriptLoader scriptLoader = new SpringResourceScriptLoader(resourcePath);
 		ProjectParserResult parserResult;
 		try {
-			parserResult = new ProjectParser(fileLoader).parse();
+			parserResult = new ProjectParser(scriptLoader).parse();
 		} catch (IOException e) {
 			logger.error("Seed project '{}': error during project parsing: {}", projectFolderName,
 					e.getMessage());
@@ -213,7 +214,7 @@ public class ProjectSeedService {
 		// -- Step 6: Copy dialogue and translation content into published tables --
 		List<ResourcePointer> files;
 		try {
-			files = fileLoader.listDialogueBranchFiles();
+			files = scriptLoader.listDialogueBranchFiles();
 		} catch (IOException e) {
 			logger.error("Seed project '{}': failed to list dialogue files: {}", projectFolderName,
 					e.getMessage());
@@ -222,7 +223,7 @@ public class ProjectSeedService {
 
 		for (ResourcePointer pointer : files) {
 			if (pointer.getResourceType().name().equals("SCRIPT")) {
-				String content = readContent(fileLoader, pointer);
+				String content = readContent(scriptLoader, pointer);
 				if (content == null) continue;
 
 				DBPublishedDialogue publishedDialogue = new DBPublishedDialogue();
@@ -236,7 +237,7 @@ public class ProjectSeedService {
 				String dialogueName = pointer.getDialogueName();
 				publishedDialogueRepository.findByVersionAndName(version, dialogueName)
 						.ifPresent(publishedDialogue -> {
-							String content = readContent(fileLoader, pointer);
+							String content = readContent(scriptLoader, pointer);
 							if (content == null) return;
 
 							DBPublishedTranslation translation = new DBPublishedTranslation();
@@ -305,12 +306,12 @@ public class ProjectSeedService {
 	 * Reads the full content of the file identified by the given {@link ResourcePointer} as a
 	 * string, or returns {@code null} and logs an error if reading fails.
 	 *
-	 * @param fileLoader the {@link SpringResourceFileLoader} to use.
+	 * @param scriptLoader the {@link SpringResourceScriptLoader} to use.
 	 * @param pointer    the resource to read.
 	 * @return the file content, or {@code null} on error.
 	 */
-	private String readContent(SpringResourceFileLoader fileLoader, ResourcePointer pointer) {
-		try (Reader reader = fileLoader.openFile(pointer)) {
+	private String readContent(SpringResourceScriptLoader scriptLoader, ResourcePointer pointer) {
+		try (Reader reader = scriptLoader.openFile(pointer)) {
 			StringBuilder sb = new StringBuilder();
 			char[] buf = new char[4096];
 			int n;

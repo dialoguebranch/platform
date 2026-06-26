@@ -72,6 +72,7 @@ public class DBProjectVersion {
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "published_by")
+	@JsonIgnore
 	private DBUser publishedBy;
 
 	@OneToMany(mappedBy = "version")

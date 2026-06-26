@@ -34,7 +34,7 @@ import com.dialoguebranch.exception.ScriptParseException;
 import com.dialoguebranch.execution.ActiveDialogue;
 import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.VariableStore;
-import com.dialoguebranch.execution.parser.ProjectFileLoader;
+import com.dialoguebranch.execution.parser.ProjectScriptLoader;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;
 import com.dialoguebranch.model.common.DialogueBranchConstants;
@@ -151,8 +151,8 @@ public class ProjectTool {
     private static void executeDialogue(Scanner scanner, File projectFile) {
         ExecutableProject execProject;
         try {
-            ProjectFileLoader fileLoader = new ProjectFileLoader(projectFile);
-            ProjectParser parser = new ProjectParser(fileLoader);
+            ProjectScriptLoader scriptLoader = new ProjectScriptLoader(projectFile);
+            ProjectParser parser = new ProjectParser(scriptLoader);
             ProjectParserResult result = parser.parse();
             if (!result.getParseErrors().isEmpty()) {
                 System.err.println("Project contains parse errors:");

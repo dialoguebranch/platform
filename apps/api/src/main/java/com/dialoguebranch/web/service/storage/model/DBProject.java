@@ -63,7 +63,7 @@ public class DBProject {
 
 	private String description;
 
-	@OneToOne(fetch = FetchType.LAZY)
+	@OneToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "latest_version_id")
 	private DBProjectVersion latestVersion;
 

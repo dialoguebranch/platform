@@ -28,7 +28,7 @@
 
 package com.dialoguebranch.web.service.project;
 
-import com.dialoguebranch.execution.parser.FileLoader;
+import com.dialoguebranch.execution.parser.ScriptLoader;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;
 import com.dialoguebranch.model.common.ResourceType;
@@ -135,9 +135,9 @@ public class PublishService {
 			translationsByDialogue.put(draft.getName(), translations);
 		}
 
-		// Validate the full project via ProjectParser using an in-memory FileLoader
-		FileLoader fileLoader = new InMemoryFileLoader(scriptsByName, translationsByDialogue);
-		ProjectParserResult result = new ProjectParser(fileLoader).parse();
+		// Validate the full project via ProjectParser using an in-memory ScriptLoader
+		ScriptLoader scriptLoader = new InMemoryScriptLoader(scriptsByName, translationsByDialogue);
+		ProjectParserResult result = new ProjectParser(scriptLoader).parse();
 
 		if (!result.getParseErrors().isEmpty()) {
 			return PublishResult.failure(result.getParseErrors());
@@ -186,20 +186,20 @@ public class PublishService {
 	}
 
 	// --------------------------------------------------------------- //
-	// -------------------- In-memory FileLoader -------------------- //
+	// -------------------- In-memory ScriptLoader -------------------- //
 	// --------------------------------------------------------------- //
 
 	/**
-	 * A {@link FileLoader} implementation that serves reconstructed dialogue scripts and
+	 * A {@link ScriptLoader} implementation that serves reconstructed dialogue scripts and
 	 * translation JSON from in-memory maps, allowing {@link ProjectParser} to validate project
 	 * content without touching the filesystem.
 	 */
-	private static class InMemoryFileLoader implements FileLoader {
+	private static class InMemoryScriptLoader implements ScriptLoader {
 
 		private final Map<String, String> scripts;
 		private final Map<String, Map<String, String>> translations;
 
-		InMemoryFileLoader(Map<String, String> scripts,
+		InMemoryScriptLoader(Map<String, String> scripts,
 						   Map<String, Map<String, String>> translations) {
 			this.scripts = scripts;
 			this.translations = translations;

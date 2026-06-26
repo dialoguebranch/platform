@@ -10,5 +10,6 @@ import java.util.UUID;
 
 public interface DBPublishedTranslationRepository extends JpaRepository<DBPublishedTranslation, UUID> {
     List<DBPublishedTranslation> findByPublishedDialogue(DBPublishedDialogue publishedDialogue);
+    List<DBPublishedTranslation> findByPublishedDialogueIn(List<DBPublishedDialogue> dialogues);
     Optional<DBPublishedTranslation> findByPublishedDialogueAndLanguage(DBPublishedDialogue publishedDialogue, String language);
 }

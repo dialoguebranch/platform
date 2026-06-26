@@ -106,7 +106,7 @@ public class AuthoringController {
 					logger.info("GET /v{}/authoring/project [user: {}]", version, user);
 					return projectService.listProjects();
 				},
-				version, token, response, "", application,
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 	}
 
@@ -117,7 +117,6 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestHeader(value = "X-Auth-Token", required = false) String token,
 			@PathVariable String projectName
 	) throws HttpException {
 		return QueryRunner.runQuery(
@@ -128,7 +127,7 @@ public class AuthoringController {
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectName));
 				},
-				version, token, response, "", application,
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 	}
 
@@ -140,7 +139,6 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestHeader(value = "X-Auth-Token", required = false) String token,
 			@RequestBody CreateProjectPayload payload
 	) throws HttpException {
 		return QueryRunner.runQuery(
@@ -151,7 +149,7 @@ public class AuthoringController {
 					return projectService.createProject(payload.getName(),
 							payload.getDisplayName(), payload.getDescription());
 				},
-				version, token, response, "", application,
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				BasicUserCredentials.USER_ROLE_ADMIN);
 	}
 
@@ -162,7 +160,6 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestHeader(value = "X-Auth-Token", required = false) String token,
 			@PathVariable String projectName,
 			@RequestBody UpdateProjectPayload payload
 	) throws HttpException {
@@ -176,7 +173,7 @@ public class AuthoringController {
 					return projectService.updateProject(project, payload.getDisplayName(),
 							payload.getDescription());
 				},
-				version, token, response, "", application,
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				BasicUserCredentials.USER_ROLE_ADMIN);
 	}
 
@@ -188,7 +185,6 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestHeader(value = "X-Auth-Token", required = false) String token,
 			@PathVariable String projectName
 	) throws HttpException {
 		QueryRunner.runQuery(
@@ -201,7 +197,7 @@ public class AuthoringController {
 					projectService.deleteProject(project);
 					return null;
 				},
-				version, token, response, "", application,
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				BasicUserCredentials.USER_ROLE_ADMIN);
 	}
 
@@ -217,7 +213,6 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestHeader(value = "X-Auth-Token", required = false) String token,
 			@PathVariable String projectName,
 			@RequestBody AddLanguageMappingPayload payload
 	) throws HttpException {
@@ -234,7 +229,7 @@ public class AuthoringController {
 							payload.getTranslationLanguageCode());
 					return projectService.addLanguageMapping(project, source, translation);
 				},
-				version, token, response, "", application,
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				BasicUserCredentials.USER_ROLE_ADMIN);
 	}
 
@@ -246,7 +241,6 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestHeader(value = "X-Auth-Token", required = false) String token,
 			@PathVariable String projectName,
 			@PathVariable UUID mappingId
 	) throws HttpException {
@@ -258,7 +252,7 @@ public class AuthoringController {
 					projectService.removeLanguageMapping(mappingId);
 					return null;
 				},
-				version, token, response, "", application,
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				BasicUserCredentials.USER_ROLE_ADMIN);
 	}
 
@@ -273,7 +267,6 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestHeader(value = "X-Auth-Token", required = false) String token,
 			@PathVariable String projectName
 	) throws HttpException {
 		return QueryRunner.runQuery(
@@ -285,7 +278,7 @@ public class AuthoringController {
 									"Project not found: " + projectName));
 					return draftDialogueService.listDialogues(project);
 				},
-				version, token, response, "", application,
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 	}
 
@@ -297,7 +290,6 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestHeader(value = "X-Auth-Token", required = false) String token,
 			@PathVariable String projectName,
 			@RequestBody CreateDialoguePayload payload
 	) throws HttpException {
@@ -312,7 +304,7 @@ public class AuthoringController {
 									"Project not found: " + projectName));
 					return draftDialogueService.createDialogue(project, payload.getName());
 				},
-				version, token, response, "", application,
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 	}
 
@@ -324,7 +316,6 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestHeader(value = "X-Auth-Token", required = false) String token,
 			@PathVariable String projectName,
 			@PathVariable String dialogueName
 	) throws HttpException {
@@ -342,7 +333,7 @@ public class AuthoringController {
 					draftDialogueService.deleteDialogue(dialogue);
 					return null;
 				},
-				version, token, response, "", application,
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 	}
 
@@ -357,7 +348,6 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestHeader(value = "X-Auth-Token", required = false) String token,
 			@PathVariable String projectName,
 			@PathVariable String dialogueName
 	) throws HttpException {
@@ -374,7 +364,7 @@ public class AuthoringController {
 									"Dialogue not found: " + dialogueName));
 					return draftDialogueService.listNodes(dialogue);
 				},
-				version, token, response, "", application,
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 	}
 
@@ -386,7 +376,6 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestHeader(value = "X-Auth-Token", required = false) String token,
 			@PathVariable String projectName,
 			@PathVariable String dialogueName,
 			@RequestBody CreateNodePayload payload
@@ -407,7 +396,7 @@ public class AuthoringController {
 					return draftDialogueService.createNode(dialogue, payload.getTitle(),
 							payload.getHeader(), payload.getBody());
 				},
-				version, token, response, "", application,
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 	}
 
@@ -418,7 +407,6 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestHeader(value = "X-Auth-Token", required = false) String token,
 			@PathVariable String projectName,
 			@PathVariable String dialogueName,
 			@PathVariable String nodeTitle,
@@ -442,7 +430,7 @@ public class AuthoringController {
 					return draftDialogueService.updateNode(node, payload.getHeader(),
 							payload.getBody());
 				},
-				version, token, response, "", application,
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 	}
 
@@ -454,7 +442,6 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestHeader(value = "X-Auth-Token", required = false) String token,
 			@PathVariable String projectName,
 			@PathVariable String dialogueName,
 			@PathVariable String nodeTitle
@@ -477,7 +464,7 @@ public class AuthoringController {
 					draftDialogueService.deleteNode(node);
 					return null;
 				},
-				version, token, response, "", application,
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 	}
 
@@ -492,7 +479,6 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestHeader(value = "X-Auth-Token", required = false) String token,
 			@PathVariable String projectName,
 			@PathVariable String dialogueName,
 			@PathVariable String language,
@@ -513,7 +499,7 @@ public class AuthoringController {
 					return draftDialogueService.createOrUpdateTranslation(dialogue, language,
 							payload.getContent());
 				},
-				version, token, response, "", application,
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 	}
 
@@ -525,7 +511,6 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestHeader(value = "X-Auth-Token", required = false) String token,
 			@PathVariable String projectName,
 			@PathVariable String dialogueName,
 			@PathVariable String language
@@ -549,7 +534,7 @@ public class AuthoringController {
 					draftDialogueService.deleteTranslation(translation);
 					return null;
 				},
-				version, token, response, "", application,
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 	}
 
@@ -564,7 +549,6 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestHeader(value = "X-Auth-Token", required = false) String token,
 			@PathVariable String projectName
 	) throws HttpException {
 		return QueryRunner.runQuery(
@@ -576,7 +560,7 @@ public class AuthoringController {
 									"Project not found: " + projectName));
 					return publishService.listVersions(project);
 				},
-				version, token, response, "", application,
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 	}
 
@@ -587,7 +571,6 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestHeader(value = "X-Auth-Token", required = false) String token,
 			@PathVariable String projectName
 	) throws HttpException {
 		return QueryRunner.runQuery(
@@ -603,7 +586,7 @@ public class AuthoringController {
 						throw new RuntimeException(e);
 					}
 				},
-				version, token, response, "", application,
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				BasicUserCredentials.USER_ROLE_ADMIN);
 	}
 

@@ -74,7 +74,7 @@ import java.util.Map;
  *
  * @author Dennis Hofs
  */
-public class ResourceFileLoader implements FileLoader {
+public class ResourceScriptLoader implements ScriptLoader {
 	private static final String INDEX_FILE = "dialogues.json";
 
 	private String resourcePath;
@@ -84,7 +84,7 @@ public class ResourceFileLoader implements FileLoader {
 	 *
 	 * @param resourcePath the resource path (without leading or trailing slash)
 	 */
-	public ResourceFileLoader(String resourcePath) {
+	public ResourceScriptLoader(String resourcePath) {
 		this.resourcePath = resourcePath;
 	}
 

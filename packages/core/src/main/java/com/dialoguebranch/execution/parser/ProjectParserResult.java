@@ -48,7 +48,7 @@ import java.util.Map;
  */
 public class ProjectParserResult {
 
-	private FileLoader fileLoader;
+	private ScriptLoader scriptLoader;
 	private ExecutableProject project = null;
 	private Map<String,List<ParseException>> parseErrors = new LinkedHashMap<>();
 	private Map<String,List<String>> warnings = new LinkedHashMap<>();
@@ -63,12 +63,12 @@ public class ProjectParserResult {
 	public ProjectParserResult() { }
 
 	/**
-	 * Creates an instance of a {@link ProjectParserResult} with a given {@code fileLoader},
-	 * indicating which {@link FileLoader} was used in the creation of these results.
-	 * @param fileLoader the {@link FileLoader} implementation.
+	 * Creates an instance of a {@link ProjectParserResult} with a given {@code scriptLoader},
+	 * indicating which {@link ScriptLoader} was used in the creation of these results.
+	 * @param scriptLoader the {@link ScriptLoader} implementation.
 	 */
-	public ProjectParserResult(FileLoader fileLoader) {
-		this.fileLoader = fileLoader;
+	public ProjectParserResult(ScriptLoader scriptLoader) {
+		this.scriptLoader = scriptLoader;
 	}
 
 	// ----------------------------------------------------------- //
@@ -76,21 +76,21 @@ public class ProjectParserResult {
 	// ----------------------------------------------------------- //
 
 	/**
-	 * Returns the {@link FileLoader} implementation that was used for generating this
+	 * Returns the {@link ScriptLoader} implementation that was used for generating this
 	 * {@link ProjectParserResult}.
-	 * @return the {@link FileLoader} implementation.
+	 * @return the {@link ScriptLoader} implementation.
 	 */
-	public FileLoader getFileLoader() {
-		return fileLoader;
+	public ScriptLoader getScriptLoader() {
+		return scriptLoader;
 	}
 
 	/**
-	 * Sets the {@link FileLoader} implementation that was used for generating this
+	 * Sets the {@link ScriptLoader} implementation that was used for generating this
 	 * {@link ProjectParserResult}.
-	 * @param fileLoader the {@link FileLoader} implementation.
+	 * @param scriptLoader the {@link ScriptLoader} implementation.
 	 */
-	public void setFileLoader(FileLoader fileLoader) {
-		this.fileLoader = fileLoader;
+	public void setScriptLoader(ScriptLoader scriptLoader) {
+		this.scriptLoader = scriptLoader;
 	}
 
 	/**
@@ -162,12 +162,12 @@ public class ProjectParserResult {
 
 		// Get a string description of the project location (depending on the file loader used)
 		String projectLocationDescription = "unknown";
-		if(fileLoader instanceof ProjectFileLoader) {
+		if(scriptLoader instanceof ProjectScriptLoader) {
 			projectLocationDescription =
-					((ProjectFileLoader)fileLoader).getProjectMetaData().getBasePath();
-		} else if(fileLoader instanceof DirectoryFileLoader) {
+					((ProjectScriptLoader)scriptLoader).getProjectMetaData().getBasePath();
+		} else if(scriptLoader instanceof DirectoryScriptLoader) {
 			projectLocationDescription =
-					((DirectoryFileLoader)fileLoader).rootDirectory().toString();
+					((DirectoryScriptLoader)scriptLoader).rootDirectory().toString();
 		}
 
 		// In case of parse errors, print them and then return

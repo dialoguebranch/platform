@@ -28,7 +28,7 @@
 
 package com.dialoguebranch.web.service.execution;
 
-import com.dialoguebranch.execution.parser.FileLoader;
+import com.dialoguebranch.execution.parser.ScriptLoader;
 import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.model.execute.ResourcePointer;
@@ -45,9 +45,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A {@link FileLoader} implementation that uses Spring's {@link PathMatchingResourcePatternResolver}
+ * A {@link ScriptLoader} implementation that uses Spring's {@link PathMatchingResourcePatternResolver}
  * to discover Dialogue Branch script and translation files on the classpath. Unlike the core
- * {@link com.dialoguebranch.execution.parser.ResourceFileLoader}, this loader does not require a
+ * {@link com.dialoguebranch.execution.parser.ResourceScriptLoader}, this loader does not require a
  * pre-generated {@code dialogues.json} index — it scans for {@code *.dlb} and {@code *.json} files
  * directly.
  *
@@ -68,7 +68,7 @@ import java.util.List;
  *
  * @author Harm op den Akker
  */
-public class SpringResourceFileLoader implements FileLoader {
+public class SpringResourceScriptLoader implements ScriptLoader {
 
     private final String projectResourcePath;
     private final PathMatchingResourcePatternResolver resolver;
@@ -78,20 +78,20 @@ public class SpringResourceFileLoader implements FileLoader {
     // -------------------------------------------------------- //
 
     /**
-     * Creates a {@link SpringResourceFileLoader} for the Dialogue Branch project located at the
+     * Creates a {@link SpringResourceScriptLoader} for the Dialogue Branch project located at the
      * given classpath resource path.
      *
      * @param projectResourcePath the classpath path of the project folder, without leading or
      *                            trailing slash (e.g. {@code "dlb-projects/project-test"}).
      */
-    public SpringResourceFileLoader(String projectResourcePath) {
+    public SpringResourceScriptLoader(String projectResourcePath) {
         this.projectResourcePath = projectResourcePath;
         this.resolver = new PathMatchingResourcePatternResolver(
                 getClass().getClassLoader());
     }
 
     // ------------------------------------------------------ //
-    // -------------------- FileLoader API ---------------- //
+    // -------------------- ScriptLoader API ---------------- //
     // ------------------------------------------------------ //
 
     /**

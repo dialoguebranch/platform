@@ -56,13 +56,13 @@ import com.dialoguebranch.i18n.Translator;
  * This class can read an entire Dialogue Branch project consisting of dialogue script files (files
  * with an extension of {@link DialogueBranchConstants#DLB_SCRIPT_FILE_EXTENSION}) and translation files (with an
  * extension of {@link DialogueBranchConstants#DLB_TRANSLATION_FILE_EXTENSION} as provided through the given
- * {@link FileLoader} implementation.
+ * {@link ScriptLoader} implementation.
  *
  * @author Dennis Hofs
  * @author Harm op den Akker
  */
 public class ProjectParser {
-	private final FileLoader fileLoader;
+	private final ScriptLoader scriptLoader;
 
 	private final Map<ResourcePointer, Dialogue> dialogues = new LinkedHashMap<>();
 	private final Map<ResourcePointer,Map<Translatable,List<ContextTranslation>>>
@@ -74,14 +74,14 @@ public class ProjectParser {
 	// -------------------------------------------------------- //
 
 	/**
-	 * Creates an instance of a {@link ProjectParser} with a given {@link FileLoader} that is used
+	 * Creates an instance of a {@link ProjectParser} with a given {@link ScriptLoader} that is used
 	 * to retrieve a complete set of files (both script and translation files) to use in this
 	 * parser.
 	 *
-	 * @param fileLoader the {@link FileLoader} implementation.
+	 * @param scriptLoader the {@link ScriptLoader} implementation.
 	 */
-	public ProjectParser(FileLoader fileLoader) {
-		this.fileLoader = fileLoader;
+	public ProjectParser(ScriptLoader scriptLoader) {
+		this.scriptLoader = scriptLoader;
 	}
 
 	// ------------------------------------------------------- //
@@ -90,16 +90,16 @@ public class ProjectParser {
 
 	/**
 	 * Parses the complete Dialogue Branch project (all script and translation files provided by
-	 * the {@link FileLoader}) and returns a {@link ProjectParserResult} containing either the
+	 * the {@link ScriptLoader}) and returns a {@link ProjectParserResult} containing either the
 	 * fully assembled {@link ExecutableProject} or a map of per-file parse errors.
 	 *
 	 * @return the result of parsing the project.
 	 * @throws IOException if a file cannot be read.
 	 */
 	public ProjectParserResult parse() throws IOException {
-		ProjectParserResult projectParserResult = new ProjectParserResult(fileLoader);
+		ProjectParserResult projectParserResult = new ProjectParserResult(scriptLoader);
 
-		List<ResourcePointer> files = fileLoader.listDialogueBranchFiles();
+		List<ResourcePointer> files = scriptLoader.listDialogueBranchFiles();
 
 		parseFiles(files, projectParserResult);
 
@@ -128,8 +128,8 @@ public class ProjectParser {
 
 		project.setTranslations(dlgTranslations);
 
-		if (fileLoader instanceof ProjectFileLoader projectFileLoader)
-			project.setMetaData(projectFileLoader.getProjectMetaData());
+		if (scriptLoader instanceof ProjectScriptLoader projectScriptLoader)
+			project.setMetaData(projectScriptLoader.getProjectMetaData());
 
 		projectParserResult.setProject(project);
 		return projectParserResult;
@@ -263,12 +263,12 @@ public class ProjectParser {
 	/**
 	 * Finds the source {@link Dialogue} for a given dialogue name and translation language code.
 	 *
-	 * <p>When a {@link ProjectFileLoader} with {@link ProjectMetaData} is available, the language
+	 * <p>When a {@link ProjectScriptLoader} with {@link ProjectMetaData} is available, the language
 	 * map is consulted to find the source language that is paired with the given translation
 	 * language. This ensures the correct source script is used regardless of how many source
 	 * languages exist in the project.</p>
 	 *
-	 * <p>If no metadata is available (e.g. when using a {@link DirectoryFileLoader}), or if the
+	 * <p>If no metadata is available (e.g. when using a {@link DirectoryScriptLoader}), or if the
 	 * translation language is not found in the language map, the method falls back to
 	 * {@link I18nLanguageFinder} with {@link Locale#ENGLISH} to pick the best available source.</p>
 	 *
@@ -292,8 +292,8 @@ public class ProjectParser {
 			lngMap.put(match.getLanguage(), match);
 
 		// Prefer the source language defined in the project metadata for this translation language
-		if (fileLoader instanceof ProjectFileLoader projectFileLoader) {
-			ProjectMetaData metaData = projectFileLoader.getProjectMetaData();
+		if (scriptLoader instanceof ProjectScriptLoader projectScriptLoader) {
+			ProjectMetaData metaData = projectScriptLoader.getProjectMetaData();
 			if (metaData != null && metaData.getLanguageMap() != null) {
 				for (LanguageSet languageSet : metaData.getLanguageMap().getLanguageSets()) {
 					for (Language translationLng : languageSet.getTranslationLanguages()) {
@@ -322,14 +322,14 @@ public class ProjectParser {
 			throws IOException {
 		String dlgName = description.getDialogueName();
 		try (DialogueBranchParser dialogueBranchParser = new DialogueBranchParser(dlgName,
-				fileLoader.openFile(description))) {
+				scriptLoader.openFile(description))) {
 			return dialogueBranchParser.readDialogue();
 		}
 	}
 
 	private TranslationParserResult parseTranslationFile(ResourcePointer description)
 			throws IOException {
-		try (Reader reader = fileLoader.openFile(description)) {
+		try (Reader reader = scriptLoader.openFile(description)) {
 			return TranslationParser.parse(reader);
 		}
 	}

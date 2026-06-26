@@ -29,6 +29,7 @@
 package com.dialoguebranch.web.service.execution;
 
 import com.dialoguebranch.exception.ExecutionException;
+import com.dialoguebranch.execution.parser.ScriptLoader;
 import com.dialoguebranch.i18n.TranslationContext;
 import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.ExecutableProject;
@@ -45,11 +46,8 @@ import org.slf4j.LoggerFactory;
 import nl.rrd.utils.exception.DatabaseException;
 import nl.rrd.utils.exception.ParseException;
 import org.slf4j.Logger;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
 import java.io.IOException;
-import java.net.URI;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -61,25 +59,15 @@ import java.util.Map;
  * class keeps track of the different active {@link UserService} instances that are needed to serve
  * individual users of the Dialogue Branch Web Service, as well as other application-wide objects.
  *
- * <p>On startup it scans the classpath for Dialogue Branch projects by looking for
- * {@code dlb-project.xml} files in direct sub-folders of {@code projects-seed/}. Each sub-folder
- * that contains a {@code dlb-project.xml} is loaded as a {@link DialogueBranchProject} using a
- * {@link SpringResourceFileLoader}.</p>
+ * <p>Dialogue Branch projects are loaded into memory via {@link #loadProject(String, ScriptLoader)},
+ * which is called by {@link com.dialoguebranch.web.service.project.ProjectSeedService} on
+ * application startup after all projects have been seeded in the database. The projects map is
+ * keyed by project name (slug).</p>
  *
  * @author Harm op den Akker
  * @author Tessa Beinema
  */
 public class ApplicationManager {
-
-	// ---------------------------------------------------- //
-	// -------------------- Constants -------------------- //
-	// ---------------------------------------------------- //
-
-	/** Classpath resource path that contains seed project sub-folders. */
-	private static final String DLB_PROJECTS_ROOT = "projects-seed";
-
-	/** Name of the marker file that identifies a folder as a Dialogue Branch project. */
-	private static final String PROJECT_MARKER_FILE = "dlb-project.xml";
 
 	// --------------------------------------------------- //
 	// -------------------- Fields -------------------- //
@@ -100,21 +88,18 @@ public class ApplicationManager {
 	// -------------------------------------------------------- //
 
 	/**
-	 * Creates an instance of an {@link ApplicationManager}. On construction this scans
-	 * {@code projects-seed/} on the classpath for sub-folders that contain a
-	 * {@code dlb-project.xml} file. Each such folder is loaded as a separate Dialogue Branch
-	 * project.
+	 * Creates an instance of an {@link ApplicationManager}. Projects are not loaded here;
+	 * they are populated later via {@link #loadProject(String, ScriptLoader)} by the
+	 * {@link com.dialoguebranch.web.service.project.ProjectSeedService} once the database is ready.
 	 *
-	 * @param dlbProperties the application configuration properties.
-	 * @throws DLBServiceConfigurationException if any project cannot be loaded due to parse errors
-	 *                                          or configuration problems.
+	 * @param dlbProperties  the application configuration properties.
+	 * @param storageHandler the variable-store storage handler for user sessions.
+	 * @throws DLBServiceConfigurationException if the user credentials file cannot be read.
 	 */
 	public ApplicationManager(DlbProperties dlbProperties,
 							  VariableStoreStorageHandler storageHandler)
 			throws DLBServiceConfigurationException {
 		this.dlbProperties = dlbProperties;
-
-		loadAllProjects();
 
 		this.userServiceFactory = new UserServiceFactory(this, storageHandler);
 
@@ -374,87 +359,33 @@ public class ApplicationManager {
 	}
 
 	// ---------------------------------------------------------------- //
-	// -------------------- Private Helper Methods -------------------- //
+	// -------------------- Project Loading -------------------- //
 	// ---------------------------------------------------------------- //
 
 	/**
-	 * Scans the classpath for {@code dlb-project.xml} files in direct sub-folders of
-	 * {@code projects-seed/} and loads each discovered project.
+	 * Loads a Dialogue Branch project into memory using the supplied {@link ScriptLoader} and stores
+	 * the resulting {@link DialogueBranchProject} in {@link #projects}. Any previously loaded
+	 * project with the same name is replaced.
 	 *
-	 * @throws DLBServiceConfigurationException if any discovered project fails to load.
-	 */
-	private void loadAllProjects() throws DLBServiceConfigurationException {
-		PathMatchingResourcePatternResolver resolver =
-				new PathMatchingResourcePatternResolver(getClass().getClassLoader());
-
-		String pattern = "classpath*:" + DLB_PROJECTS_ROOT + "/*/" + PROJECT_MARKER_FILE;
-		Resource[] markerResources;
-		try {
-			markerResources = resolver.getResources(pattern);
-		} catch (IOException e) {
-			throw new DLBServiceConfigurationException(
-					"Failed to scan for Dialogue Branch projects under '" +
-							DLB_PROJECTS_ROOT + "': " + e.getMessage());
-		}
-
-		if (markerResources.length == 0) {
-			logger.warn("No Dialogue Branch projects found under classpath resource '{}'. " +
-					"The service will start with no dialogues loaded.", DLB_PROJECTS_ROOT);
-			return;
-		}
-
-		for (Resource markerResource : markerResources) {
-			String projectName = deriveProjectName(markerResource);
-			if (projectName == null) {
-				logger.warn("Could not determine project name from resource: {}", markerResource);
-				continue;
-			}
-			loadProject(projectName);
-		}
-	}
-
-	/**
-	 * Derives the project folder name from the URI of its {@code dlb-project.xml} marker
-	 * resource. The folder name is the path segment immediately before the file name.
+	 * <p>This method is called by
+	 * {@link com.dialoguebranch.web.service.project.ProjectSeedService} on application startup,
+	 * after the database has been seeded, to populate the in-memory project map from the published
+	 * database content.</p>
 	 *
-	 * @param markerResource the {@code dlb-project.xml} {@link Resource}.
-	 * @return the project folder name, or {@code null} if it cannot be determined.
+	 * @param projectName the unique slug name of the project.
+	 * @param scriptLoader  the {@link ScriptLoader} that provides script and translation content.
 	 */
-	private String deriveProjectName(Resource markerResource) {
-		try {
-			URI uri = markerResource.getURI();
-			String uriString = uri.toString();
-			// Strip the "/dlb-project.xml" suffix, then take the last path segment
-			String withoutFile = uriString.substring(0,
-					uriString.length() - ("/" + PROJECT_MARKER_FILE).length());
-			return withoutFile.substring(withoutFile.lastIndexOf('/') + 1);
-		} catch (IOException e) {
-			return null;
-		}
-	}
+	public void loadProject(String projectName, ScriptLoader scriptLoader) {
+		logger.info("Loading Dialogue Branch project '{}' into memory.", projectName);
 
-	/**
-	 * Loads the Dialogue Branch project from the classpath sub-folder
-	 * {@code projects-seed/{projectName}/} using a {@link SpringResourceFileLoader} and stores the
-	 * resulting {@link DialogueBranchProject} in {@link #projects}.
-	 *
-	 * @param projectName the name of the project folder to load.
-	 * @throws DLBServiceConfigurationException if the project contains parse errors.
-	 */
-	private void loadProject(String projectName) throws DLBServiceConfigurationException {
-		String resourcePath = DLB_PROJECTS_ROOT + "/" + projectName;
-		logger.info("Loading Dialogue Branch project '{}' from classpath resource '{}'.",
-				projectName, resourcePath);
-
-		SpringResourceFileLoader fileLoader = new SpringResourceFileLoader(resourcePath);
-		ProjectParser projectParser = new ProjectParser(fileLoader);
+		ProjectParser projectParser = new ProjectParser(scriptLoader);
 		ProjectParserResult result;
 		try {
 			result = projectParser.parse();
 		} catch (IOException e) {
-			throw new DLBServiceConfigurationException(
-					"Error reading Dialogue Branch project '" + projectName +
-							"': " + e.getMessage());
+			logger.error("Error reading Dialogue Branch project '{}': {}", projectName,
+					e.getMessage());
+			return;
 		}
 
 		for (String path : result.getParseErrors().keySet()) {
@@ -471,9 +402,9 @@ public class ApplicationManager {
 		}
 
 		if (!result.getParseErrors().isEmpty()) {
-			throw new DLBServiceConfigurationException(
-					"Dialogue Branch project '" + projectName +
-							"' could not be fully loaded due to parse errors.");
+			logger.error("Dialogue Branch project '{}' could not be loaded due to parse errors.",
+					projectName);
+			return;
 		}
 
 		projects.put(projectName, result.getProject());
