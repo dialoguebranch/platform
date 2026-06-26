@@ -104,8 +104,8 @@ export class DialogueBranchClient {
         .then((response) => this._handleResponse(response));
     }
 
-    listDialogues() {
-        const url = this._baseUrl + "/dialogue/list-dialogues";
+    listProjects() {
+        const url = this._baseUrl + "/authoring/project";
 
         return this._fetch(url, {
             method: "GET",
@@ -117,10 +117,38 @@ export class DialogueBranchClient {
         .then((response) => this._handleResponse(response));
     }
 
-    startDialogue(dialogueName, language) {
+    createProject(name, displayName, description) {
+        const url = this._baseUrl + "/authoring/project";
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ name, displayName, description }),
+        })
+        .then((response) => this._handleResponse(response));
+    }
+
+    listDialogues(projectName) {
+        const url = this._baseUrl + "/dialogue/list-dialogues?projectName=" + encodeURIComponent(projectName);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            }
+        })
+        .then((response) => this._handleResponse(response));
+    }
+
+    startDialogue(projectName, dialogueName, language) {
         var url = this._baseUrl + "/dialogue/start";
 
-        url += "?dialogueName="+dialogueName;
+        url += "?projectName="+encodeURIComponent(projectName);
+        url += "&dialogueName="+dialogueName;
         url += "&language="+language;
         url += "&timeZone="+this._timeZone;
         url += this._delegateParam;
@@ -155,10 +183,11 @@ export class DialogueBranchClient {
         .then((json) => json.value ? this.createDialogueStepObject(json.value) : null);
     }
 
-    continueDialogue(dialogueName) {
+    continueDialogue(projectName, dialogueName) {
         var url = this._baseUrl + "/dialogue/continue";
 
-        url += "?dialogueName="+dialogueName;
+        url += "?projectName="+encodeURIComponent(projectName);
+        url += "&dialogueName="+dialogueName;
         url += "&timeZone="+this._timeZone;
         url += this._delegateParam;
 

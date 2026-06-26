@@ -109,6 +109,26 @@ function statusClass(status) {
     if (status >= 400 && status < 500) return 'text-orange-dark';
     return 'text-red-dark';
 }
+
+const copiedId = ref(null);
+
+function copyEntry(entry) {
+    let text;
+    if (entry.type === 'api') {
+        text = `[${formatTime(entry.timestamp)}] API ${entry.method} ${entry.path} → ${entry.status}`;
+        if (entry.responseBody) text += '\n' + prettyBody(entry.responseBody);
+    } else {
+        const message = entry.parts
+            ? entry.parts.map(p => p.text).join('')
+            : entry.message;
+        text = `[${formatTime(entry.timestamp)}] EVENT ${entry.category} — ${message}`;
+        if (entry.detail && !entry.parts) text += ' — ' + JSON.stringify(entry.detail);
+    }
+    navigator.clipboard.writeText(text).then(() => {
+        copiedId.value = entry.id;
+        setTimeout(() => { copiedId.value = null; }, 1500);
+    });
+}
 </script>
 
 <template>
@@ -227,6 +247,13 @@ function statusClass(status) {
                         <span class="text-orange-darker font-bold shrink-0">{{ entry.method }}</span>
                         <span class="text-text truncate grow">{{ entry.path }}</span>
                         <span :class="['shrink-0 font-bold', statusClass(entry.status)]">{{ entry.status }}</span>
+                        <button
+                            class="shrink-0 text-text-subtle hover:text-orange-darker cursor-pointer"
+                            :title="copiedId === entry.id ? 'Copied!' : 'Copy to clipboard'"
+                            @click.stop="copyEntry(entry)"
+                        >
+                            <FontAwesomeIcon :icon="copiedId === entry.id ? 'fa-solid fa-check' : 'fa-regular fa-copy'" class="text-[10px]" />
+                        </button>
                     </div>
                     <div v-if="expanded.has(entry.id)" class="px-8 pb-2 bg-grey-lighter">
                         <template v-if="entry.responseBody">
@@ -245,7 +272,7 @@ function statusClass(status) {
                         <span class="text-text-subtle shrink-0">{{ formatTime(entry.timestamp) }}</span>
                         <span class="px-1.5 py-0.5 rounded bg-lines text-white text-[10px] shrink-0">EVENT</span>
                         <span class="text-orange-darker font-bold shrink-0">{{ entry.category }}</span>
-                        <span class="text-text">
+                        <span class="text-text grow">
                             <template v-if="entry.parts">
                                 <template v-for="(part, i) in entry.parts" :key="i">
                                     <code v-if="part.code" class="font-mono bg-grey-lighter px-0.5 rounded text-orange-darker">{{ part.text }}</code>
@@ -254,7 +281,14 @@ function statusClass(status) {
                             </template>
                             <template v-else>{{ entry.message }}</template>
                         </span>
-                        <span v-if="entry.detail && !entry.parts" class="text-text-subtle">— {{ JSON.stringify(entry.detail) }}</span>
+                        <span v-if="entry.detail && !entry.parts" class="text-text-subtle shrink-0">— {{ JSON.stringify(entry.detail) }}</span>
+                        <button
+                            class="shrink-0 text-text-subtle hover:text-orange-darker cursor-pointer"
+                            :title="copiedId === entry.id ? 'Copied!' : 'Copy to clipboard'"
+                            @click="copyEntry(entry)"
+                        >
+                            <FontAwesomeIcon :icon="copiedId === entry.id ? 'fa-solid fa-check' : 'fa-regular fa-copy'" class="text-[10px]" />
+                        </button>
                     </div>
                 </template>
             </div>

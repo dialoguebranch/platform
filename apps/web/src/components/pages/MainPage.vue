@@ -49,6 +49,11 @@ function onLogoutClick() {
     stateManagement.logout();
 }
 
+function onSwitchProjectClick() {
+    interactionTester.value?.clearAllTabs();
+    state.value.selectedProject = null;
+}
+
 const advancedOpen = ref(false);
 const delegateUserInput = ref('');
 const activeDelegateUser = ref(null);
@@ -109,6 +114,17 @@ function onResizePanels() {
                 <span>Logged in as {{ state.user.name }} (session valid for {{ sessionSecondsToLive }}s).</span>
                 <span>Dialogue Branch Web Client v{{ appVersion }}.</span>
                 <span>{{ connectionInfo }}</span>
+            </div>
+            <div class="hidden sm:flex items-center ml-4 pl-4 border-l border-grey-light gap-2">
+                <span class="font-title text-xs font-semibold text-orange-darker">{{ state.selectedProject }}</span>
+                <button
+                    type="button"
+                    class="font-title text-xs text-grey-dark hover:text-orange-darker cursor-pointer"
+                    title="Switch project"
+                    @click="onSwitchProjectClick"
+                >
+                    <FontAwesomeIcon icon="fa-solid fa-right-left" />
+                </button>
             </div>
             <div class="grow"></div>
             <div class="flex basis-0">

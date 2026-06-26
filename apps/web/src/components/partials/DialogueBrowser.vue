@@ -3,10 +3,12 @@ export default { inheritAttrs: false };
 </script>
 
 <script setup>
-import { ref, useAttrs } from 'vue';
+import { inject, ref, useAttrs } from 'vue';
 const attrs = useAttrs();
 import { useClient } from '../../composables/client.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+
+const state = inject('state');
 import IconButton from '../widgets/IconButton.vue';
 import MainPagePanelHeader from '../widgets/MainPagePanelHeader.vue';
 import MainPagePanelContainer from '../widgets/MainPagePanelContainer.vue';
@@ -40,7 +42,7 @@ function buildTree(names) {
 }
 
 function listDialogues() {
-    client.listDialogues()
+    client.listDialogues(state.value.selectedProject)
     .then((json) => {
         const root = buildTree(json.dialogueNames);
         tree.value = Object.entries(root).sort(([, a], [, b]) => {

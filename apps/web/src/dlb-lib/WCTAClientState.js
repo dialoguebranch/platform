@@ -56,6 +56,7 @@ export class WCTAClientState extends ClientState {
         this._variableBrowserExtended = false;
         this._dialogueBrowserExtended = false;
         this._interactionTesterStyle = INTERACTION_TESTER_STYLE_TEXT;
+        this._selectedProject = null;
     }
 
     // ---------------------------------------
@@ -119,6 +120,21 @@ export class WCTAClientState extends ClientState {
         return this._dialogueBrowserExtended;
     }
 
+    // ----- selectedProject
+
+    set selectedProject(selectedProject) {
+        this._selectedProject = selectedProject;
+        if (selectedProject) {
+            DocumentFunctions.setCookie('state.selectedProject', selectedProject, 365);
+        } else {
+            DocumentFunctions.deleteCookie('state.selectedProject');
+        }
+    }
+
+    get selectedProject() {
+        return this._selectedProject;
+    }
+
     // ----- interactionTesterStyle
 
     /**
@@ -165,6 +181,9 @@ export class WCTAClientState extends ClientState {
                 this.logger.debug(this._LOGTAG, "Found a valid cookie-stored value for 'state.interactionTesterStyle': "+cookieValue);
             }
         }
+
+        cookieValue = DocumentFunctions.getCookie('state.selectedProject');
+        if (cookieValue) this._selectedProject = cookieValue;
 
         var cookieUserName = DocumentFunctions.getCookie('user.name');
         var cookieUserRoles = DocumentFunctions.getCookie('user.roles');

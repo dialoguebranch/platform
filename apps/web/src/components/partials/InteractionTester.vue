@@ -1,6 +1,8 @@
 <script setup>
-import { nextTick, ref, computed, useTemplateRef, watch, onMounted } from 'vue';
+import { inject, nextTick, ref, computed, useTemplateRef, watch, onMounted } from 'vue';
 import { useClient } from '@/composables/client.js';
+
+const state = inject('state');
 import { logEvent } from '@/composables/debug-log.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import IconButton from '../widgets/IconButton.vue';
@@ -112,7 +114,7 @@ const loadDialogue = (name) => {
     tab.dialogueCancelled = false;
     scrollActiveTabIntoView();
     logEvent('dialogue', 'Dialogue started: $1', name);
-    client.startDialogue(name, 'en')
+    client.startDialogue(state.value.selectedProject, name, 'en')
     .then((dialogueStep) => {
         tab.dialogueName = dialogueStep.dialogueName;
         tab.dialogueSteps.push(dialogueStep);
@@ -129,7 +131,7 @@ const reloadStep = () => {
     const tab = activeTab.value;
     if (tab.dialogueName) {
         reloading.value = true;
-        client.continueDialogue(tab.dialogueName)
+        client.continueDialogue(state.value.selectedProject, tab.dialogueName)
         .then((dialogueStep) => {
             tab.dialogueSteps.pop();
             tab.dialogueSteps.push(dialogueStep);
@@ -152,7 +154,7 @@ const resumeDialogue = (name) => {
     tabs.value.push(newTab);
     activeTabId.value = newTab.id;
     nextTick(updateScrollState);
-    client.continueDialogue(name)
+    client.continueDialogue(state.value.selectedProject, name)
     .then((dialogueStep) => {
         const tab = tabs.value.find(t => t.id === newTab.id);
         if (!tab) return;
