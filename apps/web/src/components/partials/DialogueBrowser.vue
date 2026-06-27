@@ -3,7 +3,7 @@ export default { inheritAttrs: false };
 </script>
 
 <script setup>
-import { inject, ref, useAttrs } from 'vue';
+import { computed, inject, ref, useAttrs } from 'vue';
 const attrs = useAttrs();
 import { useClient } from '../../composables/client.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
@@ -14,16 +14,21 @@ import MainPagePanelHeader from '../widgets/MainPagePanelHeader.vue';
 import MainPagePanelContainer from '../widgets/MainPagePanelContainer.vue';
 import DialogueTreeNode from './DialogueTreeNode.vue';
 
+const props = defineProps({
+    openTabs: { type: Array, default: () => [] },
+});
+
 const emit = defineEmits([
     'selectDialogue',
     'resumeDialogue',
+    'activateTab',
 ]);
 
 const client = useClient();
 
 const tree = ref([]);
 const openFolders = ref({});
-const ongoingConfirm = ref(null); // { dialogueName, loggedDialogueId, secondsSinceLastEngagement }
+const ongoingConfirm = ref(null); // { dialogueName, loggedDialogueId, secondsSinceLastEngagement, alreadyOpenTabId? }
 const cancelConfirm = ref(false);
 
 function buildTree(names) {
@@ -62,15 +67,29 @@ function toggleFolder(path) {
     openFolders.value[path] = !openFolders.value[path];
 }
 
+const hasActiveDialogue = computed(() =>
+    props.openTabs.some(t => t.dialogueName && !t.dialogueEnded && !t.dialogueCancelled));
+
 function checkOngoingDialogue() {
-    client.getOngoingDialogue()
+    client.getOngoingDialogue(state.value.selectedProject?.name)
     .then((ongoing) => {
         if (ongoing) {
-            ongoingConfirm.value = ongoing;
+            const alreadyOpenTab = props.openTabs.find(t =>
+                t.loggedDialogueId === ongoing.loggedDialogueId);
+            ongoingConfirm.value = {
+                ...ongoing,
+                alreadyOpenTabId: alreadyOpenTab?.id ?? null,
+            };
         } else {
             ongoingConfirm.value = { dialogueName: null };
         }
     });
+}
+
+function confirmSwitchTab() {
+    const tabId = ongoingConfirm.value.alreadyOpenTabId;
+    ongoingConfirm.value = null;
+    emit('activateTab', tabId);
 }
 
 function formatTimeSince(seconds) {
@@ -107,7 +126,7 @@ listDialogues();
     <div class="flex flex-col gap-1" v-bind="attrs">
         <MainPagePanelHeader title="Dialogue Browser" class="sm:ml-2">
             <template #buttons>
-                <IconButton icon="fa-solid fa-rotate-left" title="Check ongoing dialogues" @click="checkOngoingDialogue" />
+                <IconButton icon="fa-solid fa-rotate-left" title="Retrieve most recent ongoing (server-side) dialogue" :disabled="hasActiveDialogue" @click="checkOngoingDialogue" />
                 <IconButton icon="fa-solid fa-arrows-rotate" @click="listDialogues" />
             </template>
         </MainPagePanelHeader>
@@ -139,7 +158,20 @@ listDialogues();
 
         <div v-if="ongoingConfirm" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
             <div class="bg-white rounded shadow-lg p-4 font-title text-sm w-96">
-                <template v-if="ongoingConfirm.dialogueName">
+                <template v-if="ongoingConfirm.dialogueName && ongoingConfirm.alreadyOpenTabId">
+                    <div class="font-semibold text-orange-darker mb-2">Ongoing Dialogue Found</div>
+                    <p class="text-grey-dark mb-4">
+                        There is an ongoing dialogue
+                        <code class="font-mono font-bold text-orange-darker">{{ ongoingConfirm.dialogueName }}</code>,
+                        but it is already open in the editor.
+                        Would you like to switch to its tab?
+                    </p>
+                    <div class="flex gap-2 justify-end">
+                        <button type="button" class="px-3 py-1.5 rounded border border-grey-light text-grey-dark hover:bg-grey-lighter text-xs font-semibold cursor-pointer" @click="ongoingConfirm = null">Cancel</button>
+                        <button type="button" class="px-3 py-1.5 rounded bg-orange-darker text-white hover:bg-orange-dark text-xs font-semibold cursor-pointer" @click="confirmSwitchTab">Yes, go to tab</button>
+                    </div>
+                </template>
+                <template v-else-if="ongoingConfirm.dialogueName">
                     <div class="font-semibold text-orange-darker mb-2">Ongoing Dialogue Found</div>
                     <p class="text-grey-dark mb-4">
                         There is an ongoing dialogue

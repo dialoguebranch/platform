@@ -6,6 +6,7 @@ import { useClient } from '../../composables/client.js';
 import { useStateManagement } from '../../composables/state-management.js';
 import DialogueBrowser from '../partials/DialogueBrowser.vue';
 import EditProjectMetadataModal from '../partials/EditProjectMetadataModal.vue';
+import SetDelegateUserModal from '../partials/SetDelegateUserModal.vue';
 import HeaderMenuItem from '../widgets/HeaderMenuItem.vue';
 import InteractionTester from '../partials/InteractionTester.vue';
 import ResizablePanels from '../widgets/ResizablePanels.vue';
@@ -32,7 +33,7 @@ const sessionTimer = setInterval(() => {
 }, 1000);
 onUnmounted(() => {
     clearInterval(sessionTimer);
-    document.removeEventListener('click', onClickOutsideProjectMenu);
+    document.removeEventListener('click', onClickOutsideMenus);
 });
 const serviceUrl = new URL(config.baseUrl);
 const serviceHost = serviceUrl.hostname;
@@ -40,7 +41,7 @@ const servicePort = serviceUrl.port;
 const connectionInfo = ref('Not connected.');
 
 onMounted(() => {
-    document.addEventListener('click', onClickOutsideProjectMenu);
+    document.addEventListener('click', onClickOutsideMenus);
     panels.value.selectMobileTab(0);
     client.getServerInfo()
         .then((info) => {
@@ -67,9 +68,28 @@ function closeProjectMenu() {
     projectMenuOpen.value = false;
 }
 
-function onClickOutsideProjectMenu(e) {
+const userMenuOpen = ref(false);
+const userMenuRef = ref(null);
+const userMenuPos = ref({ top: 0, left: 0 });
+
+function toggleUserMenu() {
+    if (!userMenuOpen.value && userMenuRef.value) {
+        const rect = userMenuRef.value.getBoundingClientRect();
+        userMenuPos.value = { top: rect.bottom, left: rect.left };
+    }
+    userMenuOpen.value = !userMenuOpen.value;
+}
+
+function closeUserMenu() {
+    userMenuOpen.value = false;
+}
+
+function onClickOutsideMenus(e) {
     if (projectMenuRef.value && !projectMenuRef.value.contains(e.target)) {
         projectMenuOpen.value = false;
+    }
+    if (userMenuRef.value && !userMenuRef.value.contains(e.target)) {
+        userMenuOpen.value = false;
     }
 }
 
@@ -105,23 +125,27 @@ function onDeleteProjectClick() {
     logEvent('project', 'Delete project — not yet implemented');
 }
 
-const advancedOpen = ref(false);
-const delegateUserInput = ref('');
 const activeDelegateUser = ref(null);
-const delegateConfirmAction = ref(null); // pending function to run on confirm
+const showDelegateModal = ref(false);
+const delegateConfirmAction = ref(null);
 
-function applyDelegateUser() {
+function onSetDelegateUserClick() {
+    closeUserMenu();
+    showDelegateModal.value = true;
+}
+
+function onDelegateApply(username) {
+    showDelegateModal.value = false;
     delegateConfirmAction.value = () => {
-        const val = delegateUserInput.value.trim();
-        client.delegateUser = val || null;
+        client.delegateUser = username || null;
         activeDelegateUser.value = client.delegateUser;
         variableBrowser.value?.loadVariables();
     };
 }
 
-function clearDelegateUser() {
+function onDelegateClear() {
+    showDelegateModal.value = false;
     delegateConfirmAction.value = () => {
-        delegateUserInput.value = '';
         client.delegateUser = null;
         activeDelegateUser.value = null;
         variableBrowser.value?.loadVariables();
@@ -150,6 +174,11 @@ function onNewDialogueStep() {
 
 function onChangeVariable() {
     interactionTester.value.reloadStep();
+}
+
+function onActivateTab(tabId) {
+    panels.value.selectMobileTab(1);
+    interactionTester.value.activateTab(tabId);
 }
 
 function onResizePanels() {
@@ -183,8 +212,14 @@ function onResizePanels() {
                     class="fixed z-[9999] min-w-[200px] bg-white shadow-lg border border-grey-light rounded-b overflow-hidden"
                     :style="{ top: projectMenuPos.top + 'px', left: projectMenuPos.left + 'px' }"
                 >
-                    <button type="button" class="flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm text-orange-darker hover:bg-grey-lighter cursor-pointer transition-colors" @click="onEditMetadataClick">
-                        <FontAwesomeIcon icon="fa-solid fa-pen" class="w-4 text-orange-medium" />
+                    <button
+                        type="button"
+                        :class="['flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm transition-colors', state.user?.roles?.includes('admin') ? 'text-orange-darker hover:bg-grey-lighter cursor-pointer' : 'text-grey-light cursor-not-allowed']"
+                        :disabled="!state.user?.roles?.includes('admin')"
+                        :title="state.user?.roles?.includes('admin') ? '' : 'Only administrators can edit project metadata'"
+                        @click="onEditMetadataClick"
+                    >
+                        <FontAwesomeIcon icon="fa-solid fa-pen" class="w-4" :class="state.user?.roles?.includes('admin') ? 'text-orange-medium' : 'text-grey-light'" />
                         Edit Metadata
                     </button>
                     <button type="button" class="flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm text-orange-darker hover:bg-grey-lighter cursor-pointer transition-colors" @click="onSaveProjectClick">
@@ -203,50 +238,56 @@ function onResizePanels() {
                 </div>
             </Teleport>
 
+            <!-- User dropdown -->
+            <div ref="userMenuRef" class="hidden sm:flex items-stretch relative border-r border-orange-dark">
+                <button
+                    type="button"
+                    class="flex items-center gap-3 px-4 hover:bg-orange-dark cursor-pointer transition-colors"
+                    @click="toggleUserMenu"
+                >
+                    <div class="flex flex-col justify-center leading-tight text-left">
+                        <span class="font-title text-[10px] text-orange-light uppercase tracking-wide">User</span>
+                        <span class="font-title text-sm font-bold text-white">
+                            {{ state.user?.name }}
+                            <span v-if="activeDelegateUser" class="font-normal text-orange-light text-xs"> → {{ activeDelegateUser }}</span>
+                        </span>
+                        <span class="font-mono text-[10px] text-orange-light">{{ Array.isArray(state.user?.roles) ? state.user.roles.join(', ') : state.user?.roles }}</span>
+                    </div>
+                    <FontAwesomeIcon :icon="userMenuOpen ? 'fa-solid fa-caret-up' : 'fa-solid fa-caret-down'" class="text-orange-light text-xs" />
+                </button>
+            </div>
+
+            <Teleport to="body">
+                <div v-if="userMenuOpen"
+                    class="fixed z-[9999] min-w-[200px] bg-white shadow-lg border border-grey-light rounded-b overflow-hidden"
+                    :style="{ top: userMenuPos.top + 'px', left: userMenuPos.left + 'px' }"
+                >
+                    <button type="button" class="flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm text-orange-darker hover:bg-grey-lighter cursor-pointer transition-colors" @click="onSetDelegateUserClick">
+                        <FontAwesomeIcon icon="fa-solid fa-user-gear" class="w-4 text-orange-medium" />
+                        Set Delegate User
+                        <span v-if="activeDelegateUser" class="ml-auto text-xs font-mono text-orange-darker bg-orange-light/30 px-1.5 py-0.5 rounded">{{ activeDelegateUser }}</span>
+                    </button>
+                    <div class="border-t border-grey-light mx-3"></div>
+                    <button type="button" class="flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm text-orange-darker hover:bg-grey-lighter cursor-pointer transition-colors" @click="onLogoutClick">
+                        <FontAwesomeIcon icon="fa-solid fa-right-from-bracket" class="w-4 text-orange-medium" />
+                        Log out
+                    </button>
+                </div>
+            </Teleport>
+
             <div class="hidden sm:flex self-stretch">
                 <HeaderMenuItem text="Documentation" icon="fa-solid fa-arrow-up-right-from-square" link="https://www.dialoguebranch.com/docs/dialogue-branch/dev/index.html" />
-                <HeaderMenuItem text="Log out" icon="fa-solid fa-right-from-bracket" @click="onLogoutClick" />
             </div>
             <div class="grow"></div>
         </header>
 
-        <!-- Advanced Options bar (admin only) -->
-        <div v-if="state.user?.roles?.includes('admin')" class="shrink-0 bg-grey-lighter border-b border-grey-light text-xs font-title">
-            <button
-                type="button"
-                class="flex items-center gap-1.5 w-full px-3 py-1 text-grey-dark hover:text-orange-darker cursor-pointer select-none"
-                @click="advancedOpen = !advancedOpen"
-            >
-                <FontAwesomeIcon :icon="advancedOpen ? 'fa-solid fa-caret-down' : 'fa-solid fa-caret-right'" class="w-3" />
-                <span>Advanced Options<template v-if="activeDelegateUser"> (acting as <code class="font-mono font-bold text-orange-darker">{{ activeDelegateUser }}</code>)</template></span>
-            </button>
-            <div v-if="advancedOpen" class="flex items-center gap-3 px-4 pb-2">
-                <label class="text-grey-dark shrink-0">Delegate User:</label>
-                <input
-                    v-model="delegateUserInput"
-                    type="text"
-                    placeholder="Username..."
-                    class="px-2 py-0.5 border border-grey-light rounded bg-white text-grey-dark focus:outline-none focus:border-orange-dark w-48"
-                    @keyup.enter="applyDelegateUser"
-                />
-                <button
-                    type="button"
-                    class="px-2 py-0.5 rounded bg-orange-darker text-white hover:bg-orange-dark cursor-pointer"
-                    @click="applyDelegateUser"
-                >Apply</button>
-                <button
-                    v-if="activeDelegateUser"
-                    type="button"
-                    class="px-2 py-0.5 rounded border border-grey-light text-grey-dark hover:bg-grey-lighter cursor-pointer"
-                    @click="clearDelegateUser"
-                >Clear</button>
-            </div>
-        </div>
-
         <Teleport to="body">
             <div v-if="delegateConfirmAction" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
-                <div class="bg-white rounded shadow-lg p-4 font-title text-sm w-80">
-                    <div class="font-semibold text-orange-darker mb-2">Change Delegate User</div>
+                <div class="bg-white rounded-xl shadow-2xl p-5 font-title text-sm w-96">
+                    <div class="font-bold text-orange-darker mb-2 flex items-center gap-2">
+                        <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" class="text-orange-medium" />
+                        Change Delegate User
+                    </div>
                     <p class="text-grey-dark mb-4">All ongoing dialogues will be lost. Are you sure you want to proceed?</p>
                     <div class="flex gap-2 justify-end">
                         <button type="button" class="px-3 py-1.5 rounded border border-grey-light text-grey-dark hover:bg-grey-lighter text-xs font-semibold cursor-pointer" @click="delegateConfirmAction = null">Cancel</button>
@@ -264,7 +305,7 @@ function onResizePanels() {
             @resize="onResizePanels()"
         >
             <template #left>
-                <DialogueBrowser class="grow" @selectDialogue="onSelectDialogue" @resumeDialogue="onResumeDialogue" />
+                <DialogueBrowser class="grow" :openTabs="interactionTester?.tabs ?? []" @selectDialogue="onSelectDialogue" @resumeDialogue="onResumeDialogue" @activateTab="onActivateTab" />
             </template>
             <template #main>
                 <InteractionTester ref="interaction-tester" class="grow" @newDialogueStep="onNewDialogueStep" />
@@ -279,6 +320,14 @@ function onResizePanels() {
             :projectName="state.selectedProject?.name"
             @close="showEditMetadata = false"
             @saved="onMetadataSaved"
+        />
+
+        <SetDelegateUserModal
+            v-if="showDelegateModal"
+            :currentDelegateUser="activeDelegateUser"
+            @close="showDelegateModal = false"
+            @apply="onDelegateApply"
+            @clear="onDelegateClear"
         />
 
         <footer class="shrink-0 hidden sm:flex items-center gap-4 px-4 py-1 bg-grey-lighter border-t border-grey-light font-mono text-[11px] text-gray-400">

@@ -57,6 +57,7 @@ public class ServerLoggedDialogue implements LoggedDialogue {
 	private String localTime;
 	private long utcTime;
 	private String timezone;
+	private String projectName;
 	private String dialogueName;
 	private String language;
 	private boolean completed;
@@ -176,6 +177,14 @@ public class ServerLoggedDialogue implements LoggedDialogue {
 	@Override
 	public void setTimezone(String timezone) {
 		this.timezone = timezone;
+	}
+
+	public String getProjectName() {
+		return projectName;
+	}
+
+	public void setProjectName(String projectName) {
+		this.projectName = projectName;
 	}
 
 	@Override

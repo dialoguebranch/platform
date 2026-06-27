@@ -240,7 +240,7 @@ public class UserService {
 		Dialogue dialogue = getDialogueDefinitionForProject(projectName, dialogueDescription);
 
 		return dialogueExecutor.startDialogue(dialogueDescription, dialogue, nodeId, sessionId,
-				sessionStartTime);
+				sessionStartTime, projectName);
 	}
 
 	/**

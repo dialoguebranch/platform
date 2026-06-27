@@ -242,7 +242,8 @@ export class DialogueBranchClient {
     }
 
     cancelDialogue(loggedDialogueId) {
-        const url = this._baseUrl + "/dialogue/cancel?loggedDialogueId=" + loggedDialogueId;
+        let url = this._baseUrl + "/dialogue/cancel?loggedDialogueId=" + loggedDialogueId;
+        url += this._delegateParam;
 
         return this._fetch(url, {
             method: "POST",
@@ -289,9 +290,10 @@ export class DialogueBranchClient {
         })
     }
 
-    getOngoingDialogue() {
+    getOngoingDialogue(projectName) {
         let url = this._baseUrl + "/dialogue/get-ongoing";
-        url += "?timeZone=" + this._timeZone;
+        url += "?projectName=" + encodeURIComponent(projectName);
+        url += "&timeZone=" + this._timeZone;
         url += this._delegateParam;
 
         return this._fetch(url, {
