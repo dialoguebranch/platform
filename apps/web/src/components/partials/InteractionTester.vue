@@ -39,6 +39,7 @@ function createTab() {
     return {
         id: nextTabId++,
         dialogueName: null,
+        loggedDialogueId: null,
         dialogueSteps: [],
         dialogueEnded: false,
         dialogueCancelled: false,
@@ -49,6 +50,13 @@ const tabs = ref([createTab()]);
 const activeTabId = ref(tabs.value[0].id);
 
 const activeTab = computed(() => tabs.value.find(t => t.id === activeTabId.value) ?? tabs.value[0]);
+
+function getOrCreateEmptyTab() {
+    const lastTab = tabs.value[tabs.value.length - 1];
+    if (lastTab && !lastTab.dialogueName) return lastTab;
+    tabs.value.push(createTab());
+    return tabs.value[tabs.value.length - 1];
+}
 
 function addTab() {
     const tab = createTab();
@@ -107,7 +115,8 @@ const scrollTextToBottom = () => {
 };
 
 const loadDialogue = (name) => {
-    const tab = activeTab.value;
+    const tab = getOrCreateEmptyTab();
+    activeTabId.value = tab.id;
     tab.dialogueName = name;
     tab.dialogueSteps = [];
     tab.dialogueEnded = false;
@@ -117,6 +126,7 @@ const loadDialogue = (name) => {
     client.startDialogue(state.value.selectedProject?.name, name, 'en')
     .then((dialogueStep) => {
         tab.dialogueName = dialogueStep.dialogueName;
+        tab.loggedDialogueId = dialogueStep.loggedDialogueId;
         tab.dialogueSteps.push(dialogueStep);
         tab.dialogueEnded = dialogueStep.replies.length === 0;
         if (tab.dialogueEnded) logEvent('dialogue', 'Dialogue ended immediately: $1', name);
@@ -149,9 +159,8 @@ const resize = () => {
 };
 
 const resumeDialogue = (name) => {
-    const newTab = createTab();
+    const newTab = getOrCreateEmptyTab();
     newTab.dialogueName = name;
-    tabs.value.push(newTab);
     activeTabId.value = newTab.id;
     nextTick(updateScrollState);
     client.continueDialogue(state.value.selectedProject?.name, name)
@@ -159,6 +168,7 @@ const resumeDialogue = (name) => {
         const tab = tabs.value.find(t => t.id === newTab.id);
         if (!tab) return;
         if (dialogueStep) {
+            tab.loggedDialogueId = dialogueStep.loggedDialogueId;
             tab.dialogueSteps.push(dialogueStep);
             tab.dialogueEnded = dialogueStep.replies.length === 0;
         } else {
@@ -176,12 +186,19 @@ function clearAllTabs() {
     nextTick(updateScrollState);
 }
 
+function activateTab(tabId) {
+    activeTabId.value = tabId;
+    nextTick(scrollActiveTabIntoView);
+}
+
 defineExpose({
+    tabs,
     loadDialogue,
     resumeDialogue,
     reloadStep,
     resize,
     clearAllTabs,
+    activateTab,
 });
 
 // ---- Tab bar scroll ----
@@ -359,26 +376,31 @@ function onSelectReply(dialogueStep, reply) {
         </Teleport>
 
         <!-- Active tab content -->
-        <MainPagePanelContainer class="-mt-px">
-            <BalloonDialogueComponent
-                v-if="selectedMode === 'balloon'"
-                ref="balloons"
-                :dialogueSteps="activeTab.dialogueSteps"
-                :dialogueEnded="activeTab.dialogueEnded"
-                :dialogueCancelled="activeTab.dialogueCancelled"
-                @selectReply="onSelectReply"
-                @restartDialogue="loadDialogue(activeTab.dialogueName)"
-            />
-            <TextDialogueComponent
-                v-if="selectedMode === 'text'"
-                ref="text-component"
-                :dialogueSteps="activeTab.dialogueSteps"
-                :dialogueEnded="activeTab.dialogueEnded"
-                :dialogueCancelled="activeTab.dialogueCancelled"
-                @selectReply="onSelectReply"
-                @restartDialogue="loadDialogue(activeTab.dialogueName)"
-            />
-        </MainPagePanelContainer>
+        <div class="relative grow min-h-0 flex flex-col">
+            <MainPagePanelContainer class="-mt-px">
+                <BalloonDialogueComponent
+                    v-if="selectedMode === 'balloon'"
+                    ref="balloons"
+                    :dialogueSteps="activeTab.dialogueSteps"
+                    :dialogueEnded="activeTab.dialogueEnded"
+                    :dialogueCancelled="activeTab.dialogueCancelled"
+                    @selectReply="onSelectReply"
+                    @restartDialogue="loadDialogue(activeTab.dialogueName)"
+                />
+                <TextDialogueComponent
+                    v-if="selectedMode === 'text'"
+                    ref="text-component"
+                    :dialogueSteps="activeTab.dialogueSteps"
+                    :dialogueEnded="activeTab.dialogueEnded"
+                    :dialogueCancelled="activeTab.dialogueCancelled"
+                    @selectReply="onSelectReply"
+                    @restartDialogue="loadDialogue(activeTab.dialogueName)"
+                />
+            </MainPagePanelContainer>
+            <div v-if="activeTab.loggedDialogueId" class="absolute bottom-3 left-3 font-mono text-[10px] text-gray-400 pointer-events-none">
+                <span class="font-semibold">Logged Dialogue ID:</span> {{ activeTab.loggedDialogueId }}
+            </div>
+        </div>
 
         </div><!-- end tab bar + content wrapper -->
     </div>

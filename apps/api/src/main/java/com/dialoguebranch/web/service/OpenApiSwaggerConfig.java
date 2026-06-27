@@ -134,7 +134,8 @@ public class OpenApiSwaggerConfig {
 					"/v{version}/dialogue/*",
 					"/v{version}/auth/*",
 					"/v{version}/log/*",
-					"/v{version}/admin/*")
+					"/v{version}/admin/*",
+					"/v{version}/authoring/**")
 			.build();
 	}
 

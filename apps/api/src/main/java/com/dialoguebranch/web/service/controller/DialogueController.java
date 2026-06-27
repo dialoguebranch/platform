@@ -113,7 +113,7 @@ public class DialogueController {
 	 * Start the step-by-step execution of the dialogue identified by the given parameters.
 	 *
 	 * <p>A client application that wants to start executing a dialogue should use this end-point to
-	 * do so. The dialogueName (which is the dialogue's filename without it's .dlb extension and
+	 * do so. The dialogueName (which is the dialogue's filename without it's .dlb extension) and
 	 * language are mandatory parameters. The 'userId' is an optional parameter that may be used if
 	 * the currently authorized user is an admin and wants to execute a dialogue on behalf of
 	 * another user. If the authenticated user is running a dialogue 'for himself' this should be
@@ -148,8 +148,7 @@ public class DialogueController {
 		HttpServletRequest request,
 		HttpServletResponse response,
 
-		@Parameter(hidden = true, description = "API Version to use, e.g. '1'")
-		@PathVariable(value = "version")
+        @PathVariable @Parameter(hidden = true, description = "API Version to use, e.g. '1'")
 		String version,
 
 		@Parameter(description = "Name of the project that contains the dialogue to start")
@@ -299,8 +298,7 @@ public class DialogueController {
 		HttpServletRequest request,
 		HttpServletResponse response,
 
-		@Parameter(hidden = true, description = "API Version to use, e.g. '1'")
-		@PathVariable(value = "version")
+        @PathVariable @Parameter(hidden = true, description = "API Version to use, e.g. '1'")
 		String version,
 
 		@Parameter(description = "The identifier of the (in-progress) dialogue to progress")
@@ -425,7 +423,7 @@ public class DialogueController {
 	 * Continue the latest ongoing dialogue with a given name.
 	 *
 	 * <p>Pick up the conversation by providing a dialogue name. If there is an ongoing dialogue
-	 * with the given name (that is not finished or cancelled), this method will return the next
+	 * with the given name (that is not finished or canceled), this method will return the next
 	 * step in that conversation. As with all methods that 'start' dialogue executions, a valid time
 	 * zone in which the user currently resided must be provided so that time sensitive information
 	 * may be processed correctly.</p>
@@ -455,8 +453,7 @@ public class DialogueController {
 		HttpServletRequest request,
 		HttpServletResponse response,
 
-		@Parameter(hidden = true, description = "API Version to use, e.g. '1'")
-		@PathVariable(value = "version")
+        @PathVariable @Parameter(hidden = true, description = "API Version to use, e.g. '1'")
 		String version,
 
 		@Parameter(description = "Name of the project that contains the dialogue to continue")
@@ -536,7 +533,7 @@ public class DialogueController {
 				DateTimeUtils.nowMs(userService.getDialogueBranchUser().getTimeZone());
 
 		ServerLoggedDialogue currentDialogue = userService.getLoggedDialogueStore().
-				findLatestOngoingDialogue(dialogueName);
+				findLatestOngoingDialogue(projectName, dialogueName);
 		LoggedInteraction lastInteraction = null;
 		if (currentDialogue != null && !currentDialogue.getInteractionList().isEmpty()) {
 			lastInteraction = currentDialogue.getInteractionList().get(
@@ -570,8 +567,7 @@ public class DialogueController {
 	 *
 	 * <p>If a client application detects that a user has navigated away, or has deliberately
 	 * requested to stop an ongoing dialogue through a user interface action, this end-point should
-	 * be called so that the dialogue's state can be updated, indicating that it is no longer
-	 * ongoing.</p>
+	 * be called to explicitly mark the dialogue as canceled.</p>
 	 *
 	 * @param request the HTTPRequest object (to retrieve authentication headers and optional body
 	 *                parameters).
@@ -595,8 +591,7 @@ public class DialogueController {
 		HttpServletRequest request,
 		HttpServletResponse response,
 
-		@Parameter(hidden = true, description = "API Version to use, e.g. '1'")
-		@PathVariable(value = "version")
+        @PathVariable @Parameter(hidden = true, description = "API Version to use, e.g. '1'")
 		String version,
 
 		@Parameter(description = "The identifier of the (in-progress) dialogue to cancel")
@@ -706,8 +701,7 @@ public class DialogueController {
 		HttpServletRequest request,
 		HttpServletResponse response,
 
-		@Parameter(hidden = true, description = "API Version to use, e.g. '1'")
-		@PathVariable(value = "version")
+        @PathVariable @Parameter(hidden = true, description = "API Version to use, e.g. '1'")
 		String version,
 
 		@Parameter(description = "The identifier of the (in-progress) dialogue to take a step " +
@@ -838,9 +832,12 @@ public class DialogueController {
 		HttpServletRequest request,
 		HttpServletResponse response,
 
-		@Parameter(hidden = true, description = "API Version to use, e.g. '1'")
-		@PathVariable(value = "version")
+        @PathVariable @Parameter(hidden = true, description = "API Version to use, e.g. '1'")
 		String version,
+
+		@Parameter(description = "The name of the project for which to check for an ongoing dialogue")
+		@RequestParam(value="projectName")
+		String projectName,
 
 		@Parameter(description = "The current time zone of the user (as IANA, e.g. " +
 				"'Europe/Lisbon')")
@@ -859,7 +856,8 @@ public class DialogueController {
 		}
 
 		// Log this call to the service log
-		String logInfo = "GET /v" + version + "/dialogue/get-ongoing?timeZone=" + timeZone;
+		String logInfo = "GET /v" + version + "/dialogue/get-ongoing?projectName=" + projectName
+				+ "&timeZone=" + timeZone;
 		if(!(delegateUser == null) && (!delegateUser.isEmpty())) logInfo += "&delegateUser="
 				+ delegateUser;
 		logger.info(logInfo);
@@ -869,11 +867,11 @@ public class DialogueController {
 
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
-					(protocolVersion, authenticatedUser) -> doGetOngoingDialogue(authenticatedUser, timeZone),
+					(protocolVersion, authenticatedUser) -> doGetOngoingDialogue(authenticatedUser, projectName, timeZone),
 					version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
-					(protocolVersion, authenticatedUser) -> doGetOngoingDialogue(delegateUser, timeZone),
+					(protocolVersion, authenticatedUser) -> doGetOngoingDialogue(delegateUser, projectName, timeZone),
 					version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
 		}
 	}
@@ -892,6 +890,7 @@ public class DialogueController {
 	 * @throws BadRequestException in case of a malformed or unknown {@code timeZone}
 	 */
 	private NullableResponse<OngoingDialoguePayload> doGetOngoingDialogue(String userId,
+																		  String projectName,
 																		  String timeZone)
             throws DatabaseException, IOException, BadRequestException {
 
@@ -902,7 +901,7 @@ public class DialogueController {
 		userService.getDialogueBranchUser().setTimeZone(timeZoneId);
 
 		ServerLoggedDialogue latestOngoingDialogue =
-				userService.getLoggedDialogueStore().findLatestOngoingDialogue();
+				userService.getLoggedDialogueStore().findLatestOngoingDialogueInProject(projectName);
 
 		if(latestOngoingDialogue != null) {
 			String dialogueName = latestOngoingDialogue.getDialogueName();
@@ -949,8 +948,7 @@ public class DialogueController {
 		HttpServletRequest request,
 		HttpServletResponse response,
 
-		@Parameter(hidden = true, description = "API Version to use, e.g. '1'")
-		@PathVariable(value = "version")
+        @PathVariable @Parameter(hidden = true, description = "API Version to use, e.g. '1'")
 		String version,
 
 		@Parameter(description = "Name of the project to list dialogues for")

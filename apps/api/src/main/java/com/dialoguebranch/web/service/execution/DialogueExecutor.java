@@ -93,7 +93,8 @@ public class DialogueExecutor {
 	 */
 	public ExecuteNodeResult startDialogue(ResourcePointer dialogueDescription,
                                            Dialogue dialogueDefinition, String nodeId,
-                                           String sessionId, long sessionStartTime)
+                                           String sessionId, long sessionStartTime,
+                                           String projectName)
 			throws DatabaseException, IOException, ExecutionException {
 
 		ActiveDialogue dialogue = new ActiveDialogue(dialogueDescription,
@@ -122,6 +123,7 @@ public class DialogueExecutor {
 		ServerLoggedDialogue serverLoggedDialogue = new ServerLoggedDialogue(
 				userService.getDialogueBranchUser().getId(),
 				eventTime, sessionId, sessionStartTime);
+		serverLoggedDialogue.setProjectName(projectName);
 		serverLoggedDialogue.setDialogueName(dialogueDefinition.getDialogueName());
 		serverLoggedDialogue.setLanguage(dialogueDescription.getLanguage());
 		updateLoggedDialogue(startNode, serverLoggedDialogue, -1);
@@ -214,7 +216,8 @@ public class DialogueExecutor {
 			Dialogue newDialogue = userService.getDialogueDefinition(dialogueDescription);
 
 			return this.startDialogue(dialogueDescription, newDialogue, nodeId,
-					serverLoggedDialogue.getSessionId(), serverLoggedDialogue.getSessionStartTime());
+					serverLoggedDialogue.getSessionId(), serverLoggedDialogue.getSessionStartTime(),
+					serverLoggedDialogue.getProjectName());
 		}
 	}
 
