@@ -7,9 +7,8 @@
 #   dlb.base-url                        → DLB_BASE_URL
 #   dlb.mariadb.host                    → DLB_MARIADB_HOST
 #   dlb.mariadb.password                → DLB_MARIADB_PASSWORD
-#   dlb.auth.service                    → DLB_AUTH_SERVICE
-#   dlb.auth.keycloak.client-secret     → DLB_AUTH_KEYCLOAK_CLIENT_SECRET
-#   dlb.auth.jwt-access-token-secret    → DLB_AUTH_JWT_ACCESS_TOKEN_SECRET
+#   dlb.auth.keycloak.base-url          → DLB_AUTH_KEYCLOAK_BASE_URL
+#   dlb.auth.keycloak.client-id         → DLB_AUTH_KEYCLOAK_CLIENT_ID
 #
 # The defaults below are tuned for local development (compose-dev.yml).
 # Production deployments must override all credentials via environment variables.
@@ -82,9 +81,6 @@ dlb:
   # Override with DLB_DATA_DIR in production.
   data-dir: config
 
-  # Whether anonymous user accounts may be created via the REST API
-  allow-anonymous-users: false
-
   # ---- Database ----
   mariadb:
     host: localhost
@@ -95,25 +91,12 @@ dlb:
     database: dialoguebranch
 
   # ---- Authentication ----
+  # The service is a pure OAuth2 resource server: it validates bearer tokens issued by Keycloak.
   auth:
-    # "keycloak" or "native" (native to be removed)
-    service: keycloak
-
-    # Keycloak settings (required when service = keycloak)
     keycloak:
       base-url: http://localhost:8081/
       realm: dialoguebranch
       client-id: dlb-web-service
-      # Default matches compose-dev.yml. Override with DLB_AUTH_KEYCLOAK_CLIENT_SECRET in production.
-      client-secret: dev-client-secret
-
-    # Native JWT settings (required when service = native).
-    # These are public development defaults — production MUST override with strong random secrets:
-    #   openssl rand -base64 64
-    jwt-access-token-secret: n47zoYup4MtUqBpGyQlXIzdAp9oDr8nuttJcfV1XUeG8R3LMyPcAYvTRFfuLrKuqeYRSY/h+ln8ve93jV24VNA==
-    access-token-expiration-seconds: 300
-    jwt-refresh-token-secret: Fy01u/aRN3TmjDJB/nBQI+M5R7ZGlIpL0ZpX4M8VwflP+JKoJFb3FIQKwvaQCpDzW8dV9SgQXnhAZue3N15hAg==
-    refresh-token-expiration-seconds: 1800
 
   # ---- External Variable Service ----
   external-variable-service:

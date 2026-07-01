@@ -15,11 +15,10 @@ dlb:
   base-url: http://localhost
   data-dir: ${user.dir}/src/test/resources/test-data
   auth:
-    service: native
-    jwt-access-token-secret: dGVzdC1hY2Nlc3MtdG9rZW4tc2VjcmV0LWxvbmctZW5vdWdoISE=
-    access-token-expiration-seconds: 300
-    jwt-refresh-token-secret: dGVzdC1yZWZyZXNoLXRva2VuLXNlY3JldC1sb25nLWVub3VnaCE=
-    refresh-token-expiration-seconds: 1800
+    keycloak:
+      base-url: http://localhost:8081/
+      realm: dialoguebranch
+      client-id: dlb-web-service
   cors:
     allowed-origins:
       - http://localhost:5173

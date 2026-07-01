@@ -41,7 +41,7 @@ import org.springframework.boot.context.properties.NestedConfigurationProperty;
  * <ul>
  *   <li>{@code dlb.base-url} → {@code DLB_BASE_URL}</li>
  *   <li>{@code dlb.mariadb.host} → {@code DLB_MARIADB_HOST}</li>
- *   <li>{@code dlb.auth.keycloak.client-secret} → {@code DLB_AUTH_KEYCLOAK_CLIENT_SECRET}</li>
+ *   <li>{@code dlb.auth.keycloak.client-id} → {@code DLB_AUTH_KEYCLOAK_CLIENT_ID}</li>
  * </ul>
  *
  * @author Harm op den Akker
@@ -55,12 +55,6 @@ public class DlbProperties {
     // ------------------------------------------------------------- //
     // -------------------- Shared String Constants ---------------- //
     // ------------------------------------------------------------- //
-
-    /** Authentication service identifier for Keycloak. */
-    public static final String AUTH_SERVICE_KEYCLOAK = "keycloak";
-
-    /** Authentication service identifier for the built-in native service. */
-    public static final String AUTH_SERVICE_NATIVE = "native";
 
     /** Name of the application logs sub-directory within the data directory. */
     public static final String DIRECTORY_NAME_APPLICATION_LOGS = "logs";
@@ -86,9 +80,6 @@ public class DlbProperties {
 
     /** Filesystem path to the service data directory. */
     private String dataDir = "/usr/local/dialogue-branch/data/dlb-web-service";
-
-    /** Whether the service allows creation of anonymous user accounts via the REST API. */
-    private boolean allowAnonymousUsers = false;
 
     @NestedConfigurationProperty
     private Cors cors = new Cors();
@@ -258,37 +249,8 @@ public class DlbProperties {
         /** Creates a new {@link Auth} configuration instance with default values. */
         public Auth() { }
 
-        /** Which authentication backend to use: {@code "native"} or {@code "keycloak"}. */
-        private String service = AUTH_SERVICE_NATIVE;
-
         @NestedConfigurationProperty
         private Keycloak keycloak = new Keycloak();
-
-        /** JWT access token secret (required when service = native). */
-        private String jwtAccessTokenSecret = "";
-
-        /** Access token lifetime in seconds (default: 300). */
-        private int accessTokenExpirationSeconds = 300;
-
-        /** JWT refresh token secret (required when service = native). */
-        private String jwtRefreshTokenSecret = "";
-
-        /** Refresh token lifetime in seconds (default: 1800). */
-        private int refreshTokenExpirationSeconds = 1800;
-
-        /**
-         * Returns the authentication service name.
-         *
-         * @return the service name.
-         */
-        public String getService() { return service; }
-
-        /**
-         * Sets the authentication service name.
-         *
-         * @param service the service name.
-         */
-        public void setService(String service) { this.service = service; }
 
         /**
          * Returns the Keycloak configuration.
@@ -303,62 +265,6 @@ public class DlbProperties {
          * @param keycloak the {@link Keycloak} configuration.
          */
         public void setKeycloak(Keycloak keycloak) { this.keycloak = keycloak; }
-
-        /**
-         * Returns the JWT access token secret.
-         *
-         * @return the JWT access token secret.
-         */
-        public String getJwtAccessTokenSecret() { return jwtAccessTokenSecret; }
-
-        /**
-         * Sets the JWT access token secret.
-         *
-         * @param s the JWT access token secret.
-         */
-        public void setJwtAccessTokenSecret(String s) { this.jwtAccessTokenSecret = s; }
-
-        /**
-         * Returns the access token lifetime in seconds.
-         *
-         * @return the expiration in seconds.
-         */
-        public int getAccessTokenExpirationSeconds() { return accessTokenExpirationSeconds; }
-
-        /**
-         * Sets the access token lifetime in seconds.
-         *
-         * @param s the expiration in seconds.
-         */
-        public void setAccessTokenExpirationSeconds(int s) { this.accessTokenExpirationSeconds = s; }
-
-        /**
-         * Returns the JWT refresh token secret.
-         *
-         * @return the JWT refresh token secret.
-         */
-        public String getJwtRefreshTokenSecret() { return jwtRefreshTokenSecret; }
-
-        /**
-         * Sets the JWT refresh token secret.
-         *
-         * @param s the JWT refresh token secret.
-         */
-        public void setJwtRefreshTokenSecret(String s) { this.jwtRefreshTokenSecret = s; }
-
-        /**
-         * Returns the refresh token lifetime in seconds.
-         *
-         * @return the expiration in seconds.
-         */
-        public int getRefreshTokenExpirationSeconds() { return refreshTokenExpirationSeconds; }
-
-        /**
-         * Sets the refresh token lifetime in seconds.
-         *
-         * @param s the expiration in seconds.
-         */
-        public void setRefreshTokenExpirationSeconds(int s) { this.refreshTokenExpirationSeconds = s; }
 
         // -------------------- Nested: Keycloak -------------------- //
 
@@ -375,7 +281,6 @@ public class DlbProperties {
             private String baseUrl = "http://keycloak:8080/";
             private String realm = "dialoguebranch";
             private String clientId = "dlb-web-service";
-            private String clientSecret = "";
 
             /**
              * Returns the Keycloak base URL.
@@ -418,20 +323,6 @@ public class DlbProperties {
              * @param clientId the client ID.
              */
             public void setClientId(String clientId) { this.clientId = clientId; }
-
-            /**
-             * Returns the Keycloak client secret.
-             *
-             * @return the client secret.
-             */
-            public String getClientSecret() { return clientSecret; }
-
-            /**
-             * Sets the Keycloak client secret.
-             *
-             * @param clientSecret the client secret.
-             */
-            public void setClientSecret(String clientSecret) { this.clientSecret = clientSecret; }
         }
     }
 
@@ -570,22 +461,6 @@ public class DlbProperties {
      * @param dataDir the data directory path.
      */
     public void setDataDir(String dataDir) { this.dataDir = dataDir; }
-
-    /**
-     * Returns whether the service allows creation of anonymous user accounts.
-     *
-     * @return {@code true} if allowed.
-     */
-    public boolean isAllowAnonymousUsers() { return allowAnonymousUsers; }
-
-    /**
-     * Sets whether the service allows creation of anonymous user accounts.
-     *
-     * @param allowAnonymousUsers {@code true} to allow.
-     */
-    public void setAllowAnonymousUsers(boolean allowAnonymousUsers) {
-        this.allowAnonymousUsers = allowAnonymousUsers;
-    }
 
     /**
      * Returns the MariaDB connection configuration.

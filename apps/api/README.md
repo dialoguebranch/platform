@@ -49,32 +49,15 @@ every supported variable, its default value, and whether it is required.
 
 ### Authentication
 
-| Variable | Default | Required | Description |
-|---|---|---|---|
-| `DLB_AUTH_SERVICE` | `native` | No | Authentication backend: `native` or `keycloak` |
-
-#### Native authentication (`DLB_AUTH_SERVICE=native`)
-
-| Variable | Default | Required | Description |
-|---|---|---|---|
-| `DLB_AUTH_JWT_ACCESS_TOKEN_SECRET` | — | **Yes** | Secret used to sign JWT access tokens |
-| `DLB_AUTH_JWT_REFRESH_TOKEN_SECRET` | — | **Yes** | Secret used to sign JWT refresh tokens |
-| `DLB_AUTH_ACCESS_TOKEN_EXPIRATION_SECONDS` | `300` | No | Access token lifetime in seconds |
-| `DLB_AUTH_REFRESH_TOKEN_EXPIRATION_SECONDS` | `1800` | No | Refresh token lifetime in seconds |
-
-Generate strong secrets with:
-```bash
-openssl rand -base64 64
-```
-
-#### Keycloak authentication (`DLB_AUTH_SERVICE=keycloak`)
+The service is a pure OAuth2 resource server: it validates bearer tokens issued by Keycloak but
+plays no role in issuing or refreshing them. Clients authenticate directly with Keycloak using
+the Authorization Code + PKCE flow.
 
 | Variable | Default | Required | Description |
 |---|---|---|---|
 | `DLB_AUTH_KEYCLOAK_BASE_URL` | `http://keycloak:8080/` | Yes | Base URL of your Keycloak instance |
 | `DLB_AUTH_KEYCLOAK_REALM` | `dialoguebranch` | Yes | Keycloak realm name |
 | `DLB_AUTH_KEYCLOAK_CLIENT_ID` | `dlb-web-service` | Yes | Keycloak client ID |
-| `DLB_AUTH_KEYCLOAK_CLIENT_SECRET` | — | **Yes** | Keycloak client secret |
 
 ### Database
 

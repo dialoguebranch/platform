@@ -63,19 +63,17 @@ npm run preview  # preview production build locally
 
 ## Local Development Stack
 
-The full stack (API + MariaDB + Keycloak) is defined in `infrastructure/docker/docker-compose.local-dev.yml`.
+The full stack (MariaDB + Keycloak, plus the API when the `api` profile is enabled) is defined in
+`infrastructure/docker/compose.yml`.
 
 ```bash
-cp infrastructure/docker/secrets.env.example infrastructure/docker/secrets.env
-# edit secrets.env with your values
-docker compose -f infrastructure/docker/docker-compose.local-dev.yml up
+docker compose -f infrastructure/docker/compose.yml up               # MariaDB + Keycloak only
+docker compose -f infrastructure/docker/compose.yml --profile api up # also builds/runs the API
 ```
 
 Service URLs:
 - API: `http://localhost:8089/dlb-web-service`
 - Keycloak admin: `http://localhost:8081`
-
-A minimal stack (API + MariaDB, no Keycloak, native JWT auth) is available at `infrastructure/docker/docker-compose.minimal.yml`.
 
 ## Architecture
 
@@ -105,14 +103,14 @@ A Spring Boot 3 application deployed as a WAR. Key structural classes:
 - **`DialogueExecutor`** — Bridges the REST layer to the core `ActiveDialogue` execution engine
 
 Controllers (all under `/v1`):
-- `AuthController` — `/auth/login`, `/auth/refresh`
+- `AuthController` — `/auth/logout`, `/auth/validate`
 - `DialogueController` — `/dialogue/start`, `/dialogue/progress`, `/dialogue/continue`
 - `VariablesController` — `/variables/get`, `/variables/set-single`
 - `AdminController` — `/admin/list-dialogues`
 - `InfoController` — `/info/all`
 - `LogController` — dialogue log access
 
-Auth is pluggable: `native` (JWT via `JWTUtils`) or `keycloak` (token validated via `KeycloakManager`). The active mode is set by `DLB_AUTH_SERVICE`.
+The service is a pure OAuth2 resource server: it validates bearer tokens issued by Keycloak (JWKS-based JWT validation configured in `SecurityConfig`, with claim extraction in `QueryRunner`) but never issues or refreshes tokens itself. Clients authenticate directly with Keycloak via the Authorization Code + PKCE flow.
 
 Variable storage is pluggable: `VariableStoreJSONStorageHandler` (file-based) or `VariableStoreDatabaseStorageHandler` (MariaDB via Hibernate). An optional external variable service can be enabled via `DLB_EXTERNAL_VARIABLE_SERVICE_ENABLED`.
 

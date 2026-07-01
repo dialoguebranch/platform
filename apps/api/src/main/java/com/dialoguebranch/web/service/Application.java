@@ -28,8 +28,6 @@
 
 package com.dialoguebranch.web.service;
 
-import com.dialoguebranch.web.service.auth.jwt.JWTUtils;
-import com.dialoguebranch.web.service.exception.DLBServiceConfigurationException;
 import com.dialoguebranch.web.service.execution.ApplicationManager;
 import com.dialoguebranch.web.service.storage.VariableStoreDatabaseStorageHandler;
 import jakarta.annotation.PostConstruct;
@@ -65,8 +63,6 @@ public class Application implements ApplicationListener<ApplicationEvent> {
 	@Autowired
 	private DlbProperties dlbProperties;
 	@Autowired
-	private JWTUtils jwtUtils;
-	@Autowired
 	private VariableStoreDatabaseStorageHandler storageHandler;
 	private ApplicationManager applicationManager = null;
 	private final Long launchedTime = Instant.now().toEpochMilli();
@@ -87,13 +83,7 @@ public class Application implements ApplicationListener<ApplicationEvent> {
 
 	@PostConstruct
 	private void initApp() {
-		try {
-			applicationManager = new ApplicationManager(dlbProperties, storageHandler);
-		} catch(DLBServiceConfigurationException e) {
-			logger.error("Unable to initialize DialogueBranch Web Service due to configuration " +
-					"errors.");
-			System.exit(1);
-		}
+		applicationManager = new ApplicationManager(dlbProperties, storageHandler);
 	}
 
 	// ----------------------------------------------------------- //
@@ -116,15 +106,6 @@ public class Application implements ApplicationListener<ApplicationEvent> {
 	 */
 	public DlbProperties getDlbProperties() {
 		return dlbProperties;
-	}
-
-	/**
-	 * Returns the {@link JWTUtils} bean used for generating and validating JWT tokens.
-	 *
-	 * @return the {@link JWTUtils} instance.
-	 */
-	public JWTUtils getJwtUtils() {
-		return jwtUtils;
 	}
 
 	/**
@@ -165,12 +146,10 @@ public class Application implements ApplicationListener<ApplicationEvent> {
             logger.info("=== Java Version: {}", JavaVersion.getJavaVersion().toString());
 
 			DlbProperties.Auth auth = dlbProperties.getAuth();
-			logger.info("=== Authentication Service: {}", auth.getService());
-			if(auth.getService().equals(DlbProperties.AUTH_SERVICE_KEYCLOAK)) {
-				logger.info("===== Keycloak URL: {}", auth.getKeycloak().getBaseUrl());
-				logger.info("===== Keycloak Realm: {}", auth.getKeycloak().getRealm());
-				logger.info("===== Keycloak Client ID: {}", auth.getKeycloak().getClientId());
-			}
+			logger.info("=== Authentication: Keycloak");
+			logger.info("===== Keycloak URL: {}", auth.getKeycloak().getBaseUrl());
+			logger.info("===== Keycloak Realm: {}", auth.getKeycloak().getRealm());
+			logger.info("===== Keycloak Client ID: {}", auth.getKeycloak().getClientId());
 
 			DlbProperties.ExternalVariableService evs = dlbProperties.getExternalVariableService();
 			logger.info("=== External Variable Service Enabled: {}", evs.isEnabled());
