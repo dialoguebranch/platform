@@ -1,6 +1,7 @@
 {
   "id": "6b7bdf60-1313-4512-87cc-d00a849a000d",
   "realm": "dialoguebranch",
+  "loginTheme": "dlb",
   "notBefore": 0,
   "defaultSignatureAlgorithm": "RS256",
   "revokeRefreshToken": false,

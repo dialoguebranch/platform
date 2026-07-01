@@ -1,0 +1,372 @@
+/*
+ * Dialogue Branch Keycloak login theme.
+ *
+ * Colours and fonts mirror apps/web/src/assets/css/theme.css and fonts.css (the DLB web
+ * client's Tailwind design tokens), and the layout mirrors the web client's former
+ * LoginPage.vue, so the Keycloak-hosted login screen feels like part of the same product.
+ */
+
+@font-face {
+    font-family: 'Roboto Slab';
+    src: url('../fonts/RobotoSlab-Regular.woff2') format('woff2'),
+        url('../fonts/RobotoSlab-Regular.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Roboto Slab';
+    src: url('../fonts/RobotoSlab-Bold.woff2') format('woff2'),
+        url('../fonts/RobotoSlab-Bold.woff') format('woff');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+
+:root {
+    --dlb-color-background: rgb(200, 200, 200);
+    --dlb-color-box: rgb(210, 190, 160);
+    --dlb-color-orange-dark: rgb(153, 102, 0);
+    --dlb-color-orange-darker: rgb(119, 81, 24);
+    --dlb-color-orange-medium: rgb(179, 141, 83);
+    --dlb-color-orange-light: rgb(246, 203, 139);
+    --dlb-color-red-dark: rgb(101, 10, 10);
+    --dlb-color-green: #04aa6d;
+    --dlb-color-green-hover: #0bbb7a;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html.dlb-html, body.dlb-body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
+
+body.dlb-body {
+    font-family: 'Roboto Slab', sans-serif;
+    color: #111827;
+}
+
+.dlb-page {
+    min-height: 100vh;
+    width: 100%;
+    background: var(--dlb-color-background);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.dlb-logo {
+    display: block;
+    padding-top: 4rem;
+    width: 300px;
+    max-width: 90vw;
+}
+
+@media (min-width: 640px) {
+    .dlb-logo { width: 500px; }
+}
+
+.dlb-brand-subtitle {
+    margin-top: 0.75rem;
+    font-family: 'Roboto Slab', sans-serif;
+    font-weight: bold;
+}
+
+.dlb-card-outer {
+    width: 100%;
+    padding: 0 1rem;
+    margin: 1.5rem 0;
+}
+
+.dlb-card {
+    width: 100%;
+    max-width: 448px;
+    margin: 0 auto;
+    background: var(--dlb-color-box);
+    border: 1px solid rgba(179, 141, 83, 0.5);
+    border-radius: 1rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+    padding: 1.25rem;
+}
+
+.dlb-card-title {
+    font-family: 'Roboto Slab', sans-serif;
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin: 0 0 1rem 0;
+    text-align: center;
+}
+
+#kc-username {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.dlb-reset-login {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.8rem;
+    color: var(--dlb-color-orange-darker);
+}
+
+.dlb-form-group {
+    margin-top: 1rem;
+}
+
+@media (min-width: 640px) {
+    .dlb-form-group {
+        display: flex;
+        align-items: flex-start;
+    }
+}
+
+.dlb-label {
+    display: block;
+    font-family: 'Roboto Slab', sans-serif;
+    font-weight: bold;
+    margin-bottom: 0.4rem;
+}
+
+@media (min-width: 640px) {
+    .dlb-label {
+        flex: 0 0 190px;
+        text-align: right;
+        padding-right: 1rem;
+        padding-top: 0.6rem;
+        margin-bottom: 0;
+    }
+}
+
+/* Wraps an input (or input-group) together with its inline error message, as a single flex
+   item next to the label, so the error always renders on its own line below the input instead
+   of competing for width as a sibling flex item. */
+.dlb-field {
+    min-width: 0;
+}
+
+@media (min-width: 640px) {
+    .dlb-field {
+        flex: 1;
+    }
+}
+
+.dlb-input {
+    font-family: 'Roboto Slab', sans-serif;
+    background: white;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+    border: 2px solid rgb(209, 213, 219);
+    font-size: 0.875rem;
+    width: 100%;
+    min-width: 0;
+}
+
+.dlb-input[aria-invalid="true"] {
+    border-color: rgb(239, 68, 68);
+}
+
+/* The password field and its show/hide toggle overlap (toggle absolutely positioned inside
+   the input's own padding) rather than sitting side by side, so the input box itself stays
+   exactly the same width as the plain username input above it. */
+.dlb-input-group {
+    position: relative;
+}
+
+.dlb-input-group .dlb-input {
+    width: 100%;
+    padding-right: 4rem;
+}
+
+.dlb-password-toggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0 0.85rem;
+}
+
+/* FontAwesome free-solid "eye" / "eye-slash" glyphs (same icons the DLB web client uses via
+   @fortawesome/free-solid-svg-icons), rendered as CSS masks so they inherit the theme colour. */
+.dlb-icon-eye, .dlb-icon-eye-slash {
+    display: inline-block;
+    width: 1.05rem;
+    height: 1.05rem;
+    background-color: var(--dlb-color-orange-darker);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    mask-position: center;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+}
+
+.dlb-icon-eye {
+    -webkit-mask-image: url("../img/icon-eye.svg");
+    mask-image: url("../img/icon-eye.svg");
+}
+
+.dlb-icon-eye-slash {
+    -webkit-mask-image: url("../img/icon-eye-slash.svg");
+    mask-image: url("../img/icon-eye-slash.svg");
+}
+
+.dlb-input-error {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 0.8rem;
+    color: var(--dlb-color-red-dark);
+}
+
+.dlb-form-settings {
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.dlb-remember-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Roboto Slab', sans-serif;
+    font-weight: 300;
+}
+
+.dlb-form-options {
+    margin-left: auto;
+}
+
+.dlb-link, .dlb-form-options a {
+    color: var(--dlb-color-orange-dark);
+    text-decoration: none;
+    font-size: 0.85rem;
+}
+
+.dlb-link:hover, .dlb-form-options a:hover {
+    text-decoration: underline;
+}
+
+.dlb-form-buttons {
+    margin-top: 1rem;
+    text-align: right;
+}
+
+.dlb-btn {
+    font-family: 'Roboto Slab', sans-serif;
+    font-size: 0.875rem;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1.5rem;
+    min-width: 140px;
+    cursor: pointer;
+}
+
+.dlb-btn-primary {
+    background: var(--dlb-color-green);
+}
+
+.dlb-btn-primary:hover {
+    background: var(--dlb-color-green-hover);
+}
+
+.dlb-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+}
+
+.dlb-alert-error {
+    border: 1px solid rgba(101, 10, 10, 0.4);
+    background: rgba(101, 10, 10, 0.1);
+    color: var(--dlb-color-red-dark);
+}
+
+.dlb-alert-warning {
+    border: 1px solid rgba(179, 141, 83, 0.6);
+    background: rgba(246, 203, 139, 0.35);
+    color: var(--dlb-color-orange-darker);
+}
+
+.dlb-alert-success {
+    border: 1px solid rgba(4, 170, 109, 0.4);
+    background: rgba(4, 170, 109, 0.12);
+    color: #04693f;
+}
+
+.dlb-alert-info {
+    border: 1px solid rgba(153, 102, 0, 0.3);
+    background: rgba(210, 190, 160, 0.4);
+    color: var(--dlb-color-orange-darker);
+}
+
+.dlb-alert-icon {
+    flex-shrink: 0;
+    font-weight: bold;
+}
+
+.dlb-alert-icon::before { content: "\26A0"; } /* warning triangle glyph, reused for all types */
+
+#kc-registration-container, #kc-info-message, #kc-error-message {
+    margin-top: 1rem;
+    text-align: center;
+    font-size: 0.875rem;
+}
+
+#kc-error-message .instruction, #kc-info-message .instruction {
+    margin-bottom: 0.5rem;
+}
+
+.dlb-social-section {
+    margin-top: 1.5rem;
+}
+
+.dlb-social-section h2 {
+    font-size: 0.9rem;
+    text-align: center;
+    font-family: 'Roboto Slab', sans-serif;
+}
+
+.dlb-social-list {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.dlb-social-btn {
+    display: block;
+    text-align: center;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    background: white;
+    border: 1px solid rgb(209, 213, 219);
+    color: #111827;
+    text-decoration: none;
+    font-size: 0.85rem;
+}
+
+.dlb-locale {
+    text-align: right;
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+}
