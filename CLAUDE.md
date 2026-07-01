@@ -126,7 +126,7 @@ A single-page Vue 3 app. Key structure:
 - **`src/state.js`** — Singleton `WCTAClientState` (extends `ClientState` from `dlb-lib`); loaded from cookie on startup; exported as the shared reactive state
 - **`src/dlb-lib/DialogueBranchClient.js`** — Thin fetch-based API client; wraps all REST calls; returns parsed model objects
 - **`src/dlb-lib/WCTAClientState.js`** — App-specific state; extends the reusable `ClientState`
-- **`src/components/pages/`** — `LoginPage.vue`, `MainPage.vue`
+- **`src/components/pages/`** — `MainPage.vue`, `ProjectSelectorPage.vue`. There is no login page: `src/keycloak.js` initialises Keycloak with `onLoad: 'login-required'`, so an unauthenticated user is redirected straight to Keycloak's hosted login page before the app ever mounts.
 - **`src/components/partials/`** — `DialogueBrowser.vue` (folder tree), `DialogueTreeNode.vue`, `InteractionTester.vue`, `BalloonDialogueComponent.vue`, `TextDialogueComponent.vue`, `VariableBrowser.vue`
 - **`src/components/widgets/`** — Reusable UI primitives (buttons, panels, inputs)
 

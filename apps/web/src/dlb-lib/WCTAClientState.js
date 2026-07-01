@@ -187,8 +187,7 @@ export class WCTAClientState extends ClientState {
         }
 
         // Authentication state is no longer stored in cookies — it is derived from the Keycloak
-        // token at application boot (see src/main.js) and persisted across reloads via Keycloak's
-        // own SSO session (silent-check-sso.html).
+        // token at application boot (see src/main.js and src/keycloak.js).
     }
 
 }

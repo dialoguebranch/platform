@@ -8,16 +8,15 @@ const keycloak = new Keycloak({
 });
 
 /**
- * Initialises the Keycloak adapter. Resolves once Keycloak has determined whether an existing
- * session exists (via the silent-check-sso iframe), without forcing a redirect for anonymous
- * visitors.
+ * Initialises the Keycloak adapter. If the user has no valid session, this redirects the whole
+ * page to Keycloak's hosted login page — there is no in-app login screen. Only resolves once
+ * the user is authenticated (the redirect abandons this page load otherwise).
  *
- * @returns {Promise<boolean>} whether the user is authenticated.
+ * @returns {Promise<boolean>} whether the user is authenticated (always true once resolved).
  */
 export async function initKeycloak() {
     const authenticated = await keycloak.init({
-        onLoad: "check-sso",
-        silentCheckSsoRedirectUri: window.location.origin + "/silent-check-sso.html",
+        onLoad: "login-required",
         pkceMethod: "S256",
     });
 

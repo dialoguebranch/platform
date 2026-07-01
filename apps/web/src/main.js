@@ -16,23 +16,24 @@ library.add(far);
 const stateRef = ref(state);
 
 async function bootstrap() {
-    const authenticated = await initKeycloak();
-    if (authenticated) {
-        const roles = keycloak.tokenParsed?.resource_access?.[config.keycloak.clientId]?.roles ?? [];
-        const hasAccess = roles.includes('admin') || roles.includes('editor');
-        if (hasAccess) {
-            stateRef.value.user = new User(
-                keycloak.tokenParsed.preferred_username,
-                roles,
-                keycloak.token,
-                Math.round(keycloak.tokenParsed.exp - keycloak.tokenParsed.iat)
-            );
-        } else {
-            // Authenticated with Keycloak but lacks the required application role — end the
-            // Keycloak session too, otherwise silent-check-sso would keep re-authenticating the
-            // same under-privileged account on every reload.
-            await keycloak.logout({ redirectUri: window.location.origin });
-        }
+    // onLoad: 'login-required' means this only resolves once the user is authenticated —
+    // if not, the browser has already been redirected to Keycloak's hosted login page.
+    await initKeycloak();
+
+    const roles = keycloak.tokenParsed?.resource_access?.[config.keycloak.clientId]?.roles ?? [];
+    const hasAccess = roles.includes('admin') || roles.includes('editor');
+    if (hasAccess) {
+        stateRef.value.user = new User(
+            keycloak.tokenParsed.preferred_username,
+            roles,
+            keycloak.token,
+            Math.round(keycloak.tokenParsed.exp - keycloak.tokenParsed.iat)
+        );
+    } else {
+        // Authenticated with Keycloak but lacks the required application role — end the
+        // Keycloak session too, otherwise the next reload would re-authenticate the same
+        // under-privileged account and redirect straight back in.
+        await keycloak.logout({ redirectUri: window.location.origin });
     }
 
     const app = createApp(App);
