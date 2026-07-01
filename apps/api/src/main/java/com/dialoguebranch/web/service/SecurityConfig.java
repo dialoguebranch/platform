@@ -29,7 +29,6 @@
 package com.dialoguebranch.web.service;
 
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -48,12 +47,10 @@ import java.util.List;
 /**
  * Spring Security configuration for the Dialogue Branch Web Service.
  *
- * <p>In native mode (dlb.auth.service=native) all requests are permitted at the filter layer —
- * authentication is handled manually inside each controller via {@link QueryRunner}.</p>
- *
- * <p>In Keycloak mode (dlb.auth.service=keycloak) the OAuth2 resource server JWT filter
- * validates every bearer token against the Keycloak JWKS endpoint before the request reaches
- * a controller. The /auth/login and /auth/refresh endpoints are always open.</p>
+ * <p>The service is a pure OAuth2 resource server: the JWT filter validates every bearer token
+ * against the Keycloak JWKS endpoint before the request reaches a controller. Clients obtain
+ * tokens directly from Keycloak (Authorization Code + PKCE); this service never issues or
+ * refreshes tokens itself.</p>
  *
  * @author Dennis Hofs
  */
@@ -74,39 +71,31 @@ public class SecurityConfig {
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-        if (dlbProperties.getAuth().getService().equals(DlbProperties.AUTH_SERVICE_KEYCLOAK)) {
-            http
-                .authorizeHttpRequests(auth -> auth
-                    .requestMatchers(
-                        "/", "/index.html",
-                        "/auth/login", "/v*/auth/login",
-                        "/auth/refresh", "/v*/auth/refresh",
-                        "/info/all", "/v*/info/all",
-                        "/swagger-ui/**", "/swagger-ui.html",
-                        "/v3/api-docs/**", "/api-docs/**",
-                        "/webjars/**",
-                        "/actuator/health", "/actuator/info"
-                    ).permitAll()
-                    .anyRequest().authenticated()
-                )
-                .oauth2ResourceServer(oauth2 -> oauth2
-                    .bearerTokenResolver(new XAuthTokenBearerTokenResolver())
-                    .jwt(jwt -> {})
-                );
-        } else {
-            http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
-        }
+        http
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers(
+                    "/", "/index.html",
+                    "/info/all", "/v*/info/all",
+                    "/swagger-ui/**", "/swagger-ui.html",
+                    "/v3/api-docs/**", "/api-docs/**",
+                    "/webjars/**",
+                    "/actuator/health", "/actuator/info"
+                ).permitAll()
+                .anyRequest().authenticated()
+            )
+            .oauth2ResourceServer(oauth2 -> oauth2
+                .bearerTokenResolver(new XAuthTokenBearerTokenResolver())
+                .jwt(jwt -> {})
+            );
 
         return http.build();
     }
 
     /**
-     * Creates the {@link JwtDecoder} used to validate Keycloak-issued JWT tokens. Only registered
-     * when Keycloak authentication is active. The decoder fetches and caches the public keys from
-     * the Keycloak JWKS endpoint automatically.
+     * Creates the {@link JwtDecoder} used to validate Keycloak-issued JWT tokens. The decoder
+     * fetches and caches the public keys from the Keycloak JWKS endpoint automatically.
      */
     @Bean
-    @ConditionalOnProperty(name = "dlb.auth.service", havingValue = "keycloak")
     public JwtDecoder keycloakJwtDecoder() {
         DlbProperties.Auth.Keycloak kc = dlbProperties.getAuth().getKeycloak();
         String base = kc.getBaseUrl().endsWith("/") ? kc.getBaseUrl() : kc.getBaseUrl() + "/";

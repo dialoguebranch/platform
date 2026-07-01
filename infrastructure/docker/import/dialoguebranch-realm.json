@@ -5,7 +5,7 @@
   "defaultSignatureAlgorithm": "RS256",
   "revokeRefreshToken": false,
   "refreshTokenMaxReuse": 0,
-  "accessTokenLifespan": 300,
+  "accessTokenLifespan": 3600,
   "accessTokenLifespanForImplicitFlow": 900,
   "ssoSessionIdleTimeout": 1800,
   "ssoSessionMaxLifespan": 36000,
@@ -409,21 +409,7 @@
   "webAuthnPolicyPasswordlessAvoidSameAuthenticatorRegister": false,
   "webAuthnPolicyPasswordlessAcceptableAaguids": [],
   "webAuthnPolicyPasswordlessExtraOrigins": [],
-  "users": [
-    {
-      "id": "51e1980d-4ed8-4c40-832b-964586a39033",
-      "username": "service-account-dlb-web-service",
-      "emailVerified": false,
-      "createdTimestamp": 1746472812836,
-      "enabled": true,
-      "totp": false,
-      "serviceAccountClientId": "dlb-web-service",
-      "disableableCredentialTypes": [],
-      "requiredActions": [],
-      "notBefore": 0,
-      "groups": []
-    }
-  ],
+  "users": [],
   "scopeMappings": [
     {
       "clientScope": "offline_access",
@@ -648,22 +634,22 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "**********",
       "redirectUris": [
-        "http://localhost:8089/dlb-web-service/*"
+        "__WEB_CLIENT_REDIRECT_URI__",
+        "http://localhost:8089/dlb-web-service/swagger-ui/oauth2-redirect.html"
       ],
       "webOrigins": [
-        "http://localhost:8089"
+        "+"
       ],
       "notBefore": 0,
       "bearerOnly": false,
       "consentRequired": false,
-      "standardFlowEnabled": false,
+      "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": true,
-      "serviceAccountsEnabled": true,
-      "authorizationServicesEnabled": true,
-      "publicClient": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "publicClient": true,
       "frontchannelLogout": true,
       "protocol": "openid-connect",
       "attributes": {
@@ -694,15 +680,7 @@
         "organization",
         "offline_access",
         "microprofile-jwt"
-      ],
-      "authorizationSettings": {
-        "allowRemoteResourceManagement": true,
-        "policyEnforcementMode": "ENFORCING",
-        "resources": [],
-        "policies": [],
-        "scopes": [],
-        "decisionStrategy": "UNANIMOUS"
-      }
+      ]
     },
     {
       "id": "62c2e5ed-b550-43a4-83db-41facb852ade",

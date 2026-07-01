@@ -26,7 +26,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import { User } from '../dlb-lib/model/User.js';
 import { ClientState } from '../dlb-lib/ClientState.js';
 import { DocumentFunctions } from '../dlb-lib/util/DocumentFunctions.js';
 
@@ -187,25 +186,9 @@ export class WCTAClientState extends ClientState {
             try { this._selectedProject = JSON.parse(cookieValue); } catch { this._selectedProject = null; }
         }
 
-        var cookieUserName = DocumentFunctions.getCookie('user.name');
-        var cookieUserRoles = DocumentFunctions.getCookie('user.roles');
-        var cookieUserAccessToken = DocumentFunctions.getCookie('user.accessToken');
-        var cookieUserAccessTokenExpiresIn = DocumentFunctions.getCookie('user.accessTokenExpiresIn')
-        var cookieUserRefreshToken = DocumentFunctions.getCookie('user.refreshToken');
-        var cookieUserRefreshTokenExpiresIn = DocumentFunctions.getCookie('user.refreshTokenExpiresIn')
-
-        // Only if all variables are non-empty / non-null
-        if(cookieUserName && cookieUserRoles && cookieUserAccessToken && cookieUserAccessTokenExpiresIn && cookieUserRefreshToken && cookieUserRefreshTokenExpiresIn) {
-            var user = new User(
-                cookieUserName,
-                cookieUserRoles,
-                cookieUserAccessToken,
-                cookieUserAccessTokenExpiresIn,
-                cookieUserRefreshToken,
-                cookieUserRefreshTokenExpiresIn
-            );
-            this._user = user;
-        }
+        // Authentication state is no longer stored in cookies — it is derived from the Keycloak
+        // token at application boot (see src/main.js) and persisted across reloads via Keycloak's
+        // own SSO session (silent-check-sso.html).
     }
 
 }

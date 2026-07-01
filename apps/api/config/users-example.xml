@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-
-<users>
-	<user username="client" password="client" roles="client" />
-	<user username="editor" password="editor" roles="editor" />
-	<user username="admin" password="admin" roles="admin" />
-	<user username="multirole" password="multirole" roles="client,editor,admin" />
-</users>

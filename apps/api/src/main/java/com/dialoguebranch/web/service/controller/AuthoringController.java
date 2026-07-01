@@ -31,7 +31,7 @@ package com.dialoguebranch.web.service.controller;
 import com.dialoguebranch.model.execute.Language;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.QueryRunner;
-import com.dialoguebranch.web.service.auth.basic.BasicUserCredentials;
+import com.dialoguebranch.web.service.auth.AuthenticationInfo;
 import com.dialoguebranch.web.service.controller.schema.authoring.*;
 import com.dialoguebranch.web.service.exception.BadRequestException;
 import com.dialoguebranch.web.service.exception.HttpException;
@@ -66,6 +66,7 @@ import java.util.UUID;
  */
 @RestController
 @SecurityRequirement(name = "bearerAuth")
+@SecurityRequirement(name = "oauth2")
 @RequestMapping(value = {"/v{version}/authoring", "/authoring"})
 @Tag(name = "6. Authoring", description = "End-points for managing projects, draft dialogues, " +
 		"and publishing validated project versions.")
@@ -107,7 +108,7 @@ public class AuthoringController {
 					return projectService.listProjects();
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
+				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 	@Operation(summary = "Get a single project by name.")
@@ -128,7 +129,7 @@ public class AuthoringController {
 									"Project not found: " + projectName));
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
+				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 	@Operation(summary = "Create a new project.")
@@ -150,7 +151,7 @@ public class AuthoringController {
 							payload.getDisplayName(), payload.getDescription());
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				BasicUserCredentials.USER_ROLE_ADMIN);
+				AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 	@Operation(summary = "Update a project's display name and description.")
@@ -174,7 +175,7 @@ public class AuthoringController {
 							payload.getDescription());
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				BasicUserCredentials.USER_ROLE_ADMIN);
+				AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 	@Operation(summary = "Delete a project and all its data.")
@@ -198,7 +199,7 @@ public class AuthoringController {
 					return null;
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				BasicUserCredentials.USER_ROLE_ADMIN);
+				AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 	// ------------------------------------------------------------------------ //
@@ -230,7 +231,7 @@ public class AuthoringController {
 					return projectService.addLanguageMapping(project, source, translation);
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				BasicUserCredentials.USER_ROLE_ADMIN);
+				AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 	@Operation(summary = "Remove a language mapping from a project.")
@@ -253,7 +254,7 @@ public class AuthoringController {
 					return null;
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				BasicUserCredentials.USER_ROLE_ADMIN);
+				AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 	// ------------------------------------------------------------------ //
@@ -279,7 +280,7 @@ public class AuthoringController {
 					return draftDialogueService.listDialogues(project);
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
+				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 	@Operation(summary = "Create a new draft dialogue in a project.")
@@ -305,7 +306,7 @@ public class AuthoringController {
 					return draftDialogueService.createDialogue(project, payload.getName());
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
+				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 	@Operation(summary = "Delete a draft dialogue and all its nodes and translations.")
@@ -334,7 +335,7 @@ public class AuthoringController {
 					return null;
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
+				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 	// ------------------------------------------------------------- //
@@ -365,7 +366,7 @@ public class AuthoringController {
 					return draftDialogueService.listNodes(dialogue);
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
+				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 	@Operation(summary = "Create a new node in a draft dialogue.")
@@ -397,7 +398,7 @@ public class AuthoringController {
 							payload.getHeader(), payload.getBody());
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
+				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 	@Operation(summary = "Update the header and body of a draft node.")
@@ -431,7 +432,7 @@ public class AuthoringController {
 							payload.getBody());
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
+				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 	@Operation(summary = "Delete a node from a draft dialogue.")
@@ -465,7 +466,7 @@ public class AuthoringController {
 					return null;
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
+				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 	// ----------------------------------------------------------------------- //
@@ -500,7 +501,7 @@ public class AuthoringController {
 							payload.getContent());
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
+				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 	@Operation(summary = "Delete a translation from a draft dialogue.")
@@ -535,7 +536,7 @@ public class AuthoringController {
 					return null;
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
+				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 	// ------------------------------------------------------------ //
@@ -561,7 +562,7 @@ public class AuthoringController {
 					return publishService.listVersions(project);
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
+				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 	@Operation(summary = "Validate and publish the current draft as a new project version.")
@@ -587,7 +588,7 @@ public class AuthoringController {
 					}
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				BasicUserCredentials.USER_ROLE_ADMIN);
+				AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 }

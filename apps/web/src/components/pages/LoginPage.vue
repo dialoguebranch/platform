@@ -1,112 +1,11 @@
 <script setup>
-import { inject, onMounted, ref } from 'vue';
-import { useClient } from '../../composables/client.js';
-import { DocumentFunctions } from '../../dlb-lib/util/DocumentFunctions.js';
-import { User } from '../../dlb-lib/model/User.js';
-import { logEvent } from '../../composables/debug-log.js';
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import TextInput from '../widgets/TextInput.vue';
+import { inject } from 'vue';
 import PushButton from '../widgets/PushButton.vue';
 
-const state = inject('state');
-const client = useClient();
-
-const username = ref('');
-const password = ref('');
-const remember = ref(false);
-const errors = ref({});
-const errorMessage = ref('');
-const loading = ref(false);
-
-const inputs = {};
-
-onMounted(() => {
-    inputs.username = document.getElementsByName('username')[0];
-    inputs.password = document.getElementsByName('password')[0];
-    inputs.username.focus();
-});
+const keycloak = inject('keycloak');
 
 function onLoginClick() {
-    const input = validateInput();
-    if (input === false) {
-        return;
-    }
-    loading.value = true;
-    client.login(input.username, input.password)
-    .then((json) => {
-        onLoginSuccess(json);
-    })
-    .catch((error) => {
-        inputs.username.focus();
-        if (error instanceof Response && (error.status === 400 || error.status === 401)) {
-            errorMessage.value = 'The username or password is incorrect.';
-            logEvent('auth', 'Login failed — invalid credentials', { status: error.status });
-        } else if (error instanceof TypeError) {
-            errorMessage.value = 'Could not reach the server. Please check your connection.';
-            logEvent('auth', 'Login failed — server unreachable');
-        } else {
-            errorMessage.value = 'An unknown error has occurred.';
-            logEvent('auth', 'Login failed — unknown error');
-        }
-    })
-    .finally(() => {
-        loading.value = false;
-    });
-}
-
-function validateInput() {
-    errors.value = {};
-    errorMessage.value = '';
-    const input = {
-        username: username.value.trim(),
-        password: password.value,
-    }
-    if (input.password.length == 0) {
-        errors.value['password'] = true;
-        inputs.password.focus();
-    }
-    if (input.username.length == 0) {
-        errors.value['username'] = true;
-        inputs.username.focus();
-    }
-    if (Object.keys(errors.value).length > 0) {
-        return false;
-    } else {
-        return input;
-    }
-}
-
-function onLoginSuccess(responseJson) {
-    const roles = responseJson.roles ?? [];
-    const hasAccess = roles.includes('admin') || roles.includes('editor');
-    if (!hasAccess) {
-        logEvent('auth', 'Login rejected — insufficient privileges', { user: responseJson.user, roles });
-        inputs.username.focus();
-        errorMessage.value = 'Your account does not have the required privileges to access this application.';
-        return;
-    }
-
-    logEvent('auth', 'User $1 logged in successfully', responseJson.user);
-
-    const user = new User(
-        responseJson.user,
-        responseJson.roles,
-        responseJson.accessToken,
-        responseJson.expiresIn,
-        responseJson.refreshToken,
-        responseJson.refreshExpiresIn
-    );
-    
-    const cookieExpiration = remember.value ? 365 : null;
-    DocumentFunctions.setCookie('user.name', user.name, cookieExpiration);
-    DocumentFunctions.setCookie('user.roles', user.roles, cookieExpiration);
-    DocumentFunctions.setCookie('user.accessToken', user.accessToken, cookieExpiration);
-    DocumentFunctions.setCookie('user.accessTokenExpiresIn', user.accessTokenExpirationSeconds, cookieExpiration);
-    DocumentFunctions.setCookie('user.refreshToken', user.refreshToken, cookieExpiration);
-    DocumentFunctions.setCookie('user.refreshTokenExpiresIn', user.refreshTokenExpirationSeconds, cookieExpiration);
-    
-    // App.vue defines that if state.user is set, switch to the MainPage.vue
-    state.value.user = user;
+    keycloak.login({ redirectUri: window.location.origin });
 }
 </script>
 
@@ -116,28 +15,11 @@ function onLoginSuccess(responseJson) {
         <div class="mt-3 font-title font-bold">Web Client Test Application</div>
 
         <div class="w-full px-4 my-6">
-            <div class="sm:w-[448px] bg-box rounded-2xl px-5 py-5 mx-auto border border-orange-medium/50 shadow-2xl">
-                <form @submit.prevent>
-                    <div class="sm:flex sm:items-center mt-2">
-                        <label class="font-title font-bold text-right sm:basis-[130px] sm:pr-4" for="username">Username:</label>
-                        <TextInput class="block w-full sm:basis-0 sm:grow mt-2 sm:mt-0" type="text" name="username" placeholder="Username..." :error="errors.username" v-model="username"></TextInput>
-                    </div>
-                    <div class="sm:flex sm:items-center mt-6">
-                        <label class="font-title font-bold text-right sm:basis-[130px] sm:pr-4" for="password">Password:</label>
-                        <TextInput class="block w-full sm:basis-0 sm:grow mt-2 sm:mt-0" type="password" name="password" placeholder="Password..." :error="errors.password" v-model="password"></TextInput>
-                    </div>
-                    <div class="flex items-center mt-2">
-                        <label class="font-title font-light text-right grow pr-2" for="remember">Remember me?</label>
-                        <input type="checkbox" name="remember" v-model="remember" />
-                    </div>
-                    <div class="text-right mt-4">
-                        <PushButton text="Log in" type="submit" variant="green" :loading="loading" @click="onLoginClick" />
-                    </div>
-                    <div v-if="errorMessage" class="flex items-start gap-2 border border-red-dark/40 bg-red-dark/10 text-red-dark rounded-xl px-4 py-3 mt-4">
-                        <FontAwesomeIcon icon="fa-solid fa-circle-exclamation" class="mt-0.5 shrink-0" />
-                        <span class="font-title text-sm">{{ errorMessage }}</span>
-                    </div>
-                </form>
+            <div class="sm:w-[448px] bg-box rounded-2xl px-5 py-5 mx-auto border border-orange-medium/50 shadow-2xl text-center">
+                <p class="font-title">Sign in with your Dialogue Branch account to continue.</p>
+                <div class="mt-4">
+                    <PushButton text="Log in" variant="green" @click="onLoginClick" />
+                </div>
             </div>
         </div>
     </div>

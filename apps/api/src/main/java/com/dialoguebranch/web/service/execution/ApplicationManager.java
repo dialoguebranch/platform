@@ -38,9 +38,6 @@ import com.dialoguebranch.model.common.DialogueBranchProject;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;
 import com.dialoguebranch.web.service.DlbProperties;
-import com.dialoguebranch.web.service.auth.basic.BasicUserCredentials;
-import com.dialoguebranch.web.service.auth.basic.BasicUserFile;
-import com.dialoguebranch.web.service.exception.DLBServiceConfigurationException;
 import com.dialoguebranch.web.service.storage.VariableStoreStorageHandler;
 import org.slf4j.LoggerFactory;
 import nl.rrd.utils.exception.DatabaseException;
@@ -80,7 +77,6 @@ public class ApplicationManager {
 
 	private final DlbProperties dlbProperties;
 	private final List<UserService> activeUserServices = new ArrayList<>();
-	private final List<BasicUserCredentials> basicUserCredentials;
 	private final UserServiceFactory userServiceFactory;
 
 	// -------------------------------------------------------- //
@@ -94,24 +90,11 @@ public class ApplicationManager {
 	 *
 	 * @param dlbProperties  the application configuration properties.
 	 * @param storageHandler the variable-store storage handler for user sessions.
-	 * @throws DLBServiceConfigurationException if the user credentials file cannot be read.
 	 */
 	public ApplicationManager(DlbProperties dlbProperties,
-							  VariableStoreStorageHandler storageHandler)
-			throws DLBServiceConfigurationException {
+							  VariableStoreStorageHandler storageHandler) {
 		this.dlbProperties = dlbProperties;
-
 		this.userServiceFactory = new UserServiceFactory(this, storageHandler);
-
-		if (dlbProperties.getAuth().getService().equals(DlbProperties.AUTH_SERVICE_KEYCLOAK)) {
-			basicUserCredentials = new ArrayList<>();
-		} else {
-			try {
-				basicUserCredentials = BasicUserFile.read(dlbProperties.getDataDir());
-			} catch (ParseException | IOException e) {
-				throw new RuntimeException(e);
-			}
-		}
 	}
 
 	// ----------------------------------------------------------- //
@@ -125,29 +108,6 @@ public class ApplicationManager {
 	 */
 	public Map<String, DialogueBranchProject> getProjects() {
 		return projects;
-	}
-
-	/**
-	 * Returns the list of {@link BasicUserCredentials} available for this {@link ApplicationManager}.
-	 *
-	 * @return the list of {@link BasicUserCredentials} available for this {@link ApplicationManager}.
-	 */
-	public List<BasicUserCredentials> getUserCredentials() {
-		return basicUserCredentials;
-	}
-
-	/**
-	 * Returns the {@link BasicUserCredentials} object associated with the given {@code username},
-	 * or {@code null} if no such user is known.
-	 *
-	 * @param username the username of the user to look for.
-	 * @return the {@link BasicUserCredentials} object or {@code null}.
-	 */
-	public BasicUserCredentials getUserCredentialsForUsername(String username) {
-		for (BasicUserCredentials uc : basicUserCredentials) {
-			if (uc.getUsername().equals(username)) return uc;
-		}
-		return null;
 	}
 
 	/**

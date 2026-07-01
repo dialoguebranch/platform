@@ -37,6 +37,9 @@ import io.swagger.v3.oas.models.Paths;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
+import io.swagger.v3.oas.models.security.OAuthFlow;
+import io.swagger.v3.oas.models.security.OAuthFlows;
+import io.swagger.v3.oas.models.security.Scopes;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import org.springdoc.core.models.GroupedOpenApi;
@@ -62,14 +65,21 @@ public class OpenApiSwaggerConfig {
 	private static final Object LOCK = new Object();
 	private static boolean customizedPaths = false;
 
+	private final DlbProperties dlbProperties;
+
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
 
 	/**
 	 * Instantiation of this class is handled through Spring.
+	 *
+	 * @param dlbProperties the application configuration properties, used to build the Keycloak
+	 *                      OAuth2 authorization/token URLs shown in Swagger UI.
 	 */
-	public OpenApiSwaggerConfig() { }
+	public OpenApiSwaggerConfig(DlbProperties dlbProperties) {
+		this.dlbProperties = dlbProperties;
+	}
 
 	// ------------------------------------------------------- //
 	// -------------------- Other Methods -------------------- //
@@ -99,13 +109,32 @@ public class OpenApiSwaggerConfig {
 		server.url(ServiceContext.getBaseUrl());
 		openAPI.addServersItem(server);
 
-		openAPI.components(new Components().addSecuritySchemes("bearerAuth",
-			new SecurityScheme()
-				.name("bearerAuth")
-				.scheme("bearer")
-				.type(SecurityScheme.Type.HTTP)
-				.bearerFormat("JWT")
-		));
+		DlbProperties.Auth.Keycloak keycloak = dlbProperties.getAuth().getKeycloak();
+		String browserBaseUrl = keycloak.getBrowserBaseUrl();
+		if (!browserBaseUrl.endsWith("/")) browserBaseUrl += "/";
+		String realmUrl = browserBaseUrl + "realms/" + keycloak.getRealm() + "/protocol/openid-connect/";
+
+		openAPI.components(new Components()
+			.addSecuritySchemes("bearerAuth",
+				new SecurityScheme()
+					.name("bearerAuth")
+					.scheme("bearer")
+					.type(SecurityScheme.Type.HTTP)
+					.bearerFormat("JWT")
+			)
+			.addSecuritySchemes("oauth2",
+				new SecurityScheme()
+					.type(SecurityScheme.Type.OAUTH2)
+					.description("Authenticate with Keycloak using the Authorization Code + PKCE " +
+							"flow (no client secret required — click Authorize below).")
+					.flows(new OAuthFlows()
+						.authorizationCode(new OAuthFlow()
+							.authorizationUrl(realmUrl + "auth")
+							.tokenUrl(realmUrl + "token")
+							.scopes(new Scopes().addString("openid", "OpenID Connect scope"))
+						)
+					)
+			));
 
 		openAPI.info(
 			new Info()

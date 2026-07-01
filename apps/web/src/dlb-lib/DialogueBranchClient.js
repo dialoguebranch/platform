@@ -58,42 +58,11 @@ export class DialogueBranchClient {
         this._onUnauthorized = onUnauthorized;
     }
 
-    login(user, password) {
-        const loginUrl = this._baseUrl + "/auth/login";
-
-        return this._fetch(loginUrl, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                user: user,
-                password: password
-            }),
-        }, JSON.stringify({ user: user, password: '***' }))
-        .then((response) => {
-            if (response.ok) {
-                return response.json();
-            } else {
-                return Promise.reject(response);
-            }
-        });
-    }
-
     logout() {
         return this._fetch(this._baseUrl + "/auth/logout", {
             method: "POST",
             headers: { 'Authorization': 'Bearer ' + this._accessToken },
         }).then((response) => this._handleResponse(response));
-    }
-
-    refresh(refreshToken) {
-        return this._fetch(this._baseUrl + "/auth/refresh", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ refreshToken }),
-        })
-        .then((response) => this._handleResponse(response));
     }
 
     getServerInfo() {

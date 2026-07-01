@@ -27,9 +27,10 @@
  */
 
 /**
- * A User object models the user of this client app, based on the information that is provided by
- * the Web Service after a successful login (i.e., username, roles, access- and refresh tokens and
- * their expiration times.
+ * A User object models the user of this client app, based on the information decoded from the
+ * Keycloak access token obtained via the Authorization Code + PKCE flow (i.e., username, roles,
+ * the access token itself and its expiration time). Keycloak manages token refresh internally
+ * (see src/keycloak.js), so this model has no notion of a refresh token.
  *
  * @author Harm op den Akker
  */
@@ -39,13 +40,11 @@ export class User {
     // ---------- Constructor(s) -------------
     // ---------------------------------------
 
-    constructor(name, roles, accessToken, accessTokenExpirationSeconds, refreshToken, refreshTokenExpirationSeconds) {
+    constructor(name, roles, accessToken, accessTokenExpirationSeconds) {
         this._name = name;
         this._roles = roles;
         this._accessToken = accessToken;
         this._accessTokenExpirationSeconds = accessTokenExpirationSeconds;
-        this._refreshToken = refreshToken;
-        this._refreshTokenExpirationSeconds = refreshTokenExpirationSeconds;
         this._createdAt = Date.now();
     }
 
@@ -69,14 +68,6 @@ export class User {
         return this._accessTokenExpirationSeconds;
     }
 
-    get refreshToken() {
-        return this._refreshToken;
-    }
-
-    get refreshTokenExpirationSeconds() {
-        return this._refreshTokenExpirationSeconds;
-    }
-
     get createdAt() {
         return this._createdAt;
     }
@@ -95,15 +86,6 @@ export class User {
     }
 
     /**
-     * Returns the number of seconds that the refresh token has left to live. If this number is 0 or less, it has expired.
-     * 
-     * @returns the number of seconds that the refresh token has left to live (can be negative).
-     */
-    get refreshTokenSecondsToLive() {
-        return ((this._createdAt + (this._accessTokenExpirationSeconds * 1000)) - Date.now()) / 1000;
-    }
-
-    /**
      * Returns a human readable String representation of this User object.
      * @returns a human readable String representation of this User object.
      */
@@ -114,8 +96,6 @@ export class User {
        "\n  roles: " + this._roles +
        "\n  accessToken: " + this._accessToken +
        "\n  accessTokenExpirationSeconds: " + this._accessTokenExpirationSeconds +
-       "\n  refreshToken: " + this._refreshToken +
-       "\n  refreshTokenExpirationSeconds: " + this._refreshTokenExpirationSeconds +
        "\n  createdAt: " + this._createdAt +
        "\n}";
        return result;

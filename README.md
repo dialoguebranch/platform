@@ -74,26 +74,41 @@ The web client starts on [http://localhost:5173](http://localhost:5173).
 #### 1. Create a Keycloak user
 
 1. Open the [Keycloak admin console](http://localhost:8081/admin) and log in with `admin` / `admin`.
-2. Select the **dialoguebranch** realm from the top-left dropdown.
+2. Select the **dialoguebranch** realm at **Manage realms** (top-left).
 3. Go to **Users → Create new user**. Fill in username `testuser`, email `testuser@example.com`, first name `Test`, last name `User`, and click **Create**.
 4. Go to the **Credentials** tab, click **Set password**, enter `password`, disable **Temporary**, and click **Save**.
+5. Go to the **Role mapping** tab, click **Assign role**, switch the filter dropdown to **Filter by clients**, select `admin`, `client`, and `editor` (the `dlb-web-service` client roles), and click **Assign**. Without at least one of these roles, the API will reject requests from this user with a 403 (insufficient privileges) even with a valid token.
 
 #### 2. Authenticate in Swagger UI
 
+The DLB Web Service is an OAuth2 resource server: it only validates bearer tokens, it doesn't
+issue them. Swagger UI knows how to run the Authorization Code + PKCE flow itself, so you don't
+need to copy a token from anywhere.
+
 1. Open [Swagger UI](http://localhost:8089/dlb-web-service/swagger-ui.html).
 2. Click the **Authorize** button (padlock icon, top right).
-3. Paste a bearer token. To get one, run:
+3. In the **oauth2** section, click **Authorize** — this opens a popup pointed at Keycloak's
+   hosted login page. Sign in with `testuser` / `password`.
+4. After the popup closes, click **Close** on the Authorize dialog. Swagger UI now attaches the
+   token to every "Try it out" call automatically.
 
-   ```bash
-   curl -s -X POST http://localhost:8081/realms/dialoguebranch/protocol/openid-connect/token \
-     -d grant_type=password \
-     -d client_id=dlb-web-service \
-     -d client_secret=dev-client-secret \
-     -d username=testuser \
-     -d password=password | jq -r .access_token
-   ```
+Local-dev access tokens last an hour (see `infrastructure/docker/import/dialoguebranch-realm.json`).
+If a request eventually returns 401, just click **Authorize** again to get a fresh token — no
+manual copy/paste required.
 
-4. Click **Authorize**, then **Close**.
+> **Using Bruno, Postman, or another API client instead?** Configure the request/collection auth
+> as **OAuth 2.0 → Authorization Code** with PKCE enabled, pointing at:
+> - Auth URL: `http://localhost:8081/realms/dialoguebranch/protocol/openid-connect/auth`
+> - Token URL: `http://localhost:8081/realms/dialoguebranch/protocol/openid-connect/token`
+> - Client ID: `dlb-web-service` (no client secret)
+> - Callback/redirect URL: whatever your client shows as its default (e.g. Bruno displays a
+>   "Callback URL" field when you pick this grant type).
+>
+> Keycloak only accepts redirects to URLs it knows about, so add that callback URL to the
+> `dlb-web-service` client's **Valid redirect URIs** first: Keycloak admin console → **dialoguebranch**
+> realm → **Clients → dlb-web-service → Settings → Access settings**, add the URL, and **Save**.
+> Once that's done, the client handles login and token refresh for you, the same way Swagger UI
+> does above.
 
 #### 3. Call an endpoint
 

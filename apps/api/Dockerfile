@@ -44,18 +44,7 @@ RUN mkdir -p /usr/local/dialogue-branch/data/dlb-web-service/
 # Copy the built JAR from the builder stage
 COPY --from=builder /build/apps/api/build/libs/dlb-web-service-*.jar /app/dlb-web-service.jar
 
-# Bundle the example users file so the entrypoint can use it as a fallback.
-# At startup, the entrypoint copies this to users.xml only if no users.xml
-# is already present (e.g. mounted via a volume at runtime).
-# To use your own accounts, mount a custom users.xml at:
-#   /usr/local/dialogue-branch/data/dlb-web-service/users.xml
-COPY apps/api/config/users-example.xml \
-    /usr/local/dialogue-branch/data/dlb-web-service/users-example.xml
-
-# Copy and register the entrypoint script
-COPY apps/api/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+ENTRYPOINT ["java", "-jar", "/app/dlb-web-service.jar"]
 
 # -------------------------------------------------------------------------
 # Runtime configuration via environment variables.
@@ -71,9 +60,6 @@ ENV DLB_DATA_DIR=/usr/local/dialogue-branch/data/dlb-web-service
 # Non-sensitive defaults — safe to set as ENV.
 # -------------------------------------------------------------------------
 
-ENV DLB_AUTH_SERVICE=native
-ENV DLB_AUTH_ACCESS_TOKEN_EXPIRATION_SECONDS=300
-ENV DLB_AUTH_REFRESH_TOKEN_EXPIRATION_SECONDS=1800
 ENV DLB_AUTH_KEYCLOAK_BASE_URL=http://keycloak:8080/
 ENV DLB_AUTH_KEYCLOAK_REALM=dialoguebranch
 ENV DLB_AUTH_KEYCLOAK_CLIENT_ID=dlb-web-service
@@ -90,12 +76,9 @@ ENV DLB_EXTERNAL_VARIABLE_SERVICE_API_VERSION=1
 # environment block, or Docker Secrets.
 #
 # Required:
-#   DLB_AUTH_JWT_ACCESS_TOKEN_SECRET  — JWT signing secret for access tokens
-#   DLB_AUTH_JWT_REFRESH_TOKEN_SECRET — JWT signing secret for refresh tokens
 #   DLB_MARIADB_PASSWORD              — MariaDB user password
 #
 # Optional (only needed when the relevant feature is enabled):
-#   DLB_AUTH_KEYCLOAK_CLIENT_SECRET          — Keycloak client secret
 #   DLB_EXTERNAL_VARIABLE_SERVICE_URL        — URL of the external variable service
 #   DLB_EXTERNAL_VARIABLE_SERVICE_API_KEY    — API key for the external variable service
 # -------------------------------------------------------------------------

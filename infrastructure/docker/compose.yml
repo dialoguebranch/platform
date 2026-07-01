@@ -53,8 +53,10 @@ services:
   # ---------------------------------------------------------------------------
   # Keycloak — identity and access management
   #
-  # The entrypoint injects the dev client secret into the realm export before
-  # importing it, so no secrets file is needed.
+  # The entrypoint injects the web client's redirect URI into the realm export
+  # before importing it (the dlb-web-service client is public — no secret to
+  # inject). Override KEYCLOAK_WEB_CLIENT_REDIRECT_URI to point at a different
+  # deployed web client instance.
   # ---------------------------------------------------------------------------
 
   keycloak:
@@ -65,7 +67,7 @@ services:
       - -c
       - |
         mkdir -p /opt/keycloak/data/import
-        sed 's/"secret": "\*\*\*\*\*\*\*\*\*\*"/"secret": "dev-client-secret"/' \
+        sed "s|__WEB_CLIENT_REDIRECT_URI__|$${KEYCLOAK_WEB_CLIENT_REDIRECT_URI}|" \
           /opt/keycloak/data/import-source/dialoguebranch-realm.json \
           > /opt/keycloak/data/import/dialoguebranch-realm.json
         exec /opt/keycloak/bin/kc.sh start-dev --import-realm
@@ -76,6 +78,7 @@ services:
       KC_DB_URL_HOST: mariadb
       KC_DB_USERNAME: root
       KC_DB_PASSWORD: dev
+      KEYCLOAK_WEB_CLIENT_REDIRECT_URI: http://localhost:5173/*
     ports:
       - "8081:8080"
     volumes:
@@ -96,9 +99,11 @@ services:
       - api
     container_name: dlb-dev-api
     environment:
-      DLB_AUTH_SERVICE: keycloak
       DLB_AUTH_KEYCLOAK_BASE_URL: http://keycloak:8080/
-      DLB_AUTH_KEYCLOAK_CLIENT_SECRET: dev-client-secret
+      # Browser-facing Keycloak URL, used to build the OAuth2 authorize/token URLs shown in
+      # Swagger UI — differs from DLB_AUTH_KEYCLOAK_BASE_URL because the container-internal
+      # "keycloak" hostname above is not reachable from the developer's browser.
+      DLB_AUTH_KEYCLOAK_BROWSER_BASE_URL: http://localhost:8081/
       DLB_MARIADB_HOST: mariadb
       DLB_MARIADB_PASSWORD: dev
     ports:

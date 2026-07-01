@@ -29,11 +29,7 @@
 package com.dialoguebranch.web.service;
 
 import com.dialoguebranch.web.service.auth.AuthenticationInfo;
-import com.dialoguebranch.web.service.auth.basic.BasicUserCredentials;
-import com.dialoguebranch.web.service.auth.jwt.JWTUtils;
 import com.dialoguebranch.web.service.exception.*;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,8 +67,7 @@ public class QueryRunner {
 	 * @param response the HTTP response to add header WWW-Authenticate in case of 401 Unauthorized
 	 * @param delegateUser the "Dialogue Branch user" for which this query should be run, or ""
 	 *                     if this should be for the currently authenticated user
-	 * @param application the {@link Application} context used to access {@link BasicUserCredentials}
-	 *                    in a non-static way.
+	 * @param application the {@link Application} context.
 	 * @return the query result
 	 * @throws HttpException if the query should return an HTTP error status
 	 * @throws HttpException if an unexpected error occurs. This results in HTTP error status 500
@@ -128,7 +123,7 @@ public class QueryRunner {
 
 			// If "this" user is an admin making a delegated call
 			} else if((authenticationInfo != null) && (authenticationInfo.hasRole(
-					BasicUserCredentials.USER_ROLE_ADMIN))) {
+					AuthenticationInfo.USER_ROLE_ADMIN))) {
 				return query.runQuery(version, delegateUser);
 
 			// Otherwise, something is wrong
@@ -157,8 +152,7 @@ public class QueryRunner {
 	 * of the authenticated user.
 	 *
 	 * @param providedAccessToken the JWT access token string to validate.
-	 * @param application the {@link Application} context used to access {@link
-	 *                    BasicUserCredentials} in a non-static way.
+	 * @param application the {@link Application} context (unused, kept for a stable call signature).
 	 * @return the {@link AuthenticationInfo} for the authenticated user
 	 * @throws UnauthorizedException if no token is specified, or the token is empty or invalid
 	 */
@@ -166,67 +160,6 @@ public class QueryRunner {
 														 Application application)
 			throws UnauthorizedException {
 
-		if(application.getDlbProperties().getAuth().getService().equals(DlbProperties.AUTH_SERVICE_KEYCLOAK))
-			return validateKeycloakAccessToken();
-		else
-			return validateNativeAccessToken(providedAccessToken, application);
-
-	}
-
-	/**
-	 * Validates the given token from request header, using the built-in user management and token
-	 * system. If it's empty or invalid, it will throw an HttpException with 401 Unauthorized.
-	 * Otherwise, it will return an {@link AuthenticationInfo} object representing the information
-	 * of the authenticated user.
-	 *
-	 * @param token the authentication token (not null)
-	 * @param application the {@link Application} context used to access {@link
-	 *                    BasicUserCredentials} in a non-static way.
-	 * @return the {@link AuthenticationInfo}, representing the authenticated user
-	 * @throws UnauthorizedException if the token is empty or invalid
-	 */
-	private static AuthenticationInfo validateNativeAccessToken(String token, Application application)
-			throws UnauthorizedException {
-
-		AuthenticationInfo authenticationInfo;
-		try {
-			authenticationInfo = application.getJwtUtils().isAccessTokenValid(token);
-		} catch (ExpiredJwtException ex) {
-			throw new UnauthorizedException(ErrorCode.AUTH_TOKEN_EXPIRED,
-					"Authentication token expired");
-		} catch (JwtException ex) {
-			logger.info("Invalid authentication token: failed to parse: {}", ex.getMessage());
-			throw new UnauthorizedException(ErrorCode.AUTH_TOKEN_INVALID,
-					"Authentication token invalid");
-		}
-
-		BasicUserCredentials userCredentials = application.getApplicationManager()
-				.getUserCredentialsForUsername(authenticationInfo.getUsername());
-		if (userCredentials == null) {
-			logger.info("Invalid authentication token: user not found: {}",
-					authenticationInfo.getUsername());
-			throw new UnauthorizedException(ErrorCode.AUTH_TOKEN_INVALID,
-					"Authentication token invalid");
-		}
-
-		if (authenticationInfo.getExpiration() != null &&
-				authenticationInfo.getExpiration().getTime() < System.currentTimeMillis()) {
-			throw new UnauthorizedException(ErrorCode.AUTH_TOKEN_EXPIRED,
-					"Authentication token expired");
-		}
-
-		return authenticationInfo;
-	}
-
-	/**
-	 * Extracts the validated Keycloak {@link AuthenticationInfo} from the Spring Security context.
-	 * Token validation has already been performed by the OAuth2 resource server filter before
-	 * this method is called.
-	 *
-	 * @return the {@link AuthenticationInfo} extracted from the validated JWT
-	 * @throws UnauthorizedException if no valid JWT authentication is found in the security context
-	 */
-	private static AuthenticationInfo validateKeycloakAccessToken() throws UnauthorizedException {
 		var authentication = SecurityContextHolder.getContext().getAuthentication();
 		if (!(authentication instanceof JwtAuthenticationToken jwtAuth)) {
 			throw new UnauthorizedException(ErrorCode.AUTH_TOKEN_INVALID,

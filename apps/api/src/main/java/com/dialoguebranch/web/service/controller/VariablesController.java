@@ -35,7 +35,7 @@ import com.dialoguebranch.execution.VariableUpdatedSource;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.ProtocolVersion;
 import com.dialoguebranch.web.service.QueryRunner;
-import com.dialoguebranch.web.service.auth.basic.BasicUserCredentials;
+import com.dialoguebranch.web.service.auth.AuthenticationInfo;
 import com.dialoguebranch.web.service.exception.BadRequestException;
 import com.dialoguebranch.web.service.exception.ErrorCode;
 import com.dialoguebranch.web.service.exception.HttpError;
@@ -68,6 +68,7 @@ import java.util.*;
  */
 @RestController
 @SecurityRequirement(name = "bearerAuth")
+@SecurityRequirement(name = "oauth2")
 @RequestMapping(value = {"/v{version}/variables", "/variables"})
 @Tag(name = "3. Variables", description = "End-points for retrieving or setting DialogueBranch " +
 		"Variables.")
@@ -165,11 +166,11 @@ public class VariablesController {
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
 				(protocolVersion, authenticatedUser) -> doGetVariables(authenticatedUser, variableNameList, timeZone),
-				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
+				version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_CLIENT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
 				(protocolVersion, authenticatedUser) -> doGetVariables(delegateUser, variableNameList, timeZone),
-				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
+				version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_CLIENT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 		}
 	}
 
@@ -305,11 +306,11 @@ public class VariablesController {
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			QueryRunner.runQuery((protocolVersion, authenticatedUser) ->
 				doSetVariable(authenticatedUser, name, value, timeZone),
-				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
+				version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_CLIENT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 		} else {
 			QueryRunner.runQuery((protocolVersion, authenticatedUser) ->
 				doSetVariable(delegateUser, name, value, timeZone),
-				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
+				version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_CLIENT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 		}
 	}
 
@@ -425,11 +426,11 @@ public class VariablesController {
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			QueryRunner.runQuery((protocolVersion, authenticatedUser) ->
 							doSetVariables(authenticatedUser, variables, timeZone),
-				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
+				version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_CLIENT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 		} else {
 			QueryRunner.runQuery((protocolVersion, authenticatedUser) ->
 							doSetVariables(delegateUser, variables, timeZone),
-				version, accessToken, response, delegateUser, application, BasicUserCredentials.USER_ROLE_CLIENT, BasicUserCredentials.USER_ROLE_EDITOR, BasicUserCredentials.USER_ROLE_ADMIN);
+				version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_CLIENT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 		}
 	}
 
