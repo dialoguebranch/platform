@@ -5,7 +5,7 @@
   "defaultSignatureAlgorithm": "RS256",
   "revokeRefreshToken": false,
   "refreshTokenMaxReuse": 0,
-  "accessTokenLifespan": 300,
+  "accessTokenLifespan": 3600,
   "accessTokenLifespanForImplicitFlow": 900,
   "ssoSessionIdleTimeout": 1800,
   "ssoSessionMaxLifespan": 36000,
@@ -635,7 +635,8 @@
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
-        "__WEB_CLIENT_REDIRECT_URI__"
+        "__WEB_CLIENT_REDIRECT_URI__",
+        "http://localhost:8089/dlb-web-service/swagger-ui/oauth2-redirect.html"
       ],
       "webOrigins": [
         "+"

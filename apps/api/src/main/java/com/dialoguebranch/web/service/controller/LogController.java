@@ -57,6 +57,7 @@ import java.util.List;
 */
 @RestController
 @SecurityRequirement(name = "bearerAuth")
+@SecurityRequirement(name = "oauth2")
 @RequestMapping(value = {"/v{version}/log", "/log"})
 @Tag(name = "4. Logging", description = "End-points for retrieving information about logged" +
 		" dialogues.")

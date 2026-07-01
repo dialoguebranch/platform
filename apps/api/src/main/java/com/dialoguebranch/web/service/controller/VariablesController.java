@@ -68,6 +68,7 @@ import java.util.*;
  */
 @RestController
 @SecurityRequirement(name = "bearerAuth")
+@SecurityRequirement(name = "oauth2")
 @RequestMapping(value = {"/v{version}/variables", "/variables"})
 @Tag(name = "3. Variables", description = "End-points for retrieving or setting DialogueBranch " +
 		"Variables.")

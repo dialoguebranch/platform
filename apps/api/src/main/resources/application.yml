@@ -58,6 +58,9 @@ springdoc:
   swagger-ui:
     operations-sorter: method
     tags-sorter: alpha
+    oauth:
+      client-id: dlb-web-service
+      use-pkce-with-authorization-code-grant: true
 
 # ----------------------------------------------------------------------------------
 # Dialogue Branch Web Service configuration (all properties under the "dlb" prefix).

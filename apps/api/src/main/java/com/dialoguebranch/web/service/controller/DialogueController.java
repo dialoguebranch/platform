@@ -85,6 +85,7 @@ import java.util.UUID;
  */
 @RestController
 @SecurityRequirement(name = "bearerAuth")
+@SecurityRequirement(name = "oauth2")
 @RequestMapping(value = {"/v{version}/dialogue", "/dialogue"})
 @Tag(name = "2. Dialogue", description = "End-points for starting and controlling the lifecycle " +
 		"of remotely executed dialogues.")

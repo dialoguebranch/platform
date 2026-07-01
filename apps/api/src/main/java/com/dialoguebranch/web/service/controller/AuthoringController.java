@@ -66,6 +66,7 @@ import java.util.UUID;
  */
 @RestController
 @SecurityRequirement(name = "bearerAuth")
+@SecurityRequirement(name = "oauth2")
 @RequestMapping(value = {"/v{version}/authoring", "/authoring"})
 @Tag(name = "6. Authoring", description = "End-points for managing projects, draft dialogues, " +
 		"and publishing validated project versions.")

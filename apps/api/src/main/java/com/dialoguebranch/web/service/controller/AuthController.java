@@ -96,6 +96,7 @@ public class AuthController {
 	 * @throws HttpException if the token is missing or invalid.
 	 */
 	@SecurityRequirement(name = "bearerAuth")
+	@SecurityRequirement(name = "oauth2")
 	@Operation(summary = "Log out the currently authenticated user.",
 		description = "Destroys the in-memory UserService for the authenticated user, releasing " +
 			"any associated dialogue state.")
@@ -153,6 +154,7 @@ public class AuthController {
 	 * @throws UnauthorizedException if the given authentication token is not (or no longer) valid.
 	 */
 	@SecurityRequirement(name = "bearerAuth")
+	@SecurityRequirement(name = "oauth2")
 	@Operation(summary = "Validate a given authentication token.",
 		description = "If your client application has a stored authentication token you may use" +
 			"this method to check whether or not that is a valid token. This method will either" +

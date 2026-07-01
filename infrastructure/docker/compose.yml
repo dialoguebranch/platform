@@ -100,6 +100,10 @@ services:
     container_name: dlb-dev-api
     environment:
       DLB_AUTH_KEYCLOAK_BASE_URL: http://keycloak:8080/
+      # Browser-facing Keycloak URL, used to build the OAuth2 authorize/token URLs shown in
+      # Swagger UI — differs from DLB_AUTH_KEYCLOAK_BASE_URL because the container-internal
+      # "keycloak" hostname above is not reachable from the developer's browser.
+      DLB_AUTH_KEYCLOAK_BROWSER_BASE_URL: http://localhost:8081/
       DLB_MARIADB_HOST: mariadb
       DLB_MARIADB_PASSWORD: dev
     ports:

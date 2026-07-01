@@ -55,7 +55,8 @@ the Authorization Code + PKCE flow.
 
 | Variable | Default | Required | Description |
 |---|---|---|---|
-| `DLB_AUTH_KEYCLOAK_BASE_URL` | `http://keycloak:8080/` | Yes | Base URL of your Keycloak instance |
+| `DLB_AUTH_KEYCLOAK_BASE_URL` | `http://keycloak:8080/` | Yes | Base URL this service itself uses to reach Keycloak (e.g. for JWKS validation) |
+| `DLB_AUTH_KEYCLOAK_BROWSER_BASE_URL` | same as `DLB_AUTH_KEYCLOAK_BASE_URL` | No | Base URL a user's browser can reach Keycloak at, used to build the OAuth2 URLs shown in Swagger UI. Only needed when it differs from `DLB_AUTH_KEYCLOAK_BASE_URL` (e.g. containerized deployments where Keycloak has a different internal vs. external hostname) |
 | `DLB_AUTH_KEYCLOAK_REALM` | `dialoguebranch` | Yes | Keycloak realm name |
 | `DLB_AUTH_KEYCLOAK_CLIENT_ID` | `dlb-web-service` | Yes | Keycloak client ID |
 

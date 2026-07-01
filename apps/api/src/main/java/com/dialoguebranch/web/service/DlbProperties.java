@@ -279,22 +279,44 @@ public class DlbProperties {
             public Keycloak() { }
 
             private String baseUrl = "http://keycloak:8080/";
+            private String browserBaseUrl = "";
             private String realm = "dialoguebranch";
             private String clientId = "dlb-web-service";
 
             /**
-             * Returns the Keycloak base URL.
+             * Returns the Keycloak base URL used by this service itself to reach Keycloak (e.g. for
+             * JWKS-based JWT validation). In containerized deployments this is often only reachable
+             * from within the server's own network (e.g. {@code http://keycloak:8080/}).
              *
              * @return the base URL.
              */
             public String getBaseUrl() { return baseUrl; }
 
             /**
-             * Sets the Keycloak base URL.
+             * Sets the Keycloak base URL used by this service itself to reach Keycloak.
              *
              * @param baseUrl the base URL.
              */
             public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
+
+            /**
+             * Returns the Keycloak base URL that a user's browser can reach, used to build the
+             * OAuth2 authorization/token URLs shown in Swagger UI. Falls back to {@link #getBaseUrl()}
+             * when not explicitly set, which is correct whenever the server and the browser can reach
+             * Keycloak at the same address (e.g. local, non-containerized development).
+             *
+             * @return the browser-facing base URL.
+             */
+            public String getBrowserBaseUrl() {
+                return browserBaseUrl.isEmpty() ? baseUrl : browserBaseUrl;
+            }
+
+            /**
+             * Sets the Keycloak base URL that a user's browser can reach.
+             *
+             * @param browserBaseUrl the browser-facing base URL.
+             */
+            public void setBrowserBaseUrl(String browserBaseUrl) { this.browserBaseUrl = browserBaseUrl; }
 
             /**
              * Returns the Keycloak realm name.
