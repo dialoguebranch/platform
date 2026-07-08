@@ -87,41 +87,27 @@ need to copy a token from anywhere.
 
 1. Open [Swagger UI](http://localhost:8089/dlb-web-service/swagger-ui.html).
 2. Click the **Authorize** button (padlock icon, top right).
-3. In the **oauth2** section, click **Authorize** — this opens a popup pointed at Keycloak's
+3. In the **oauth2** section, click **Authorize** – this opens a popup pointed at Keycloak's
    hosted login page. Sign in with `testuser` / `password`.
 4. After the popup closes, click **Close** on the Authorize dialog. Swagger UI now attaches the
    token to every "Try it out" call automatically.
 
 Local-dev access tokens last an hour (see `infrastructure/docker/import/dialoguebranch-realm.json`).
-If a request eventually returns 401, just click **Authorize** again to get a fresh token — no
+If a request eventually returns 401, just click **Authorize** again to get a fresh token – no
 manual copy/paste required.
-
-> **Using Bruno, Postman, or another API client instead?** Configure the request/collection auth
-> as **OAuth 2.0 → Authorization Code** with PKCE enabled, pointing at:
-> - Auth URL: `http://localhost:8081/realms/dialoguebranch/protocol/openid-connect/auth`
-> - Token URL: `http://localhost:8081/realms/dialoguebranch/protocol/openid-connect/token`
-> - Client ID: `dlb-web-service` (no client secret)
-> - Callback/redirect URL: whatever your client shows as its default (e.g. Bruno displays a
->   "Callback URL" field when you pick this grant type).
->
-> Keycloak only accepts redirects to URLs it knows about, so add that callback URL to the
-> `dlb-web-service` client's **Valid redirect URIs** first: Keycloak admin console → **dialoguebranch**
-> realm → **Clients → dlb-web-service → Settings → Access settings**, add the URL, and **Save**.
-> Once that's done, the client handles login and token refresh for you, the same way Swagger UI
-> does above.
 
 #### 3. Call an endpoint
 
 1. Expand the **Variables** section and click `GET /variables/get`.
 2. Click **Try it out**, set `timeZone` to your local time zone (e.g. `Europe/Amsterdam`), then click **Execute**.
-3. You should get a `200` response with an empty list — no variables stored yet.
+3. You should get a `200` response with an empty list – no variables stored yet.
 
 ## Individual Packages & Apps
 
-- **[packages/core](packages/core/README.md)** — Core Java library (Gradle)
-- **[apps/api](apps/api/README.md)** — Spring Boot REST API wrapping the core library (includes full deployment & Keycloak setup instructions)
-- **[apps/web](apps/web/README.md)** — Vue 3 / Vite front-end (`npm install && npm run dev`)
-- **[apps/mock-variable-service](apps/mock-variable-service/)** — Mock external variable service
+- **[packages/core](packages/core/README.md)** – Core Java library (Gradle)
+- **[apps/api](apps/api/README.md)** – Spring Boot REST API wrapping the core library (includes full deployment & Keycloak setup instructions)
+- **[apps/web](apps/web/README.md)** – Vue 3 / Vite front-end (`npm install && npm run dev`)
+- **[apps/mock-variable-service](apps/mock-variable-service/)** – Mock external variable service
 
 ## Contributing
 
