@@ -67,8 +67,7 @@ public class DBProject {
 	@JoinColumn(name = "latest_version_id")
 	private DBProjectVersion latestVersion;
 
-	@OneToMany(mappedBy = "project")
-	@JsonIgnore
+	@OneToMany(mappedBy = "project", fetch = FetchType.EAGER)
 	private Set<DBProjectLanguageMapping> languageMappings = new HashSet<>();
 
 	@OneToMany(mappedBy = "project")
