@@ -164,7 +164,9 @@ public class OpenApiSwaggerConfig {
 					"/v{version}/auth/*",
 					"/v{version}/log/*",
 					"/v{version}/admin/*",
-					"/v{version}/authoring/**")
+					"/v{version}/authoring/**",
+					"/v{version}/project/*",
+					"/v{version}/publish/*")
 			.build();
 	}
 

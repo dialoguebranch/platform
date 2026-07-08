@@ -74,7 +74,7 @@ export class DialogueBranchClient {
     }
 
     listProjects() {
-        const url = this._baseUrl + "/authoring/list-projects";
+        const url = this._baseUrl + "/project/list-projects";
 
         return this._fetch(url, {
             method: "GET",
@@ -87,7 +87,7 @@ export class DialogueBranchClient {
     }
 
     createProject(name, displayName, description) {
-        const url = this._baseUrl + "/authoring/create-project";
+        const url = this._baseUrl + "/project/create-project";
 
         return this._fetch(url, {
             method: "POST",
@@ -101,7 +101,7 @@ export class DialogueBranchClient {
     }
 
     getProject(projectName) {
-        const url = this._baseUrl + "/authoring/get-project?projectName=" + encodeURIComponent(projectName);
+        const url = this._baseUrl + "/project/get-project?projectName=" + encodeURIComponent(projectName);
 
         return this._fetch(url, {
             method: "GET",
@@ -110,7 +110,7 @@ export class DialogueBranchClient {
     }
 
     updateProject(projectName, displayName, description) {
-        const url = this._baseUrl + "/authoring/update-project?projectName=" + encodeURIComponent(projectName);
+        const url = this._baseUrl + "/project/update-project?projectName=" + encodeURIComponent(projectName);
 
         return this._fetch(url, {
             method: "POST",
@@ -120,7 +120,7 @@ export class DialogueBranchClient {
     }
 
     addLanguageMapping(projectName, sourceLanguageName, sourceLanguageCode, translationLanguageName, translationLanguageCode) {
-        const url = this._baseUrl + "/authoring/add-language-mapping?projectName=" + encodeURIComponent(projectName);
+        const url = this._baseUrl + "/project/add-language-mapping?projectName=" + encodeURIComponent(projectName);
 
         return this._fetch(url, {
             method: "POST",
@@ -130,7 +130,7 @@ export class DialogueBranchClient {
     }
 
     removeLanguageMapping(projectName, mappingId) {
-        const url = this._baseUrl + "/authoring/remove-language-mapping?projectName=" + encodeURIComponent(projectName) + "&mappingId=" + encodeURIComponent(mappingId);
+        const url = this._baseUrl + "/project/remove-language-mapping?projectName=" + encodeURIComponent(projectName) + "&mappingId=" + encodeURIComponent(mappingId);
 
         return this._fetch(url, {
             method: "POST",

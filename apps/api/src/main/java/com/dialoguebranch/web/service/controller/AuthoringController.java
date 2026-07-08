@@ -28,7 +28,6 @@
 
 package com.dialoguebranch.web.service.controller;
 
-import com.dialoguebranch.model.execute.Language;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.QueryRunner;
 import com.dialoguebranch.web.service.auth.AuthenticationInfo;
@@ -38,7 +37,6 @@ import com.dialoguebranch.web.service.exception.HttpException;
 import com.dialoguebranch.web.service.exception.NotFoundException;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
 import com.dialoguebranch.web.service.project.ProjectService;
-import com.dialoguebranch.web.service.project.PublishService;
 import com.dialoguebranch.web.service.storage.model.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -52,18 +50,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.UUID;
 
 /**
- * Controller for the {@code /authoring/...} end-points of the Dialogue Branch Web Service.
- * These end-points allow authorised users (with the {@code editor} or {@code admin} role) to
- * manage projects and draft dialogues, and to publish validated project versions that become
- * available to the execution engine.
+ * Controller for the {@code /authoring/...} end-points of the Dialogue Branch Web Service. These
+ * end-points allow authorised users (with the {@code editor} or {@code admin} role) to manage the
+ * draft dialogue content within a project — dialogues, their nodes, and their translations.
+ *
+ * <p>Project entity management (metadata, language mappings) lives in
+ * {@link ProjectController}; publishing a draft as a new version lives in
+ * {@link PublishController}.</p>
  *
  * <p>Following the convention used throughout the rest of this API, every end-point is a short,
- * fixed action name (e.g. {@code /create-project}) that takes its parameters as query parameters
+ * fixed action name (e.g. {@code /create-node}) that takes its parameters as query parameters
  * rather than as path variables, and only {@code GET} and {@code POST} are used.</p>
  *
  * @author Harm op den Akker
@@ -72,8 +71,8 @@ import java.util.UUID;
 @SecurityRequirement(name = "bearerAuth")
 @SecurityRequirement(name = "oauth2")
 @RequestMapping(value = {"/v{version}/authoring", "/authoring"})
-@Tag(name = "6. Authoring", description = "End-points for managing projects, draft dialogues, " +
-		"and publishing validated project versions.")
+@Tag(name = "7. Authoring", description = "End-points for managing draft dialogues, their " +
+		"nodes, and their translations.")
 public class AuthoringController {
 
 	@Autowired
@@ -81,180 +80,13 @@ public class AuthoringController {
 
 	private final ProjectService projectService;
 	private final DraftDialogueService draftDialogueService;
-	private final PublishService publishService;
 
 	private static final Logger logger = LoggerFactory.getLogger(AuthoringController.class);
 
 	public AuthoringController(ProjectService projectService,
-							   DraftDialogueService draftDialogueService,
-							   PublishService publishService) {
+							   DraftDialogueService draftDialogueService) {
 		this.projectService = projectService;
 		this.draftDialogueService = draftDialogueService;
-		this.publishService = publishService;
-	}
-
-	// ---------------------------------------------------------------- //
-	// -------------------- Project Management -------------------- //
-	// ---------------------------------------------------------------- //
-
-	@Operation(summary = "List all projects.")
-	@Parameter(name = "version", hidden = true)
-	@GetMapping("/list-projects")
-	public List<DBProject> listProjects(
-			HttpServletRequest request,
-			HttpServletResponse response,
-			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestHeader(value = "X-Auth-Token", required = false) String token
-	) throws HttpException {
-		return QueryRunner.runQuery(
-				(protocolVersion, user) -> {
-					logger.info("GET /v{}/authoring/list-projects [user: {}]", version, user);
-					return projectService.listProjects();
-				},
-				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
-	}
-
-	@Operation(summary = "Get a single project by name.")
-	@Parameter(name = "version", hidden = true)
-	@GetMapping("/get-project")
-	public DBProject getProject(
-			HttpServletRequest request,
-			HttpServletResponse response,
-			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName
-	) throws HttpException {
-		return QueryRunner.runQuery(
-				(protocolVersion, user) -> {
-					logger.info("GET /v{}/authoring/get-project [user: {}]", version, user);
-					return projectService.findByName(projectName)
-							.orElseThrow(() -> new NotFoundException(
-									"Project not found: " + projectName));
-				},
-				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
-	}
-
-	@Operation(summary = "Create a new project.")
-	@Parameter(name = "version", hidden = true)
-	@PostMapping("/create-project")
-	@ResponseStatus(HttpStatus.CREATED)
-	public DBProject createProject(
-			HttpServletRequest request,
-			HttpServletResponse response,
-			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestBody CreateProjectPayload payload
-	) throws HttpException {
-		return QueryRunner.runQuery(
-				(protocolVersion, user) -> {
-					logger.info("POST /v{}/authoring/create-project [user: {}]", version, user);
-					if (payload.getName() == null || payload.getName().isBlank())
-						throw new BadRequestException("Field 'name' is required.");
-					return projectService.createProject(payload.getName(),
-							payload.getDisplayName(), payload.getDescription());
-				},
-				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				AuthenticationInfo.USER_ROLE_ADMIN);
-	}
-
-	@Operation(summary = "Update a project's display name and description.")
-	@Parameter(name = "version", hidden = true)
-	@PostMapping("/update-project")
-	public DBProject updateProject(
-			HttpServletRequest request,
-			HttpServletResponse response,
-			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName,
-			@RequestBody UpdateProjectPayload payload
-	) throws HttpException {
-		return QueryRunner.runQuery(
-				(protocolVersion, user) -> {
-					logger.info("POST /v{}/authoring/update-project [user: {}]", version, user);
-					DBProject project = projectService.findByName(projectName)
-							.orElseThrow(() -> new NotFoundException(
-									"Project not found: " + projectName));
-					return projectService.updateProject(project, payload.getDisplayName(),
-							payload.getDescription());
-				},
-				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				AuthenticationInfo.USER_ROLE_ADMIN);
-	}
-
-	@Operation(summary = "Delete a project and all its data.")
-	@Parameter(name = "version", hidden = true)
-	@PostMapping("/delete-project")
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void deleteProject(
-			HttpServletRequest request,
-			HttpServletResponse response,
-			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName
-	) throws HttpException {
-		QueryRunner.runQuery(
-				(protocolVersion, user) -> {
-					logger.info("POST /v{}/authoring/delete-project [user: {}]", version, user);
-					DBProject project = projectService.findByName(projectName)
-							.orElseThrow(() -> new NotFoundException(
-									"Project not found: " + projectName));
-					projectService.deleteProject(project);
-					return null;
-				},
-				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				AuthenticationInfo.USER_ROLE_ADMIN);
-	}
-
-	// ------------------------------------------------------------------------ //
-	// -------------------- Language Mapping Management -------------------- //
-	// ------------------------------------------------------------------------ //
-
-	@Operation(summary = "Add a language mapping to a project.")
-	@Parameter(name = "version", hidden = true)
-	@PostMapping("/add-language-mapping")
-	@ResponseStatus(HttpStatus.CREATED)
-	public DBProjectLanguageMapping addLanguageMapping(
-			HttpServletRequest request,
-			HttpServletResponse response,
-			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName,
-			@RequestBody AddLanguageMappingPayload payload
-	) throws HttpException {
-		return QueryRunner.runQuery(
-				(protocolVersion, user) -> {
-					logger.info("POST /v{}/authoring/add-language-mapping [user: {}]", version,
-							user);
-					DBProject project = projectService.findByName(projectName)
-							.orElseThrow(() -> new NotFoundException(
-									"Project not found: " + projectName));
-					Language source = new Language(payload.getSourceLanguageName(),
-							payload.getSourceLanguageCode());
-					Language translation = new Language(payload.getTranslationLanguageName(),
-							payload.getTranslationLanguageCode());
-					return projectService.addLanguageMapping(project, source, translation);
-				},
-				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				AuthenticationInfo.USER_ROLE_ADMIN);
-	}
-
-	@Operation(summary = "Remove a language mapping from a project.")
-	@Parameter(name = "version", hidden = true)
-	@PostMapping("/remove-language-mapping")
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void removeLanguageMapping(
-			HttpServletRequest request,
-			HttpServletResponse response,
-			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName,
-			@RequestParam(value = "mappingId") UUID mappingId
-	) throws HttpException {
-		QueryRunner.runQuery(
-				(protocolVersion, user) -> {
-					logger.info("POST /v{}/authoring/remove-language-mapping [user: {}]",
-							version, user);
-					projectService.removeLanguageMapping(mappingId);
-					return null;
-				},
-				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 	// ------------------------------------------------------------------ //
@@ -526,56 +358,6 @@ public class AuthoringController {
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
-	}
-
-	// ------------------------------------------------------------ //
-	// -------------------- Publishing -------------------- //
-	// ------------------------------------------------------------ //
-
-	@Operation(summary = "List all published versions of a project.")
-	@Parameter(name = "version", hidden = true)
-	@GetMapping("/list-versions")
-	public List<DBProjectVersion> listVersions(
-			HttpServletRequest request,
-			HttpServletResponse response,
-			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName
-	) throws HttpException {
-		return QueryRunner.runQuery(
-				(protocolVersion, user) -> {
-					logger.info("GET /v{}/authoring/list-versions [user: {}]", version, user);
-					DBProject project = projectService.findByName(projectName)
-							.orElseThrow(() -> new NotFoundException(
-									"Project not found: " + projectName));
-					return publishService.listVersions(project);
-				},
-				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
-	}
-
-	@Operation(summary = "Validate and publish the current draft as a new project version.")
-	@Parameter(name = "version", hidden = true)
-	@PostMapping("/publish")
-	public PublishService.PublishResult publish(
-			HttpServletRequest request,
-			HttpServletResponse response,
-			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName
-	) throws HttpException {
-		return QueryRunner.runQuery(
-				(protocolVersion, user) -> {
-					logger.info("POST /v{}/authoring/publish [user: {}]", version, user);
-					DBProject project = projectService.findByName(projectName)
-							.orElseThrow(() -> new NotFoundException(
-									"Project not found: " + projectName));
-					try {
-						return publishService.publish(project, null);
-					} catch (IOException e) {
-						throw new RuntimeException(e);
-					}
-				},
-				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 }
