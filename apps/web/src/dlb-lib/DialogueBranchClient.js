@@ -74,7 +74,7 @@ export class DialogueBranchClient {
     }
 
     listProjects() {
-        const url = this._baseUrl + "/authoring/project";
+        const url = this._baseUrl + "/authoring/list-projects";
 
         return this._fetch(url, {
             method: "GET",
@@ -87,7 +87,7 @@ export class DialogueBranchClient {
     }
 
     createProject(name, displayName, description) {
-        const url = this._baseUrl + "/authoring/project";
+        const url = this._baseUrl + "/authoring/create-project";
 
         return this._fetch(url, {
             method: "POST",
@@ -101,22 +101,28 @@ export class DialogueBranchClient {
     }
 
     getProject(projectName) {
-        return this._fetch(this._baseUrl + "/authoring/project/" + encodeURIComponent(projectName), {
+        const url = this._baseUrl + "/authoring/get-project?projectName=" + encodeURIComponent(projectName);
+
+        return this._fetch(url, {
             method: "GET",
             headers: { 'Authorization': 'Bearer ' + this._accessToken, "Content-Type": "application/json" },
         }).then((response) => this._handleResponse(response));
     }
 
     updateProject(projectName, displayName, description) {
-        return this._fetch(this._baseUrl + "/authoring/project/" + encodeURIComponent(projectName), {
-            method: "PUT",
+        const url = this._baseUrl + "/authoring/update-project?projectName=" + encodeURIComponent(projectName);
+
+        return this._fetch(url, {
+            method: "POST",
             headers: { 'Authorization': 'Bearer ' + this._accessToken, "Content-Type": "application/json" },
             body: JSON.stringify({ displayName, description }),
         }).then((response) => this._handleResponse(response));
     }
 
     addLanguageMapping(projectName, sourceLanguageName, sourceLanguageCode, translationLanguageName, translationLanguageCode) {
-        return this._fetch(this._baseUrl + "/authoring/project/" + encodeURIComponent(projectName) + "/language-mapping", {
+        const url = this._baseUrl + "/authoring/add-language-mapping?projectName=" + encodeURIComponent(projectName);
+
+        return this._fetch(url, {
             method: "POST",
             headers: { 'Authorization': 'Bearer ' + this._accessToken, "Content-Type": "application/json" },
             body: JSON.stringify({ sourceLanguageName, sourceLanguageCode, translationLanguageName, translationLanguageCode }),
@@ -124,8 +130,10 @@ export class DialogueBranchClient {
     }
 
     removeLanguageMapping(projectName, mappingId) {
-        return this._fetch(this._baseUrl + "/authoring/project/" + encodeURIComponent(projectName) + "/language-mapping/" + mappingId, {
-            method: "DELETE",
+        const url = this._baseUrl + "/authoring/remove-language-mapping?projectName=" + encodeURIComponent(projectName) + "&mappingId=" + encodeURIComponent(mappingId);
+
+        return this._fetch(url, {
+            method: "POST",
             headers: { 'Authorization': 'Bearer ' + this._accessToken },
         }).then((response) => { if (!response.ok) return Promise.reject(response); });
     }

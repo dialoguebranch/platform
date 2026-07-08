@@ -62,6 +62,10 @@ import java.util.UUID;
  * manage projects and draft dialogues, and to publish validated project versions that become
  * available to the execution engine.
  *
+ * <p>Following the convention used throughout the rest of this API, every end-point is a short,
+ * fixed action name (e.g. {@code /create-project}) that takes its parameters as query parameters
+ * rather than as path variables, and only {@code GET} and {@code POST} are used.</p>
+ *
  * @author Harm op den Akker
  */
 @RestController
@@ -95,7 +99,7 @@ public class AuthoringController {
 
 	@Operation(summary = "List all projects.")
 	@Parameter(name = "version", hidden = true)
-	@GetMapping("/project")
+	@GetMapping("/list-projects")
 	public List<DBProject> listProjects(
 			HttpServletRequest request,
 			HttpServletResponse response,
@@ -104,7 +108,7 @@ public class AuthoringController {
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info("GET /v{}/authoring/project [user: {}]", version, user);
+					logger.info("GET /v{}/authoring/list-projects [user: {}]", version, user);
 					return projectService.listProjects();
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
@@ -113,17 +117,16 @@ public class AuthoringController {
 
 	@Operation(summary = "Get a single project by name.")
 	@Parameter(name = "version", hidden = true)
-	@GetMapping("/project/{projectName}")
+	@GetMapping("/get-project")
 	public DBProject getProject(
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@PathVariable String projectName
+			@RequestParam(value = "projectName") String projectName
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info("GET /v{}/authoring/project/{} [user: {}]", version, projectName,
-							user);
+					logger.info("GET /v{}/authoring/get-project [user: {}]", version, user);
 					return projectService.findByName(projectName)
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectName));
@@ -134,7 +137,7 @@ public class AuthoringController {
 
 	@Operation(summary = "Create a new project.")
 	@Parameter(name = "version", hidden = true)
-	@PostMapping("/project")
+	@PostMapping("/create-project")
 	@ResponseStatus(HttpStatus.CREATED)
 	public DBProject createProject(
 			HttpServletRequest request,
@@ -144,7 +147,7 @@ public class AuthoringController {
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info("POST /v{}/authoring/project [user: {}]", version, user);
+					logger.info("POST /v{}/authoring/create-project [user: {}]", version, user);
 					if (payload.getName() == null || payload.getName().isBlank())
 						throw new BadRequestException("Field 'name' is required.");
 					return projectService.createProject(payload.getName(),
@@ -156,18 +159,17 @@ public class AuthoringController {
 
 	@Operation(summary = "Update a project's display name and description.")
 	@Parameter(name = "version", hidden = true)
-	@PutMapping("/project/{projectName}")
+	@PostMapping("/update-project")
 	public DBProject updateProject(
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@PathVariable String projectName,
+			@RequestParam(value = "projectName") String projectName,
 			@RequestBody UpdateProjectPayload payload
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info("PUT /v{}/authoring/project/{} [user: {}]", version, projectName,
-							user);
+					logger.info("POST /v{}/authoring/update-project [user: {}]", version, user);
 					DBProject project = projectService.findByName(projectName)
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectName));
@@ -180,18 +182,17 @@ public class AuthoringController {
 
 	@Operation(summary = "Delete a project and all its data.")
 	@Parameter(name = "version", hidden = true)
-	@DeleteMapping("/project/{projectName}")
+	@PostMapping("/delete-project")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void deleteProject(
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@PathVariable String projectName
+			@RequestParam(value = "projectName") String projectName
 	) throws HttpException {
 		QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info("DELETE /v{}/authoring/project/{} [user: {}]", version,
-							projectName, user);
+					logger.info("POST /v{}/authoring/delete-project [user: {}]", version, user);
 					DBProject project = projectService.findByName(projectName)
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectName));
@@ -208,19 +209,19 @@ public class AuthoringController {
 
 	@Operation(summary = "Add a language mapping to a project.")
 	@Parameter(name = "version", hidden = true)
-	@PostMapping("/project/{projectName}/language-mapping")
+	@PostMapping("/add-language-mapping")
 	@ResponseStatus(HttpStatus.CREATED)
 	public DBProjectLanguageMapping addLanguageMapping(
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@PathVariable String projectName,
+			@RequestParam(value = "projectName") String projectName,
 			@RequestBody AddLanguageMappingPayload payload
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info("POST /v{}/authoring/project/{}/language-mapping [user: {}]",
-							version, projectName, user);
+					logger.info("POST /v{}/authoring/add-language-mapping [user: {}]", version,
+							user);
 					DBProject project = projectService.findByName(projectName)
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectName));
@@ -236,20 +237,19 @@ public class AuthoringController {
 
 	@Operation(summary = "Remove a language mapping from a project.")
 	@Parameter(name = "version", hidden = true)
-	@DeleteMapping("/project/{projectName}/language-mapping/{mappingId}")
+	@PostMapping("/remove-language-mapping")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void removeLanguageMapping(
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@PathVariable String projectName,
-			@PathVariable UUID mappingId
+			@RequestParam(value = "projectName") String projectName,
+			@RequestParam(value = "mappingId") UUID mappingId
 	) throws HttpException {
 		QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info(
-							"DELETE /v{}/authoring/project/{}/language-mapping/{} [user: {}]",
-							version, projectName, mappingId, user);
+					logger.info("POST /v{}/authoring/remove-language-mapping [user: {}]",
+							version, user);
 					projectService.removeLanguageMapping(mappingId);
 					return null;
 				},
@@ -263,17 +263,16 @@ public class AuthoringController {
 
 	@Operation(summary = "List all draft dialogues in a project.")
 	@Parameter(name = "version", hidden = true)
-	@GetMapping("/project/{projectName}/dialogue")
+	@GetMapping("/list-dialogues")
 	public List<DBDraftDialogue> listDialogues(
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@PathVariable String projectName
+			@RequestParam(value = "projectName") String projectName
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info("GET /v{}/authoring/project/{}/dialogue [user: {}]", version,
-							projectName, user);
+					logger.info("GET /v{}/authoring/list-dialogues [user: {}]", version, user);
 					DBProject project = projectService.findByName(projectName)
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectName));
@@ -285,19 +284,18 @@ public class AuthoringController {
 
 	@Operation(summary = "Create a new draft dialogue in a project.")
 	@Parameter(name = "version", hidden = true)
-	@PostMapping("/project/{projectName}/dialogue")
+	@PostMapping("/create-dialogue")
 	@ResponseStatus(HttpStatus.CREATED)
 	public DBDraftDialogue createDialogue(
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@PathVariable String projectName,
+			@RequestParam(value = "projectName") String projectName,
 			@RequestBody CreateDialoguePayload payload
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info("POST /v{}/authoring/project/{}/dialogue [user: {}]", version,
-							projectName, user);
+					logger.info("POST /v{}/authoring/create-dialogue [user: {}]", version, user);
 					if (payload.getName() == null || payload.getName().isBlank())
 						throw new BadRequestException("Field 'name' is required.");
 					DBProject project = projectService.findByName(projectName)
@@ -311,19 +309,18 @@ public class AuthoringController {
 
 	@Operation(summary = "Delete a draft dialogue and all its nodes and translations.")
 	@Parameter(name = "version", hidden = true)
-	@DeleteMapping("/project/{projectName}/dialogue/{dialogueName}")
+	@PostMapping("/delete-dialogue")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void deleteDialogue(
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@PathVariable String projectName,
-			@PathVariable String dialogueName
+			@RequestParam(value = "projectName") String projectName,
+			@RequestParam(value = "dialogueName") String dialogueName
 	) throws HttpException {
 		QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info("DELETE /v{}/authoring/project/{}/dialogue/{} [user: {}]",
-							version, projectName, dialogueName, user);
+					logger.info("POST /v{}/authoring/delete-dialogue [user: {}]", version, user);
 					DBProject project = projectService.findByName(projectName)
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectName));
@@ -344,18 +341,17 @@ public class AuthoringController {
 
 	@Operation(summary = "List all nodes in a draft dialogue.")
 	@Parameter(name = "version", hidden = true)
-	@GetMapping("/project/{projectName}/dialogue/{dialogueName}/node")
+	@GetMapping("/list-nodes")
 	public List<DBDraftNode> listNodes(
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@PathVariable String projectName,
-			@PathVariable String dialogueName
+			@RequestParam(value = "projectName") String projectName,
+			@RequestParam(value = "dialogueName") String dialogueName
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info("GET /v{}/authoring/project/{}/dialogue/{}/node [user: {}]",
-							version, projectName, dialogueName, user);
+					logger.info("GET /v{}/authoring/list-nodes [user: {}]", version, user);
 					DBProject project = projectService.findByName(projectName)
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectName));
@@ -371,20 +367,19 @@ public class AuthoringController {
 
 	@Operation(summary = "Create a new node in a draft dialogue.")
 	@Parameter(name = "version", hidden = true)
-	@PostMapping("/project/{projectName}/dialogue/{dialogueName}/node")
+	@PostMapping("/create-node")
 	@ResponseStatus(HttpStatus.CREATED)
 	public DBDraftNode createNode(
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@PathVariable String projectName,
-			@PathVariable String dialogueName,
+			@RequestParam(value = "projectName") String projectName,
+			@RequestParam(value = "dialogueName") String dialogueName,
 			@RequestBody CreateNodePayload payload
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info("POST /v{}/authoring/project/{}/dialogue/{}/node [user: {}]",
-							version, projectName, dialogueName, user);
+					logger.info("POST /v{}/authoring/create-node [user: {}]", version, user);
 					if (payload.getTitle() == null || payload.getTitle().isBlank())
 						throw new BadRequestException("Field 'title' is required.");
 					DBProject project = projectService.findByName(projectName)
@@ -403,21 +398,19 @@ public class AuthoringController {
 
 	@Operation(summary = "Update the header and body of a draft node.")
 	@Parameter(name = "version", hidden = true)
-	@PutMapping("/project/{projectName}/dialogue/{dialogueName}/node/{nodeTitle}")
+	@PostMapping("/update-node")
 	public DBDraftNode updateNode(
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@PathVariable String projectName,
-			@PathVariable String dialogueName,
-			@PathVariable String nodeTitle,
+			@RequestParam(value = "projectName") String projectName,
+			@RequestParam(value = "dialogueName") String dialogueName,
+			@RequestParam(value = "nodeTitle") String nodeTitle,
 			@RequestBody UpdateNodePayload payload
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info(
-							"PUT /v{}/authoring/project/{}/dialogue/{}/node/{} [user: {}]",
-							version, projectName, dialogueName, nodeTitle, user);
+					logger.info("POST /v{}/authoring/update-node [user: {}]", version, user);
 					DBProject project = projectService.findByName(projectName)
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectName));
@@ -437,21 +430,19 @@ public class AuthoringController {
 
 	@Operation(summary = "Delete a node from a draft dialogue.")
 	@Parameter(name = "version", hidden = true)
-	@DeleteMapping("/project/{projectName}/dialogue/{dialogueName}/node/{nodeTitle}")
+	@PostMapping("/delete-node")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void deleteNode(
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@PathVariable String projectName,
-			@PathVariable String dialogueName,
-			@PathVariable String nodeTitle
+			@RequestParam(value = "projectName") String projectName,
+			@RequestParam(value = "dialogueName") String dialogueName,
+			@RequestParam(value = "nodeTitle") String nodeTitle
 	) throws HttpException {
 		QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info(
-							"DELETE /v{}/authoring/project/{}/dialogue/{}/node/{} [user: {}]",
-							version, projectName, dialogueName, nodeTitle, user);
+					logger.info("POST /v{}/authoring/delete-node [user: {}]", version, user);
 					DBProject project = projectService.findByName(projectName)
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectName));
@@ -475,21 +466,20 @@ public class AuthoringController {
 
 	@Operation(summary = "Create or update a translation for a draft dialogue.")
 	@Parameter(name = "version", hidden = true)
-	@PutMapping("/project/{projectName}/dialogue/{dialogueName}/translation/{language}")
+	@PostMapping("/update-translation")
 	public DBDraftTranslation updateTranslation(
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@PathVariable String projectName,
-			@PathVariable String dialogueName,
-			@PathVariable String language,
+			@RequestParam(value = "projectName") String projectName,
+			@RequestParam(value = "dialogueName") String dialogueName,
+			@RequestParam(value = "language") String language,
 			@RequestBody UpdateTranslationPayload payload
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info(
-							"PUT /v{}/authoring/project/{}/dialogue/{}/translation/{} [user: {}]",
-							version, projectName, dialogueName, language, user);
+					logger.info("POST /v{}/authoring/update-translation [user: {}]", version,
+							user);
 					DBProject project = projectService.findByName(projectName)
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectName));
@@ -506,21 +496,20 @@ public class AuthoringController {
 
 	@Operation(summary = "Delete a translation from a draft dialogue.")
 	@Parameter(name = "version", hidden = true)
-	@DeleteMapping("/project/{projectName}/dialogue/{dialogueName}/translation/{language}")
+	@PostMapping("/delete-translation")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void deleteTranslation(
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@PathVariable String projectName,
-			@PathVariable String dialogueName,
-			@PathVariable String language
+			@RequestParam(value = "projectName") String projectName,
+			@RequestParam(value = "dialogueName") String dialogueName,
+			@RequestParam(value = "language") String language
 	) throws HttpException {
 		QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info(
-							"DELETE /v{}/authoring/project/{}/dialogue/{}/translation/{} [user: {}]",
-							version, projectName, dialogueName, language, user);
+					logger.info("POST /v{}/authoring/delete-translation [user: {}]", version,
+							user);
 					DBProject project = projectService.findByName(projectName)
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectName));
@@ -545,17 +534,16 @@ public class AuthoringController {
 
 	@Operation(summary = "List all published versions of a project.")
 	@Parameter(name = "version", hidden = true)
-	@GetMapping("/project/{projectName}/versions")
+	@GetMapping("/list-versions")
 	public List<DBProjectVersion> listVersions(
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@PathVariable String projectName
+			@RequestParam(value = "projectName") String projectName
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info("GET /v{}/authoring/project/{}/versions [user: {}]", version,
-							projectName, user);
+					logger.info("GET /v{}/authoring/list-versions [user: {}]", version, user);
 					DBProject project = projectService.findByName(projectName)
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectName));
@@ -567,17 +555,16 @@ public class AuthoringController {
 
 	@Operation(summary = "Validate and publish the current draft as a new project version.")
 	@Parameter(name = "version", hidden = true)
-	@PostMapping("/project/{projectName}/publish")
+	@PostMapping("/publish")
 	public PublishService.PublishResult publish(
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@PathVariable String projectName
+			@RequestParam(value = "projectName") String projectName
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info("POST /v{}/authoring/project/{}/publish [user: {}]", version,
-							projectName, user);
+					logger.info("POST /v{}/authoring/publish [user: {}]", version, user);
 					DBProject project = projectService.findByName(projectName)
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectName));
