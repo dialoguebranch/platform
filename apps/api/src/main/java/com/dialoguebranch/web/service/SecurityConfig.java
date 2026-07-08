@@ -28,7 +28,6 @@
 
 package com.dialoguebranch.web.service;
 
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -36,7 +35,6 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -84,7 +82,6 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .oauth2ResourceServer(oauth2 -> oauth2
-                .bearerTokenResolver(new XAuthTokenBearerTokenResolver())
                 .jwt(jwt -> {})
             );
 
@@ -109,25 +106,11 @@ public class SecurityConfig {
         config.setAllowedMethods(List.of("GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of(
             "Authorization", "Content-Type", "Accept", "Accept-Language",
-            "X-Requested-With", "X-Auth-Token", "ngrok-skip-browser-warning", "User-Agent"
+            "X-Requested-With", "ngrok-skip-browser-warning", "User-Agent"
         ));
         config.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
-    }
-
-    private static class XAuthTokenBearerTokenResolver implements BearerTokenResolver {
-        @Override
-        public String resolve(HttpServletRequest request) {
-            String token = request.getHeader("X-Auth-Token");
-            if (token != null && !token.isBlank()) return token;
-            String auth = request.getHeader("Authorization");
-            if (auth != null && auth.startsWith("Bearer ")) {
-                String stripped = auth.substring(7);
-                if (!stripped.isBlank()) return stripped;
-            }
-            return null;
-        }
     }
 }

@@ -95,8 +95,7 @@ public class ProjectController {
 	public List<DBProject> listProjects(
 			HttpServletRequest request,
 			HttpServletResponse response,
-			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestHeader(value = "X-Auth-Token", required = false) String token
+			@Parameter(hidden = true) @PathVariable(value = "version") String version
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
