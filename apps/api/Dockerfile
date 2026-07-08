@@ -30,7 +30,7 @@ RUN ./gradlew clean build -x test -PbuildEnv=dev --no-daemon
 # -------------------- Stage 2: Runtime -------------------- #
 # ---------------------------------------------------------- #
 
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:17-jre
 
 # The HTTP port Spring Boot listens on inside the container (default: 8089).
 # Override with -e SERVER_PORT=... or in docker-compose.yml.
