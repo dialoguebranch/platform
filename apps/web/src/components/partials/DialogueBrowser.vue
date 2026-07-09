@@ -20,6 +20,7 @@ const props = defineProps({
 
 const emit = defineEmits([
     'selectDialogue',
+    'testDraftDialogue',
     'resumeDialogue',
     'activateTab',
 ]);
@@ -31,25 +32,38 @@ const openFolders = ref({});
 const ongoingConfirm = ref(null); // { dialogueName, loggedDialogueId, secondsSinceLastEngagement, alreadyOpenTabId? }
 const cancelConfirm = ref(false);
 
-function buildTree(names) {
+// entries: array of { name, isPublished, isDraft }
+function buildTree(entries) {
     const root = {};
-    for (const name of names) {
-        const parts = name.split('/');
+    for (const entry of entries) {
+        const parts = entry.name.split('/');
         let node = root;
         for (let i = 0; i < parts.length - 1; i++) {
             if (!node[parts[i]]) node[parts[i]] = { _children: {} };
             node = node[parts[i]]._children;
         }
         const leaf = parts[parts.length - 1];
-        node[leaf] = { _file: name };
+        node[leaf] = { _file: entry.name, _isPublished: entry.isPublished, _isDraft: entry.isDraft };
     }
     return root;
 }
 
 function listDialogues() {
-    client.listDialogues(state.value.selectedProject?.slug)
-    .then((json) => {
-        const root = buildTree(json.dialogueNames);
+    const projectSlug = state.value.selectedProject?.slug;
+    Promise.all([
+        client.listDialogues(projectSlug).catch(() => ({ dialogueNames: [] })),
+        client.listDraftDialogues(projectSlug).catch(() => []),
+    ])
+    .then(([published, drafts]) => {
+        const publishedNames = new Set(published.dialogueNames ?? []);
+        const draftNames = new Set((drafts ?? []).map((d) => d.name));
+        const allNames = new Set([...publishedNames, ...draftNames]);
+        const entries = [...allNames].map((name) => ({
+            name,
+            isPublished: publishedNames.has(name),
+            isDraft: draftNames.has(name),
+        }));
+        const root = buildTree(entries);
         tree.value = Object.entries(root).sort(([, a], [, b]) => {
             const aIsFolder = !a._file;
             const bIsFolder = !b._file;
@@ -140,6 +154,7 @@ listDialogues();
                 :openFolders="openFolders"
                 @toggleFolder="toggleFolder"
                 @selectDialogue="$emit('selectDialogue', $event)"
+                @testDraftDialogue="$emit('testDraftDialogue', $event)"
             />
         </MainPagePanelContainer>
     </div>

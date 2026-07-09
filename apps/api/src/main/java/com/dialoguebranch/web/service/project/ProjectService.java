@@ -31,9 +31,11 @@ package com.dialoguebranch.web.service.project;
 import com.dialoguebranch.model.execute.Language;
 import com.dialoguebranch.model.execute.LanguageMap;
 import com.dialoguebranch.model.execute.LanguageSet;
+import com.dialoguebranch.model.execute.NodeHeader;
 import com.dialoguebranch.web.service.repository.DBLanguageSetRepository;
 import com.dialoguebranch.web.service.repository.DBProjectLanguageMappingRepository;
 import com.dialoguebranch.web.service.repository.DBProjectRepository;
+import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
 import com.dialoguebranch.web.service.storage.model.DBLanguageSet;
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import com.dialoguebranch.web.service.storage.model.DBProjectLanguageMapping;
@@ -58,16 +60,24 @@ import java.util.UUID;
 @Service
 public class ProjectService {
 
+	private static final String DEFAULT_DIALOGUE_NAME = "default";
+	private static final String DEFAULT_NODE_TITLE = "Start";
+	private static final String DEFAULT_NODE_SPEAKER = "Agent";
+	private static final String DEFAULT_NODE_BODY = "Start your dialogue here...";
+
 	private final DBProjectRepository projectRepository;
 	private final DBProjectLanguageMappingRepository languageMappingRepository;
 	private final DBLanguageSetRepository languageSetRepository;
+	private final DraftDialogueService draftDialogueService;
 
 	public ProjectService(DBProjectRepository projectRepository,
 						  DBProjectLanguageMappingRepository languageMappingRepository,
-						  DBLanguageSetRepository languageSetRepository) {
+						  DBLanguageSetRepository languageSetRepository,
+						  DraftDialogueService draftDialogueService) {
 		this.projectRepository = projectRepository;
 		this.languageMappingRepository = languageMappingRepository;
 		this.languageSetRepository = languageSetRepository;
+		this.draftDialogueService = draftDialogueService;
 	}
 
 	// ------------------------------------------------------------ //
@@ -131,6 +141,9 @@ public class ProjectService {
 	 * is immediately marked as the project's default language set. A project always has exactly
 	 * one default language set among one or more defined language sets.
 	 *
+	 * <p>Also creates a starter draft dialogue named {@code "default"} with a single
+	 * {@code "Start"} node, so every new project has something to run immediately.</p>
+	 *
 	 * @param slug                   the unique project slug.
 	 * @param displayName            the human-readable display name.
 	 * @param description            the project description.
@@ -151,7 +164,14 @@ public class ProjectService {
 
 		project.setDefaultLanguageSet(languageSet);
 		project.setUpdatedAt(Instant.now());
-		return projectRepository.save(project);
+		project = projectRepository.save(project);
+
+		DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, DEFAULT_DIALOGUE_NAME);
+		NodeHeader header = new NodeHeader(DEFAULT_NODE_TITLE);
+		header.setSpeaker(DEFAULT_NODE_SPEAKER);
+		draftDialogueService.createNode(dialogue, DEFAULT_NODE_TITLE, header.toString(), DEFAULT_NODE_BODY);
+
+		return project;
 	}
 
 	/**

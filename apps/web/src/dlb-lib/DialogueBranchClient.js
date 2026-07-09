@@ -232,6 +232,90 @@ export class DialogueBranchClient {
         .then((response) => this._handleResponse(response));
     }
 
+    // -----------------------------------------------------------------
+    // ---------- Draft dialogue test-execution (ephemeral) ----------
+    // -----------------------------------------------------------------
+
+    listDraftDialogues(projectSlug) {
+        const url = this._baseUrl + "/authoring/list-dialogues?projectSlug=" + encodeURIComponent(projectSlug);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            }
+        })
+        .then((response) => this._handleResponse(response));
+    }
+
+    startDraftDialogue(projectSlug, dialogueName, language) {
+        let url = this._baseUrl + "/draft/start";
+
+        url += "?projectSlug=" + encodeURIComponent(projectSlug);
+        url += "&dialogueName=" + encodeURIComponent(dialogueName);
+        url += "&language=" + language;
+        url += "&timeZone=" + this._timeZone;
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            }
+        })
+        .then((response) => this._handleResponse(response))
+        .then((json) => ({
+            draftSessionId: json.draftSessionId,
+            dialogueStep: this.createDialogueStepObject(json.dialogueMessage),
+        }));
+    }
+
+    progressDraftDialogue(draftSessionId, replyId) {
+        let url = this._baseUrl + "/draft/progress";
+
+        url += "?draftSessionId=" + draftSessionId;
+        url += "&replyId=" + replyId;
+        url += "&timeZone=" + this._timeZone;
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            }
+        })
+        .then((response) => this._handleResponse(response))
+        .then((json) => json.value ? this.createDialogueStepObject(json.value) : null);
+    }
+
+    cancelDraftDialogue(draftSessionId) {
+        const url = this._baseUrl + "/draft/cancel?draftSessionId=" + draftSessionId;
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            }
+        })
+        .then((response) => this._handleResponse(response));
+    }
+
+    revertDraftVariables(draftSessionId) {
+        let url = this._baseUrl + "/draft/revert-variables?draftSessionId=" + draftSessionId;
+        url += "&timeZone=" + this._timeZone;
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            }
+        })
+        .then((response) => this._handleResponse(response));
+    }
+
     getVariables() {
         var url = this._baseUrl + "/variables/get";
 

@@ -13,7 +13,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['toggleFolder', 'selectDialogue']);
+const emit = defineEmits(['toggleFolder', 'selectDialogue', 'testDraftDialogue']);
 
 const isFile = computed(() => !!props.node._file);
 const isOpen = computed(() => !!props.openFolders[props.path]);
@@ -53,18 +53,39 @@ const children = computed(() => {
                 :depth="depth + 1"
                 @toggleFolder="$emit('toggleFolder', $event)"
                 @selectDialogue="$emit('selectDialogue', $event)"
+                @testDraftDialogue="$emit('testDraftDialogue', $event)"
             />
         </template>
 
         <!-- File -->
         <div
             v-if="isFile"
-            class="cursor-pointer flex items-center gap-1 font-title font-black text-xs p-1 text-orange-darker hover:text-orange-dark"
+            class="flex items-center gap-1.5 font-title font-black text-xs p-1"
             :style="{ paddingLeft: (depth * 12 + 4) + 'px' }"
-            @click="$emit('selectDialogue', node._file)"
         >
-            <FontAwesomeIcon icon="fa-solid fa-circle-play" class="w-3.5" />
-            <span>{{ name }}</span>
+            <span class="flex-1 min-w-0 truncate text-orange-darker">{{ name }}</span>
+            <span
+                v-if="node._isDraft && !node._isPublished"
+                class="shrink-0 font-title text-[9px] font-semibold uppercase text-grey-dark bg-grey-lighter px-1 py-0.5 rounded"
+            >Draft</span>
+            <button
+                v-if="node._isPublished"
+                type="button"
+                title="Run published dialogue"
+                class="shrink-0 cursor-pointer text-orange-darker hover:text-orange-dark"
+                @click="$emit('selectDialogue', node._file)"
+            >
+                <FontAwesomeIcon icon="fa-solid fa-circle-play" class="w-3.5" />
+            </button>
+            <button
+                v-if="node._isDraft"
+                type="button"
+                title="Test draft dialogue (ephemeral — not saved to dialogue history)"
+                class="shrink-0 cursor-pointer text-grey-dark hover:text-orange-dark"
+                @click="$emit('testDraftDialogue', node._file)"
+            >
+                <FontAwesomeIcon icon="fa-solid fa-flask" class="w-3.5" />
+            </button>
         </div>
     </div>
 </template>

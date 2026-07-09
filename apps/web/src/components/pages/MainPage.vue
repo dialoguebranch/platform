@@ -153,6 +153,11 @@ function onSelectDialogue(dialogueName) {
     interactionTester.value.loadDialogue(dialogueName);
 }
 
+function onTestDraftDialogue(dialogueName) {
+    panels.value.selectMobileTab(1);
+    interactionTester.value.loadDraftDialogue(dialogueName);
+}
+
 function onResumeDialogue(dialogueName) {
     panels.value.selectMobileTab(1);
     interactionTester.value.resumeDialogue(dialogueName);
@@ -295,7 +300,7 @@ function onResizePanels() {
             @resize="onResizePanels()"
         >
             <template #left>
-                <DialogueBrowser class="grow" :openTabs="interactionTester?.tabs ?? []" @selectDialogue="onSelectDialogue" @resumeDialogue="onResumeDialogue" @activateTab="onActivateTab" />
+                <DialogueBrowser class="grow" :openTabs="interactionTester?.tabs ?? []" @selectDialogue="onSelectDialogue" @testDraftDialogue="onTestDraftDialogue" @resumeDialogue="onResumeDialogue" @activateTab="onActivateTab" />
             </template>
             <template #main>
                 <InteractionTester ref="interaction-tester" class="grow" @newDialogueStep="onNewDialogueStep" />

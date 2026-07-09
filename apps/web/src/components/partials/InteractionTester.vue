@@ -43,6 +43,8 @@ function createTab() {
         dialogueSteps: [],
         dialogueEnded: false,
         dialogueCancelled: false,
+        isDraftTest: false,
+        draftSessionId: null,
     };
 }
 
@@ -91,6 +93,10 @@ function doCloseTab(id) {
 
 function cancelAndCloseTab(id) {
     const tab = tabs.value.find(t => t.id === id);
+    if (tab?.isDraftTest && tab.draftSessionId) {
+        client.cancelDraftDialogue(tab.draftSessionId).finally(() => doCloseTab(id));
+        return;
+    }
     const lastStep = tab?.dialogueSteps[tab.dialogueSteps.length - 1];
     if (lastStep) {
         client.cancelDialogue(lastStep.loggedDialogueId).finally(() => doCloseTab(id));
@@ -121,6 +127,8 @@ const loadDialogue = (name) => {
     tab.dialogueSteps = [];
     tab.dialogueEnded = false;
     tab.dialogueCancelled = false;
+    tab.isDraftTest = false;
+    tab.draftSessionId = null;
     scrollActiveTabIntoView();
     logEvent('dialogue', 'Dialogue started: $1', name);
     client.startDialogue(state.value.selectedProject?.slug, name, 'en')
@@ -135,11 +143,57 @@ const loadDialogue = (name) => {
     });
 };
 
+// Starts an ephemeral draft test session (see /draft/* end-points) — not saved to dialogue
+// history, and reads/writes the tester's real variables (revertible via revertVariables()).
+const loadDraftDialogue = (name) => {
+    const tab = getOrCreateEmptyTab();
+    activeTabId.value = tab.id;
+    tab.dialogueName = name;
+    tab.dialogueSteps = [];
+    tab.dialogueEnded = false;
+    tab.dialogueCancelled = false;
+    tab.isDraftTest = true;
+    tab.draftSessionId = null;
+    scrollActiveTabIntoView();
+    logEvent('dialogue', 'Draft test started: $1', name);
+    client.startDraftDialogue(state.value.selectedProject?.slug, name, 'en')
+    .then(({ draftSessionId, dialogueStep }) => {
+        tab.draftSessionId = draftSessionId;
+        tab.dialogueName = dialogueStep.dialogueName;
+        tab.dialogueSteps.push(dialogueStep);
+        tab.dialogueEnded = dialogueStep.replies.length === 0;
+        if (tab.dialogueEnded) logEvent('dialogue', 'Draft test ended immediately: $1', name);
+        emit('newDialogueStep');
+        scrollTextToBottom();
+    });
+};
+
+function restartActiveTab() {
+    const tab = activeTab.value;
+    if (tab.isDraftTest) {
+        loadDraftDialogue(tab.dialogueName);
+    } else {
+        loadDialogue(tab.dialogueName);
+    }
+}
+
+function onRevertVariablesClick() {
+    const tab = activeTab.value;
+    if (!tab.isDraftTest || !tab.draftSessionId) return;
+    logEvent('dialogue', 'Draft test variables reverted: $1', tab.dialogueName);
+    client.revertDraftVariables(tab.draftSessionId)
+    .then(() => {
+        tab.draftSessionId = null;
+        tab.dialogueEnded = true;
+        emit('newDialogueStep');
+    });
+}
+
 const reloading = ref(false);
 
 const reloadStep = () => {
     const tab = activeTab.value;
-    if (tab.dialogueName) {
+    if (tab.dialogueName && !tab.isDraftTest) {
         reloading.value = true;
         client.continueDialogue(state.value.selectedProject?.slug, tab.dialogueName)
         .then((dialogueStep) => {
@@ -194,6 +248,7 @@ function activateTab(tabId) {
 defineExpose({
     tabs,
     loadDialogue,
+    loadDraftDialogue,
     resumeDialogue,
     reloadStep,
     resize,
@@ -249,6 +304,17 @@ onMounted(() => {
 
 function onCancelClick() {
     const tab = activeTab.value;
+    if (tab.isDraftTest) {
+        if (!tab.draftSessionId) return;
+        logEvent('dialogue', 'Draft test cancelled: $1', tab.dialogueName);
+        client.cancelDraftDialogue(tab.draftSessionId)
+        .then(() => {
+            tab.draftSessionId = null;
+            tab.dialogueCancelled = true;
+            tab.dialogueEnded = true;
+        });
+        return;
+    }
     const lastStep = tab.dialogueSteps[tab.dialogueSteps.length - 1];
     if (!lastStep) return;
     logEvent('dialogue', 'Dialogue cancelled: $1', tab.dialogueName);
@@ -262,6 +328,26 @@ function onCancelClick() {
 function onSelectReply(dialogueStep, reply) {
     const tab = activeTab.value;
     const replyText = reply.statement?.segments?.map(s => s.text).join('') ?? String(reply.replyId);
+
+    if (tab.isDraftTest) {
+        logEvent('dialogue', 'Draft test reply selected: $1', replyText);
+        client.progressDraftDialogue(tab.draftSessionId, reply.replyId)
+        .then((nextStep) => {
+            if (nextStep) {
+                tab.dialogueName = nextStep.dialogueName;
+                tab.dialogueSteps.push(nextStep);
+                tab.dialogueEnded = nextStep.replies.length === 0;
+                if (tab.dialogueEnded) logEvent('dialogue', 'Draft test ended: $1', tab.dialogueName);
+            } else {
+                tab.dialogueEnded = true;
+                logEvent('dialogue', 'Draft test ended: $1', tab.dialogueName);
+            }
+            emit('newDialogueStep');
+            scrollTextToBottom();
+        });
+        return;
+    }
+
     logEvent('dialogue', 'Reply selected: $1', replyText);
     client.progressDialogue(dialogueStep.loggedDialogueId, dialogueStep.loggedInteractionIndex,
         reply.replyId)
@@ -289,8 +375,8 @@ function onSelectReply(dialogueStep, reply) {
                 <IconButton
                     icon="fa-solid fa-arrows-rotate"
                     :class="{ 'animate-spin': reloading }"
-                    :title="activeTab.dialogueName && !activeTab.dialogueEnded ? 'Refresh current dialogue step' : 'Refresh current dialogue step (no dialogue active)'"
-                    :disabled="reloading || !activeTab.dialogueName || activeTab.dialogueEnded"
+                    :title="activeTab.dialogueName && !activeTab.dialogueEnded && !activeTab.isDraftTest ? 'Refresh current dialogue step' : 'Refresh current dialogue step (not available for draft tests)'"
+                    :disabled="reloading || !activeTab.dialogueName || activeTab.dialogueEnded || activeTab.isDraftTest"
                     @click="reloadStep"
                 />
                 <IconButton
@@ -299,6 +385,14 @@ function onSelectReply(dialogueStep, reply) {
                     :disabled="activeTab.dialogueName === null || activeTab.dialogueEnded"
                     :title="activeTab.dialogueName && !activeTab.dialogueEnded ? 'Cancel the current dialogue' : 'Cancel the current dialogue (no dialogue active)'"
                     @click="onCancelClick"
+                />
+                <IconButton
+                    v-if="activeTab.isDraftTest"
+                    icon="fa-solid fa-clock-rotate-left"
+                    color="warning"
+                    :disabled="!activeTab.draftSessionId"
+                    title="Revert any variable changes made during this draft test back to their original values"
+                    @click="onRevertVariablesClick"
                 />
             </template>
         </MainPagePanelHeader>
@@ -331,6 +425,7 @@ function onSelectReply(dialogueStep, reply) {
                         : 'bg-grey-lighter border-grey-light border-b-0 text-grey-dark hover:bg-white'"
                     @click="activeTabId = tab.id"
                 >
+                    <FontAwesomeIcon v-if="tab.isDraftTest" icon="fa-solid fa-flask" class="text-[10px]" title="Draft test" />
                     <span>{{ tab.dialogueName ?? 'New' }}</span>
                     <span
                         class="w-3.5 h-3.5 flex items-center justify-center hover:text-icon-button-warning-hover"
@@ -385,7 +480,7 @@ function onSelectReply(dialogueStep, reply) {
                     :dialogueEnded="activeTab.dialogueEnded"
                     :dialogueCancelled="activeTab.dialogueCancelled"
                     @selectReply="onSelectReply"
-                    @restartDialogue="loadDialogue(activeTab.dialogueName)"
+                    @restartDialogue="restartActiveTab"
                 />
                 <TextDialogueComponent
                     v-if="selectedMode === 'text'"
@@ -394,7 +489,7 @@ function onSelectReply(dialogueStep, reply) {
                     :dialogueEnded="activeTab.dialogueEnded"
                     :dialogueCancelled="activeTab.dialogueCancelled"
                     @selectReply="onSelectReply"
-                    @restartDialogue="loadDialogue(activeTab.dialogueName)"
+                    @restartDialogue="restartActiveTab"
                 />
             </MainPagePanelContainer>
             <div v-if="activeTab.loggedDialogueId" class="absolute bottom-3 left-3 font-mono text-[10px] text-gray-400 pointer-events-none">
