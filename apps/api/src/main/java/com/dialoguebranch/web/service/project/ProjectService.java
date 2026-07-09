@@ -33,12 +33,18 @@ import com.dialoguebranch.model.execute.LanguageMap;
 import com.dialoguebranch.model.execute.LanguageSet;
 import com.dialoguebranch.model.execute.NodeHeader;
 import com.dialoguebranch.web.service.repository.DBLanguageSetRepository;
+import com.dialoguebranch.web.service.repository.DBLanguageSetTranslationRepository;
 import com.dialoguebranch.web.service.repository.DBProjectLanguageMappingRepository;
 import com.dialoguebranch.web.service.repository.DBProjectRepository;
+import com.dialoguebranch.web.service.repository.DBProjectVersionRepository;
+import com.dialoguebranch.web.service.repository.DBPublishedDialogueRepository;
+import com.dialoguebranch.web.service.repository.DBPublishedTranslationRepository;
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
 import com.dialoguebranch.web.service.storage.model.DBLanguageSet;
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import com.dialoguebranch.web.service.storage.model.DBProjectLanguageMapping;
+import com.dialoguebranch.web.service.storage.model.DBProjectVersion;
+import com.dialoguebranch.web.service.storage.model.DBPublishedDialogue;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -68,15 +74,27 @@ public class ProjectService {
 	private final DBProjectRepository projectRepository;
 	private final DBProjectLanguageMappingRepository languageMappingRepository;
 	private final DBLanguageSetRepository languageSetRepository;
+	private final DBLanguageSetTranslationRepository languageSetTranslationRepository;
+	private final DBProjectVersionRepository projectVersionRepository;
+	private final DBPublishedDialogueRepository publishedDialogueRepository;
+	private final DBPublishedTranslationRepository publishedTranslationRepository;
 	private final DraftDialogueService draftDialogueService;
 
 	public ProjectService(DBProjectRepository projectRepository,
 						  DBProjectLanguageMappingRepository languageMappingRepository,
 						  DBLanguageSetRepository languageSetRepository,
+						  DBLanguageSetTranslationRepository languageSetTranslationRepository,
+						  DBProjectVersionRepository projectVersionRepository,
+						  DBPublishedDialogueRepository publishedDialogueRepository,
+						  DBPublishedTranslationRepository publishedTranslationRepository,
 						  DraftDialogueService draftDialogueService) {
 		this.projectRepository = projectRepository;
 		this.languageMappingRepository = languageMappingRepository;
 		this.languageSetRepository = languageSetRepository;
+		this.languageSetTranslationRepository = languageSetTranslationRepository;
+		this.projectVersionRepository = projectVersionRepository;
+		this.publishedDialogueRepository = publishedDialogueRepository;
+		this.publishedTranslationRepository = publishedTranslationRepository;
 		this.draftDialogueService = draftDialogueService;
 	}
 
@@ -200,11 +218,47 @@ public class ProjectService {
 	}
 
 	/**
-	 * Deletes the given project and all its associated data.
+	 * Deletes the given project and all its associated data: language sets (and their
+	 * translations), language mappings, draft dialogues (and their nodes/translations), and
+	 * published versions (and their published dialogues/translations).
+	 *
+	 * <p>None of these relationships cascade at the database or JPA level, and
+	 * {@code default_language_set_id}/{@code latest_version_id} are circular references back into
+	 * tables that reference the project — so children must be deleted (and those two references
+	 * nulled out) before the project row itself can be deleted.</p>
 	 *
 	 * @param project the project to delete.
 	 */
+	@Transactional
 	public void deleteProject(DBProject project) {
+		// Break the circular references back into this project before deleting anything.
+		project.setDefaultLanguageSet(null);
+		project.setLatestVersion(null);
+		projectRepository.save(project);
+
+		for (DBLanguageSet languageSet : languageSetRepository.findByProject(project)) {
+			languageSetTranslationRepository.deleteAll(
+					languageSetTranslationRepository.findByLanguageSet(languageSet));
+		}
+		languageSetRepository.deleteAll(languageSetRepository.findByProject(project));
+
+		languageMappingRepository.deleteAll(languageMappingRepository.findByProject(project));
+
+		for (DBDraftDialogue dialogue : draftDialogueService.listDialogues(project)) {
+			draftDialogueService.deleteDialogue(dialogue);
+		}
+
+		for (DBProjectVersion version :
+				projectVersionRepository.findByProjectOrderByVersionNumberDesc(project)) {
+			for (DBPublishedDialogue publishedDialogue :
+					publishedDialogueRepository.findByVersion(version)) {
+				publishedTranslationRepository.deleteAll(
+						publishedTranslationRepository.findByPublishedDialogue(publishedDialogue));
+			}
+			publishedDialogueRepository.deleteAll(publishedDialogueRepository.findByVersion(version));
+			projectVersionRepository.delete(version);
+		}
+
 		projectRepository.delete(project);
 	}
 

@@ -110,11 +110,6 @@ function onSaveProjectClick() {
     logEvent('project', 'Save project — not yet implemented');
 }
 
-function onDeleteProjectClick() {
-    closeProjectMenu();
-    logEvent('project', 'Delete project — not yet implemented');
-}
-
 const activeDelegateUser = ref(null);
 const showDelegateModal = ref(false);
 const delegateConfirmAction = ref(null);
@@ -225,10 +220,6 @@ function onResizePanels() {
                     <button type="button" class="flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm text-orange-darker hover:bg-grey-lighter cursor-pointer transition-colors" @click="onSwitchProjectClick">
                         <FontAwesomeIcon icon="fa-solid fa-folder-minus" class="w-4 text-orange-medium" />
                         Close Project
-                    </button>
-                    <button type="button" class="flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm text-red-dark hover:bg-grey-lighter cursor-pointer transition-colors" @click="onDeleteProjectClick">
-                        <FontAwesomeIcon icon="fa-solid fa-trash" class="w-4 text-red-dark" />
-                        Delete Project
                     </button>
                 </div>
             </Teleport>

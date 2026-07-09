@@ -119,6 +119,15 @@ export class DialogueBranchClient {
         }).then((response) => this._handleResponse(response));
     }
 
+    deleteProject(projectSlug) {
+        const url = this._baseUrl + "/project/delete-project?projectSlug=" + encodeURIComponent(projectSlug);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { 'Authorization': 'Bearer ' + this._accessToken },
+        }).then((response) => { if (!response.ok) return Promise.reject(response); });
+    }
+
     addLanguageMapping(projectSlug, sourceLanguageName, sourceLanguageCode, translationLanguageName, translationLanguageCode) {
         const url = this._baseUrl + "/project/add-language-mapping?projectSlug=" + encodeURIComponent(projectSlug);
 
@@ -454,7 +463,8 @@ export class DialogueBranchClient {
         }
         const text = await response.text().catch(() => null);
         logApiCall(method, path, response.status, text, logRequestBody);
-        const reconstructed = new Response(text, {
+        const nullBodyStatus = [204, 205, 304].includes(response.status);
+        const reconstructed = new Response(nullBodyStatus ? null : text, {
             status: response.status,
             statusText: response.statusText,
             headers: response.headers,
@@ -470,7 +480,8 @@ export class DialogueBranchClient {
                 const retryResponse = await fetch(url, retryOptions);
                 const retryText = await retryResponse.text().catch(() => null);
                 logApiCall(method + ' [retried]', path, retryResponse.status, retryText, logRequestBody);
-                return new Response(retryText, {
+                const retryNullBodyStatus = [204, 205, 304].includes(retryResponse.status);
+                return new Response(retryNullBodyStatus ? null : retryText, {
                     status: retryResponse.status,
                     statusText: retryResponse.statusText,
                     headers: retryResponse.headers,

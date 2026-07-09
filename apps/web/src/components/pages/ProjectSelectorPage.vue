@@ -110,6 +110,42 @@ const isAdmin = state.value.user?.roles?.includes('admin');
 function onProjectCreated(project) {
     projects.value.push(project);
 }
+
+// Deletion is deliberately buried behind a confirmation modal that requires typing the
+// project's slug back — this is a permanent, irreversible action (project, drafts, published
+// versions, and variables are all gone), so it should never be a single misclick.
+const deleteConfirm = ref(null); // { slug, displayName }
+const deleteConfirmInput = ref('');
+const deleting = ref(false);
+const deleteError = ref('');
+
+function openDeleteConfirm(project) {
+    deleteConfirm.value = { slug: project.slug, displayName: project.displayName ?? project.slug };
+    deleteConfirmInput.value = '';
+    deleteError.value = '';
+}
+
+function closeDeleteConfirm() {
+    if (deleting.value) return;
+    deleteConfirm.value = null;
+}
+
+function confirmDelete() {
+    if (deleteConfirmInput.value.trim() !== deleteConfirm.value.slug) return;
+    deleting.value = true;
+    deleteError.value = '';
+    client.deleteProject(deleteConfirm.value.slug)
+        .then(() => {
+            projects.value = projects.value.filter((p) => p.slug !== deleteConfirm.value.slug);
+            deleteConfirm.value = null;
+        })
+        .catch(() => {
+            deleteError.value = 'Failed to delete project. Please try again.';
+        })
+        .finally(() => {
+            deleting.value = false;
+        });
+}
 </script>
 
 <template>
@@ -175,9 +211,17 @@ function onProjectCreated(project) {
                     v-for="project in projects"
                     :key="project.slug"
                     type="button"
-                    class="text-left bg-box rounded-xl px-5 py-4 hover:shadow-md hover:border-orange-darker border border-transparent transition-all cursor-pointer group"
+                    class="relative text-left bg-box rounded-xl px-5 py-4 hover:shadow-md hover:border-orange-darker border border-transparent transition-all cursor-pointer group"
                     @click="selectProject(project)"
                 >
+                    <span
+                        v-if="isAdmin"
+                        title="Delete project"
+                        class="absolute bottom-2 right-2 text-orange-darker/60 opacity-0 group-hover:opacity-100 hover:!text-red-dark transition-opacity cursor-pointer p-1"
+                        @click.stop="openDeleteConfirm(project)"
+                    >
+                        <FontAwesomeIcon icon="fa-solid fa-trash" class="text-xs" />
+                    </span>
                     <div class="flex items-start justify-between gap-2">
                         <div class="min-w-0">
                             <div class="font-title font-semibold text-sm group-hover:text-orange-darker transition-colors truncate">
@@ -211,4 +255,60 @@ function onProjectCreated(project) {
             </div>
         </div>
     </div>
+
+    <Teleport to="body">
+        <div v-if="deleteConfirm" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" @click.self="closeDeleteConfirm">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col">
+                <div class="flex items-center gap-2 px-5 py-4 bg-red-dark rounded-t-xl text-white font-title font-bold">
+                    <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" />
+                    Delete Project
+                </div>
+                <div class="px-5 py-4 flex flex-col gap-3">
+                    <p class="text-sm font-title">
+                        You are about to permanently delete the Dialogue Branch project
+                        <span class="font-bold text-orange-darker">{{ deleteConfirm.displayName }}</span>
+                        (<span class="font-mono">{{ deleteConfirm.slug }}</span>).
+                    </p>
+                    <div class="flex items-start gap-2 border border-red-dark/40 bg-red-dark/10 text-red-dark rounded-lg px-3 py-2.5 text-xs font-title">
+                        <FontAwesomeIcon icon="fa-solid fa-circle-exclamation" class="shrink-0 mt-0.5" />
+                        <span>
+                            This will permanently delete all of this project's dialogues (draft
+                            and published), variables, and version history. <strong>This action
+                            cannot be undone.</strong>
+                        </span>
+                    </div>
+                    <div>
+                        <label class="block font-title text-xs text-grey-dark mb-1">
+                            Type <span class="font-mono font-semibold text-orange-darker">{{ deleteConfirm.slug }}</span> to confirm:
+                        </label>
+                        <input
+                            v-model="deleteConfirmInput"
+                            type="text"
+                            class="w-full font-mono bg-white p-2 rounded-md border-[2px] border-solid border-gray-300 text-sm focus:outline-none focus:border-red-dark"
+                            :placeholder="deleteConfirm.slug"
+                            @keyup.enter="confirmDelete"
+                        />
+                    </div>
+                    <div v-if="deleteError" class="text-xs text-red-dark font-title">{{ deleteError }}</div>
+                </div>
+                <div class="flex items-center justify-end gap-3 px-5 py-4 border-t border-grey-light bg-grey-lighter rounded-b-xl">
+                    <button
+                        type="button"
+                        class="px-4 py-2 rounded font-title text-sm text-grey-dark border border-grey-light hover:bg-grey-light cursor-pointer"
+                        :disabled="deleting"
+                        @click="closeDeleteConfirm"
+                    >Cancel</button>
+                    <button
+                        type="button"
+                        :class="['px-4 py-2 rounded font-title text-sm text-white flex items-center gap-2', (deleting || deleteConfirmInput.trim() !== deleteConfirm.slug) ? 'bg-red-dark/50 cursor-not-allowed' : 'bg-red-dark hover:bg-red-900 cursor-pointer']"
+                        :disabled="deleting || deleteConfirmInput.trim() !== deleteConfirm.slug"
+                        @click="confirmDelete"
+                    >
+                        <FontAwesomeIcon v-if="deleting" icon="fa-solid fa-circle-notch" class="animate-spin" />
+                        Delete Permanently
+                    </button>
+                </div>
+            </div>
+        </div>
+    </Teleport>
 </template>

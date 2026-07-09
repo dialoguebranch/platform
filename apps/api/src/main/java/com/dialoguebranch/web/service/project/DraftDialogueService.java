@@ -36,6 +36,7 @@ import com.dialoguebranch.web.service.storage.model.DBDraftNode;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslation;
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
@@ -123,7 +124,10 @@ public class DraftDialogueService {
 	 *
 	 * @param dialogue the draft dialogue to delete.
 	 */
+	@Transactional
 	public void deleteDialogue(DBDraftDialogue dialogue) {
+		translationRepository.deleteAll(translationRepository.findByDraftDialogue(dialogue));
+		nodeRepository.deleteAll(nodeRepository.findByDraftDialogueOrderByCreatedAt(dialogue));
 		dialogueRepository.delete(dialogue);
 	}
 
