@@ -100,14 +100,14 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName
+			@RequestParam(value = "projectSlug") String projectSlug
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
 					logger.info("GET /v{}/authoring/list-dialogues [user: {}]", version, user);
-					DBProject project = projectService.findByName(projectName)
+					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
-									"Project not found: " + projectName));
+									"Project not found: " + projectSlug));
 					return draftDialogueService.listDialogues(project);
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
@@ -122,7 +122,7 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName,
+			@RequestParam(value = "projectSlug") String projectSlug,
 			@RequestBody CreateDialoguePayload payload
 	) throws HttpException {
 		return QueryRunner.runQuery(
@@ -130,9 +130,9 @@ public class AuthoringController {
 					logger.info("POST /v{}/authoring/create-dialogue [user: {}]", version, user);
 					if (payload.getName() == null || payload.getName().isBlank())
 						throw new BadRequestException("Field 'name' is required.");
-					DBProject project = projectService.findByName(projectName)
+					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
-									"Project not found: " + projectName));
+									"Project not found: " + projectSlug));
 					return draftDialogueService.createDialogue(project, payload.getName());
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
@@ -147,15 +147,15 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName,
+			@RequestParam(value = "projectSlug") String projectSlug,
 			@RequestParam(value = "dialogueName") String dialogueName
 	) throws HttpException {
 		QueryRunner.runQuery(
 				(protocolVersion, user) -> {
 					logger.info("POST /v{}/authoring/delete-dialogue [user: {}]", version, user);
-					DBProject project = projectService.findByName(projectName)
+					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
-									"Project not found: " + projectName));
+									"Project not found: " + projectSlug));
 					DBDraftDialogue dialogue = draftDialogueService
 							.findDialogue(project, dialogueName)
 							.orElseThrow(() -> new NotFoundException(
@@ -178,15 +178,15 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName,
+			@RequestParam(value = "projectSlug") String projectSlug,
 			@RequestParam(value = "dialogueName") String dialogueName
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
 					logger.info("GET /v{}/authoring/list-nodes [user: {}]", version, user);
-					DBProject project = projectService.findByName(projectName)
+					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
-									"Project not found: " + projectName));
+									"Project not found: " + projectSlug));
 					DBDraftDialogue dialogue = draftDialogueService
 							.findDialogue(project, dialogueName)
 							.orElseThrow(() -> new NotFoundException(
@@ -205,7 +205,7 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName,
+			@RequestParam(value = "projectSlug") String projectSlug,
 			@RequestParam(value = "dialogueName") String dialogueName,
 			@RequestBody CreateNodePayload payload
 	) throws HttpException {
@@ -214,9 +214,9 @@ public class AuthoringController {
 					logger.info("POST /v{}/authoring/create-node [user: {}]", version, user);
 					if (payload.getTitle() == null || payload.getTitle().isBlank())
 						throw new BadRequestException("Field 'title' is required.");
-					DBProject project = projectService.findByName(projectName)
+					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
-									"Project not found: " + projectName));
+									"Project not found: " + projectSlug));
 					DBDraftDialogue dialogue = draftDialogueService
 							.findDialogue(project, dialogueName)
 							.orElseThrow(() -> new NotFoundException(
@@ -235,7 +235,7 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName,
+			@RequestParam(value = "projectSlug") String projectSlug,
 			@RequestParam(value = "dialogueName") String dialogueName,
 			@RequestParam(value = "nodeTitle") String nodeTitle,
 			@RequestBody UpdateNodePayload payload
@@ -243,9 +243,9 @@ public class AuthoringController {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
 					logger.info("POST /v{}/authoring/update-node [user: {}]", version, user);
-					DBProject project = projectService.findByName(projectName)
+					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
-									"Project not found: " + projectName));
+									"Project not found: " + projectSlug));
 					DBDraftDialogue dialogue = draftDialogueService
 							.findDialogue(project, dialogueName)
 							.orElseThrow(() -> new NotFoundException(
@@ -268,16 +268,16 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName,
+			@RequestParam(value = "projectSlug") String projectSlug,
 			@RequestParam(value = "dialogueName") String dialogueName,
 			@RequestParam(value = "nodeTitle") String nodeTitle
 	) throws HttpException {
 		QueryRunner.runQuery(
 				(protocolVersion, user) -> {
 					logger.info("POST /v{}/authoring/delete-node [user: {}]", version, user);
-					DBProject project = projectService.findByName(projectName)
+					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
-									"Project not found: " + projectName));
+									"Project not found: " + projectSlug));
 					DBDraftDialogue dialogue = draftDialogueService
 							.findDialogue(project, dialogueName)
 							.orElseThrow(() -> new NotFoundException(
@@ -303,7 +303,7 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName,
+			@RequestParam(value = "projectSlug") String projectSlug,
 			@RequestParam(value = "dialogueName") String dialogueName,
 			@RequestParam(value = "language") String language,
 			@RequestBody UpdateTranslationPayload payload
@@ -312,9 +312,9 @@ public class AuthoringController {
 				(protocolVersion, user) -> {
 					logger.info("POST /v{}/authoring/update-translation [user: {}]", version,
 							user);
-					DBProject project = projectService.findByName(projectName)
+					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
-									"Project not found: " + projectName));
+									"Project not found: " + projectSlug));
 					DBDraftDialogue dialogue = draftDialogueService
 							.findDialogue(project, dialogueName)
 							.orElseThrow(() -> new NotFoundException(
@@ -334,7 +334,7 @@ public class AuthoringController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName,
+			@RequestParam(value = "projectSlug") String projectSlug,
 			@RequestParam(value = "dialogueName") String dialogueName,
 			@RequestParam(value = "language") String language
 	) throws HttpException {
@@ -342,9 +342,9 @@ public class AuthoringController {
 				(protocolVersion, user) -> {
 					logger.info("POST /v{}/authoring/delete-translation [user: {}]", version,
 							user);
-					DBProject project = projectService.findByName(projectName)
+					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
-									"Project not found: " + projectName));
+									"Project not found: " + projectSlug));
 					DBDraftDialogue dialogue = draftDialogueService
 							.findDialogue(project, dialogueName)
 							.orElseThrow(() -> new NotFoundException(

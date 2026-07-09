@@ -34,14 +34,20 @@ package com.dialoguebranch.web.service.controller.schema.authoring;
  * @author Harm op den Akker
  */
 public class CreateProjectPayload {
-	private String name;
+	private String slug;
 	private String displayName;
 	private String description;
+	private String defaultLanguageCode;
+	private String defaultLanguageName;
 
-	public String getName() { return name; }
-	public void setName(String name) { this.name = name; }
+	public String getSlug() { return slug; }
+	public void setSlug(String slug) { this.slug = slug; }
 	public String getDisplayName() { return displayName; }
 	public void setDisplayName(String displayName) { this.displayName = displayName; }
 	public String getDescription() { return description; }
 	public void setDescription(String description) { this.description = description; }
+	public String getDefaultLanguageCode() { return defaultLanguageCode; }
+	public void setDefaultLanguageCode(String defaultLanguageCode) { this.defaultLanguageCode = defaultLanguageCode; }
+	public String getDefaultLanguageName() { return defaultLanguageName; }
+	public void setDefaultLanguageName(String defaultLanguageName) { this.defaultLanguageName = defaultLanguageName; }
 }

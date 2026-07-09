@@ -47,7 +47,7 @@ function buildTree(names) {
 }
 
 function listDialogues() {
-    client.listDialogues(state.value.selectedProject?.name)
+    client.listDialogues(state.value.selectedProject?.slug)
     .then((json) => {
         const root = buildTree(json.dialogueNames);
         tree.value = Object.entries(root).sort(([, a], [, b]) => {
@@ -71,7 +71,7 @@ const hasActiveDialogue = computed(() =>
     props.openTabs.some(t => t.dialogueName && !t.dialogueEnded && !t.dialogueCancelled));
 
 function checkOngoingDialogue() {
-    client.getOngoingDialogue(state.value.selectedProject?.name)
+    client.getOngoingDialogue(state.value.selectedProject?.slug)
     .then((ongoing) => {
         if (ongoing) {
             const alreadyOpenTab = props.openTabs.find(t =>

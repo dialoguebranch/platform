@@ -106,21 +106,21 @@ public class ProjectController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
-	@Operation(summary = "Get a single project by name.")
+	@Operation(summary = "Get a single project by slug.")
 	@Parameter(name = "version", hidden = true)
 	@GetMapping("/get-project")
 	public DBProject getProject(
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName
+			@RequestParam(value = "projectSlug") String projectSlug
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
 					logger.info("GET /v{}/project/get-project [user: {}]", version, user);
-					return projectService.findByName(projectName)
+					return projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
-									"Project not found: " + projectName));
+									"Project not found: " + projectSlug));
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
@@ -139,10 +139,15 @@ public class ProjectController {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
 					logger.info("POST /v{}/project/create-project [user: {}]", version, user);
-					if (payload.getName() == null || payload.getName().isBlank())
-						throw new BadRequestException("Field 'name' is required.");
-					return projectService.createProject(payload.getName(),
-							payload.getDisplayName(), payload.getDescription());
+					if (payload.getSlug() == null || payload.getSlug().isBlank())
+						throw new BadRequestException("Field 'slug' is required.");
+					if (payload.getDefaultLanguageCode() == null || payload.getDefaultLanguageCode().isBlank())
+						throw new BadRequestException("Field 'defaultLanguageCode' is required.");
+					if (payload.getDefaultLanguageName() == null || payload.getDefaultLanguageName().isBlank())
+						throw new BadRequestException("Field 'defaultLanguageName' is required.");
+					return projectService.createProject(payload.getSlug(),
+							payload.getDisplayName(), payload.getDescription(),
+							payload.getDefaultLanguageCode(), payload.getDefaultLanguageName());
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				AuthenticationInfo.USER_ROLE_ADMIN);
@@ -155,15 +160,15 @@ public class ProjectController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName,
+			@RequestParam(value = "projectSlug") String projectSlug,
 			@RequestBody UpdateProjectPayload payload
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
 					logger.info("POST /v{}/project/update-project [user: {}]", version, user);
-					DBProject project = projectService.findByName(projectName)
+					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
-									"Project not found: " + projectName));
+									"Project not found: " + projectSlug));
 					return projectService.updateProject(project, payload.getDisplayName(),
 							payload.getDescription());
 				},
@@ -179,14 +184,14 @@ public class ProjectController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName
+			@RequestParam(value = "projectSlug") String projectSlug
 	) throws HttpException {
 		QueryRunner.runQuery(
 				(protocolVersion, user) -> {
 					logger.info("POST /v{}/project/delete-project [user: {}]", version, user);
-					DBProject project = projectService.findByName(projectName)
+					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
-									"Project not found: " + projectName));
+									"Project not found: " + projectSlug));
 					projectService.deleteProject(project);
 					return null;
 				},
@@ -206,16 +211,16 @@ public class ProjectController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName,
+			@RequestParam(value = "projectSlug") String projectSlug,
 			@RequestBody AddLanguageMappingPayload payload
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
 					logger.info("POST /v{}/project/add-language-mapping [user: {}]", version,
 							user);
-					DBProject project = projectService.findByName(projectName)
+					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
-									"Project not found: " + projectName));
+									"Project not found: " + projectSlug));
 					Language source = new Language(payload.getSourceLanguageName(),
 							payload.getSourceLanguageCode());
 					Language translation = new Language(payload.getTranslationLanguageName(),
@@ -234,7 +239,7 @@ public class ProjectController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName,
+			@RequestParam(value = "projectSlug") String projectSlug,
 			@RequestParam(value = "mappingId") UUID mappingId
 	) throws HttpException {
 		QueryRunner.runQuery(

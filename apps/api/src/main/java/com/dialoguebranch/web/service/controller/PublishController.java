@@ -94,14 +94,14 @@ public class PublishController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName
+			@RequestParam(value = "projectSlug") String projectSlug
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
 					logger.info("GET /v{}/publish/list-versions [user: {}]", version, user);
-					DBProject project = projectService.findByName(projectName)
+					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
-									"Project not found: " + projectName));
+									"Project not found: " + projectSlug));
 					return publishService.listVersions(project);
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
@@ -115,14 +115,14 @@ public class PublishController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectName") String projectName
+			@RequestParam(value = "projectSlug") String projectSlug
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
 					logger.info("POST /v{}/publish/create-version [user: {}]", version, user);
-					DBProject project = projectService.findByName(projectName)
+					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
-									"Project not found: " + projectName));
+									"Project not found: " + projectSlug));
 					try {
 						return publishService.publish(project, null);
 					} catch (IOException e) {

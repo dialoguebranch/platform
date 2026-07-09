@@ -31,11 +31,14 @@ package com.dialoguebranch.web.service.project;
 import com.dialoguebranch.model.execute.Language;
 import com.dialoguebranch.model.execute.LanguageMap;
 import com.dialoguebranch.model.execute.LanguageSet;
+import com.dialoguebranch.web.service.repository.DBLanguageSetRepository;
 import com.dialoguebranch.web.service.repository.DBProjectLanguageMappingRepository;
 import com.dialoguebranch.web.service.repository.DBProjectRepository;
+import com.dialoguebranch.web.service.storage.model.DBLanguageSet;
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import com.dialoguebranch.web.service.storage.model.DBProjectLanguageMapping;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -57,11 +60,14 @@ public class ProjectService {
 
 	private final DBProjectRepository projectRepository;
 	private final DBProjectLanguageMappingRepository languageMappingRepository;
+	private final DBLanguageSetRepository languageSetRepository;
 
 	public ProjectService(DBProjectRepository projectRepository,
-						  DBProjectLanguageMappingRepository languageMappingRepository) {
+						  DBProjectLanguageMappingRepository languageMappingRepository,
+						  DBLanguageSetRepository languageSetRepository) {
 		this.projectRepository = projectRepository;
 		this.languageMappingRepository = languageMappingRepository;
+		this.languageSetRepository = languageSetRepository;
 	}
 
 	// ------------------------------------------------------------ //
@@ -78,13 +84,13 @@ public class ProjectService {
 	}
 
 	/**
-	 * Returns the project with the given {@code name}, or {@link Optional#empty()} if not found.
+	 * Returns the project with the given {@code slug}, or {@link Optional#empty()} if not found.
 	 *
-	 * @param name the unique project slug.
+	 * @param slug the unique project slug.
 	 * @return the matching project, or empty.
 	 */
-	public Optional<DBProject> findByName(String name) {
-		return projectRepository.findByName(name);
+	public Optional<DBProject> findBySlug(String slug) {
+		return projectRepository.findBySlug(slug);
 	}
 
 	/**
@@ -98,21 +104,53 @@ public class ProjectService {
 	}
 
 	/**
-	 * Creates and persists a new project with the given attributes.
+	 * Creates and persists a new project with the given attributes and no default language. Only
+	 * used for seed projects, which define their own language map separately; every project
+	 * created through the API must have a default language (see
+	 * {@link #createProject(String, String, String, String, String)}).
 	 *
-	 * @param name        the unique slug name.
+	 * @param slug        the unique project slug.
 	 * @param displayName the human-readable display name.
 	 * @param description the project description.
 	 * @return the newly created {@link DBProject}.
 	 */
-	public DBProject createProject(String name, String displayName, String description) {
+	public DBProject createProject(String slug, String displayName, String description) {
 		Instant now = Instant.now();
 		DBProject project = new DBProject();
-		project.setName(name);
+		project.setSlug(slug);
 		project.setDisplayName(displayName);
 		project.setDescription(description);
 		project.setCreatedAt(now);
 		project.setUpdatedAt(now);
+		return projectRepository.save(project);
+	}
+
+	/**
+	 * Creates and persists a new project with the given attributes, along with its first
+	 * {@link DBLanguageSet} — using the given source language, with no translations yet — which
+	 * is immediately marked as the project's default language set. A project always has exactly
+	 * one default language set among one or more defined language sets.
+	 *
+	 * @param slug                   the unique project slug.
+	 * @param displayName            the human-readable display name.
+	 * @param description            the project description.
+	 * @param defaultLanguageCode    the ISO code of the project's default (source) language.
+	 * @param defaultLanguageName    the human-readable name of the project's default language.
+	 * @return the newly created {@link DBProject}.
+	 */
+	@Transactional
+	public DBProject createProject(String slug, String displayName, String description,
+									String defaultLanguageCode, String defaultLanguageName) {
+		DBProject project = createProject(slug, displayName, description);
+
+		DBLanguageSet languageSet = new DBLanguageSet();
+		languageSet.setProject(project);
+		languageSet.setSourceLanguageCode(defaultLanguageCode);
+		languageSet.setSourceLanguageName(defaultLanguageName);
+		languageSet = languageSetRepository.save(languageSet);
+
+		project.setDefaultLanguageSet(languageSet);
+		project.setUpdatedAt(Instant.now());
 		return projectRepository.save(project);
 	}
 

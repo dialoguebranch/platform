@@ -7,7 +7,7 @@ import TextInput from '../widgets/TextInput.vue';
 import PushButton from '../widgets/PushButton.vue';
 
 const props = defineProps({
-    projectName: { type: String, required: true },
+    projectSlug: { type: String, required: true },
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -31,12 +31,12 @@ const newTranslationCode = ref('');
 const addingMapping = ref(false);
 const addMappingError = ref('');
 
-watch(() => props.projectName, load, { immediate: true });
+watch(() => props.projectSlug, load, { immediate: true });
 
 function load() {
     loading.value = true;
     error.value = '';
-    client.getProject(props.projectName)
+    client.getProject(props.projectSlug)
         .then((project) => {
             displayName.value = project.displayName ?? '';
             description.value = project.description ?? '';
@@ -53,10 +53,10 @@ function load() {
 function onSave() {
     saving.value = true;
     error.value = '';
-    client.updateProject(props.projectName, displayName.value, description.value)
+    client.updateProject(props.projectSlug, displayName.value, description.value)
         .then((updated) => {
-            logEvent('project', 'Metadata saved for project $1', props.projectName);
-            emit('saved', { name: updated.name, displayName: updated.displayName });
+            logEvent('project', 'Metadata saved for project $1', props.projectSlug);
+            emit('saved', { slug: updated.slug, displayName: updated.displayName });
         })
         .catch(() => { error.value = 'Failed to save project metadata.'; })
         .finally(() => { saving.value = false; });
@@ -71,7 +71,7 @@ function onAddMapping() {
     }
     addingMapping.value = true;
     client.addLanguageMapping(
-        props.projectName,
+        props.projectSlug,
         newSourceName.value.trim(), newSourceCode.value.trim(),
         newTranslationName.value.trim(), newTranslationCode.value.trim()
     ).then((mapping) => {
@@ -80,17 +80,17 @@ function onAddMapping() {
         newSourceCode.value = '';
         newTranslationName.value = '';
         newTranslationCode.value = '';
-        logEvent('project', 'Language mapping added to $1', props.projectName);
+        logEvent('project', 'Language mapping added to $1', props.projectSlug);
     })
     .catch(() => { addMappingError.value = 'Failed to add language mapping.'; })
     .finally(() => { addingMapping.value = false; });
 }
 
 function onRemoveMapping(mapping) {
-    client.removeLanguageMapping(props.projectName, mapping.id)
+    client.removeLanguageMapping(props.projectSlug, mapping.id)
         .then(() => {
             languageMappings.value = languageMappings.value.filter(m => m.id !== mapping.id);
-            logEvent('project', 'Language mapping removed from $1', props.projectName);
+            logEvent('project', 'Language mapping removed from $1', props.projectSlug);
         })
         .catch(() => { error.value = 'Failed to remove language mapping.'; });
 }

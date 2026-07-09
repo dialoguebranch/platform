@@ -231,11 +231,11 @@ public class ApplicationManager {
 	 * Returns the {@link ResourcePointer}s of all dialogues available in the named project, or an
 	 * empty list if no project with that name is loaded.
 	 *
-	 * @param projectName the project folder name / slug.
+	 * @param projectSlug the project folder name / slug.
 	 * @return a list of {@link ResourcePointer}s for the named project.
 	 */
-	public List<ResourcePointer> getDialogueDescriptionsForProject(String projectName) {
-		DialogueBranchProject project = projects.get(projectName);
+	public List<ResourcePointer> getDialogueDescriptionsForProject(String projectSlug) {
+		DialogueBranchProject project = projects.get(projectSlug);
 		if (project == null) return new ArrayList<>();
 		return new ArrayList<>(project.getResourcePointers());
 	}
@@ -253,11 +253,11 @@ public class ApplicationManager {
 	 * Returns all available dialogues in the named project, or an empty list if no project with
 	 * that name is loaded.
 	 *
-	 * @param projectName the project folder name / slug.
+	 * @param projectSlug the project folder name / slug.
 	 * @return a list of {@link ResourcePointer}s for the named project.
 	 */
-	public List<ResourcePointer> getAvailableDialoguesForProject(String projectName) {
-		return getDialogueDescriptionsForProject(projectName);
+	public List<ResourcePointer> getAvailableDialoguesForProject(String projectSlug) {
+		return getDialogueDescriptionsForProject(projectSlug);
 	}
 
 	/**
@@ -293,17 +293,17 @@ public class ApplicationManager {
 	 * Returns the {@link Dialogue} identified by the given {@code dialogueDescription} and
 	 * {@code translationContext}, searching only within the named project.
 	 *
-	 * @param projectName         the project folder name / slug.
+	 * @param projectSlug         the project folder name / slug.
 	 * @param dialogueDescription the {@link ResourcePointer} identifying the requested dialogue.
 	 * @param translationContext  the translation context to apply, or {@code null} for the source.
 	 * @return the requested {@link Dialogue}.
 	 * @throws ExecutionException with type {@link ExecutionException.Type#DIALOGUE_NOT_FOUND} if the
 	 *                            project is not loaded or the dialogue is not found within it.
 	 */
-	public Dialogue getDialogueDefinitionForProject(String projectName,
+	public Dialogue getDialogueDefinitionForProject(String projectSlug,
 			ResourcePointer dialogueDescription, TranslationContext translationContext)
 			throws ExecutionException {
-		DialogueBranchProject project = projects.get(projectName);
+		DialogueBranchProject project = projects.get(projectSlug);
 		if (project instanceof ExecutableProject execProject) {
 			Dialogue dialogue;
 			if (translationContext == null) {
@@ -315,7 +315,7 @@ public class ApplicationManager {
 		}
 		throw new ExecutionException(ExecutionException.Type.DIALOGUE_NOT_FOUND,
 				"Dialogue '" + dialogueDescription.getDialogueName() + "' not found in project '" +
-						projectName + "' for language '" + dialogueDescription.getLanguage() + "'.");
+						projectSlug + "' for language '" + dialogueDescription.getLanguage() + "'.");
 	}
 
 	// ---------------------------------------------------------------- //
@@ -332,30 +332,30 @@ public class ApplicationManager {
 	 * after the database has been seeded, to populate the in-memory project map from the published
 	 * database content.</p>
 	 *
-	 * @param projectName the unique slug name of the project.
+	 * @param projectSlug the unique slug name of the project.
 	 * @param scriptLoader  the {@link ScriptLoader} that provides script and translation content.
 	 */
-	public void loadProject(String projectName, ScriptLoader scriptLoader) {
-		logger.info("Loading Dialogue Branch project '{}' into memory.", projectName);
+	public void loadProject(String projectSlug, ScriptLoader scriptLoader) {
+		logger.info("Loading Dialogue Branch project '{}' into memory.", projectSlug);
 
 		ProjectParser projectParser = new ProjectParser(scriptLoader);
 		ProjectParserResult result;
 		try {
 			result = projectParser.parse();
 		} catch (IOException e) {
-			logger.error("Error reading Dialogue Branch project '{}': {}", projectName,
+			logger.error("Error reading Dialogue Branch project '{}': {}", projectSlug,
 					e.getMessage());
 			return;
 		}
 
 		for (String path : result.getParseErrors().keySet()) {
-			logger.error("Project '{}': failed to parse {}:", projectName, path);
+			logger.error("Project '{}': failed to parse {}:", projectSlug, path);
 			for (ParseException ex : result.getParseErrors().get(path)) {
 				logger.error("*** {}", ex.getMessage());
 			}
 		}
 		for (String path : result.getWarnings().keySet()) {
-			logger.warn("Project '{}': warning at parsing {}:", projectName, path);
+			logger.warn("Project '{}': warning at parsing {}:", projectSlug, path);
 			for (String warning : result.getWarnings().get(path)) {
 				logger.warn("*** {}", warning);
 			}
@@ -363,13 +363,13 @@ public class ApplicationManager {
 
 		if (!result.getParseErrors().isEmpty()) {
 			logger.error("Dialogue Branch project '{}' could not be loaded due to parse errors.",
-					projectName);
+					projectSlug);
 			return;
 		}
 
-		projects.put(projectName, result.getProject());
+		projects.put(projectSlug, result.getProject());
 		logger.info("Successfully loaded Dialogue Branch project '{}' ({} dialogues).",
-				projectName, result.getProject().getDialogues().size());
+				projectSlug, result.getProject().getDialogues().size());
 	}
 
 }

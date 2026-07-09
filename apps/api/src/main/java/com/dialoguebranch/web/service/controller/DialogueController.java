@@ -152,8 +152,8 @@ public class DialogueController {
 		String version,
 
 		@Parameter(description = "Name of the project that contains the dialogue to start")
-		@RequestParam(value="projectName")
-		String projectName,
+		@RequestParam(value="projectSlug")
+		String projectSlug,
 
 		@Parameter(description = "Name of the DialogueBranch Dialogue to start (excluding .dlb)")
 		@RequestParam(value="dialogueName")
@@ -186,7 +186,7 @@ public class DialogueController {
 		}
 
 		// Log this call to the service log
-		String logInfo = "POST /v" + version + "/dialogue/start?projectName=" + projectName +
+		String logInfo = "POST /v" + version + "/dialogue/start?projectSlug=" + projectSlug +
 				"&dialogueName=" + dialogueName + "&language=" + language + "&timeZone=" + timeZone;
 		if(delegateUser != null && !delegateUser.isEmpty())
 			logInfo += "&delegateUser=" + delegateUser;
@@ -199,12 +199,12 @@ public class DialogueController {
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
 					(protocolVersion, authenticatedUser) -> doStartDialogue(authenticatedUser,
-							projectName, dialogueName, language, timeZone, sessionId),
+							projectSlug, dialogueName, language, timeZone, sessionId),
 					version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_CLIENT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
 					(protocolVersion, authenticatedUser) -> doStartDialogue(delegateUser,
-							projectName, dialogueName, language, timeZone, sessionId),
+							projectSlug, dialogueName, language, timeZone, sessionId),
 					version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_CLIENT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 		}
 	}
@@ -224,7 +224,7 @@ public class DialogueController {
 	 * @throws DatabaseException in case of an error in retrieving the current active user.
 	 * @throws IOException in case of any network error.
 	 */
-	private DialogueMessage doStartDialogue(String userId, String projectName, String dialogueName,
+	private DialogueMessage doStartDialogue(String userId, String projectSlug, String dialogueName,
 			String language, String timeZone, String sessionId)
 			throws HttpException, IOException, DatabaseException {
 
@@ -251,7 +251,7 @@ public class DialogueController {
 
 		try {
 			ExecuteNodeResult node = userService.startDialogueSession(
-					projectName, dialogueName, null, language, sessionId, System.currentTimeMillis());
+					projectSlug, dialogueName, null, language, sessionId, System.currentTimeMillis());
 			return DialogueMessageFactory.generateDialogueMessage(node);
 		} catch (ExecutionException e) {
 			throw ControllerFunctions.createHttpException(e);
@@ -457,8 +457,8 @@ public class DialogueController {
 		String version,
 
 		@Parameter(description = "Name of the project that contains the dialogue to continue")
-		@RequestParam(value="projectName")
-		String projectName,
+		@RequestParam(value="projectSlug")
+		String projectSlug,
 
 		@Parameter(description = "Name of the DialogueBranch Dialogue to continue (excluding .dlb)")
 		@RequestParam(value="dialogueName")
@@ -481,7 +481,7 @@ public class DialogueController {
 		}
 
 		// Log this call to the service log
-		String logInfo = "POST /v" + version + "/dialogue/continue?projectName=" + projectName +
+		String logInfo = "POST /v" + version + "/dialogue/continue?projectSlug=" + projectSlug +
 				"&dialogueName=" + dialogueName + "&timeZone=" + timeZone;
 		if(!(delegateUser == null) && (!delegateUser.isEmpty()))
 			logInfo += "&delegateUser="+delegateUser;
@@ -493,12 +493,12 @@ public class DialogueController {
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
 					(protocolVersion, authenticatedUser) -> doContinueDialogue(authenticatedUser,
-							projectName, dialogueName, timeZone),
+							projectSlug, dialogueName, timeZone),
 					version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_CLIENT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
 					(protocolVersion, authenticatedUser) ->
-							doContinueDialogue(delegateUser, projectName, dialogueName, timeZone),
+							doContinueDialogue(delegateUser, projectSlug, dialogueName, timeZone),
 					version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_CLIENT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 		}
 	}
@@ -518,7 +518,7 @@ public class DialogueController {
 	 *                           database.
 	 * @throws IOException in case of a file io error.
 	 */
-	private NullableResponse<DialogueMessage> doContinueDialogue(String userId, String projectName,
+	private NullableResponse<DialogueMessage> doContinueDialogue(String userId, String projectSlug,
 			String dialogueName, String timeZone)
 			throws HttpException, DatabaseException, IOException {
 
@@ -533,7 +533,7 @@ public class DialogueController {
 				DateTimeUtils.nowMs(userService.getDialogueBranchUser().getTimeZone());
 
 		ServerLoggedDialogue currentDialogue = userService.getLoggedDialogueStore().
-				findLatestOngoingDialogue(projectName, dialogueName);
+				findLatestOngoingDialogue(projectSlug, dialogueName);
 		LoggedInteraction lastInteraction = null;
 		if (currentDialogue != null && !currentDialogue.getInteractionList().isEmpty()) {
 			lastInteraction = currentDialogue.getInteractionList().get(
@@ -836,8 +836,8 @@ public class DialogueController {
 		String version,
 
 		@Parameter(description = "The name of the project for which to check for an ongoing dialogue")
-		@RequestParam(value="projectName")
-		String projectName,
+		@RequestParam(value="projectSlug")
+		String projectSlug,
 
 		@Parameter(description = "The current time zone of the user (as IANA, e.g. " +
 				"'Europe/Lisbon')")
@@ -856,7 +856,7 @@ public class DialogueController {
 		}
 
 		// Log this call to the service log
-		String logInfo = "GET /v" + version + "/dialogue/get-ongoing?projectName=" + projectName
+		String logInfo = "GET /v" + version + "/dialogue/get-ongoing?projectSlug=" + projectSlug
 				+ "&timeZone=" + timeZone;
 		if(!(delegateUser == null) && (!delegateUser.isEmpty())) logInfo += "&delegateUser="
 				+ delegateUser;
@@ -867,11 +867,11 @@ public class DialogueController {
 
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
-					(protocolVersion, authenticatedUser) -> doGetOngoingDialogue(authenticatedUser, projectName, timeZone),
+					(protocolVersion, authenticatedUser) -> doGetOngoingDialogue(authenticatedUser, projectSlug, timeZone),
 					version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_CLIENT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
-					(protocolVersion, authenticatedUser) -> doGetOngoingDialogue(delegateUser, projectName, timeZone),
+					(protocolVersion, authenticatedUser) -> doGetOngoingDialogue(delegateUser, projectSlug, timeZone),
 					version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_CLIENT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 		}
 	}
@@ -890,7 +890,7 @@ public class DialogueController {
 	 * @throws BadRequestException in case of a malformed or unknown {@code timeZone}
 	 */
 	private NullableResponse<OngoingDialoguePayload> doGetOngoingDialogue(String userId,
-																		  String projectName,
+																		  String projectSlug,
 																		  String timeZone)
             throws DatabaseException, IOException, BadRequestException {
 
@@ -901,7 +901,7 @@ public class DialogueController {
 		userService.getDialogueBranchUser().setTimeZone(timeZoneId);
 
 		ServerLoggedDialogue latestOngoingDialogue =
-				userService.getLoggedDialogueStore().findLatestOngoingDialogueInProject(projectName);
+				userService.getLoggedDialogueStore().findLatestOngoingDialogueInProject(projectSlug);
 
 		if(latestOngoingDialogue != null) {
 			String dialogueName = latestOngoingDialogue.getDialogueName();
@@ -952,31 +952,31 @@ public class DialogueController {
 		String version,
 
 		@Parameter(description = "Name of the project to list dialogues for")
-		@RequestParam(value="projectName")
-		String projectName
+		@RequestParam(value="projectSlug")
+		String projectSlug
 	) throws UnauthorizedException {
 
 		if (version == null || version.isEmpty()) {
 			version = ProtocolVersion.getLatestVersion().versionName();
 		}
 
-		String logInfo = "GET /v" + version + "/dialogue/list-dialogues?projectName=" + projectName;
+		String logInfo = "GET /v" + version + "/dialogue/list-dialogues?projectSlug=" + projectSlug;
 		logger.info(logInfo);
 
 		AuthenticationInfo authenticationInfo = QueryRunner.validateAccessToken(
 				ControllerFunctions.extractAccessToken(request), application);
 		if (authenticationInfo.hasRole(AuthenticationInfo.USER_ROLE_EDITOR)
 				|| authenticationInfo.hasRole(AuthenticationInfo.USER_ROLE_ADMIN)) {
-			return doListDialogues(projectName);
+			return doListDialogues(projectSlug);
 		} else {
 			throw new UnauthorizedException(ErrorCode.INSUFFICIENT_PRIVILEGES,
 				"This user does not have the rights to access this function.");
 		}
 	}
 
-	private DialogueListPayload doListDialogues(String projectName) {
+	private DialogueListPayload doListDialogues(String projectSlug) {
 		List<ResourcePointer> resources =
-				application.getApplicationManager().getAvailableDialoguesForProject(projectName);
+				application.getApplicationManager().getAvailableDialoguesForProject(projectSlug);
 		List<String> scriptNames = new ArrayList<>();
 		for (ResourcePointer resourcePointer : resources) {
 			if (resourcePointer.getResourceType().equals(ResourceType.SCRIPT)) {

@@ -217,7 +217,7 @@ public class UserService {
 	 * @throws IOException if an I/O error occurs.
 	 * @throws ExecutionException if the dialogue cannot be executed.
 	 */
-	public ExecuteNodeResult startDialogueSession(String projectName, String dialogueId,
+	public ExecuteNodeResult startDialogueSession(String projectSlug, String dialogueId,
 			String nodeId, String language, String sessionId, long sessionStartTime)
 			throws DatabaseException, IOException, ExecutionException {
 
@@ -228,19 +228,19 @@ public class UserService {
 					"already in use.");
 
         logger.info("User '{}' is starting dialogue '{}' in project '{}'",
-				dialogueBranchUser.getId(), dialogueId, projectName);
+				dialogueBranchUser.getId(), dialogueId, projectSlug);
 
 		ResourcePointer dialogueDescription =
-				getDialogueDescriptionFromProject(projectName, dialogueId, language);
+				getDialogueDescriptionFromProject(projectSlug, dialogueId, language);
 
 		if (dialogueDescription == null) {
 			throw new ExecutionException(ExecutionException.Type.DIALOGUE_NOT_FOUND,
-					"Dialogue '" + dialogueId + "' not found in project '" + projectName + "'.");
+					"Dialogue '" + dialogueId + "' not found in project '" + projectSlug + "'.");
 		}
-		Dialogue dialogue = getDialogueDefinitionForProject(projectName, dialogueDescription);
+		Dialogue dialogue = getDialogueDefinitionForProject(projectSlug, dialogueDescription);
 
 		return dialogueExecutor.startDialogue(dialogueDescription, dialogue, nodeId, sessionId,
-				sessionStartTime, projectName);
+				sessionStartTime, projectSlug);
 	}
 
 	/**
@@ -533,15 +533,15 @@ public class UserService {
 	 * <p>If no dialogue with the specified ID is found in the project, this method returns
 	 * {@code null}.</p>
 	 *
-	 * @param projectName the project folder name / slug.
+	 * @param projectSlug the project folder name / slug.
 	 * @param dialogueId the dialogue ID.
 	 * @param language an ISO language tag or null.
 	 * @return the dialogue description or null.
 	 */
-	public ResourcePointer getDialogueDescriptionFromProject(String projectName, String dialogueId,
+	public ResourcePointer getDialogueDescriptionFromProject(String projectSlug, String dialogueId,
 			String language) {
 		List<ResourcePointer> projectDialogues =
-				applicationManager.getDialogueDescriptionsForProject(projectName);
+				applicationManager.getDialogueDescriptionsForProject(projectSlug);
 		// Apply same language-matching logic as getAvailableDialogues
 		Map<String, ResourcePointer> langMap = new LinkedHashMap<>();
 		for (ResourcePointer pointer : projectDialogues) {
@@ -587,15 +587,15 @@ public class UserService {
 	 * throws a {@link ExecutionException} with
 	 * {@link ExecutionException.Type#DIALOGUE_NOT_FOUND DIALOGUE_NOT_FOUND} if not found.
 	 *
-	 * @param projectName the project folder name / slug.
+	 * @param projectSlug the project folder name / slug.
 	 * @param dialogueDescription the sought dialogue description.
 	 * @return the {@link Dialogue} containing the Dialogue Branch dialogue representation.
 	 * @throws ExecutionException if the dialogue definition is not found in the named project.
 	 */
-	public Dialogue getDialogueDefinitionForProject(String projectName,
+	public Dialogue getDialogueDefinitionForProject(String projectSlug,
 			ResourcePointer dialogueDescription) throws ExecutionException {
 		return this.applicationManager.getDialogueDefinitionForProject(
-				projectName, dialogueDescription, translationContext);
+				projectSlug, dialogueDescription, translationContext);
 	}
 
 	/**

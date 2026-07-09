@@ -7,5 +7,5 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface DBProjectRepository extends JpaRepository<DBProject, UUID> {
-    Optional<DBProject> findByName(String name);
+    Optional<DBProject> findBySlug(String slug);
 }

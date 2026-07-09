@@ -103,7 +103,7 @@ public class ProjectLoaderService {
 		for (DBProject project : allProjects) {
 			DBProjectVersion latestVersion = project.getLatestVersion();
 			if (latestVersion == null) {
-				logger.info("Project '{}' has no published version — skipping.", project.getName());
+				logger.info("Project '{}' has no published version — skipping.", project.getSlug());
 				continue;
 			}
 			loadProject(project, latestVersion);
@@ -122,7 +122,7 @@ public class ProjectLoaderService {
 	 * @param latestVersion the published version to load.
 	 */
 	public void loadProject(DBProject project, DBProjectVersion latestVersion) {
-		String projectName = project.getName();
+		String projectSlug = project.getSlug();
 
 		// Determine the source language from the project's language mappings.
 		String sourceLanguage = "en";
@@ -160,7 +160,7 @@ public class ProjectLoaderService {
 		DatabasePublishedScriptLoader scriptLoader =
 				new DatabasePublishedScriptLoader(sourceLanguage, scriptContents, translationContents);
 
-		application.getApplicationManager().loadProject(projectName, scriptLoader);
+		application.getApplicationManager().loadProject(projectSlug, scriptLoader);
 	}
 
 }

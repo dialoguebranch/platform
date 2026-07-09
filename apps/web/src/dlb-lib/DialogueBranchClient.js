@@ -86,7 +86,7 @@ export class DialogueBranchClient {
         .then((response) => this._handleResponse(response));
     }
 
-    createProject(name, displayName, description) {
+    createProject(slug, displayName, description, defaultLanguageCode, defaultLanguageName) {
         const url = this._baseUrl + "/project/create-project";
 
         return this._fetch(url, {
@@ -95,13 +95,13 @@ export class DialogueBranchClient {
                 'Authorization': 'Bearer ' + this._accessToken,
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({ name, displayName, description }),
+            body: JSON.stringify({ slug, displayName, description, defaultLanguageCode, defaultLanguageName }),
         })
         .then((response) => this._handleResponse(response));
     }
 
-    getProject(projectName) {
-        const url = this._baseUrl + "/project/get-project?projectName=" + encodeURIComponent(projectName);
+    getProject(projectSlug) {
+        const url = this._baseUrl + "/project/get-project?projectSlug=" + encodeURIComponent(projectSlug);
 
         return this._fetch(url, {
             method: "GET",
@@ -109,8 +109,8 @@ export class DialogueBranchClient {
         }).then((response) => this._handleResponse(response));
     }
 
-    updateProject(projectName, displayName, description) {
-        const url = this._baseUrl + "/project/update-project?projectName=" + encodeURIComponent(projectName);
+    updateProject(projectSlug, displayName, description) {
+        const url = this._baseUrl + "/project/update-project?projectSlug=" + encodeURIComponent(projectSlug);
 
         return this._fetch(url, {
             method: "POST",
@@ -119,8 +119,8 @@ export class DialogueBranchClient {
         }).then((response) => this._handleResponse(response));
     }
 
-    addLanguageMapping(projectName, sourceLanguageName, sourceLanguageCode, translationLanguageName, translationLanguageCode) {
-        const url = this._baseUrl + "/project/add-language-mapping?projectName=" + encodeURIComponent(projectName);
+    addLanguageMapping(projectSlug, sourceLanguageName, sourceLanguageCode, translationLanguageName, translationLanguageCode) {
+        const url = this._baseUrl + "/project/add-language-mapping?projectSlug=" + encodeURIComponent(projectSlug);
 
         return this._fetch(url, {
             method: "POST",
@@ -129,8 +129,8 @@ export class DialogueBranchClient {
         }).then((response) => this._handleResponse(response));
     }
 
-    removeLanguageMapping(projectName, mappingId) {
-        const url = this._baseUrl + "/project/remove-language-mapping?projectName=" + encodeURIComponent(projectName) + "&mappingId=" + encodeURIComponent(mappingId);
+    removeLanguageMapping(projectSlug, mappingId) {
+        const url = this._baseUrl + "/project/remove-language-mapping?projectSlug=" + encodeURIComponent(projectSlug) + "&mappingId=" + encodeURIComponent(mappingId);
 
         return this._fetch(url, {
             method: "POST",
@@ -138,8 +138,8 @@ export class DialogueBranchClient {
         }).then((response) => { if (!response.ok) return Promise.reject(response); });
     }
 
-    listDialogues(projectName) {
-        const url = this._baseUrl + "/dialogue/list-dialogues?projectName=" + encodeURIComponent(projectName);
+    listDialogues(projectSlug) {
+        const url = this._baseUrl + "/dialogue/list-dialogues?projectSlug=" + encodeURIComponent(projectSlug);
 
         return this._fetch(url, {
             method: "GET",
@@ -151,10 +151,10 @@ export class DialogueBranchClient {
         .then((response) => this._handleResponse(response));
     }
 
-    startDialogue(projectName, dialogueName, language) {
+    startDialogue(projectSlug, dialogueName, language) {
         var url = this._baseUrl + "/dialogue/start";
 
-        url += "?projectName="+encodeURIComponent(projectName);
+        url += "?projectSlug="+encodeURIComponent(projectSlug);
         url += "&dialogueName="+dialogueName;
         url += "&language="+language;
         url += "&timeZone="+this._timeZone;
@@ -190,10 +190,10 @@ export class DialogueBranchClient {
         .then((json) => json.value ? this.createDialogueStepObject(json.value) : null);
     }
 
-    continueDialogue(projectName, dialogueName) {
+    continueDialogue(projectSlug, dialogueName) {
         var url = this._baseUrl + "/dialogue/continue";
 
-        url += "?projectName="+encodeURIComponent(projectName);
+        url += "?projectSlug="+encodeURIComponent(projectSlug);
         url += "&dialogueName="+dialogueName;
         url += "&timeZone="+this._timeZone;
         url += this._delegateParam;
@@ -267,9 +267,9 @@ export class DialogueBranchClient {
         })
     }
 
-    getOngoingDialogue(projectName) {
+    getOngoingDialogue(projectSlug) {
         let url = this._baseUrl + "/dialogue/get-ongoing";
-        url += "?projectName=" + encodeURIComponent(projectName);
+        url += "?projectSlug=" + encodeURIComponent(projectSlug);
         url += "&timeZone=" + this._timeZone;
         url += this._delegateParam;
 

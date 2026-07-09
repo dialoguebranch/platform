@@ -47,7 +47,7 @@ import java.util.UUID;
 @Table(
 	name = "projects",
 	uniqueConstraints = {
-		@UniqueConstraint(name = "uq_projects_name", columnNames = "name")
+		@UniqueConstraint(name = "uq_projects_slug", columnNames = "slug")
 	}
 )
 public class DBProject {
@@ -56,7 +56,7 @@ public class DBProject {
 	@GeneratedValue(strategy = GenerationType.UUID)
 	private UUID id;
 
-	private String name;
+	private String slug;
 
 	@Column(name = "display_name")
 	private String displayName;
@@ -66,6 +66,13 @@ public class DBProject {
 	@OneToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "latest_version_id")
 	private DBProjectVersion latestVersion;
+
+	@OneToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "default_language_set_id")
+	private DBLanguageSet defaultLanguageSet;
+
+	@OneToMany(mappedBy = "project", fetch = FetchType.EAGER)
+	private Set<DBLanguageSet> languageSets = new HashSet<>();
 
 	@OneToMany(mappedBy = "project", fetch = FetchType.EAGER)
 	private Set<DBProjectLanguageMapping> languageMappings = new HashSet<>();
@@ -109,21 +116,21 @@ public class DBProject {
 	}
 
 	/**
-	 * Returns the unique slug name of this project.
+	 * Returns the unique slug of this project.
 	 *
-	 * @return the project name.
+	 * @return the project slug.
 	 */
-	public String getName() {
-		return name;
+	public String getSlug() {
+		return slug;
 	}
 
 	/**
-	 * Sets the unique slug name of this project.
+	 * Sets the unique slug of this project.
 	 *
-	 * @param name the project name.
+	 * @param slug the project slug.
 	 */
-	public void setName(String name) {
-		this.name = name;
+	public void setSlug(String slug) {
+		this.slug = slug;
 	}
 
 	/**
@@ -179,6 +186,44 @@ public class DBProject {
 	 */
 	public void setLatestVersion(DBProjectVersion latestVersion) {
 		this.latestVersion = latestVersion;
+	}
+
+	/**
+	 * Returns this project's default {@link DBLanguageSet}, or {@code null} if the project has
+	 * not yet been assigned one (e.g. seed projects that predate the LanguageSet model). Every
+	 * project created through the API is guaranteed to have exactly one.
+	 *
+	 * @return the default language set, or {@code null}.
+	 */
+	public DBLanguageSet getDefaultLanguageSet() {
+		return defaultLanguageSet;
+	}
+
+	/**
+	 * Sets this project's default {@link DBLanguageSet}.
+	 *
+	 * @param defaultLanguageSet the default language set.
+	 */
+	public void setDefaultLanguageSet(DBLanguageSet defaultLanguageSet) {
+		this.defaultLanguageSet = defaultLanguageSet;
+	}
+
+	/**
+	 * Returns the set of all {@link DBLanguageSet}s defined for this project.
+	 *
+	 * @return the set of language sets.
+	 */
+	public Set<DBLanguageSet> getLanguageSets() {
+		return languageSets;
+	}
+
+	/**
+	 * Sets the set of all {@link DBLanguageSet}s for this project.
+	 *
+	 * @param languageSets the set of language sets.
+	 */
+	public void setLanguageSets(Set<DBLanguageSet> languageSets) {
+		this.languageSets = languageSets;
 	}
 
 	/**

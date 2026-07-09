@@ -1,10 +1,9 @@
 <script setup>
-import { inject, onMounted, ref } from 'vue';
+import { inject, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useClient } from '../../composables/client.js';
 import { useStateManagement } from '../../composables/state-management.js';
-import PushButton from '../widgets/PushButton.vue';
-import TextInput from '../widgets/TextInput.vue';
+import CreateProjectWizardModal from '../partials/CreateProjectWizardModal.vue';
 
 const state = inject('state');
 const client = useClient();
@@ -14,14 +13,70 @@ const projects = ref([]);
 const loading = ref(true);
 const errorMessage = ref('');
 
-// Create-project form
-const showCreateForm = ref(false);
-const createName = ref('');
-const createDisplayName = ref('');
-const createDescription = ref('');
-const createErrors = ref({});
-const creating = ref(false);
-const createError = ref('');
+// Tracks which project descriptions overflow a 3-line clamp, and which cards have been
+// manually expanded to show the full description.
+const descriptionEls = {};
+const truncatedDescriptions = reactive(new Set());
+const expandedDescriptions = reactive(new Set());
+
+// A ResizeObserver fires once layout has actually settled (fonts loaded, etc.), which
+// is more reliable than guessing a fixed delay before measuring scrollHeight/clientHeight.
+// While a card is expanded its paragraph is unclamped, so measuring it would always read
+// as "not truncated" — skip those and keep whatever truncation state was last measured
+// while collapsed.
+const resizeObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver((entries) => {
+    for (const entry of entries) {
+        const slug = entry.target.dataset.projectSlug;
+        if (expandedDescriptions.has(slug)) continue;
+        if (entry.target.scrollHeight > entry.target.clientHeight + 1) {
+            truncatedDescriptions.add(slug);
+        } else {
+            truncatedDescriptions.delete(slug);
+        }
+    }
+}) : null;
+
+function setDescriptionRef(slug, el) {
+    const previous = descriptionEls[slug];
+    if (previous && resizeObserver) resizeObserver.unobserve(previous);
+
+    if (el) {
+        el.dataset.projectSlug = slug;
+        descriptionEls[slug] = el;
+        if (resizeObserver) {
+            resizeObserver.observe(el);
+        } else if (el.scrollHeight > el.clientHeight + 1) {
+            truncatedDescriptions.add(slug);
+        }
+    } else {
+        delete descriptionEls[slug];
+    }
+}
+
+// While collapsed: clamp to 3 lines normally, or to 2 lines (freeing up the third line for
+// the "[Read more...]" link) once the description is known to overflow 3 lines.
+function descriptionClampClass(slug) {
+    if (expandedDescriptions.has(slug)) return '';
+    return truncatedDescriptions.has(slug) ? 'line-clamp-2' : 'line-clamp-3';
+}
+
+function isDescriptionTruncated(slug) {
+    return truncatedDescriptions.has(slug) && !expandedDescriptions.has(slug);
+}
+
+function expandDescription(slug) {
+    expandedDescriptions.add(slug);
+}
+
+function collapseDescription(slug) {
+    expandedDescriptions.delete(slug);
+}
+
+onBeforeUnmount(() => {
+    if (resizeObserver) resizeObserver.disconnect();
+});
+
+const showCreateWizard = ref(false);
 
 onMounted(() => {
     loadProjects();
@@ -43,7 +98,7 @@ function loadProjects() {
 }
 
 function selectProject(project) {
-    state.value.selectedProject = { name: project.name, displayName: project.displayName ?? project.name };
+    state.value.selectedProject = { slug: project.slug, displayName: project.displayName ?? project.slug };
 }
 
 function onLogoutClick() {
@@ -52,38 +107,8 @@ function onLogoutClick() {
 
 const isAdmin = state.value.user?.roles?.includes('admin');
 
-function toggleCreateForm() {
-    showCreateForm.value = !showCreateForm.value;
-    createName.value = '';
-    createDisplayName.value = '';
-    createDescription.value = '';
-    createErrors.value = {};
-    createError.value = '';
-}
-
-function submitCreateProject() {
-    createErrors.value = {};
-    createError.value = '';
-
-    const name = createName.value.trim();
-    const displayName = createDisplayName.value.trim();
-
-    if (!name) createErrors.value.name = true;
-    if (!displayName) createErrors.value.displayName = true;
-    if (Object.keys(createErrors.value).length > 0) return;
-
-    creating.value = true;
-    client.createProject(name, displayName, createDescription.value.trim())
-        .then((project) => {
-            showCreateForm.value = false;
-            projects.value.push(project);
-        })
-        .catch(() => {
-            createError.value = 'Failed to create project. The name may already be in use.';
-        })
-        .finally(() => {
-            creating.value = false;
-        });
+function onProjectCreated(project) {
+    projects.value.push(project);
 }
 </script>
 
@@ -108,52 +133,18 @@ function submitCreateProject() {
                     :class="['flex items-center gap-1.5 px-3 py-1.5 rounded text-white text-xs font-title font-semibold transition-colors', isAdmin ? 'bg-orange-darker hover:bg-orange-dark cursor-pointer' : 'bg-orange-medium cursor-not-allowed opacity-60']"
                     :disabled="!isAdmin"
                     :title="isAdmin ? '' : 'Only administrators can create new projects'"
-                    @click="isAdmin && toggleCreateForm()"
+                    @click="isAdmin && (showCreateWizard = true)"
                 >
-                    <FontAwesomeIcon :icon="showCreateForm ? 'fa-solid fa-xmark' : 'fa-solid fa-plus'" />
-                    {{ showCreateForm ? 'Cancel' : 'New Project' }}
+                    <FontAwesomeIcon icon="fa-solid fa-plus" />
+                    New Project
                 </button>
             </div>
 
-            <!-- Create project form -->
-            <div v-if="showCreateForm" class="bg-box rounded-xl px-5 py-4 mb-4">
-                <h3 class="font-title font-semibold text-sm text-orange-darker mb-3">Create New Project</h3>
-                <div class="flex flex-col gap-3">
-                    <div class="sm:flex sm:items-center gap-3">
-                        <label class="font-title text-sm font-semibold shrink-0 sm:w-32 sm:text-right">Name <span class="text-red-500">*</span></label>
-                        <div class="mt-1 sm:mt-0 grow">
-                            <TextInput
-                                v-model="createName"
-                                placeholder="unique-slug"
-                                :error="createErrors.name"
-                                class="w-full"
-                            />
-                            <p class="text-xs text-grey-dark mt-0.5">Unique identifier, lowercase, no spaces (e.g. my-project)</p>
-                        </div>
-                    </div>
-                    <div class="sm:flex sm:items-center gap-3">
-                        <label class="font-title text-sm font-semibold shrink-0 sm:w-32 sm:text-right">Display Name <span class="text-red-500">*</span></label>
-                        <TextInput
-                            v-model="createDisplayName"
-                            placeholder="My Project"
-                            :error="createErrors.displayName"
-                            class="mt-1 sm:mt-0 grow"
-                        />
-                    </div>
-                    <div class="sm:flex sm:items-center gap-3">
-                        <label class="font-title text-sm font-semibold shrink-0 sm:w-32 sm:text-right">Description</label>
-                        <TextInput
-                            v-model="createDescription"
-                            placeholder="Optional description..."
-                            class="mt-1 sm:mt-0 grow"
-                        />
-                    </div>
-                    <div v-if="createError" class="text-red-500 text-xs font-title">{{ createError }}</div>
-                    <div class="flex justify-end">
-                        <PushButton text="Create Project" :disabled="creating" @click="submitCreateProject" />
-                    </div>
-                </div>
-            </div>
+            <CreateProjectWizardModal
+                v-if="showCreateWizard"
+                @close="showCreateWizard = false"
+                @created="onProjectCreated"
+            />
 
             <!-- Loading state -->
             <div v-if="loading" class="text-center py-12 text-grey-dark font-title text-sm">
@@ -182,7 +173,7 @@ function submitCreateProject() {
             <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                     v-for="project in projects"
-                    :key="project.name"
+                    :key="project.slug"
                     type="button"
                     class="text-left bg-box rounded-xl px-5 py-4 hover:shadow-md hover:border-orange-darker border border-transparent transition-all cursor-pointer group"
                     @click="selectProject(project)"
@@ -190,13 +181,28 @@ function submitCreateProject() {
                     <div class="flex items-start justify-between gap-2">
                         <div class="min-w-0">
                             <div class="font-title font-semibold text-sm group-hover:text-orange-darker transition-colors truncate">
-                                {{ project.displayName ?? project.name }}
+                                {{ project.displayName ?? project.slug }}
                             </div>
-                            <div class="font-mono text-xs text-grey-dark mt-0.5 truncate">{{ project.name }}</div>
+                            <div class="font-mono text-xs text-grey-dark mt-0.5 truncate">{{ project.slug }}</div>
                         </div>
                         <FontAwesomeIcon icon="fa-solid fa-circle-arrow-right" class="text-orange-medium group-hover:text-orange-darker transition-colors shrink-0 mt-0.5" />
                     </div>
-                    <p v-if="project.description" class="text-xs text-grey-dark mt-2 line-clamp-2">{{ project.description }}</p>
+                    <div v-if="project.description" class="mt-2">
+                        <p
+                            :ref="(el) => setDescriptionRef(project.slug, el)"
+                            :class="['text-xs text-grey-dark', descriptionClampClass(project.slug)]"
+                        >{{ project.description }}</p>
+                        <span
+                            v-if="isDescriptionTruncated(project.slug)"
+                            class="text-xs text-orange-darker hover:underline cursor-pointer font-title font-semibold"
+                            @click.stop="expandDescription(project.slug)"
+                        >[Read more...]</span>
+                        <span
+                            v-else-if="expandedDescriptions.has(project.slug)"
+                            class="text-xs text-orange-darker hover:underline cursor-pointer font-title font-semibold"
+                            @click.stop="collapseDescription(project.slug)"
+                        >[Read less...]</span>
+                    </div>
                     <div v-if="project.latestVersion" class="text-xs text-grey-dark mt-2">
                         <span class="font-bold">Version</span> {{ project.latestVersion.versionNumber }}
                     </div>

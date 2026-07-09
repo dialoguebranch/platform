@@ -102,7 +102,7 @@ function onEditMetadataClick() {
 
 function onMetadataSaved(updated) {
     showEditMetadata.value = false;
-    state.value.selectedProject = { name: updated.name, displayName: updated.displayName };
+    state.value.selectedProject = { slug: updated.slug, displayName: updated.displayName };
 }
 
 function onSaveProjectClick() {
@@ -190,7 +190,7 @@ function onResizePanels() {
                     <div class="flex flex-col justify-center leading-tight text-left">
                         <span class="font-title text-[10px] text-orange-light uppercase tracking-wide">Project</span>
                         <span class="font-title text-sm font-bold text-white">{{ state.selectedProject?.displayName }}</span>
-                        <span class="font-mono text-[10px] text-orange-light">{{ state.selectedProject?.name }}</span>
+                        <span class="font-mono text-[10px] text-orange-light">{{ state.selectedProject?.slug }}</span>
                     </div>
                     <FontAwesomeIcon :icon="projectMenuOpen ? 'fa-solid fa-caret-up' : 'fa-solid fa-caret-down'" class="text-orange-light text-xs" />
                 </button>
@@ -307,7 +307,7 @@ function onResizePanels() {
 
         <EditProjectMetadataModal
             v-if="showEditMetadata"
-            :projectName="state.selectedProject?.name"
+            :projectSlug="state.selectedProject?.slug"
             @close="showEditMetadata = false"
             @saved="onMetadataSaved"
         />

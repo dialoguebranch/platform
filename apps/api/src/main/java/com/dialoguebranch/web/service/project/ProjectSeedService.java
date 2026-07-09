@@ -146,7 +146,7 @@ public class ProjectSeedService {
 	 */
 	@Transactional
 	private void seedProject(String projectFolderName, Resource markerResource) {
-		if (projectService.findByName(projectFolderName).isPresent()) {
+		if (projectService.findBySlug(projectFolderName).isPresent()) {
 			logger.info("Seed project '{}' already exists in database — skipping.",
 					projectFolderName);
 			return;

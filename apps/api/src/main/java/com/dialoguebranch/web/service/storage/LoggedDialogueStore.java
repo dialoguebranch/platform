@@ -163,32 +163,32 @@ public class LoggedDialogueStore {
 
 	/**
 	 * Finds and returns the most recent ongoing (not cancelled, not completed) {@link
-	 * ServerLoggedDialogue} for this user within the given {@code projectName}, or {@code null} if
+	 * ServerLoggedDialogue} for this user within the given {@code projectSlug}, or {@code null} if
 	 * none is found.
 	 *
-	 * @param projectName the project name to filter on.
+	 * @param projectSlug the project name to filter on.
 	 * @return the latest ongoing {@link ServerLoggedDialogue} within the given project, or {@code null}.
 	 * @throws DatabaseException in case of an error reading from the dialogue log files.
 	 * @throws IOException in case of an error reading from the dialogue log files.
 	 */
-	public ServerLoggedDialogue findLatestOngoingDialogueInProject(String projectName)
+	public ServerLoggedDialogue findLatestOngoingDialogueInProject(String projectSlug)
 			throws DatabaseException, IOException {
-		return readLatestDialogueWithConditions(true, projectName, null, null);
+		return readLatestDialogueWithConditions(true, projectSlug, null, null);
 	}
 
 	/**
 	 * Finds and returns the most recent ongoing {@link ServerLoggedDialogue} for this user with
-	 * the given {@code projectName} and {@code dialogueName}, or {@code null} if none is found.
+	 * the given {@code projectSlug} and {@code dialogueName}, or {@code null} if none is found.
 	 *
-	 * @param projectName the project name to filter on.
+	 * @param projectSlug the project name to filter on.
 	 * @param dialogueName the dialogue name to filter on.
 	 * @return the latest ongoing {@link ServerLoggedDialogue}, or {@code null}.
 	 * @throws DatabaseException in case of an error reading from the dialogue log files.
 	 * @throws IOException in case of an error reading from the dialogue log files.
 	 */
-	public ServerLoggedDialogue findLatestOngoingDialogue(String projectName, String dialogueName)
+	public ServerLoggedDialogue findLatestOngoingDialogue(String projectSlug, String dialogueName)
 			throws DatabaseException, IOException {
-		return readLatestDialogueWithConditions(true, projectName, dialogueName, null);
+		return readLatestDialogueWithConditions(true, projectSlug, dialogueName, null);
 	}
 
 	/**
@@ -382,7 +382,7 @@ public class LoggedDialogueStore {
 	 * @throws IOException in case of an error reading from the dialogue log files.
 	 */
 	private ServerLoggedDialogue readLatestDialogueWithConditions(boolean mustBeOngoing,
-																  String projectName,
+																  String projectSlug,
 																  String dialogueName, String id)
 			throws DatabaseException, IOException {
 
@@ -396,8 +396,8 @@ public class LoggedDialogueStore {
 						|| latestStoredServerLoggedDialogue.isCompleted()) match = false;
 			}
 
-			if(match && projectName != null) {
-				if(!projectName.equals(latestStoredServerLoggedDialogue.getProjectName()))
+			if(match && projectSlug != null) {
+				if(!projectSlug.equals(latestStoredServerLoggedDialogue.getProjectName()))
 					match = false;
 			}
 
@@ -435,8 +435,8 @@ public class LoggedDialogueStore {
 						if(ld.isCancelled() || ld.isCompleted()) match = false;
 					}
 
-					if(match && projectName != null) {
-						if(!projectName.equals(ld.getProjectName())) match = false;
+					if(match && projectSlug != null) {
+						if(!projectSlug.equals(ld.getProjectName())) match = false;
 					}
 
 					if(match && dialogueName != null) {
