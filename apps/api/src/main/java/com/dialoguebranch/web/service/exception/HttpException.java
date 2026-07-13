@@ -118,6 +118,8 @@ public abstract class HttpException extends Exception {
 					new ForbiddenException(error);
 			case 404 ->
 					new NotFoundException(error);
+			case 409 ->
+					new ConflictException(error);
 			case 501 ->
 					new NotImplementedException(error);
 			default ->

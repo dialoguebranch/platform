@@ -112,8 +112,8 @@ function onProjectCreated(project) {
 }
 
 // Deletion is deliberately buried behind a confirmation modal that requires typing the
-// project's slug back — this is a permanent, irreversible action (project, drafts, published
-// versions, and variables are all gone), so it should never be a single misclick.
+// project's slug back — this is a permanent, irreversible action (project, drafts, and
+// published versions are all gone), so it should never be a single misclick.
 const deleteConfirm = ref(null); // { slug, displayName }
 const deleteConfirmInput = ref('');
 const deleting = ref(false);
@@ -273,7 +273,7 @@ function confirmDelete() {
                         <FontAwesomeIcon icon="fa-solid fa-circle-exclamation" class="shrink-0 mt-0.5" />
                         <span>
                             This will permanently delete all of this project's dialogues (draft
-                            and published), variables, and version history. <strong>This action
+                            and published) and version history. <strong>This action
                             cannot be undone.</strong>
                         </span>
                     </div>

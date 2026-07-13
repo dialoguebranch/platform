@@ -34,6 +34,7 @@ import com.dialoguebranch.web.service.QueryRunner;
 import com.dialoguebranch.web.service.auth.AuthenticationInfo;
 import com.dialoguebranch.web.service.controller.schema.authoring.*;
 import com.dialoguebranch.web.service.exception.BadRequestException;
+import com.dialoguebranch.web.service.exception.ConflictException;
 import com.dialoguebranch.web.service.exception.HttpException;
 import com.dialoguebranch.web.service.exception.NotFoundException;
 import com.dialoguebranch.web.service.project.ProjectService;
@@ -145,6 +146,9 @@ public class ProjectController {
 						throw new BadRequestException("Field 'defaultLanguageCode' is required.");
 					if (payload.getDefaultLanguageName() == null || payload.getDefaultLanguageName().isBlank())
 						throw new BadRequestException("Field 'defaultLanguageName' is required.");
+					if (projectService.findBySlug(payload.getSlug()).isPresent())
+						throw new ConflictException(
+								"A project with slug '" + payload.getSlug() + "' already exists.");
 					return projectService.createProject(payload.getSlug(),
 							payload.getDisplayName(), payload.getDescription(),
 							payload.getDefaultLanguageCode(), payload.getDefaultLanguageName());
