@@ -4,6 +4,7 @@ import { inject } from 'vue';
 import ProjectSelectorPage from './components/pages/ProjectSelectorPage.vue';
 import MainPage from './components/pages/MainPage.vue';
 import DebugWindow from './components/widgets/DebugWindow.vue';
+import ErrorToast from './components/widgets/ErrorToast.vue';
 
 const state = inject('state');
 </script>
@@ -17,4 +18,5 @@ const state = inject('state');
         Redirecting to login…
     </div>
     <DebugWindow />
+    <ErrorToast />
 </template>

@@ -4,6 +4,8 @@ import { useClient } from '@/composables/client.js';
 
 const state = inject('state');
 import { logEvent } from '@/composables/debug-log.js';
+import { describeError } from '@/composables/error-message.js';
+import { showError, dismissError } from '@/composables/error-toast.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import IconButton from '../widgets/IconButton.vue';
 import BalloonDialogueComponent from './BalloonDialogueComponent.vue';
@@ -94,12 +96,20 @@ function doCloseTab(id) {
 function cancelAndCloseTab(id) {
     const tab = tabs.value.find(t => t.id === id);
     if (tab?.isDraftTest && tab.draftSessionId) {
-        client.cancelDraftDialogue(tab.draftSessionId).finally(() => doCloseTab(id));
+        client.cancelDraftDialogue(tab.draftSessionId)
+        .catch((error) => {
+            showError(describeError(error));
+        })
+        .finally(() => doCloseTab(id));
         return;
     }
     const lastStep = tab?.dialogueSteps[tab.dialogueSteps.length - 1];
     if (lastStep) {
-        client.cancelDialogue(lastStep.loggedDialogueId).finally(() => doCloseTab(id));
+        client.cancelDialogue(lastStep.loggedDialogueId)
+        .catch((error) => {
+            showError(describeError(error));
+        })
+        .finally(() => doCloseTab(id));
     } else {
         doCloseTab(id);
     }
@@ -130,6 +140,7 @@ const loadDialogue = (name) => {
     tab.isDraftTest = false;
     tab.draftSessionId = null;
     scrollActiveTabIntoView();
+    dismissError();
     logEvent('dialogue', 'Dialogue started: $1', name);
     client.startDialogue(state.value.selectedProject?.slug, name, 'en')
     .then((dialogueStep) => {
@@ -140,6 +151,9 @@ const loadDialogue = (name) => {
         if (tab.dialogueEnded) logEvent('dialogue', 'Dialogue ended immediately: $1', name);
         emit('newDialogueStep');
         scrollTextToBottom();
+    })
+    .catch((error) => {
+        showError(describeError(error));
     });
 };
 
@@ -155,6 +169,7 @@ const loadDraftDialogue = (name) => {
     tab.isDraftTest = true;
     tab.draftSessionId = null;
     scrollActiveTabIntoView();
+    dismissError();
     logEvent('dialogue', 'Draft test started: $1', name);
     client.startDraftDialogue(state.value.selectedProject?.slug, name, 'en')
     .then(({ draftSessionId, dialogueStep }) => {
@@ -165,6 +180,9 @@ const loadDraftDialogue = (name) => {
         if (tab.dialogueEnded) logEvent('dialogue', 'Draft test ended immediately: $1', name);
         emit('newDialogueStep');
         scrollTextToBottom();
+    })
+    .catch((error) => {
+        showError(describeError(error));
     });
 };
 
@@ -180,12 +198,16 @@ function restartActiveTab() {
 function onRevertVariablesClick() {
     const tab = activeTab.value;
     if (!tab.isDraftTest || !tab.draftSessionId) return;
+    dismissError();
     logEvent('dialogue', 'Draft test variables reverted: $1', tab.dialogueName);
     client.revertDraftVariables(tab.draftSessionId)
     .then(() => {
         tab.draftSessionId = null;
         tab.dialogueEnded = true;
         emit('newDialogueStep');
+    })
+    .catch((error) => {
+        showError(describeError(error));
     });
 }
 
@@ -195,12 +217,16 @@ const reloadStep = () => {
     const tab = activeTab.value;
     if (tab.dialogueName && !tab.isDraftTest) {
         reloading.value = true;
+        dismissError();
         client.continueDialogue(state.value.selectedProject?.slug, tab.dialogueName)
         .then((dialogueStep) => {
             tab.dialogueSteps.pop();
             tab.dialogueSteps.push(dialogueStep);
             emit('newDialogueStep');
             scrollTextToBottom();
+        })
+        .catch((error) => {
+            showError(describeError(error));
         })
         .finally(() => {
             setTimeout(() => { reloading.value = false; }, 1000);
@@ -217,6 +243,7 @@ const resumeDialogue = (name) => {
     newTab.dialogueName = name;
     activeTabId.value = newTab.id;
     nextTick(updateScrollState);
+    dismissError();
     client.continueDialogue(state.value.selectedProject?.slug, name)
     .then((dialogueStep) => {
         const tab = tabs.value.find(t => t.id === newTab.id);
@@ -231,6 +258,9 @@ const resumeDialogue = (name) => {
         logEvent('dialogue', 'Dialogue resumed: $1', name);
         emit('newDialogueStep');
         scrollTextToBottom();
+    })
+    .catch((error) => {
+        showError(describeError(error));
     });
 };
 
@@ -294,7 +324,10 @@ function scrollActiveTabIntoView() {
     });
 }
 
-watch(activeTabId, scrollActiveTabIntoView);
+watch(activeTabId, () => {
+    dismissError();
+    scrollActiveTabIntoView();
+});
 
 onMounted(() => {
     updateScrollState();
@@ -304,6 +337,7 @@ onMounted(() => {
 
 function onCancelClick() {
     const tab = activeTab.value;
+    dismissError();
     if (tab.isDraftTest) {
         if (!tab.draftSessionId) return;
         logEvent('dialogue', 'Draft test cancelled: $1', tab.dialogueName);
@@ -312,6 +346,9 @@ function onCancelClick() {
             tab.draftSessionId = null;
             tab.dialogueCancelled = true;
             tab.dialogueEnded = true;
+        })
+        .catch((error) => {
+            showError(describeError(error));
         });
         return;
     }
@@ -322,12 +359,16 @@ function onCancelClick() {
     .then(() => {
         tab.dialogueCancelled = true;
         tab.dialogueEnded = true;
+    })
+    .catch((error) => {
+        showError(describeError(error));
     });
 }
 
 function onSelectReply(dialogueStep, reply) {
     const tab = activeTab.value;
     const replyText = reply.statement?.segments?.map(s => s.text).join('') ?? String(reply.replyId);
+    dismissError();
 
     if (tab.isDraftTest) {
         logEvent('dialogue', 'Draft test reply selected: $1', replyText);
@@ -344,6 +385,9 @@ function onSelectReply(dialogueStep, reply) {
             }
             emit('newDialogueStep');
             scrollTextToBottom();
+        })
+        .catch((error) => {
+            showError(describeError(error));
         });
         return;
     }
@@ -363,6 +407,9 @@ function onSelectReply(dialogueStep, reply) {
         }
         emit('newDialogueStep');
         scrollTextToBottom();
+    })
+    .catch((error) => {
+        showError(describeError(error));
     });
 }
 </script>

@@ -6,6 +6,8 @@ export default { inheritAttrs: false };
 import { computed, inject, ref, useAttrs } from 'vue';
 const attrs = useAttrs();
 import { useClient } from '../../composables/client.js';
+import { describeError } from '../../composables/error-message.js';
+import { showError, dismissError } from '../../composables/error-toast.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
 const state = inject('state');
@@ -50,6 +52,7 @@ function buildTree(entries) {
 
 function listDialogues() {
     const projectSlug = state.value.selectedProject?.slug;
+    dismissError();
     Promise.all([
         client.listDialogues(projectSlug).catch(() => ({ dialogueNames: [] })),
         client.listDraftDialogues(projectSlug).catch(() => []),
@@ -73,7 +76,7 @@ function listDialogues() {
         openFolders.value = {};
     })
     .catch((error) => {
-        console.log(error);
+        showError(describeError(error));
     });
 }
 
@@ -85,6 +88,7 @@ const hasActiveDialogue = computed(() =>
     props.openTabs.some(t => t.dialogueName && !t.dialogueEnded && !t.dialogueCancelled));
 
 function checkOngoingDialogue() {
+    dismissError();
     client.getOngoingDialogue(state.value.selectedProject?.slug)
     .then((ongoing) => {
         if (ongoing) {
@@ -97,6 +101,9 @@ function checkOngoingDialogue() {
         } else {
             ongoingConfirm.value = { dialogueName: null };
         }
+    })
+    .catch((error) => {
+        showError(describeError(error));
     });
 }
 
@@ -130,7 +137,11 @@ function doCancel() {
     const id = ongoingConfirm.value.loggedDialogueId;
     cancelConfirm.value = false;
     ongoingConfirm.value = null;
-    client.cancelDialogue(id);
+    dismissError();
+    client.cancelDialogue(id)
+    .catch((error) => {
+        showError(describeError(error));
+    });
 }
 
 listDialogues();

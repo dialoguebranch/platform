@@ -7,6 +7,8 @@ import { onMounted, ref, useAttrs } from 'vue';
 const attrs = useAttrs();
 import { useClient } from '@/composables/client.js';
 import { logEvent } from '@/composables/debug-log.js';
+import { describeError } from '@/composables/error-message.js';
+import { showError, dismissError } from '@/composables/error-toast.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import IconButton from '../widgets/IconButton.vue';
 import MainPagePanelHeader from '../widgets/MainPagePanelHeader.vue';
@@ -55,12 +57,16 @@ const client = useClient();
 const variables = ref([]);
 
 const loadVariables = () => {
+    dismissError();
     client.getVariables()
     .then((vars) => {
         variables.value = vars;
         dirtyVariables.value = new Set();
         deletingVariables.value = new Set();
         tooltip.value = null;
+    })
+    .catch((error) => {
+        showError(describeError(error));
     });
 };
 
@@ -70,6 +76,7 @@ defineExpose({
 
 function deleteVariable(name) {
     confirmingDelete.value = null;
+    dismissError();
     logEvent('variable', 'Variable $1 deleted', name);
     const next = new Set(deletingVariables.value);
     next.add(name);
@@ -78,6 +85,12 @@ function deleteVariable(name) {
     .then(() => {
         emit('changeVariable');
         return loadVariables();
+    })
+    .catch((error) => {
+        const reverted = new Set(deletingVariables.value);
+        reverted.delete(name);
+        deletingVariables.value = reverted;
+        showError(describeError(error));
     });
 }
 
@@ -91,6 +104,7 @@ function onVariableInput(variable) {
 
 function submitVariable(variable) {
     if (!dirtyVariables.value.has(variable.name)) return;
+    dismissError();
     logEvent('variable', 'Variable $1 updated to $2', variable.name, variable.value);
     client.setVariable(variable.name, variable.value)
     .then(() => {
@@ -98,6 +112,9 @@ function submitVariable(variable) {
         next.delete(variable.name);
         dirtyVariables.value = next;
         emit('changeVariable');
+    })
+    .catch((error) => {
+        showError(describeError(error));
     });
 }
 
@@ -110,7 +127,7 @@ onMounted(() => {
 <div class="flex flex-col gap-1" v-bind="attrs">
         <MainPagePanelHeader title="Variable Browser" class="sm:mr-1">
             <template #buttons>
-                <IconButton icon="fa-solid fa-arrows-rotate" />
+                <IconButton icon="fa-solid fa-arrows-rotate" @click="loadVariables" />
             </template>
         </MainPagePanelHeader>
         <MainPagePanelContainer class="sm:mr-1">
