@@ -6,11 +6,12 @@ const state = inject('state');
 import { logEvent } from '@/composables/debug-log.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
-import { INTERACTION_TESTER_STYLE_TEXT, INTERACTION_TESTER_STYLE_BALLOONS } from '@/dlb-lib/WCTAClientState.js';
+import { INTERACTION_TESTER_STYLE_TEXT, INTERACTION_TESTER_STYLE_BALLOONS, INTERACTION_TESTER_STYLE_EDIT } from '@/dlb-lib/WCTAClientState.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import IconButton from '../widgets/IconButton.vue';
 import BalloonDialogueComponent from './BalloonDialogueComponent.vue';
 import TextDialogueComponent from './TextDialogueComponent.vue';
+import DialogueEditor from './DialogueEditor.vue';
 import MainPagePanelHeader from '../widgets/MainPagePanelHeader.vue';
 import MainPagePanelContainer from '../widgets/MainPagePanelContainer.vue';
 import ModeSelector from '../widgets/ModeSelector.vue';
@@ -30,18 +31,38 @@ const modes = [
         icon: 'fa-solid fa-paragraph',
         title: 'Text style — shows dialogue as a plain scrollable transcript',
     },
+    {
+        name: 'edit',
+        icon: 'fa-solid fa-diagram-project',
+        title: 'Edit mode — edit the active tab\'s dialogue nodes',
+    },
 ];
 
 // Backed by the `state.interactionTesterStyle` cookie (see WCTAClientState.js) so the chosen
 // mode survives a page reload.
 const selectedMode = computed({
-    get: () => state.value.interactionTesterStyle === INTERACTION_TESTER_STYLE_TEXT ? 'text' : 'balloon',
+    get: () => {
+        if (state.value.interactionTesterStyle === INTERACTION_TESTER_STYLE_TEXT) return 'text';
+        if (state.value.interactionTesterStyle === INTERACTION_TESTER_STYLE_EDIT) return 'edit';
+        return 'balloon';
+    },
     set: (mode) => {
         state.value.interactionTesterStyle = mode === 'text'
             ? INTERACTION_TESTER_STYLE_TEXT
-            : INTERACTION_TESTER_STYLE_BALLOONS;
+            : mode === 'edit'
+                ? INTERACTION_TESTER_STYLE_EDIT
+                : INTERACTION_TESTER_STYLE_BALLOONS;
     },
 });
+
+// The last non-edit mode selected (balloon/text) — used to jump back out of edit mode whenever
+// the user explicitly runs/tests/resumes a dialogue, so that action doesn't get hidden behind
+// the node editor.
+const lastTestMode = ref('balloon');
+
+function ensureTestMode() {
+    if (selectedMode.value === 'edit') selectedMode.value = lastTestMode.value;
+}
 
 // ---- Tab state ----
 
@@ -83,7 +104,9 @@ const closeConfirm = ref(null); // { id }
 
 function closeTab(id) {
     const tab = tabs.value.find(t => t.id === id);
-    if (tab && tab.dialogueName && !tab.dialogueEnded) {
+    // Only warn about an "ongoing" dialogue if one has actually been started (has steps) — a
+    // tab opened purely via editDialogue() has a dialogueName but was never run.
+    if (tab && tab.dialogueSteps.length > 0 && !tab.dialogueEnded) {
         closeConfirm.value = { id };
         return;
     }
@@ -131,8 +154,10 @@ const client = useClient();
 
 const balloons = useTemplateRef('balloons');
 const textComponent = useTemplateRef('text-component');
+const dialogueEditor = useTemplateRef('dialogue-editor');
 
 watch(selectedMode, (mode) => {
+    if (mode !== 'edit') lastTestMode.value = mode;
     if (mode === 'text') nextTick(() => scrollTextToBottom());
 });
 
@@ -141,6 +166,7 @@ const scrollTextToBottom = () => {
 };
 
 const loadDialogue = (name) => {
+    ensureTestMode();
     const tab = getOrCreateEmptyTab();
     activeTabId.value = tab.id;
     tab.dialogueName = name;
@@ -170,6 +196,7 @@ const loadDialogue = (name) => {
 // Starts an ephemeral draft test session (see /draft/* end-points) — not saved to dialogue
 // history, and reads/writes the tester's real variables (revertible via revertVariables()).
 const loadDraftDialogue = (name) => {
+    ensureTestMode();
     const tab = getOrCreateEmptyTab();
     activeTabId.value = tab.id;
     tab.dialogueName = name;
@@ -249,6 +276,7 @@ const resize = () => {
 };
 
 const resumeDialogue = (name) => {
+    ensureTestMode();
     const newTab = getOrCreateEmptyTab();
     newTab.dialogueName = name;
     activeTabId.value = newTab.id;
@@ -281,8 +309,20 @@ function clearAllTabs() {
 }
 
 function activateTab(tabId) {
+    ensureTestMode();
     activeTabId.value = tabId;
     nextTick(scrollActiveTabIntoView);
+}
+
+// Opens (or reuses an empty tab for) the given dialogue in Edit mode — unlike loadDialogue, this
+// never starts a running dialogue session; it just associates the tab with a dialogue name so
+// the node editor has something to load.
+function editDialogue(name) {
+    const tab = getOrCreateEmptyTab();
+    activeTabId.value = tab.id;
+    tab.dialogueName = name;
+    scrollActiveTabIntoView();
+    selectedMode.value = 'edit';
 }
 
 defineExpose({
@@ -294,6 +334,7 @@ defineExpose({
     resize,
     clearAllTabs,
     activateTab,
+    editDialogue,
 });
 
 // ---- Tab bar scroll ----
@@ -429,28 +470,44 @@ function onSelectReply(dialogueStep, reply) {
         <MainPagePanelHeader title="Interaction Tester">
             <template #buttons>
                 <ModeSelector :modes="modes" v-model="selectedMode" />
-                <IconButton
-                    icon="fa-solid fa-arrows-rotate"
-                    :class="{ 'animate-spin': reloading }"
-                    :title="activeTab.dialogueName && !activeTab.dialogueEnded && !activeTab.isDraftTest ? 'Refresh current dialogue step' : 'Refresh current dialogue step (not available for draft tests)'"
-                    :disabled="reloading || !activeTab.dialogueName || activeTab.dialogueEnded || activeTab.isDraftTest"
-                    @click="reloadStep"
-                />
-                <IconButton
-                    icon="fa-solid fa-circle-xmark"
-                    color="warning"
-                    :disabled="activeTab.dialogueName === null || activeTab.dialogueEnded"
-                    :title="activeTab.dialogueName && !activeTab.dialogueEnded ? 'Cancel the current dialogue' : 'Cancel the current dialogue (no dialogue active)'"
-                    @click="onCancelClick"
-                />
-                <IconButton
-                    v-if="activeTab.isDraftTest"
-                    icon="fa-solid fa-clock-rotate-left"
-                    color="warning"
-                    :disabled="!activeTab.draftSessionId"
-                    title="Revert any variable changes made during this draft test back to their original values"
-                    @click="onRevertVariablesClick"
-                />
+                <template v-if="selectedMode !== 'edit'">
+                    <IconButton
+                        icon="fa-solid fa-arrows-rotate"
+                        :class="{ 'animate-spin': reloading }"
+                        :title="activeTab.dialogueName && !activeTab.dialogueEnded && !activeTab.isDraftTest ? 'Refresh current dialogue step' : 'Refresh current dialogue step (not available for draft tests)'"
+                        :disabled="reloading || !activeTab.dialogueName || activeTab.dialogueEnded || activeTab.isDraftTest"
+                        @click="reloadStep"
+                    />
+                    <IconButton
+                        icon="fa-solid fa-circle-xmark"
+                        color="warning"
+                        :disabled="activeTab.dialogueName === null || activeTab.dialogueEnded"
+                        :title="activeTab.dialogueName && !activeTab.dialogueEnded ? 'Cancel the current dialogue' : 'Cancel the current dialogue (no dialogue active)'"
+                        @click="onCancelClick"
+                    />
+                    <IconButton
+                        v-if="activeTab.isDraftTest"
+                        icon="fa-solid fa-clock-rotate-left"
+                        color="warning"
+                        :disabled="!activeTab.draftSessionId"
+                        title="Revert any variable changes made during this draft test back to their original values"
+                        @click="onRevertVariablesClick"
+                    />
+                </template>
+                <template v-else>
+                    <IconButton
+                        v-if="activeTab.dialogueName"
+                        icon="fa-solid fa-plus"
+                        title="Add Node"
+                        :disabled="dialogueEditor?.isCreatingNode?.()"
+                        @click="dialogueEditor?.addNode()"
+                    />
+                    <IconButton
+                        icon="fa-solid fa-arrows-rotate"
+                        :class="{ 'animate-spin': dialogueEditor?.isLoading?.() }"
+                        @click="dialogueEditor?.reload()"
+                    />
+                </template>
             </template>
         </MainPagePanelHeader>
 
@@ -529,7 +586,7 @@ function onSelectReply(dialogueStep, reply) {
 
         <!-- Active tab content -->
         <div class="relative grow min-h-0 flex flex-col">
-            <MainPagePanelContainer class="-mt-px">
+            <MainPagePanelContainer v-if="selectedMode !== 'edit'" class="-mt-px">
                 <BalloonDialogueComponent
                     v-if="selectedMode === 'balloon'"
                     ref="balloons"
@@ -549,7 +606,10 @@ function onSelectReply(dialogueStep, reply) {
                     @restartDialogue="restartActiveTab"
                 />
             </MainPagePanelContainer>
-            <div v-if="activeTab.loggedDialogueId" class="absolute bottom-3 left-3 font-mono text-[10px] text-gray-400 pointer-events-none">
+            <MainPagePanelContainer v-else class="-mt-px !overflow-hidden relative">
+                <DialogueEditor ref="dialogue-editor" :dialogueName="activeTab.dialogueName" />
+            </MainPagePanelContainer>
+            <div v-if="activeTab.loggedDialogueId && selectedMode !== 'edit'" class="absolute bottom-3 left-3 font-mono text-[10px] text-gray-400 pointer-events-none">
                 <span class="font-semibold">Logged Dialogue ID:</span> {{ activeTab.loggedDialogueId }}
             </div>
         </div>

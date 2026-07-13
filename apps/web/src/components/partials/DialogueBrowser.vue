@@ -26,6 +26,7 @@ const emit = defineEmits([
     'resumeDialogue',
     'activateTab',
     'hasDraftDialogues',
+    'editDialogue',
 ]);
 
 const client = useClient();
@@ -84,6 +85,39 @@ function listDialogues() {
 
 function toggleFolder(path) {
     openFolders.value[path] = !openFolders.value[path];
+}
+
+// ---- New dialogue creation ----
+
+const showNewDialogueInput = ref(false);
+const newDialogueName = ref('');
+const creatingDialogue = ref(false);
+
+function onNewDialogueClick() {
+    newDialogueName.value = '';
+    showNewDialogueInput.value = true;
+}
+
+function cancelNewDialogue() {
+    showNewDialogueInput.value = false;
+}
+
+function submitNewDialogue() {
+    const name = newDialogueName.value.trim();
+    if (!name || creatingDialogue.value) return;
+    creatingDialogue.value = true;
+    dismissError();
+    client.createDraftDialogue(state.value.selectedProject?.slug, name)
+    .then(() => {
+        showNewDialogueInput.value = false;
+        listDialogues();
+    })
+    .catch((error) => {
+        showError(describeError(error));
+    })
+    .finally(() => {
+        creatingDialogue.value = false;
+    });
 }
 
 const hasActiveDialogue = computed(() =>
@@ -158,10 +192,28 @@ defineExpose({
         <MainPagePanelHeader title="Dialogue Browser" class="sm:ml-2">
             <template #buttons>
                 <IconButton icon="fa-solid fa-rotate-left" title="Retrieve most recent ongoing (server-side) dialogue" :disabled="hasActiveDialogue" @click="checkOngoingDialogue" />
+                <IconButton icon="fa-solid fa-plus" title="New Dialogue" @click="onNewDialogueClick" />
                 <IconButton icon="fa-solid fa-arrows-rotate" @click="listDialogues" />
             </template>
         </MainPagePanelHeader>
         <MainPagePanelContainer class="p-1 gap-1 flex flex-col sm:ml-1">
+            <div v-if="showNewDialogueInput" class="flex items-center gap-1 p-1">
+                <input
+                    v-model="newDialogueName"
+                    type="text"
+                    placeholder="folder/dialogue-name"
+                    autofocus
+                    class="flex-1 min-w-0 font-mono text-xs px-1.5 py-1 border border-grey-light rounded bg-white focus:outline-none focus:border-orange-dark"
+                    @keyup.enter="submitNewDialogue"
+                    @keyup.esc="cancelNewDialogue"
+                />
+                <button type="button" title="Create" class="shrink-0 text-icon-button hover:text-icon-button-hover cursor-pointer" :disabled="creatingDialogue" @click="submitNewDialogue">
+                    <FontAwesomeIcon :icon="creatingDialogue ? 'fa-solid fa-circle-notch' : 'fa-solid fa-check'" :class="{ 'animate-spin': creatingDialogue }" />
+                </button>
+                <button type="button" title="Cancel" class="shrink-0 text-grey-dark hover:text-orange-dark cursor-pointer" @click="cancelNewDialogue">
+                    <FontAwesomeIcon icon="fa-solid fa-xmark" />
+                </button>
+            </div>
             <DialogueTreeNode
                 v-for="[name, node] in tree"
                 :key="name"
@@ -172,6 +224,7 @@ defineExpose({
                 @toggleFolder="toggleFolder"
                 @selectDialogue="$emit('selectDialogue', $event)"
                 @testDraftDialogue="$emit('testDraftDialogue', $event)"
+                @editDialogue="$emit('editDialogue', $event)"
             />
         </MainPagePanelContainer>
     </div>

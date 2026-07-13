@@ -13,7 +13,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['toggleFolder', 'selectDialogue', 'testDraftDialogue']);
+const emit = defineEmits(['toggleFolder', 'selectDialogue', 'testDraftDialogue', 'editDialogue']);
 
 const isFile = computed(() => !!props.node._file);
 const isOpen = computed(() => !!props.openFolders[props.path]);
@@ -54,6 +54,7 @@ const children = computed(() => {
                 @toggleFolder="$emit('toggleFolder', $event)"
                 @selectDialogue="$emit('selectDialogue', $event)"
                 @testDraftDialogue="$emit('testDraftDialogue', $event)"
+                @editDialogue="$emit('editDialogue', $event)"
             />
         </template>
 
@@ -85,6 +86,15 @@ const children = computed(() => {
                 @click="$emit('testDraftDialogue', node._file)"
             >
                 <FontAwesomeIcon icon="fa-solid fa-flask" class="w-3.5" />
+            </button>
+            <button
+                v-if="node._isDraft"
+                type="button"
+                title="Edit dialogue"
+                class="shrink-0 cursor-pointer text-grey-dark hover:text-orange-dark"
+                @click="$emit('editDialogue', node._file)"
+            >
+                <FontAwesomeIcon icon="fa-solid fa-diagram-project" class="w-3.5" />
             </button>
         </div>
     </div>

@@ -188,7 +188,7 @@ public class AuthoringController {
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectSlug));
 					DBDraftDialogue dialogue = draftDialogueService
-							.findDialogue(project, dialogueName)
+							.findOrCreateDraftDialogue(project, dialogueName)
 							.orElseThrow(() -> new NotFoundException(
 									"Dialogue not found: " + dialogueName));
 					return draftDialogueService.listNodes(dialogue);
@@ -287,6 +287,73 @@ public class AuthoringController {
 									"Node not found: " + nodeTitle));
 					draftDialogueService.deleteNode(node);
 					return null;
+				},
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
+				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
+	}
+
+	@Operation(summary = "Find all reply links in the project that reference a given node.")
+	@Parameter(name = "version", hidden = true)
+	@GetMapping("/find-node-references")
+	public List<DraftDialogueService.NodeReference> findNodeReferences(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug,
+			@RequestParam(value = "dialogueName") String dialogueName,
+			@RequestParam(value = "nodeTitle") String nodeTitle
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("GET /v{}/authoring/find-node-references [user: {}]", version, user);
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					DBDraftDialogue dialogue = draftDialogueService
+							.findDialogue(project, dialogueName)
+							.orElseThrow(() -> new NotFoundException(
+									"Dialogue not found: " + dialogueName));
+					draftDialogueService.findNode(dialogue, nodeTitle)
+							.orElseThrow(() -> new NotFoundException(
+									"Node not found: " + nodeTitle));
+					return draftDialogueService.findNodeReferences(project, dialogueName, nodeTitle);
+				},
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
+				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
+	}
+
+	@Operation(summary = "Rename a draft node, optionally rewriting references to it elsewhere " +
+			"in the project.")
+	@Parameter(name = "version", hidden = true)
+	@PostMapping("/rename-node")
+	public DraftDialogueService.RenameResult renameNode(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug,
+			@RequestParam(value = "dialogueName") String dialogueName,
+			@RequestParam(value = "oldTitle") String oldTitle,
+			@RequestParam(value = "newTitle") String newTitle,
+			@RequestParam(value = "updateReferences", defaultValue = "false")
+			boolean updateReferences
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("POST /v{}/authoring/rename-node [user: {}]", version, user);
+					if (newTitle == null || newTitle.isBlank())
+						throw new BadRequestException("Field 'newTitle' is required.");
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					DBDraftDialogue dialogue = draftDialogueService
+							.findDialogue(project, dialogueName)
+							.orElseThrow(() -> new NotFoundException(
+									"Dialogue not found: " + dialogueName));
+					DBDraftNode node = draftDialogueService.findNode(dialogue, oldTitle)
+							.orElseThrow(() -> new NotFoundException(
+									"Node not found: " + oldTitle));
+					return draftDialogueService.renameNode(project, dialogue, node, newTitle,
+							updateReferences);
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);

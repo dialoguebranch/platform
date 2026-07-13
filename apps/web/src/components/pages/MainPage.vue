@@ -211,6 +211,11 @@ function onResumeDialogue(dialogueName) {
     interactionTester.value.resumeDialogue(dialogueName);
 }
 
+function onEditDialogue(dialogueName) {
+    panels.value.selectMobileTab(1);
+    interactionTester.value.editDialogue(dialogueName);
+}
+
 function onNewDialogueStep() {
     variableBrowser.value.loadVariables();
 }
@@ -364,6 +369,7 @@ function onResizePanels() {
                     @resumeDialogue="onResumeDialogue"
                     @activateTab="onActivateTab"
                     @hasDraftDialogues="hasDraftDialogues = $event"
+                    @editDialogue="onEditDialogue"
                 />
             </template>
             <template #main>
