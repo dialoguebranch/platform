@@ -54,6 +54,9 @@ export class WCTAClientState extends ClientState {
         this._LOGTAG = "WCTAClientState";
         this._interactionTesterStyle = INTERACTION_TESTER_STYLE_BALLOONS;
         this._selectedProject = null;
+        this._debugConsoleShowApi = true;
+        this._debugConsoleShowEvents = true;
+        this._debugConsoleShowCookies = false;
     }
 
     // ---------------------------------------
@@ -77,6 +80,95 @@ export class WCTAClientState extends ClientState {
      */
     get debugConsoleVisible() {
         return this._debugConsoleVisible;
+    }
+
+    // ----- debugConsoleWidth / debugConsoleHeight
+
+    /**
+     * Sets the width (in pixels) of the Debug Console panel.
+     * @param {Number} debugConsoleWidth - the width, in pixels, of the Debug Console panel.
+     */
+    set debugConsoleWidth(debugConsoleWidth) {
+        this._debugConsoleWidth = debugConsoleWidth;
+        DocumentFunctions.setCookie('state.debugConsoleWidth', this._debugConsoleWidth, 365);
+    }
+
+    /**
+     * Returns the width (in pixels) of the Debug Console panel, or undefined if never set.
+     * @returns the width, in pixels, of the Debug Console panel.
+     */
+    get debugConsoleWidth() {
+        return this._debugConsoleWidth;
+    }
+
+    /**
+     * Sets the height (in pixels) of the Debug Console panel.
+     * @param {Number} debugConsoleHeight - the height, in pixels, of the Debug Console panel.
+     */
+    set debugConsoleHeight(debugConsoleHeight) {
+        this._debugConsoleHeight = debugConsoleHeight;
+        DocumentFunctions.setCookie('state.debugConsoleHeight', this._debugConsoleHeight, 365);
+    }
+
+    /**
+     * Returns the height (in pixels) of the Debug Console panel, or undefined if never set.
+     * @returns the height, in pixels, of the Debug Console panel.
+     */
+    get debugConsoleHeight() {
+        return this._debugConsoleHeight;
+    }
+
+    // ----- debugConsoleShowApi / debugConsoleShowEvents / debugConsoleShowCookies
+
+    /**
+     * Sets whether the "API Calls" filter of the Debug Console is enabled.
+     * @param {Boolean} debugConsoleShowApi - true if API call entries should be shown.
+     */
+    set debugConsoleShowApi(debugConsoleShowApi) {
+        this._debugConsoleShowApi = debugConsoleShowApi;
+        DocumentFunctions.setCookie('state.debugConsoleShowApi', this._debugConsoleShowApi, 365);
+    }
+
+    /**
+     * Returns whether the "API Calls" filter of the Debug Console is enabled.
+     * @returns true if API call entries should be shown.
+     */
+    get debugConsoleShowApi() {
+        return this._debugConsoleShowApi;
+    }
+
+    /**
+     * Sets whether the "Events" filter of the Debug Console is enabled.
+     * @param {Boolean} debugConsoleShowEvents - true if event entries should be shown.
+     */
+    set debugConsoleShowEvents(debugConsoleShowEvents) {
+        this._debugConsoleShowEvents = debugConsoleShowEvents;
+        DocumentFunctions.setCookie('state.debugConsoleShowEvents', this._debugConsoleShowEvents, 365);
+    }
+
+    /**
+     * Returns whether the "Events" filter of the Debug Console is enabled.
+     * @returns true if event entries should be shown.
+     */
+    get debugConsoleShowEvents() {
+        return this._debugConsoleShowEvents;
+    }
+
+    /**
+     * Sets whether the "Cookies" sub-panel of the Debug Console is enabled.
+     * @param {Boolean} debugConsoleShowCookies - true if the Cookies sub-panel should be shown.
+     */
+    set debugConsoleShowCookies(debugConsoleShowCookies) {
+        this._debugConsoleShowCookies = debugConsoleShowCookies;
+        DocumentFunctions.setCookie('state.debugConsoleShowCookies', this._debugConsoleShowCookies, 365);
+    }
+
+    /**
+     * Returns whether the "Cookies" sub-panel of the Debug Console is enabled.
+     * @returns true if the Cookies sub-panel should be shown.
+     */
+    get debugConsoleShowCookies() {
+        return this._debugConsoleShowCookies;
     }
 
     // ----- selectedProject
@@ -127,6 +219,23 @@ export class WCTAClientState extends ClientState {
         var cookieValue = DocumentFunctions.getCookie('state.debugConsoleVisible');
         if(cookieValue == "true") this._debugConsoleVisible = true;
         else this._debugConsoleVisible = false;
+
+        cookieValue = DocumentFunctions.getCookie('state.debugConsoleWidth');
+        if(cookieValue) this._debugConsoleWidth = parseInt(cookieValue);
+
+        cookieValue = DocumentFunctions.getCookie('state.debugConsoleHeight');
+        if(cookieValue) this._debugConsoleHeight = parseInt(cookieValue);
+
+        // These three default to true/true/false (set in the constructor); only override that
+        // default when a cookie with a valid boolean value is actually present.
+        cookieValue = DocumentFunctions.getCookie('state.debugConsoleShowApi');
+        if(cookieValue == "true" || cookieValue == "false") this._debugConsoleShowApi = cookieValue == "true";
+
+        cookieValue = DocumentFunctions.getCookie('state.debugConsoleShowEvents');
+        if(cookieValue == "true" || cookieValue == "false") this._debugConsoleShowEvents = cookieValue == "true";
+
+        cookieValue = DocumentFunctions.getCookie('state.debugConsoleShowCookies');
+        if(cookieValue == "true" || cookieValue == "false") this._debugConsoleShowCookies = cookieValue == "true";
 
         cookieValue = DocumentFunctions.getCookie('state.interactionTesterStyle');
         if(cookieValue != null) {

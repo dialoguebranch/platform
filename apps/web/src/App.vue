@@ -3,7 +3,7 @@ import { inject } from 'vue';
 
 import ProjectSelectorPage from './components/pages/ProjectSelectorPage.vue';
 import MainPage from './components/pages/MainPage.vue';
-import DebugWindow from './components/widgets/DebugWindow.vue';
+import DebugConsole from './components/widgets/DebugConsole.vue';
 import ErrorToast from './components/widgets/ErrorToast.vue';
 
 const state = inject('state');
@@ -17,6 +17,6 @@ const state = inject('state');
     <div v-else class="min-w-screen min-h-screen bg-background flex items-center justify-center font-title">
         Redirecting to login…
     </div>
-    <DebugWindow />
+    <DebugConsole />
     <ErrorToast />
 </template>

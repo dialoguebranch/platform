@@ -26,6 +26,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import { ref } from 'vue';
+
+// Bumped on every setCookie() call so observers (e.g. the Debug Console's cookie viewer) can
+// react to cookie writes without polling — there is no native browser event for this.
+export const cookiesVersion = ref(0);
+
 export class DocumentFunctions {
 
     // ------------------------------------
@@ -41,6 +47,7 @@ export class DocumentFunctions {
         }
         cookieStr += ';path=/';
         document.cookie = cookieStr;
+        cookiesVersion.value++;
     }
 
     static deleteCookie(cname) {

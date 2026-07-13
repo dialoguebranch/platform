@@ -2,6 +2,7 @@
 import { ref, computed, inject, watch, watchEffect, nextTick } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { debugLog } from '../../composables/debug-log.js';
+import { cookiesVersion } from '../../dlb-lib/util/DocumentFunctions.js';
 
 const state = inject('state');
 
@@ -11,9 +12,20 @@ const open = computed({
     get: () => state.value.debugConsoleVisible,
     set: (val) => { state.value.debugConsoleVisible = val; },
 });
-const showApi = ref(true);
-const showEvents = ref(true);
-const showCookies = ref(false);
+// Backed by the `state.debugConsoleShow{Api,Events,Cookies}` cookies (see WCTAClientState.js)
+// so the filter selection survives a page reload.
+const showApi = computed({
+    get: () => state.value.debugConsoleShowApi,
+    set: (val) => { state.value.debugConsoleShowApi = val; },
+});
+const showEvents = computed({
+    get: () => state.value.debugConsoleShowEvents,
+    set: (val) => { state.value.debugConsoleShowEvents = val; },
+});
+const showCookies = computed({
+    get: () => state.value.debugConsoleShowCookies,
+    set: (val) => { state.value.debugConsoleShowCookies = val; },
+});
 const cookies = ref([]);
 
 function readCookies() {
@@ -29,12 +41,18 @@ function readCookies() {
 }
 
 watch(open, (val) => { if (val) readCookies(); });
+// Refresh the cookie list whenever any cookie is written, so it stays live while visible
+// instead of only updating when manually reopened or refreshed.
+watch(cookiesVersion, () => { if (showCookies.value) readCookies(); });
 const keyword = ref('');
 const expanded = ref(new Set());
 const logBody = ref(null);
 
-const panelWidth = ref(720);
-const panelHeight = ref(250);
+// Backed by the `state.debugConsole{Width,Height}` cookies (see WCTAClientState.js). Resizing
+// updates these refs live for a smooth drag; the cookies are only written once the drag ends
+// (see onResizeEnd below), same as ResizablePanels.vue does for the side panels.
+const panelWidth = ref(state.value.debugConsoleWidth ?? 720);
+const panelHeight = ref(state.value.debugConsoleHeight ?? 250);
 
 function onResizeStart(e) {
     e.preventDefault();
@@ -50,6 +68,8 @@ function onResizeStart(e) {
     function onUp() {
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', onUp);
+        state.value.debugConsoleWidth = panelWidth.value;
+        state.value.debugConsoleHeight = panelHeight.value;
     }
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
@@ -144,7 +164,7 @@ function copyEntry(entry) {
     <button
         class="fixed bottom-4 right-4 z-50 rounded-full w-7.5 h-7.5 bg-icon-button hover:bg-icon-button-hover cursor-pointer"
         @click="open = !open"
-        title="Debug window"
+        title="Debug Console"
     >
         <FontAwesomeIcon icon="fa-solid fa-bug" class="text-white" />
     </button>
@@ -168,7 +188,7 @@ function copyEntry(entry) {
         <!-- Header -->
         <div class="flex items-center gap-2 px-3 py-1.5 bg-orange-darker text-white shrink-0">
             <FontAwesomeIcon icon="fa-solid fa-bug" />
-            <span class="font-title font-bold">Debug Log</span>
+            <span class="font-title font-bold">Debug Console</span>
             <span class="text-orange-light text-[11px]">({{ debugLog.length }} entries)</span>
 
             <div class="grow"></div>
