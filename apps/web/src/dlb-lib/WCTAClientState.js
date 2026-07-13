@@ -52,9 +52,7 @@ export class WCTAClientState extends ClientState {
     constructor(logger) {
         super(logger);
         this._LOGTAG = "WCTAClientState";
-        this._variableBrowserExtended = false;
-        this._dialogueBrowserExtended = false;
-        this._interactionTesterStyle = INTERACTION_TESTER_STYLE_TEXT;
+        this._interactionTesterStyle = INTERACTION_TESTER_STYLE_BALLOONS;
         this._selectedProject = null;
     }
 
@@ -81,50 +79,15 @@ export class WCTAClientState extends ClientState {
         return this._debugConsoleVisible;
     }
 
-    // ----- variableBrowserExtended
-
-    /**
-     * Sets a boolean value indicating whether the Variable Browser is currently extended or not.
-     * @param {Boolean} variableBrowserExtended - true if the Variable Browser is currently extended, false otherwise.
-     */
-    set variableBrowserExtended(variableBrowserExtended) {
-        this._variableBrowserExtended = variableBrowserExtended;
-        DocumentFunctions.setCookie('state.variableBrowserExtended', this._variableBrowserExtended, 365);
-    }
-
-    /**
-     * Returns a boolean value indicating whether the Variable Browser is currently extended or not.
-     * @returns a boolean value indicating whether the Variable Browser is currently extended or not.
-     */
-    get variableBrowserExtended() {
-        return this._variableBrowserExtended;
-    }
-
-    // ----- dialogueBrowserExtended
-
-    /**
-     * Sets a boolean value indicating whether the Dialogue Browser is currently extended or not.
-     * @param {Boolean} dialogueBrowserExtended - true if the Dialogue Browser is currently extended, false otherwise.
-     */
-    set dialogueBrowserExtended(dialogueBrowserExtended) {
-        this._dialogueBrowserExtended = dialogueBrowserExtended;
-        DocumentFunctions.setCookie('state.dialogueBrowserExtended', this._dialogueBrowserExtended, 365);
-    }
-
-    /**
-     * Returns a boolean value indicating whether the Dialogue Browser is currently extended or not.
-     * @returns a boolean value indicating whether the Dialogue Browser is currently extended or not.
-     */
-    get dialogueBrowserExtended() {
-        return this._dialogueBrowserExtended;
-    }
-
     // ----- selectedProject
 
     set selectedProject(selectedProject) {
         this._selectedProject = selectedProject;
-        if (selectedProject) {
-            DocumentFunctions.setCookie('state.selectedProject', JSON.stringify(selectedProject), 365);
+        if (selectedProject?.slug) {
+            // Only the slug is persisted — it's the only part the app actually needs to
+            // resume the session; displayName is UI decoration re-fetched on load (see
+            // MainPage.vue).
+            DocumentFunctions.setCookie('state.selectedProject', selectedProject.slug, 365);
         } else {
             DocumentFunctions.deleteCookie('state.selectedProject');
         }
@@ -165,14 +128,6 @@ export class WCTAClientState extends ClientState {
         if(cookieValue == "true") this._debugConsoleVisible = true;
         else this._debugConsoleVisible = false;
 
-        cookieValue = DocumentFunctions.getCookie('state.variableBrowserExtended');
-        if(cookieValue == "true") this._variableBrowserExtended = true;
-        else this._variableBrowserExtended = false;
-
-        cookieValue = DocumentFunctions.getCookie('state.dialogueBrowserExtended');
-        if(cookieValue == "true") this._dialogueBrowserExtended = true;
-        else this._dialogueBrowserExtended = false;
-
         cookieValue = DocumentFunctions.getCookie('state.interactionTesterStyle');
         if(cookieValue != null) {
             if(cookieValue == INTERACTION_TESTER_STYLE_TEXT || cookieValue == INTERACTION_TESTER_STYLE_BALLOONS) {
@@ -183,7 +138,8 @@ export class WCTAClientState extends ClientState {
 
         cookieValue = DocumentFunctions.getCookie('state.selectedProject');
         if (cookieValue) {
-            try { this._selectedProject = JSON.parse(cookieValue); } catch { this._selectedProject = null; }
+            // Only the slug was persisted; displayName gets backfilled on load (see MainPage.vue).
+            this._selectedProject = { slug: cookieValue };
         }
 
         // Authentication state is no longer stored in cookies — it is derived from the Keycloak

@@ -6,6 +6,7 @@ const state = inject('state');
 import { logEvent } from '@/composables/debug-log.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
+import { INTERACTION_TESTER_STYLE_TEXT, INTERACTION_TESTER_STYLE_BALLOONS } from '@/dlb-lib/WCTAClientState.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import IconButton from '../widgets/IconButton.vue';
 import BalloonDialogueComponent from './BalloonDialogueComponent.vue';
@@ -31,7 +32,16 @@ const modes = [
     },
 ];
 
-const selectedMode = ref('balloon');
+// Backed by the `state.interactionTesterStyle` cookie (see WCTAClientState.js) so the chosen
+// mode survives a page reload.
+const selectedMode = computed({
+    get: () => state.value.interactionTesterStyle === INTERACTION_TESTER_STYLE_TEXT ? 'text' : 'balloon',
+    set: (mode) => {
+        state.value.interactionTesterStyle = mode === 'text'
+            ? INTERACTION_TESTER_STYLE_TEXT
+            : INTERACTION_TESTER_STYLE_BALLOONS;
+    },
+});
 
 // ---- Tab state ----
 

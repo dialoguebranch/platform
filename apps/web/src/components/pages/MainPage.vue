@@ -40,6 +40,17 @@ onMounted(() => {
         .catch(() => {
             connectionInfo.value = `Could not connect to ${serviceHost} on port ${servicePort}.`;
         });
+
+    // Only the slug is persisted in the state.selectedProject cookie, so a project restored
+    // from a page reload starts out without a displayName — backfill it.
+    if (state.value.selectedProject && !state.value.selectedProject.displayName) {
+        const slug = state.value.selectedProject.slug;
+        client.getProject(slug)
+            .then((project) => {
+                state.value.selectedProject = { slug: project.slug, displayName: project.displayName ?? project.slug };
+            })
+            .catch(() => { /* keep the slug-only project; header just shows the slug */ });
+    }
 });
 
 const projectMenuOpen = ref(false);

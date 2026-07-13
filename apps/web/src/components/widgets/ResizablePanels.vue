@@ -43,11 +43,11 @@ onUnmounted(() => {
 });
 
 function initPanelWidths() {
-    let leftWidth = DocumentFunctions.getCookie(props.cookiePrefix + 'LeftPanelWidth');
+    let leftWidth = DocumentFunctions.getCookie('state.' + props.cookiePrefix + 'LeftPanelWidth');
     if (leftWidth) {
         leftPanelWidth.value = Math.max(minPanelWidth, parseInt(leftWidth));
     }
-    let rightWidth = DocumentFunctions.getCookie(props.cookiePrefix + 'RightPanelWidth');
+    let rightWidth = DocumentFunctions.getCookie('state.' + props.cookiePrefix + 'RightPanelWidth');
     if (rightWidth) {
         rightPanelWidth.value = Math.max(minPanelWidth, parseInt(rightWidth));
     }
@@ -58,11 +58,11 @@ function initPanelWidths() {
 }
 
 function saveLeftPanelWidth() {
-    DocumentFunctions.setCookie(props.cookiePrefix + 'LeftPanelWidth', leftPanelWidth.value.toString(), 365);
+    DocumentFunctions.setCookie('state.' + props.cookiePrefix + 'LeftPanelWidth', leftPanelWidth.value.toString(), 365);
 }
 
 function saveRightPanelWidth() {
-    DocumentFunctions.setCookie(props.cookiePrefix + 'RightPanelWidth', rightPanelWidth.value.toString(), 365);
+    DocumentFunctions.setCookie('state.' + props.cookiePrefix + 'RightPanelWidth', rightPanelWidth.value.toString(), 365);
 }
 
 function clearDragResizeState() {

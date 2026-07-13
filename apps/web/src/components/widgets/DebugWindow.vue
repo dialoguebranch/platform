@@ -1,9 +1,16 @@
 <script setup>
-import { ref, computed, watch, watchEffect, nextTick } from 'vue';
+import { ref, computed, inject, watch, watchEffect, nextTick } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { debugLog } from '../../composables/debug-log.js';
 
-const open = ref(false);
+const state = inject('state');
+
+// Backed by the `state.debugConsoleVisible` cookie (see WCTAClientState.js) so the debug
+// console's open/closed state survives a page reload.
+const open = computed({
+    get: () => state.value.debugConsoleVisible,
+    set: (val) => { state.value.debugConsoleVisible = val; },
+});
 const showApi = ref(true);
 const showEvents = ref(true);
 const showCookies = ref(false);
