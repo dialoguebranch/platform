@@ -1,24 +1,23 @@
 import { inject } from 'vue';
-import { DialogueBranchClient } from '../dlb-lib/DialogueBranchClient.js';
 import { DocumentFunctions } from '../dlb-lib/util/DocumentFunctions.js';
 import { logEvent } from './debug-log.js';
-import { resetClient } from './client.js';
+import { useClient, resetClient } from './client.js';
 
 class StateManagement {
-    constructor(stateRef, config, keycloak) {
+    constructor(stateRef, keycloak, client) {
         this._stateRef = stateRef;
-        this._config = config;
         this._keycloak = keycloak;
+        this._client = client;
     }
 
     async logout() {
         const currentUser = this._stateRef.value.user;
-        if (currentUser?.accessToken) {
-            try {
-                const client = new DialogueBranchClient(this._config.baseUrl, currentUser.accessToken);
-                await client.logout();
-            } catch (_) { /* best-effort — proceed with local logout regardless */ }
-        }
+        try {
+            // Reuse the shared client so this goes out with a live token (refreshed via
+            // onUnauthorized if needed) rather than the access token captured at login,
+            // which may well have expired by the time the user actually logs out.
+            await this._client.logout();
+        } catch (_) { /* best-effort — proceed with local logout regardless */ }
         logEvent('auth', 'User $1 logged out', currentUser?.name ?? 'unknown');
         resetClient();
         DocumentFunctions.deleteCookie('state.selectedProject');
@@ -30,7 +29,7 @@ class StateManagement {
 
 export function useStateManagement() {
     const state = inject('state');
-    const config = inject('config');
     const keycloak = inject('keycloak');
-    return new StateManagement(state, config, keycloak);
+    const client = useClient();
+    return new StateManagement(state, keycloak, client);
 }
