@@ -1,6 +1,8 @@
 <script setup>
-import { inject, onMounted, onUnmounted, ref, useTemplateRef } from 'vue';
+import { inject, onMounted, onUnmounted, ref, computed, useTemplateRef } from 'vue';
 import { logEvent } from '../../composables/debug-log.js';
+import { describeError } from '../../composables/error-message.js';
+import { showError } from '../../composables/error-toast.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useClient } from '../../composables/client.js';
 import { useStateManagement } from '../../composables/state-management.js';
@@ -20,6 +22,7 @@ const stateManagement = useStateManagement();
 const panels = useTemplateRef('panels');
 const interactionTester = useTemplateRef('interaction-tester');
 const variableBrowser = useTemplateRef('variable-browser');
+const dialogueBrowser = useTemplateRef('dialogue-browser');
 
 const appVersion = __APP_VERSION__;
 onUnmounted(() => {
@@ -119,6 +122,45 @@ function onMetadataSaved(updated) {
 function onSaveProjectClick() {
     closeProjectMenu();
     logEvent('project', 'Save project — not yet implemented');
+}
+
+// Whether the currently selected project has any draft dialogues at all — reported by
+// DialogueBrowser (which already fetches this list) whenever it (re)loads its tree.
+const hasDraftDialogues = ref(false);
+const publishing = ref(false);
+const isAdmin = computed(() => !!state.value.user?.roles?.includes('admin'));
+const canPublish = computed(() => isAdmin.value && hasDraftDialogues.value);
+const publishDisabledReason = computed(() => {
+    if (!isAdmin.value) return 'Only administrators can publish projects.';
+    if (!hasDraftDialogues.value) return 'There are no draft dialogues to publish.';
+    return '';
+});
+
+function onPublishProjectClick() {
+    if (!canPublish.value || publishing.value) return;
+    closeProjectMenu();
+    const slug = state.value.selectedProject?.slug;
+    publishing.value = true;
+    client.publishProject(slug)
+        .then((result) => {
+            if (result.success) {
+                logEvent('project', 'Project $1 published as version $2', slug, result.version?.versionNumber);
+                // Refresh the tree so newly-published dialogues show their "Published" badge.
+                dialogueBrowser.value?.listDialogues();
+            } else {
+                const fileCount = Object.keys(result.errors ?? {}).length;
+                const errorCount = Object.values(result.errors ?? {})
+                    .reduce((sum, list) => sum + list.length, 0);
+                showError(`Publishing failed: ${errorCount} validation error${errorCount === 1 ? '' : 's'} ` +
+                    `across ${fileCount} dialogue${fileCount === 1 ? '' : 's'}. See the Debug Console for details.`);
+            }
+        })
+        .catch((error) => {
+            showError(describeError(error));
+        })
+        .finally(() => {
+            publishing.value = false;
+        });
 }
 
 const activeDelegateUser = ref(null);
@@ -223,6 +265,17 @@ function onResizePanels() {
                         <FontAwesomeIcon icon="fa-solid fa-pen" class="w-4" :class="state.user?.roles?.includes('admin') ? 'text-orange-medium' : 'text-grey-light'" />
                         Edit Metadata
                     </button>
+                    <button
+                        type="button"
+                        :class="['flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm transition-colors', canPublish ? 'text-orange-darker hover:bg-grey-lighter cursor-pointer' : 'text-grey-light cursor-not-allowed']"
+                        :disabled="!canPublish || publishing"
+                        :title="publishDisabledReason"
+                        @click="onPublishProjectClick"
+                    >
+                        <FontAwesomeIcon v-if="publishing" icon="fa-solid fa-circle-notch" class="w-4 animate-spin text-orange-medium" />
+                        <FontAwesomeIcon v-else icon="fa-solid fa-rocket" class="w-4" :class="canPublish ? 'text-orange-medium' : 'text-grey-light'" />
+                        Publish Project
+                    </button>
                     <button type="button" class="flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm text-orange-darker hover:bg-grey-lighter cursor-pointer transition-colors" @click="onSaveProjectClick">
                         <FontAwesomeIcon icon="fa-solid fa-floppy-disk" class="w-4 text-orange-medium" />
                         Save Project
@@ -302,7 +355,16 @@ function onResizePanels() {
             @resize="onResizePanels()"
         >
             <template #left>
-                <DialogueBrowser class="grow" :openTabs="interactionTester?.tabs ?? []" @selectDialogue="onSelectDialogue" @testDraftDialogue="onTestDraftDialogue" @resumeDialogue="onResumeDialogue" @activateTab="onActivateTab" />
+                <DialogueBrowser
+                    ref="dialogue-browser"
+                    class="grow"
+                    :openTabs="interactionTester?.tabs ?? []"
+                    @selectDialogue="onSelectDialogue"
+                    @testDraftDialogue="onTestDraftDialogue"
+                    @resumeDialogue="onResumeDialogue"
+                    @activateTab="onActivateTab"
+                    @hasDraftDialogues="hasDraftDialogues = $event"
+                />
             </template>
             <template #main>
                 <InteractionTester ref="interaction-tester" class="grow" @newDialogueStep="onNewDialogueStep" />

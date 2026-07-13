@@ -72,17 +72,20 @@ public class PublishService {
 	private final DBPublishedDialogueRepository publishedDialogueRepository;
 	private final DBPublishedTranslationRepository publishedTranslationRepository;
 	private final DBProjectRepository projectRepository;
+	private final ProjectLoaderService projectLoaderService;
 
 	public PublishService(DraftDialogueService draftDialogueService,
 						  DBProjectVersionRepository versionRepository,
 						  DBPublishedDialogueRepository publishedDialogueRepository,
 						  DBPublishedTranslationRepository publishedTranslationRepository,
-						  DBProjectRepository projectRepository) {
+						  DBProjectRepository projectRepository,
+						  ProjectLoaderService projectLoaderService) {
 		this.draftDialogueService = draftDialogueService;
 		this.versionRepository = versionRepository;
 		this.publishedDialogueRepository = publishedDialogueRepository;
 		this.publishedTranslationRepository = publishedTranslationRepository;
 		this.projectRepository = projectRepository;
+		this.projectLoaderService = projectLoaderService;
 	}
 
 	// ---------------------------------------------------------------------- //
@@ -181,6 +184,10 @@ public class PublishService {
 		project.setLatestVersion(version);
 		project.setUpdatedAt(Instant.now());
 		projectRepository.save(project);
+
+		// Reload the project into the running execution engine so the newly published version
+		// is immediately listed and runnable, instead of only taking effect after a restart.
+		projectLoaderService.loadProject(project, version);
 
 		return PublishResult.success(version);
 	}

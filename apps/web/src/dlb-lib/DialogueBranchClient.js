@@ -147,6 +147,20 @@ export class DialogueBranchClient {
         }).then((response) => { if (!response.ok) return Promise.reject(response); });
     }
 
+    // Validates all of the project's draft dialogues and, if valid, publishes them as a new,
+    // immutable project version. Returns { success, version, errors } — see PublishService.java.
+    publishProject(projectSlug) {
+        const url = this._baseUrl + "/publish/create-version?projectSlug=" + encodeURIComponent(projectSlug);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            }
+        }).then((response) => this._handleResponse(response));
+    }
+
     listDialogues(projectSlug) {
         const url = this._baseUrl + "/dialogue/list-dialogues?projectSlug=" + encodeURIComponent(projectSlug);
 

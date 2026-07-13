@@ -25,6 +25,7 @@ const emit = defineEmits([
     'testDraftDialogue',
     'resumeDialogue',
     'activateTab',
+    'hasDraftDialogues',
 ]);
 
 const client = useClient();
@@ -60,6 +61,7 @@ function listDialogues() {
     .then(([published, drafts]) => {
         const publishedNames = new Set(published.dialogueNames ?? []);
         const draftNames = new Set((drafts ?? []).map((d) => d.name));
+        emit('hasDraftDialogues', draftNames.size > 0);
         const allNames = new Set([...publishedNames, ...draftNames]);
         const entries = [...allNames].map((name) => ({
             name,
@@ -145,6 +147,10 @@ function doCancel() {
 }
 
 listDialogues();
+
+defineExpose({
+    listDialogues,
+});
 </script>
 
 <template>
