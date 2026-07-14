@@ -305,27 +305,32 @@ public class DraftDialogueService {
 	/**
 	 * Updates the header and body of the given node.
 	 *
-	 * @param node   the node to update.
-	 * @param header the new raw header content.
-	 * @param body   the new raw body content.
+	 * @param dialogue the dialogue {@code node} belongs to (passed explicitly rather than read via
+	 *                 {@code node.getDraftDialogue()}, which is a lazy relation that may no longer
+	 *                 have an active Hibernate session attached by this point).
+	 * @param node     the node to update.
+	 * @param header   the new raw header content.
+	 * @param body     the new raw body content.
 	 * @return the updated {@link DBDraftNode}.
 	 */
-	public DBDraftNode updateNode(DBDraftNode node, String header, String body) {
+	public DBDraftNode updateNode(DBDraftDialogue dialogue, DBDraftNode node, String header,
+								  String body) {
 		node.setHeader(header);
 		node.setBody(body);
 		node.setUpdatedAt(Instant.now());
 		DBDraftNode saved = nodeRepository.save(node);
-		markChanged(node.getDraftDialogue());
+		markChanged(dialogue);
 		return saved;
 	}
 
 	/**
 	 * Deletes the given draft node.
 	 *
-	 * @param node the node to delete.
+	 * @param dialogue the dialogue {@code node} belongs to (passed explicitly — see {@link
+	 *                 #updateNode(DBDraftDialogue, DBDraftNode, String, String)} for why).
+	 * @param node     the node to delete.
 	 */
-	public void deleteNode(DBDraftNode node) {
-		DBDraftDialogue dialogue = node.getDraftDialogue();
+	public void deleteNode(DBDraftDialogue dialogue, DBDraftNode node) {
 		nodeRepository.delete(node);
 		markChanged(dialogue);
 	}
@@ -896,16 +901,22 @@ public class DraftDialogueService {
 				});
 		translation.setContent(content);
 		translation.setUpdatedAt(now);
-		return translationRepository.save(translation);
+		DBDraftTranslation saved = translationRepository.save(translation);
+		markChanged(dialogue);
+		return saved;
 	}
 
 	/**
 	 * Deletes the given draft translation.
 	 *
+	 * @param dialogue    the dialogue {@code translation} belongs to (passed explicitly rather
+	 *                    than read via a lazy relation — see {@link #updateNode(DBDraftDialogue,
+	 *                    DBDraftNode, String, String)} for why).
 	 * @param translation the translation to delete.
 	 */
-	public void deleteTranslation(DBDraftTranslation translation) {
+	public void deleteTranslation(DBDraftDialogue dialogue, DBDraftTranslation translation) {
 		translationRepository.delete(translation);
+		markChanged(dialogue);
 	}
 
 	// ---------------------------------------------------------------- //

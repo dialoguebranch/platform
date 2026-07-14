@@ -361,7 +361,7 @@ public class AuthoringController {
 					DBDraftNode node = draftDialogueService.findNode(dialogue, nodeTitle)
 							.orElseThrow(() -> new NotFoundException(
 									"Node not found: " + nodeTitle));
-					return draftDialogueService.updateNode(node, payload.getHeader(),
+					return draftDialogueService.updateNode(dialogue, node, payload.getHeader(),
 							payload.getBody());
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
@@ -394,7 +394,7 @@ public class AuthoringController {
 					DBDraftNode node = draftDialogueService.findNode(dialogue, nodeTitle)
 							.orElseThrow(() -> new NotFoundException(
 									"Node not found: " + nodeTitle));
-					draftDialogueService.deleteNode(node);
+					draftDialogueService.deleteNode(dialogue, node);
 					return null;
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
@@ -532,7 +532,7 @@ public class AuthoringController {
 							.findTranslation(dialogue, language)
 							.orElseThrow(() -> new NotFoundException(
 									"Translation not found for language: " + language));
-					draftDialogueService.deleteTranslation(translation);
+					draftDialogueService.deleteTranslation(dialogue, translation);
 					return null;
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,

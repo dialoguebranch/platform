@@ -273,7 +273,54 @@ class DraftDialogueServiceTest {
         DBDraftDialogue reloaded = draftDialogueService.findDialogue(project, "basic").orElseThrow();
         assertFalse(reloaded.getIsChanged());
 
-        draftDialogueService.updateNode(start, start.getHeader(), "Edited after publish.");
+        draftDialogueService.updateNode(dialogue, start, start.getHeader(), "Edited after publish.");
+        assertTrue(draftDialogueService.findDialogue(project, "basic").orElseThrow().getIsChanged());
+    }
+
+    @Test
+    void deleteNodeRemovesNodeAndMarksDialogueChanged() throws Exception {
+        DBProject project = projectService.createProject("flags-test-delete-node", "Flags Test", "");
+        DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "basic");
+        draftDialogueService.createNode(dialogue, "Start", "title: Start\nspeaker: Narrator", "");
+        DBDraftNode extra = draftDialogueService.createNode(dialogue, "Extra",
+                "title: Extra\nspeaker: Narrator", "");
+
+        PublishService.PublishResult publishResult = publishService.publish(project, null);
+        if (!publishResult.isSuccess()) {
+            throw new AssertionError("Publish failed: " + publishResult.getErrors());
+        }
+        assertFalse(draftDialogueService.findDialogue(project, "basic").orElseThrow().getIsChanged());
+
+        draftDialogueService.deleteNode(dialogue, extra);
+
+        assertTrue(draftDialogueService.findNode(dialogue, "Extra").isEmpty());
+        assertTrue(draftDialogueService.findDialogue(project, "basic").orElseThrow().getIsChanged());
+    }
+
+    @Test
+    void translationMutationsMarkDialogueChanged() throws Exception {
+        DBProject project = projectService.createProject("flags-test-translations", "Flags Test", "");
+        DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "basic");
+        draftDialogueService.createNode(dialogue, "Start", "title: Start\nspeaker: Narrator", "");
+
+        PublishService.PublishResult publishResult = publishService.publish(project, null);
+        if (!publishResult.isSuccess()) {
+            throw new AssertionError("Publish failed: " + publishResult.getErrors());
+        }
+        assertFalse(draftDialogueService.findDialogue(project, "basic").orElseThrow().getIsChanged());
+
+        DBDraftTranslation translation =
+                draftDialogueService.createOrUpdateTranslation(dialogue, "nl-NL", "{}");
+        assertTrue(draftDialogueService.findDialogue(project, "basic").orElseThrow().getIsChanged());
+
+        // Reset by publishing again, then confirm deleting a translation also marks it changed.
+        PublishService.PublishResult secondPublish = publishService.publish(project, null);
+        if (!secondPublish.isSuccess()) {
+            throw new AssertionError("Publish failed: " + secondPublish.getErrors());
+        }
+        assertFalse(draftDialogueService.findDialogue(project, "basic").orElseThrow().getIsChanged());
+
+        draftDialogueService.deleteTranslation(dialogue, translation);
         assertTrue(draftDialogueService.findDialogue(project, "basic").orElseThrow().getIsChanged());
     }
 
