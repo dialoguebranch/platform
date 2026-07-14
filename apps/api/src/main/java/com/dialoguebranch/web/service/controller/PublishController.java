@@ -82,11 +82,29 @@ public class PublishController {
 
 	private static final Logger logger = LoggerFactory.getLogger(PublishController.class);
 
+	/**
+	 * Instances of this class are constructed through Spring.
+	 *
+	 * @param projectService service used to look up the {@link DBProject} being published.
+	 * @param publishService service that verifies and reconciles a project's draft content into
+	 *                       a new immutable {@link DBProjectVersion}.
+	 */
 	public PublishController(ProjectService projectService, PublishService publishService) {
 		this.projectService = projectService;
 		this.publishService = publishService;
 	}
 
+	/**
+	 * Lists all published versions of a project, newest first.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project whose versions should be listed.
+	 * @return the list of published versions of the project.
+	 * @throws HttpException if the project does not exist or the user is not authorized.
+	 */
 	@Operation(summary = "List all published versions of a project.")
 	@Parameter(name = "version", hidden = true)
 	@GetMapping("/list-versions")
@@ -108,6 +126,17 @@ public class PublishController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Returns the version number the next publish of this project would create.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project to check.
+	 * @return the version number that the next publish would create.
+	 * @throws HttpException if the project does not exist or the user is not authorized.
+	 */
 	@Operation(summary = "Returns the version number the next publish of this project would create.")
 	@Parameter(name = "version", hidden = true)
 	@GetMapping("/next-version")
@@ -129,6 +158,18 @@ public class PublishController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Validates the project's current draft content as it would be published — e.g. that reply
+	 * links resolve and translations are complete — without actually publishing it.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project to verify.
+	 * @return the verification result, listing any problems found.
+	 * @throws HttpException if the project does not exist or the user is not authorized.
+	 */
 	@Operation(summary = "Validates the current draft as it would be published, without publishing it.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/verify")
@@ -154,6 +195,18 @@ public class PublishController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Validates the project's current draft content and, if valid, publishes it as a new
+	 * immutable project version, becoming available to the execution engine.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project to publish.
+	 * @return the publish result, including the newly created project version.
+	 * @throws HttpException if the project does not exist or the user is not authorized.
+	 */
 	@Operation(summary = "Validate and publish the current draft as a new project version.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/create-version")

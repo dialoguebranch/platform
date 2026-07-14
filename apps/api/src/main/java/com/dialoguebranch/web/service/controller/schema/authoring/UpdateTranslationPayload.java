@@ -36,6 +36,13 @@ package com.dialoguebranch.web.service.controller.schema.authoring;
 public class UpdateTranslationPayload {
 	private String content;
 
+	/**
+	 * @return the translated content of the draft translation.
+	 */
 	public String getContent() { return content; }
+
+	/**
+	 * @param content the translated content of the draft translation.
+	 */
 	public void setContent(String content) { this.content = content; }
 }

@@ -37,8 +37,23 @@ public class UpdateProjectPayload {
 	private String displayName;
 	private String description;
 
+	/**
+	 * @return the human-readable display name to update the project with.
+	 */
 	public String getDisplayName() { return displayName; }
+
+	/**
+	 * @param displayName the human-readable display name to update the project with.
+	 */
 	public void setDisplayName(String displayName) { this.displayName = displayName; }
+
+	/**
+	 * @return the description to update the project with.
+	 */
 	public String getDescription() { return description; }
+
+	/**
+	 * @param description the description to update the project with.
+	 */
 	public void setDescription(String description) { this.description = description; }
 }

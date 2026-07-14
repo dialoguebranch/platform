@@ -70,6 +70,19 @@ public class PublishService {
 	private final DBProjectRepository projectRepository;
 	private final ProjectLoaderService projectLoaderService;
 
+	/**
+	 * Creates a new {@link PublishService}.
+	 *
+	 * @param draftDialogueService            service used to read draft dialogues/translations and
+	 *                                        reconcile their status flags once published.
+	 * @param versionRepository               repository used to read and persist project versions.
+	 * @param publishedDialogueRepository     repository used to persist published dialogues.
+	 * @param publishedTranslationRepository  repository used to persist published translations.
+	 * @param projectRepository               repository used to persist a project's updated
+	 *                                        {@code latestVersion} pointer.
+	 * @param projectLoaderService            service used to reload a project's newly published
+	 *                                        version into the running execution engine.
+	 */
 	public PublishService(DraftDialogueService draftDialogueService,
 						  DBProjectVersionRepository versionRepository,
 						  DBPublishedDialogueRepository publishedDialogueRepository,

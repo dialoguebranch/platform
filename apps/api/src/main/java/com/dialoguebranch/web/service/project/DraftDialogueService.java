@@ -75,6 +75,13 @@ public class DraftDialogueService {
 	private final DBDraftNodeRepository nodeRepository;
 	private final DBDraftTranslationRepository translationRepository;
 
+	/**
+	 * Creates a new {@link DraftDialogueService}.
+	 *
+	 * @param dialogueRepository    repository used to read and persist draft dialogues.
+	 * @param nodeRepository        repository used to read and persist draft nodes.
+	 * @param translationRepository repository used to read and persist draft translations.
+	 */
 	public DraftDialogueService(DBDraftDialogueRepository dialogueRepository,
 								DBDraftNodeRepository nodeRepository,
 								DBDraftTranslationRepository translationRepository) {
@@ -769,6 +776,13 @@ public class DraftDialogueService {
 		private final String nodeTitle;
 		private final String snippet;
 
+		/**
+		 * Creates a new {@link NodeReference}.
+		 *
+		 * @param dialogueName the name of the dialogue containing the referencing node.
+		 * @param nodeTitle    the title of the node that contains the reference.
+		 * @param snippet      the raw {@code [[...]]} text of the referencing reply.
+		 */
 		public NodeReference(String dialogueName, String nodeTitle, String snippet) {
 			this.dialogueName = dialogueName;
 			this.nodeTitle = nodeTitle;
@@ -801,6 +815,13 @@ public class DraftDialogueService {
 		private final DBDraftNode node;
 		private final int referencesUpdated;
 
+		/**
+		 * Creates a new {@link RenameResult}.
+		 *
+		 * @param node              the renamed node.
+		 * @param referencesUpdated how many individual reply links elsewhere in the project were
+		 *                          rewritten (0 if not requested).
+		 */
 		public RenameResult(DBDraftNode node, int referencesUpdated) {
 			this.node = node;
 			this.referencesUpdated = referencesUpdated;
@@ -830,6 +851,13 @@ public class DraftDialogueService {
 		private final DBDraftDialogue dialogue;
 		private final int referencesUpdated;
 
+		/**
+		 * Creates a new {@link DialogueRenameResult}.
+		 *
+		 * @param dialogue          the renamed dialogue.
+		 * @param referencesUpdated how many individual reply links elsewhere in the project were
+		 *                          rewritten (0 if not requested).
+		 */
 		public DialogueRenameResult(DBDraftDialogue dialogue, int referencesUpdated) {
 			this.dialogue = dialogue;
 			this.referencesUpdated = referencesUpdated;

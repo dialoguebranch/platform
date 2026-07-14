@@ -70,6 +70,22 @@ public class ProjectService {
 	private final DBPublishedTranslationRepository publishedTranslationRepository;
 	private final DraftDialogueService draftDialogueService;
 
+	/**
+	 * Creates a new {@link ProjectService}.
+	 *
+	 * @param projectRepository                repository used to read and persist project records.
+	 * @param translationLanguageRepository    repository used to read and persist a project's
+	 *                                         translation languages.
+	 * @param projectVersionRepository         repository used to read and delete a project's
+	 *                                         published versions.
+	 * @param publishedDialogueRepository      repository used to read and delete a project
+	 *                                         version's published dialogues.
+	 * @param publishedTranslationRepository   repository used to read and delete a published
+	 *                                         dialogue's translations.
+	 * @param draftDialogueService             service used to create a project's starter draft
+	 *                                         dialogue and to delete all of a project's draft
+	 *                                         dialogues when the project itself is deleted.
+	 */
 	public ProjectService(DBProjectRepository projectRepository,
 						  DBTranslationLanguageRepository translationLanguageRepository,
 						  DBProjectVersionRepository projectVersionRepository,

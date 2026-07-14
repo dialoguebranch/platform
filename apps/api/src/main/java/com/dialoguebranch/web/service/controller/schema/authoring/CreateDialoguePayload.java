@@ -36,6 +36,13 @@ package com.dialoguebranch.web.service.controller.schema.authoring;
 public class CreateDialoguePayload {
 	private String name;
 
+	/**
+	 * @return the name of the draft dialogue to create.
+	 */
 	public String getName() { return name; }
+
+	/**
+	 * @param name the name of the draft dialogue to create.
+	 */
 	public void setName(String name) { this.name = name; }
 }

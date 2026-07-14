@@ -57,10 +57,27 @@ public class SecurityConfig {
 
     private final DlbProperties dlbProperties;
 
+    /**
+     * Instances of this class are constructed through Spring.
+     *
+     * @param dlbProperties the bound {@code dlb.*} configuration, used for the configured CORS
+     *                      allowed origins and Keycloak connection details.
+     */
     public SecurityConfig(DlbProperties dlbProperties) {
         this.dlbProperties = dlbProperties;
     }
 
+    /**
+     * Configures the security filter chain for the service: stateless sessions (no server-side
+     * session state, since authentication is via bearer token on every request), CORS using
+     * {@link #corsConfigurationSource()}, CSRF protection disabled (not applicable to a
+     * stateless token-based API), a fixed set of end-points that are publicly accessible without
+     * a token, and OAuth2 JWT validation (via {@link #keycloakJwtDecoder()}) for everything else.
+     *
+     * @param http the {@link HttpSecurity} to configure.
+     * @return the configured {@link SecurityFilterChain}.
+     * @throws Exception if the security configuration cannot be built.
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http

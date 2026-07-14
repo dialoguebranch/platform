@@ -38,10 +38,34 @@ public class CreateNodePayload {
 	private String header;
 	private String body;
 
+	/**
+	 * @return the title of the draft node to create.
+	 */
 	public String getTitle() { return title; }
+
+	/**
+	 * @param title the title of the draft node to create.
+	 */
 	public void setTitle(String title) { this.title = title; }
+
+	/**
+	 * @return the raw header text (the {@code key: value} block above the {@code ---} separator)
+	 * of the draft node to create.
+	 */
 	public String getHeader() { return header; }
+
+	/**
+	 * @param header the raw header text of the draft node to create.
+	 */
 	public void setHeader(String header) { this.header = header; }
+
+	/**
+	 * @return the raw body text of the draft node to create.
+	 */
 	public String getBody() { return body; }
+
+	/**
+	 * @param body the raw body text of the draft node to create.
+	 */
 	public void setBody(String body) { this.body = body; }
 }

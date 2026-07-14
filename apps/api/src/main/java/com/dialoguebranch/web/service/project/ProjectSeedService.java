@@ -75,6 +75,15 @@ public class ProjectSeedService {
 	private final DraftDialogueService draftDialogueService;
 	private final PublishService publishService;
 
+	/**
+	 * Creates a new {@link ProjectSeedService}.
+	 *
+	 * @param projectService       service used to check for and create seed project records.
+	 * @param draftDialogueService service used to create the seeded draft dialogues and their
+	 *                             translations from the seed source files.
+	 * @param publishService       service used to publish the seeded drafts as the project's
+	 *                             version 1.
+	 */
 	public ProjectSeedService(ProjectService projectService,
 							  DraftDialogueService draftDialogueService,
 							  PublishService publishService) {

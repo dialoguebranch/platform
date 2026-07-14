@@ -37,8 +37,24 @@ public class UpdateNodePayload {
 	private String header;
 	private String body;
 
+	/**
+	 * @return the raw header text (the {@code key: value} block above the {@code ---} separator)
+	 * to update the draft node with.
+	 */
 	public String getHeader() { return header; }
+
+	/**
+	 * @param header the raw header text to update the draft node with.
+	 */
 	public void setHeader(String header) { this.header = header; }
+
+	/**
+	 * @return the raw body text to update the draft node with.
+	 */
 	public String getBody() { return body; }
+
+	/**
+	 * @param body the raw body text to update the draft node with.
+	 */
 	public void setBody(String body) { this.body = body; }
 }

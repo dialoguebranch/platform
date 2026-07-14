@@ -100,6 +100,16 @@ public class DraftExecutionController {
 
 	private static final Logger logger = LoggerFactory.getLogger(DraftExecutionController.class);
 
+	/**
+	 * Instances of this class are constructed through Spring.
+	 *
+	 * @param projectService service used to look up the {@link DBProject} that a draft dialogue
+	 *                       test session belongs to.
+	 * @param draftDialogueService service used to look up the {@link DBDraftDialogue} being
+	 *                             test-run.
+	 * @param draftExecutionService service that drives the ephemeral draft test session itself
+	 *                              (start, progress, cancel, revert).
+	 */
 	public DraftExecutionController(ProjectService projectService,
 									DraftDialogueService draftDialogueService,
 									DraftExecutionService draftExecutionService) {
@@ -108,6 +118,24 @@ public class DraftExecutionController {
 		this.draftExecutionService = draftExecutionService;
 	}
 
+	/**
+	 * Starts a test-run of a draft dialogue's current (unpublished) content, creating a new
+	 * ephemeral draft test session.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project the dialogue belongs to.
+	 * @param dialogueName the name of the draft dialogue to test-run.
+	 * @param language the language code to test-run the dialogue in.
+	 * @param timeZone the current time zone of the user (as IANA, e.g. 'Europe/Lisbon').
+	 * @param startNodeId an optional node title to start the test-run from, instead of the
+	 *                    dialogue's default start node.
+	 * @return the draft session id and the first {@link DialogueMessage} of the test-run.
+	 * @throws HttpException if the project or dialogue does not exist, execution fails, or the
+	 * user is not authorized.
+	 */
 	@Operation(summary = "Start a test-run of a draft dialogue's current content.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/start")
@@ -152,6 +180,24 @@ public class DraftExecutionController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Progresses a draft test session by submitting the reply chosen by the tester, along with
+	 * any variable updates collected on the client since the previous step.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers and the JSON body of
+	 *                variable updates).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param draftSessionId the id of the draft test session to progress, as returned by
+	 *                       {@link #start}.
+	 * @param replyId the id of the reply chosen by the tester.
+	 * @param timeZone the current time zone of the user (as IANA, e.g. 'Europe/Lisbon').
+	 * @return the next {@link DialogueMessage} of the test-run, or a {@code null}-wrapping
+	 * response if the dialogue has ended.
+	 * @throws HttpException if the request body is not valid JSON, the session does not exist,
+	 * execution fails, or the user is not authorized.
+	 */
 	@Operation(summary = "Progress a draft test session with a given reply id.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/progress")
@@ -204,6 +250,17 @@ public class DraftExecutionController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Cancels a draft test session, keeping any variable changes made during it.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param draftSessionId the id of the draft test session to cancel, as returned by
+	 *                       {@link #start}.
+	 * @throws HttpException if the session does not exist or the user is not authorized.
+	 */
 	@Operation(summary = "Cancel a draft test session, keeping any variable changes made during it.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/cancel")
@@ -225,6 +282,19 @@ public class DraftExecutionController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Cancels a draft test session and reverts any variable changes made during it back to
+	 * their values from before the session started.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param draftSessionId the id of the draft test session to cancel, as returned by
+	 *                       {@link #start}.
+	 * @param timeZone the current time zone of the user (as IANA, e.g. 'Europe/Lisbon').
+	 * @throws HttpException if the session does not exist or the user is not authorized.
+	 */
 	@Operation(summary = "Cancel a draft test session and revert any variable changes made " +
 			"during it back to their values from before the session started.")
 	@Parameter(name = "version", hidden = true)

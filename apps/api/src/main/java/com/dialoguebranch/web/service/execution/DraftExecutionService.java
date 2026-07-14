@@ -88,6 +88,12 @@ public class DraftExecutionService {
 	private final DraftDialogueService draftDialogueService;
 	private final Map<String, DraftTestSession> sessions = new ConcurrentHashMap<>();
 
+	/**
+	 * Creates a new {@link DraftExecutionService}.
+	 *
+	 * @param draftDialogueService service used to read a project's draft dialogues and their
+	 *                             content when starting a draft test session.
+	 */
 	public DraftExecutionService(DraftDialogueService draftDialogueService) {
 		this.draftDialogueService = draftDialogueService;
 	}

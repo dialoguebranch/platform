@@ -40,14 +40,55 @@ public class CreateProjectPayload {
 	private String defaultLanguageCode;
 	private String defaultLanguageName;
 
+	/**
+	 * @return the unique slug identifying the project to create.
+	 */
 	public String getSlug() { return slug; }
+
+	/**
+	 * @param slug the unique slug identifying the project to create.
+	 */
 	public void setSlug(String slug) { this.slug = slug; }
+
+	/**
+	 * @return the human-readable display name of the project to create.
+	 */
 	public String getDisplayName() { return displayName; }
+
+	/**
+	 * @param displayName the human-readable display name of the project to create.
+	 */
 	public void setDisplayName(String displayName) { this.displayName = displayName; }
+
+	/**
+	 * @return the description of the project to create.
+	 */
 	public String getDescription() { return description; }
+
+	/**
+	 * @param description the description of the project to create.
+	 */
 	public void setDescription(String description) { this.description = description; }
+
+	/**
+	 * @return the language code (e.g. {@code "en"}) of the project's default (source) language.
+	 */
 	public String getDefaultLanguageCode() { return defaultLanguageCode; }
+
+	/**
+	 * @param defaultLanguageCode the language code (e.g. {@code "en"}) of the project's default
+	 *                             (source) language.
+	 */
 	public void setDefaultLanguageCode(String defaultLanguageCode) { this.defaultLanguageCode = defaultLanguageCode; }
+
+	/**
+	 * @return the human-readable name of the project's default (source) language.
+	 */
 	public String getDefaultLanguageName() { return defaultLanguageName; }
+
+	/**
+	 * @param defaultLanguageName the human-readable name of the project's default (source)
+	 *                             language.
+	 */
 	public void setDefaultLanguageName(String defaultLanguageName) { this.defaultLanguageName = defaultLanguageName; }
 }

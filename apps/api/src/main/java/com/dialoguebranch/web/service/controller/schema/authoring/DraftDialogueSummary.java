@@ -43,6 +43,12 @@ public class DraftDialogueSummary {
 	private final boolean isChanged;
 	private final boolean isDeleted;
 
+	/**
+	 * Creates a {@link DraftDialogueSummary} from the given {@link DBDraftDialogue} entity,
+	 * copying its name and status flags.
+	 *
+	 * @param dialogue the draft dialogue entity to summarize.
+	 */
 	public DraftDialogueSummary(DBDraftDialogue dialogue) {
 		this.name = dialogue.getName();
 		this.isNew = dialogue.getIsNew();
@@ -50,18 +56,31 @@ public class DraftDialogueSummary {
 		this.isDeleted = dialogue.getIsDeleted();
 	}
 
+	/**
+	 * @return the logical name of the draft dialogue.
+	 */
 	public String getName() {
 		return name;
 	}
 
+	/**
+	 * @return whether this dialogue has no published counterpart yet.
+	 */
 	public boolean getIsNew() {
 		return isNew;
 	}
 
+	/**
+	 * @return whether this dialogue's draft content currently differs from its latest published
+	 * version (or there is no published version at all).
+	 */
 	public boolean getIsChanged() {
 		return isChanged;
 	}
 
+	/**
+	 * @return whether this dialogue is pending deletion.
+	 */
 	public boolean getIsDeleted() {
 		return isDeleted;
 	}

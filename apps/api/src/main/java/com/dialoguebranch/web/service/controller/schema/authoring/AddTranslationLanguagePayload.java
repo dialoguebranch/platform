@@ -37,8 +37,24 @@ public class AddTranslationLanguagePayload {
 	private String translationLanguageName;
 	private String translationLanguageCode;
 
+	/**
+	 * @return the human-readable name of the translation language to add.
+	 */
 	public String getTranslationLanguageName() { return translationLanguageName; }
+
+	/**
+	 * @param translationLanguageName the human-readable name of the translation language to add.
+	 */
 	public void setTranslationLanguageName(String translationLanguageName) { this.translationLanguageName = translationLanguageName; }
+
+	/**
+	 * @return the language code (e.g. {@code "en"}) of the translation language to add.
+	 */
 	public String getTranslationLanguageCode() { return translationLanguageCode; }
+
+	/**
+	 * @param translationLanguageCode the language code (e.g. {@code "en"}) of the translation
+	 *                                 language to add.
+	 */
 	public void setTranslationLanguageCode(String translationLanguageCode) { this.translationLanguageCode = translationLanguageCode; }
 }

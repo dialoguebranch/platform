@@ -70,6 +70,18 @@ public class ProjectLoaderService {
 	private final DBPublishedDialogueRepository publishedDialogueRepository;
 	private final DBPublishedTranslationRepository publishedTranslationRepository;
 
+	/**
+	 * Creates a new {@link ProjectLoaderService}.
+	 *
+	 * @param application                    the application instance whose {@link
+	 *                                       com.dialoguebranch.web.service.execution.ApplicationManager}
+	 *                                       projects are loaded into.
+	 * @param projectService                 service used to list all known projects.
+	 * @param publishedDialogueRepository    repository used to read a project version's published
+	 *                                       dialogues.
+	 * @param publishedTranslationRepository repository used to read a published dialogue's
+	 *                                       translations.
+	 */
 	public ProjectLoaderService(Application application,
 								ProjectService projectService,
 								DBPublishedDialogueRepository publishedDialogueRepository,

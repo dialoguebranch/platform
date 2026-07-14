@@ -84,6 +84,14 @@ public class AuthoringController {
 
 	private static final Logger logger = LoggerFactory.getLogger(AuthoringController.class);
 
+	/**
+	 * Instances of this class are constructed through Spring.
+	 *
+	 * @param projectService service used to look up the {@link DBProject} that a dialogue,
+	 *                       node, or translation belongs to.
+	 * @param draftDialogueService service that performs the actual CRUD operations on draft
+	 *                             dialogues, nodes, and translations.
+	 */
 	public AuthoringController(ProjectService projectService,
 							   DraftDialogueService draftDialogueService) {
 		this.projectService = projectService;
@@ -109,6 +117,18 @@ public class AuthoringController {
 	// -------------------- Dialogue Management -------------------- //
 	// ------------------------------------------------------------------ //
 
+	/**
+	 * Lists all draft dialogues in a project, including those pending creation, change, or
+	 * deletion (see {@link DraftDialogueSummary}).
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project whose draft dialogues should be listed.
+	 * @return the list of draft dialogues in the project, summarized.
+	 * @throws HttpException if the project does not exist or the user is not authorized.
+	 */
 	@Operation(summary = "List all draft dialogues in a project.")
 	@Parameter(name = "version", hidden = true)
 	@GetMapping("/list-dialogues")
@@ -132,6 +152,19 @@ public class AuthoringController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Creates a new, empty draft dialogue in a project.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project to create the dialogue in.
+	 * @param payload the name for the new draft dialogue.
+	 * @return the newly created draft dialogue.
+	 * @throws HttpException if the payload is invalid, the project does not exist, or the user
+	 * is not authorized.
+	 */
 	@Operation(summary = "Create a new draft dialogue in a project.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/create-dialogue")
@@ -157,6 +190,20 @@ public class AuthoringController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Marks a draft dialogue as pending deletion. This is a soft delete: the dialogue is
+	 * excluded from published output but can still be reverted via {@code /restore-dialogue}
+	 * until the project is next published, at which point the deletion becomes permanent.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project the dialogue belongs to.
+	 * @param dialogueName the name of the draft dialogue to mark as deleted.
+	 * @throws HttpException if the project or dialogue does not exist, or the user is not
+	 * authorized.
+	 */
 	@Operation(summary = "Mark a draft dialogue as pending deletion (revertible via " +
 			"/restore-dialogue until the project is next published).")
 	@Parameter(name = "version", hidden = true)
@@ -186,6 +233,20 @@ public class AuthoringController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Reverts a pending deletion made via {@code /delete-dialogue}, restoring the draft dialogue
+	 * to normal editable status.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project the dialogue belongs to.
+	 * @param dialogueName the name of the draft dialogue to restore.
+	 * @return the restored draft dialogue.
+	 * @throws HttpException if the project or dialogue does not exist, or the user is not
+	 * authorized.
+	 */
 	@Operation(summary = "Revert a pending deletion made via /delete-dialogue.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/restore-dialogue")
@@ -213,6 +274,21 @@ public class AuthoringController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Finds all {@code [[reply link]]} references elsewhere in the project that point at the
+	 * given dialogue. Used by the client to warn the user before a rename or delete that would
+	 * break existing cross-references.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project the dialogue belongs to.
+	 * @param dialogueName the name of the dialogue to find references to.
+	 * @return the list of node references pointing at the dialogue.
+	 * @throws HttpException if the project or dialogue does not exist, or the user is not
+	 * authorized.
+	 */
 	@Operation(summary = "Find all reply links in the project that reference a given dialogue.")
 	@Parameter(name = "version", hidden = true)
 	@GetMapping("/find-dialogue-references")
@@ -239,6 +315,24 @@ public class AuthoringController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Renames a draft dialogue, optionally rewriting {@code [[reply link]]} references to it
+	 * elsewhere in the project so they keep pointing at the renamed dialogue.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project the dialogue belongs to.
+	 * @param dialogueName the current name of the dialogue to rename.
+	 * @param newName the new name for the dialogue.
+	 * @param updateReferences whether to rewrite references to this dialogue elsewhere in the
+	 *                         project.
+	 * @return the rename result, including the renamed dialogue and the number of references
+	 * updated.
+	 * @throws HttpException if {@code newName} is blank, the dialogue is pending deletion, the
+	 * project or dialogue does not exist, or the user is not authorized.
+	 */
 	@Operation(summary = "Rename a draft dialogue, optionally rewriting references to it " +
 			"elsewhere in the project.")
 	@Parameter(name = "version", hidden = true)
@@ -277,6 +371,19 @@ public class AuthoringController {
 	// -------------------- Node Management -------------------- //
 	// ------------------------------------------------------------- //
 
+	/**
+	 * Lists all nodes in a draft dialogue.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project the dialogue belongs to.
+	 * @param dialogueName the name of the draft dialogue whose nodes should be listed.
+	 * @return the list of nodes in the dialogue.
+	 * @throws HttpException if the project or dialogue does not exist, or the user is not
+	 * authorized.
+	 */
 	@Operation(summary = "List all nodes in a draft dialogue.")
 	@Parameter(name = "version", hidden = true)
 	@GetMapping("/list-nodes")
@@ -303,6 +410,20 @@ public class AuthoringController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Creates a new node in a draft dialogue.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project the dialogue belongs to.
+	 * @param dialogueName the name of the draft dialogue to add the node to.
+	 * @param payload the title, header, and body of the new node.
+	 * @return the newly created node.
+	 * @throws HttpException if the payload is invalid, the dialogue is pending deletion, the
+	 * project or dialogue does not exist, or the user is not authorized.
+	 */
 	@Operation(summary = "Create a new node in a draft dialogue.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/create-node")
@@ -335,6 +456,21 @@ public class AuthoringController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Updates the header and body of a draft node.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project the dialogue belongs to.
+	 * @param dialogueName the name of the draft dialogue the node belongs to.
+	 * @param nodeTitle the title of the node to update.
+	 * @param payload the new header and body content for the node.
+	 * @return the updated node.
+	 * @throws HttpException if the dialogue is pending deletion, the project, dialogue, or node
+	 * does not exist, or the user is not authorized.
+	 */
 	@Operation(summary = "Update the header and body of a draft node.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/update-node")
@@ -368,6 +504,20 @@ public class AuthoringController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Deletes a node from a draft dialogue. Unlike dialogue deletion, this is a hard delete with
+	 * no restore path.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project the dialogue belongs to.
+	 * @param dialogueName the name of the draft dialogue the node belongs to.
+	 * @param nodeTitle the title of the node to delete.
+	 * @throws HttpException if the dialogue is pending deletion, the project, dialogue, or node
+	 * does not exist, or the user is not authorized.
+	 */
 	@Operation(summary = "Delete a node from a draft dialogue.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/delete-node")
@@ -401,6 +551,22 @@ public class AuthoringController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Finds all {@code [[reply link]]} references elsewhere in the project that point at the
+	 * given node. Used by the client to warn the user before a rename or delete that would break
+	 * existing cross-references.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project the dialogue belongs to.
+	 * @param dialogueName the name of the draft dialogue the node belongs to.
+	 * @param nodeTitle the title of the node to find references to.
+	 * @return the list of node references pointing at the node.
+	 * @throws HttpException if the project, dialogue, or node does not exist, or the user is not
+	 * authorized.
+	 */
 	@Operation(summary = "Find all reply links in the project that reference a given node.")
 	@Parameter(name = "version", hidden = true)
 	@GetMapping("/find-node-references")
@@ -431,6 +597,25 @@ public class AuthoringController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Renames a draft node, optionally rewriting {@code [[reply link]]} references to it
+	 * elsewhere in the project so they keep pointing at the renamed node.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project the dialogue belongs to.
+	 * @param dialogueName the name of the draft dialogue the node belongs to.
+	 * @param oldTitle the current title of the node to rename.
+	 * @param newTitle the new title for the node.
+	 * @param updateReferences whether to rewrite references to this node elsewhere in the
+	 *                         project.
+	 * @return the rename result, including the renamed node and the number of references
+	 * updated.
+	 * @throws HttpException if {@code newTitle} is blank, the dialogue is pending deletion, the
+	 * project, dialogue, or node does not exist, or the user is not authorized.
+	 */
 	@Operation(summary = "Rename a draft node, optionally rewriting references to it elsewhere " +
 			"in the project.")
 	@Parameter(name = "version", hidden = true)
@@ -473,6 +658,21 @@ public class AuthoringController {
 	// -------------------- Translation Management -------------------- //
 	// ----------------------------------------------------------------------- //
 
+	/**
+	 * Creates or updates the translation for a draft dialogue in a given language.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project the dialogue belongs to.
+	 * @param dialogueName the name of the draft dialogue to translate.
+	 * @param language the language code of the translation to create or update.
+	 * @param payload the raw JSON translation content.
+	 * @return the created or updated translation.
+	 * @throws HttpException if the dialogue is pending deletion, the project or dialogue does
+	 * not exist, or the user is not authorized.
+	 */
 	@Operation(summary = "Create or update a translation for a draft dialogue.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/update-translation")
@@ -504,6 +704,19 @@ public class AuthoringController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Deletes the translation for a draft dialogue in a given language.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project the dialogue belongs to.
+	 * @param dialogueName the name of the draft dialogue the translation belongs to.
+	 * @param language the language code of the translation to delete.
+	 * @throws HttpException if the dialogue is pending deletion, the project, dialogue, or
+	 * translation does not exist, or the user is not authorized.
+	 */
 	@Operation(summary = "Delete a translation from a draft dialogue.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/delete-translation")

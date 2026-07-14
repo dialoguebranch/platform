@@ -81,6 +81,12 @@ public class ProjectController {
 
 	private static final Logger logger = LoggerFactory.getLogger(ProjectController.class);
 
+	/**
+	 * Instances of this class are constructed through Spring.
+	 *
+	 * @param projectService service used to look up, create, update, and delete
+	 *                       {@link DBProject}s and their translation languages.
+	 */
 	public ProjectController(ProjectService projectService) {
 		this.projectService = projectService;
 	}
@@ -89,6 +95,16 @@ public class ProjectController {
 	// -------------------- Project Management -------------------- //
 	// ---------------------------------------------------------------- //
 
+	/**
+	 * Lists all projects.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @return the list of all projects.
+	 * @throws HttpException if the user is not authorized.
+	 */
 	@Operation(summary = "List all projects.")
 	@Parameter(name = "version", hidden = true)
 	@GetMapping("/list-projects")
@@ -106,6 +122,17 @@ public class ProjectController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Gets a single project by its slug.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project to retrieve.
+	 * @return the matching project.
+	 * @throws HttpException if the project does not exist or the user is not authorized.
+	 */
 	@Operation(summary = "Get a single project by slug.")
 	@Parameter(name = "version", hidden = true)
 	@GetMapping("/get-project")
@@ -126,6 +153,19 @@ public class ProjectController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Creates a new project with the given slug, display name, description, and source
+	 * language, along with a starter draft dialogue to get the project off the ground.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param payload the new project's slug, display name, description, and source language.
+	 * @return the newly created project.
+	 * @throws HttpException if required fields are missing, a project with the given slug
+	 * already exists, or the user is not authorized.
+	 */
 	@Operation(summary = "Create a new project.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/create-project")
@@ -156,6 +196,18 @@ public class ProjectController {
 				AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Updates a project's display name and description.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project to update.
+	 * @param payload the new display name and description for the project.
+	 * @return the updated project.
+	 * @throws HttpException if the project does not exist or the user is not authorized.
+	 */
 	@Operation(summary = "Update a project's display name and description.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/update-project")
@@ -179,6 +231,18 @@ public class ProjectController {
 				AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Deletes a project and all its data (draft and published dialogues, translations, and
+	 * language mappings). This is a permanent, unrecoverable delete of the project entity
+	 * itself — unlike dialogue deletion within a project, there is no restore path.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project to delete.
+	 * @throws HttpException if the project does not exist or the user is not authorized.
+	 */
 	@Operation(summary = "Delete a project and all its data.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/delete-project")
@@ -206,6 +270,18 @@ public class ProjectController {
 	// -------------------- Translation Language Management -------------------- //
 	// ------------------------------------------------------------------------ //
 
+	/**
+	 * Adds an additional translation language to a project, on top of its fixed source language.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project to add the language to.
+	 * @param payload the display name and language code of the translation language to add.
+	 * @return the newly added translation language.
+	 * @throws HttpException if the project does not exist or the user is not authorized.
+	 */
 	@Operation(summary = "Add a translation language to a project.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/add-translation-language")
@@ -231,6 +307,17 @@ public class ProjectController {
 				AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Removes a translation language from a project.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project to remove the language from.
+	 * @param translationLanguageId the id of the translation language to remove.
+	 * @throws HttpException if the project does not exist or the user is not authorized.
+	 */
 	@Operation(summary = "Remove a translation language from a project.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/remove-translation-language")
