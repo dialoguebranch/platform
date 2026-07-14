@@ -1,6 +1,6 @@
 <script setup>
 import { ref, inject, watch, computed } from 'vue';
-import { VueFlow } from '@vue-flow/core';
+import { VueFlow, MarkerType, BaseEdge, getStraightPath } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useClient } from '@/composables/client.js';
@@ -34,6 +34,77 @@ const client = useClient();
 const GRID_COLUMNS = 4;
 const GRID_SPACING_X = 240;
 const GRID_SPACING_Y = 140;
+
+// Matches theme.css's --color-lines (orange-dark) — used directly rather than via var() since
+// edge markers are rendered into an SVG <defs> block where CSS custom property inheritance isn't
+// reliable across all browsers.
+const EDGE_COLOR = '#996600';
+
+// Mirrors DialogueBranchConstants.DLB_NODE_START_ID / DLB_NODE_END_ID (core), whose comparisons
+// are case-insensitive (see ActiveDialogue.java) — every dialogue needs a "Start" node as its
+// entry point, and an "End" node (with no body) is how a dialogue terminates.
+const RESERVED_NODE_START_ID = 'start';
+const RESERVED_NODE_END_ID = 'end';
+
+function isReservedNodeTitle(title, reservedId) {
+    return title?.toLowerCase() === reservedId;
+}
+
+// Start/End get a fixed accent regardless of their colorId tag — see the theme.css comment on
+// --color-node-start/--color-node-end for why.
+function nodeHeaderColor(data) {
+    if (data.isStart) return 'var(--color-node-start)';
+    if (data.isEnd) return 'var(--color-node-end)';
+    return colorForId(data.colorId);
+}
+
+// ---- Floating edges: connect each edge to the point on the node's rectangle nearest the other
+// node (its center-to-center line's boundary intersection), rather than a fixed handle position.
+// Our node template has no <Handle> elements at all (edges are derived from parsed [[links]], not
+// user-drawn), so Vue Flow's normal handle-based positioning falls back to a fixed Top/Bottom
+// point — this recomputes sourceX/Y and targetX/Y ourselves instead. See Vue Flow's "Floating
+// Edges" example for the reference version of this geometry.
+
+function getNodeCenter(node) {
+    return {
+        x: node.position.x + (node.dimensions?.width ?? 0) / 2,
+        y: node.position.y + (node.dimensions?.height ?? 0) / 2,
+    };
+}
+
+// The point on `node`'s rectangle where the line from its center to `otherNode`'s center exits.
+function getNodeIntersection(node, otherNode) {
+    const center = getNodeCenter(node);
+    const { width, height } = node.dimensions ?? {};
+    // Dimensions aren't measured yet on a node's first render — fall back to its center until
+    // Vue Flow's ResizeObserver fills them in and this edge is recomputed.
+    if (!width || !height) return center;
+
+    const otherCenter = getNodeCenter(otherNode);
+    const w = width / 2;
+    const h = height / 2;
+
+    const xx1 = (otherCenter.x - center.x) / (2 * w) - (otherCenter.y - center.y) / (2 * h);
+    const yy1 = (otherCenter.x - center.x) / (2 * w) + (otherCenter.y - center.y) / (2 * h);
+    const a = 1 / (Math.abs(xx1) + Math.abs(yy1) || 1);
+
+    return {
+        x: w * (a * xx1 + a * yy1) + center.x,
+        y: h * (-a * xx1 + a * yy1) + center.y,
+    };
+}
+
+function floatingEdgePath(sourceNode, targetNode) {
+    const sourcePoint = getNodeIntersection(sourceNode, targetNode);
+    const targetPoint = getNodeIntersection(targetNode, sourceNode);
+    const [path, labelX, labelY] = getStraightPath({
+        sourceX: sourcePoint.x,
+        sourceY: sourcePoint.y,
+        targetX: targetPoint.x,
+        targetY: targetPoint.y,
+    });
+    return { path, labelX, labelY };
+}
 
 const loading = ref(false);
 const flowNodes = ref([]);
@@ -73,6 +144,9 @@ function buildGraph(nodes) {
                 source: node.title,
                 target: link.nodeTitle,
                 label: link.displayText ?? undefined,
+                type: 'floating',
+                markerEnd: { type: MarkerType.ArrowClosed, color: EDGE_COLOR },
+                style: { stroke: EDGE_COLOR, strokeWidth: 1.5 },
             });
         }
     }
@@ -86,6 +160,8 @@ function buildGraph(nodes) {
             speaker: tags.get('speaker') ?? '',
             colorId: tags.get('colorId') ?? '0',
             externalLinks: externalLinkCounts.get(node.title) ?? 0,
+            isStart: isReservedNodeTitle(node.title, RESERVED_NODE_START_ID),
+            isEnd: isReservedNodeTitle(node.title, RESERVED_NODE_END_ID),
         },
     }));
     flowEdges.value = newFlowEdges;
@@ -230,16 +306,43 @@ defineExpose({
         >
             <template #node-dialogueNode="{ data }">
                 <div
-                    class="rounded-lg shadow border-l-4 bg-white px-3 py-2 text-xs font-title min-w-[140px] max-w-[200px] cursor-pointer hover:shadow-md"
-                    :style="{ borderLeftColor: colorForId(data.colorId) }"
+                    class="rounded-lg shadow bg-white min-w-[150px] max-w-[210px] overflow-hidden cursor-pointer hover:shadow-md"
+                    :class="{
+                        'ring-2 ring-offset-1 ring-node-start': data.isStart,
+                        'ring-2 ring-offset-1 ring-node-end': data.isEnd,
+                    }"
                 >
-                    <div class="font-bold text-orange-darker truncate">{{ data.title }}</div>
-                    <div v-if="data.speaker" class="text-grey-dark truncate">{{ data.speaker }}</div>
-                    <div v-if="data.externalLinks" class="mt-1 inline-flex items-center gap-1 text-[10px] text-orange-dark" :title="`${data.externalLinks} link(s) to other dialogues`">
-                        <FontAwesomeIcon icon="fa-solid fa-arrow-up-right-from-square" />
-                        {{ data.externalLinks }} external
+                    <div class="px-3 py-1.5 text-xs font-title font-bold text-white truncate flex items-center gap-1.5" :style="{ backgroundColor: nodeHeaderColor(data) }">
+                        <FontAwesomeIcon v-if="data.isStart" icon="fa-solid fa-play" class="text-[10px] shrink-0" title="Start node — the dialogue's entry point" />
+                        <FontAwesomeIcon v-if="data.isEnd" icon="fa-solid fa-flag-checkered" class="text-[10px] shrink-0" title="End node — terminates the dialogue" />
+                        <span class="truncate">{{ data.title }}</span>
                     </div>
+                    <div v-if="data.speaker || data.externalLinks" class="px-3 py-2 text-xs font-title">
+                        <div v-if="data.speaker" class="text-grey-dark truncate">{{ data.speaker }}</div>
+                        <div v-if="data.externalLinks" class="mt-1 inline-flex items-center gap-1 text-[10px] text-orange-dark" :title="`${data.externalLinks} link(s) to other dialogues`">
+                            <FontAwesomeIcon icon="fa-solid fa-arrow-up-right-from-square" />
+                            {{ data.externalLinks }} external
+                        </div>
+                    </div>
+                    <div v-if="data.isEnd" class="px-3 py-2 text-[10px] italic text-grey-dark">Ends the conversation — no content</div>
                 </div>
+            </template>
+
+            <template #edge-floating="{ id, sourceNode, targetNode, markerEnd, style, label, labelStyle, labelShowBg, labelBgStyle, labelBgPadding, labelBgBorderRadius }">
+                <BaseEdge
+                    :id="id"
+                    :path="floatingEdgePath(sourceNode, targetNode).path"
+                    :label-x="floatingEdgePath(sourceNode, targetNode).labelX"
+                    :label-y="floatingEdgePath(sourceNode, targetNode).labelY"
+                    :label="label"
+                    :label-style="labelStyle"
+                    :label-show-bg="labelShowBg"
+                    :label-bg-style="labelBgStyle"
+                    :label-bg-padding="labelBgPadding"
+                    :label-bg-border-radius="labelBgBorderRadius"
+                    :marker-end="markerEnd"
+                    :style="style"
+                />
             </template>
         </VueFlow>
 

@@ -46,4 +46,10 @@
 
     --color-interaction-reply-option: #970000;
     --color-interaction-reply-option-hover: #d71f1f;
+
+    /* Dialogue Editor: the reserved "Start"/"End" nodes (DialogueBranchConstants.DLB_NODE_START_ID/
+       DLB_NODE_END_ID) get a fixed accent regardless of their colorId tag, so they're recognizable
+       across every dialogue rather than looking like just another user-colored node. */
+    --color-node-start: var(--color-icon-button);
+    --color-node-end: #44403c;
 }
