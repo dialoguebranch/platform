@@ -12,14 +12,14 @@ import { colorForId } from '@/composables/node-colors.js';
 import NodeEditPanel from './NodeEditPanel.vue';
 
 // Pure content component — no header of its own. It's only ever embedded in
-// InteractionTester.vue's "edit" mode, whose own header (with the balloon/text/edit
+// DialogueWorkspace.vue's "edit" mode, whose own header (with the balloon/text/edit
 // ModeSelector) also hosts this component's Add Node / Refresh actions, via the exposed
 // addNode/reload/isLoading/isCreatingNode below.
 const props = defineProps({
     dialogueName: { type: String, default: null },
 });
 
-// nodeChanged/nodeDeleted let InteractionTester.vue track, per tab, whether its dialogue was
+// nodeChanged/nodeDeleted let DialogueWorkspace.vue track, per tab, whether its dialogue was
 // edited and which node was most recently touched — used to offer restarting a draft test from
 // that node instead of Start (deliberately not raised for position-only drags, which don't affect
 // what a test run does). dialogueSaved fires on every successful save, including drags — used to
@@ -123,7 +123,7 @@ function onNodeDragStop({ node }) {
         newHeader, rawNode.body)
         .then((updated) => {
             // Position-only changes don't count as content edits — they don't affect what a test
-            // run of this dialogue actually does — so no 'nodeChanged' here (see InteractionTester's
+            // run of this dialogue actually does — so no 'nodeChanged' here (see DialogueWorkspace's
             // handleReturnFromEdit, which restarts/notifies based on that event). They do still
             // change the draft's published-vs-current status, though (position is part of the
             // reconstructed script), so 'dialogueSaved' still fires.

@@ -6,7 +6,7 @@ const state = inject('state');
 import { logEvent } from '@/composables/debug-log.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
-import { INTERACTION_TESTER_STYLE_TEXT, INTERACTION_TESTER_STYLE_BALLOONS, INTERACTION_TESTER_STYLE_EDIT } from '@/dlb-lib/WCTAClientState.js';
+import { DIALOGUE_WORKSPACE_STYLE_TEXT, DIALOGUE_WORKSPACE_STYLE_BALLOONS, DIALOGUE_WORKSPACE_STYLE_EDIT } from '@/dlb-lib/WCTAClientState.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import IconButton from '../widgets/IconButton.vue';
 import BalloonDialogueComponent from './BalloonDialogueComponent.vue';
@@ -39,20 +39,20 @@ const modes = [
     },
 ];
 
-// Backed by the `state.interactionTesterStyle` cookie (see WCTAClientState.js) so the chosen
+// Backed by the `state.dialogueWorkspaceStyle` cookie (see WCTAClientState.js) so the chosen
 // mode survives a page reload.
 const selectedMode = computed({
     get: () => {
-        if (state.value.interactionTesterStyle === INTERACTION_TESTER_STYLE_TEXT) return 'text';
-        if (state.value.interactionTesterStyle === INTERACTION_TESTER_STYLE_EDIT) return 'edit';
+        if (state.value.dialogueWorkspaceStyle === DIALOGUE_WORKSPACE_STYLE_TEXT) return 'text';
+        if (state.value.dialogueWorkspaceStyle === DIALOGUE_WORKSPACE_STYLE_EDIT) return 'edit';
         return 'balloon';
     },
     set: (mode) => {
-        state.value.interactionTesterStyle = mode === 'text'
-            ? INTERACTION_TESTER_STYLE_TEXT
+        state.value.dialogueWorkspaceStyle = mode === 'text'
+            ? DIALOGUE_WORKSPACE_STYLE_TEXT
             : mode === 'edit'
-                ? INTERACTION_TESTER_STYLE_EDIT
-                : INTERACTION_TESTER_STYLE_BALLOONS;
+                ? DIALOGUE_WORKSPACE_STYLE_EDIT
+                : DIALOGUE_WORKSPACE_STYLE_BALLOONS;
     },
 });
 
@@ -201,7 +201,7 @@ const loadDialogue = (name) => {
 };
 
 // Starts an ephemeral draft test session (see /draft/* end-points) — not saved to dialogue
-// history, and reads/writes the tester's real variables (revertible via revertVariables()).
+// history, and reads/writes the workspace's real variables (revertible via revertVariables()).
 // Pass `tab` to restart a specific, already-open tab in place (e.g. from handleReturnFromEdit)
 // rather than the default of finding/creating an empty one; `startNodeId` starts the test from a
 // particular node instead of the dialogue's default "Start" node.
@@ -396,7 +396,7 @@ function editDialogue(name) {
     selectedMode.value = 'edit';
 }
 
-// Opens a dialogue from the Dialogue Browser according to whatever mode the tester is currently
+// Opens a dialogue from the Dialogue Browser according to whatever mode the workspace is currently
 // in, rather than always forcing one particular mode: if we're already in Edit mode, open the
 // node editor (same as editDialogue); otherwise start a running test — as an ephemeral draft test
 // if the dialogue has a draft, or a normal (logged) test if it's published-only.
@@ -553,7 +553,7 @@ function onSelectReply(dialogueStep, reply) {
 
 <template>
     <div class="flex flex-col gap-1">
-        <MainPagePanelHeader title="Interaction Tester">
+        <MainPagePanelHeader title="Dialogue Workspace">
             <template #buttons>
                 <ModeSelector :modes="modes" v-model="selectedMode" />
                 <template v-if="selectedMode !== 'edit'">

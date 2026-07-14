@@ -140,14 +140,14 @@ A single-page Vue 3 app. Key structure:
 - **`src/dlb-lib/DialogueBranchClient.js`** — Thin fetch-based API client; wraps all REST calls; returns parsed model objects
 - **`src/dlb-lib/WCTAClientState.js`** — App-specific state; extends the reusable `ClientState`
 - **`src/components/pages/`** — `MainPage.vue`, `ProjectSelectorPage.vue`. There is no login page: `src/keycloak.js` initialises Keycloak with `onLoad: 'login-required'`, so an unauthenticated user is redirected straight to Keycloak's hosted login page before the app ever mounts.
-- **`src/components/partials/`** — `DialogueBrowser.vue` (folder tree, with New/Draft/Deleted badges and publish-enablement driven by draft status), `DialogueTreeNode.vue`, `InteractionTester.vue`, `DialogueEditor.vue`, `NodeEditPanel.vue`, `BalloonDialogueComponent.vue`, `TextDialogueComponent.vue`, `VariableBrowser.vue`
+- **`src/components/partials/`** — `DialogueBrowser.vue` (folder tree, with New/Draft/Deleted badges and publish-enablement driven by draft status), `DialogueTreeNode.vue`, `DialogueWorkspace.vue`, `DialogueEditor.vue`, `NodeEditPanel.vue`, `BalloonDialogueComponent.vue`, `TextDialogueComponent.vue`, `VariableBrowser.vue`
 - **`src/components/widgets/`** — Reusable UI primitives (buttons, panels, inputs, `ModeSelector.vue`)
 
 The app uses Tailwind CSS v4 (Vite plugin) and Font Awesome for icons. `__APP_VERSION__` is injected at build time from `package.json`.
 
 #### Visual dialogue editor
 
-`InteractionTester.vue` hosts three modes via `ModeSelector` — balloon, text, and **edit** — for the active tab. Edit mode embeds `DialogueEditor.vue`, a node-graph view built on `@vue-flow/core`:
+`DialogueWorkspace.vue` hosts three modes via `ModeSelector` — balloon, text, and **edit** — for the active tab. Edit mode embeds `DialogueEditor.vue`, a node-graph view built on `@vue-flow/core`:
 
 - **`DialogueEditor.vue`** — Fetches a dialogue's draft nodes (`list-nodes`) and lays them out as a graph: `[[reply link]]` targets (parsed by `DlbReplyLinks.js`) become edges, and each node's `position` header tag (parsed/written by `DlbHeaderTags.js`) becomes its canvas coordinates, with a grid fallback for nodes authored before the editor existed (i.e. with no `position` tag yet). Dragging a node persists its new position via `update-node`.
 - **`NodeEditPanel.vue`** — Side panel for editing one node's title, speaker, color, and body text; saves via `update-node`/`rename-node`, prompting to update cross-references when a rename affects other nodes.

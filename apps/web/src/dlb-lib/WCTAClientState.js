@@ -29,9 +29,9 @@
 import { ClientState } from '../dlb-lib/ClientState.js';
 import { DocumentFunctions } from '../dlb-lib/util/DocumentFunctions.js';
 
-export const INTERACTION_TESTER_STYLE_TEXT = "TEXT";
-export const INTERACTION_TESTER_STYLE_BALLOONS = "BALLOONS";
-export const INTERACTION_TESTER_STYLE_EDIT = "EDIT";
+export const DIALOGUE_WORKSPACE_STYLE_TEXT = "TEXT";
+export const DIALOGUE_WORKSPACE_STYLE_BALLOONS = "BALLOONS";
+export const DIALOGUE_WORKSPACE_STYLE_EDIT = "EDIT";
 
 /**
  * The WCTAClientState is the client-specific ClientState object for the Dialogue Branch Web Client Test Application.
@@ -53,7 +53,7 @@ export class WCTAClientState extends ClientState {
     constructor(logger) {
         super(logger);
         this._LOGTAG = "WCTAClientState";
-        this._interactionTesterStyle = INTERACTION_TESTER_STYLE_BALLOONS;
+        this._dialogueWorkspaceStyle = DIALOGUE_WORKSPACE_STYLE_BALLOONS;
         this._selectedProject = null;
         this._debugConsoleShowApi = true;
         this._debugConsoleShowEvents = true;
@@ -190,25 +190,25 @@ export class WCTAClientState extends ClientState {
         return this._selectedProject;
     }
 
-    // ----- interactionTesterStyle
+    // ----- dialogueWorkspaceStyle
 
     /**
-     * Sets the style of the interaction tester (one of INTERACTION_TESTER_STYLE_TEXT,
+     * Sets the style of the dialogue workspace (one of DIALOGUE_WORKSPACE_STYLE_TEXT,
      * _BALLOONS, or _EDIT).
-     * @param {String} interactionTesterStyle - the style value for the interaction tester.
+     * @param {String} dialogueWorkspaceStyle - the style value for the dialogue workspace.
      */
-    set interactionTesterStyle(interactionTesterStyle) {
-        this._interactionTesterStyle = interactionTesterStyle;
-        DocumentFunctions.setCookie('state.interactionTesterStyle', this._interactionTesterStyle, 365);
+    set dialogueWorkspaceStyle(dialogueWorkspaceStyle) {
+        this._dialogueWorkspaceStyle = dialogueWorkspaceStyle;
+        DocumentFunctions.setCookie('state.dialogueWorkspaceStyle', this._dialogueWorkspaceStyle, 365);
     }
 
     /**
-     * Returns the style of the interaction tester (one of INTERACTION_TESTER_STYLE_TEXT,
+     * Returns the style of the dialogue workspace (one of DIALOGUE_WORKSPACE_STYLE_TEXT,
      * _BALLOONS, or _EDIT).
-     * @returns the style of the interaction tester.
+     * @returns the style of the dialogue workspace.
      */
-    get interactionTesterStyle() {
-        return this._interactionTesterStyle;
+    get dialogueWorkspaceStyle() {
+        return this._dialogueWorkspaceStyle;
     }
 
     // -----------------------------------
@@ -240,12 +240,12 @@ export class WCTAClientState extends ClientState {
         cookieValue = DocumentFunctions.getCookie('state.debugConsoleShowCookies');
         if(cookieValue == "true" || cookieValue == "false") this._debugConsoleShowCookies = cookieValue == "true";
 
-        cookieValue = DocumentFunctions.getCookie('state.interactionTesterStyle');
+        cookieValue = DocumentFunctions.getCookie('state.dialogueWorkspaceStyle');
         if(cookieValue != null) {
-            if(cookieValue == INTERACTION_TESTER_STYLE_TEXT || cookieValue == INTERACTION_TESTER_STYLE_BALLOONS
-                    || cookieValue == INTERACTION_TESTER_STYLE_EDIT) {
-                this._interactionTesterStyle = cookieValue;
-                this.logger.debug(this._LOGTAG, "Found a valid cookie-stored value for 'state.interactionTesterStyle': "+cookieValue);
+            if(cookieValue == DIALOGUE_WORKSPACE_STYLE_TEXT || cookieValue == DIALOGUE_WORKSPACE_STYLE_BALLOONS
+                    || cookieValue == DIALOGUE_WORKSPACE_STYLE_EDIT) {
+                this._dialogueWorkspaceStyle = cookieValue;
+                this.logger.debug(this._LOGTAG, "Found a valid cookie-stored value for 'state.dialogueWorkspaceStyle': "+cookieValue);
             }
         }
 

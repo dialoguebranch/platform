@@ -10,7 +10,7 @@ import DialogueBrowser from '../partials/DialogueBrowser.vue';
 import EditProjectMetadataModal from '../partials/EditProjectMetadataModal.vue';
 import SetDelegateUserModal from '../partials/SetDelegateUserModal.vue';
 import HeaderMenuItem from '../widgets/HeaderMenuItem.vue';
-import InteractionTester from '../partials/InteractionTester.vue';
+import DialogueWorkspace from '../partials/DialogueWorkspace.vue';
 import ResizablePanels from '../widgets/ResizablePanels.vue';
 import VariableBrowser from '../partials/VariableBrowser.vue';
 
@@ -20,7 +20,7 @@ const client = useClient();
 const stateManagement = useStateManagement();
 
 const panels = useTemplateRef('panels');
-const interactionTester = useTemplateRef('interaction-tester');
+const dialogueWorkspace = useTemplateRef('dialogue-workspace');
 const variableBrowser = useTemplateRef('variable-browser');
 const dialogueBrowser = useTemplateRef('dialogue-browser');
 
@@ -103,7 +103,7 @@ function onLogoutClick() {
 
 function onSwitchProjectClick() {
     closeProjectMenu();
-    interactionTester.value?.clearAllTabs();
+    dialogueWorkspace.value?.clearAllTabs();
     state.value.selectedProject = null;
 }
 
@@ -194,19 +194,19 @@ function onDelegateClear() {
 }
 
 function confirmDelegateAction() {
-    interactionTester.value?.clearAllTabs();
+    dialogueWorkspace.value?.clearAllTabs();
     delegateConfirmAction.value?.();
     delegateConfirmAction.value = null;
 }
 
 function onResumeDialogue(dialogueName) {
     panels.value.selectMobileTab(1);
-    interactionTester.value.resumeDialogue(dialogueName);
+    dialogueWorkspace.value.resumeDialogue(dialogueName);
 }
 
 function onOpenDialogue(dialogueName, isDraft) {
     panels.value.selectMobileTab(1);
-    interactionTester.value.openDialogue(dialogueName, isDraft);
+    dialogueWorkspace.value.openDialogue(dialogueName, isDraft);
 }
 
 function onNewDialogueStep() {
@@ -218,16 +218,16 @@ function onDialogueSaved() {
 }
 
 function onChangeVariable() {
-    interactionTester.value.reloadStep();
+    dialogueWorkspace.value.reloadStep();
 }
 
 function onActivateTab(tabId) {
     panels.value.selectMobileTab(1);
-    interactionTester.value.activateTab(tabId);
+    dialogueWorkspace.value.activateTab(tabId);
 }
 
 function onResizePanels() {
-    interactionTester.value.resize();
+    dialogueWorkspace.value.resize();
 }
 </script>
 
@@ -375,7 +375,7 @@ function onResizePanels() {
                 <DialogueBrowser
                     ref="dialogue-browser"
                     class="grow"
-                    :openTabs="interactionTester?.tabs ?? []"
+                    :openTabs="dialogueWorkspace?.tabs ?? []"
                     @resumeDialogue="onResumeDialogue"
                     @activateTab="onActivateTab"
                     @hasUnpublishedChanges="hasUnpublishedChanges = $event"
@@ -383,7 +383,7 @@ function onResizePanels() {
                 />
             </template>
             <template #main>
-                <InteractionTester ref="interaction-tester" class="grow" @newDialogueStep="onNewDialogueStep" @dialogueSaved="onDialogueSaved" />
+                <DialogueWorkspace ref="dialogue-workspace" class="grow" @newDialogueStep="onNewDialogueStep" @dialogueSaved="onDialogueSaved" />
             </template>
             <template #right>
                 <VariableBrowser ref="variable-browser" class="grow" @changeVariable="onChangeVariable" />
