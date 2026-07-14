@@ -32,14 +32,9 @@ const currentStep = computed(() => {
 </script>
 
 <template>
-    <div ref="root">
-        <div v-if="!currentStep && dialogueName" class="flex flex-col items-center justify-center h-full gap-3 font-title text-sm text-grey-dark">
-            <span>No dialogue running yet.</span>
-            <button
-                type="button"
-                class="rounded-xl bg-orange-dark hover:bg-orange-medium text-white uppercase p-3 min-w-[160px] cursor-pointer"
-                @click="$emit('restartDialogue')"
-            >Start Dialogue</button>
+    <div ref="root" class="h-full">
+        <div v-if="!dialogueName" class="flex items-center justify-center h-full font-title text-sm text-grey-dark">
+            Open a dialogue from the Dialogue Browser to start testing.
         </div>
         <div v-else-if="currentStep" class="flex flex-col font-title">
             <div

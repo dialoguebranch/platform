@@ -84,6 +84,11 @@ function createTab() {
         // handleReturnFromEdit / onEditorNodeChanged below).
         dialogueEdited: false,
         lastEditedNodeTitle: null,
+        // Set by editDialogue() for a tab that has a dialogueName but has never actually been run;
+        // cleared by every function that starts/resumes a test. Distinguishes that case from a
+        // load that's merely in flight (which also has a dialogueName with no steps yet) so
+        // ensureActiveTabStarted only acts on the former (see its comment below).
+        openedForEditOnly: false,
     };
 }
 
@@ -164,7 +169,17 @@ const dialogueEditor = useTemplateRef('dialogue-editor');
 
 watch(selectedMode, (mode, oldMode) => {
     if (mode !== 'edit') lastTestMode.value = mode;
-    if (oldMode === 'edit' && mode !== 'edit') handleReturnFromEdit(activeTab.value);
+    if (oldMode === 'edit' && mode !== 'edit') {
+        // A tab opened via editDialogue() has a dialogueName but was never run; handleReturnFromEdit
+        // only applies to tabs whose test is already running (it bails out otherwise), so this case
+        // is handled separately by starting it fresh instead.
+        const tab = activeTab.value;
+        if (tab.openedForEditOnly) {
+            restartActiveTab();
+        } else {
+            handleReturnFromEdit(tab);
+        }
+    }
     if (mode === 'text') nextTick(() => scrollTextToBottom());
 });
 
@@ -182,6 +197,7 @@ const loadDialogue = (name) => {
     tab.dialogueCancelled = false;
     tab.isDraftTest = false;
     tab.draftSessionId = null;
+    tab.openedForEditOnly = false;
     scrollActiveTabIntoView();
     dismissError();
     logEvent('dialogue', 'Dialogue started: $1', name);
@@ -215,6 +231,7 @@ const loadDraftDialogue = (name, { tab: givenTab, startNodeId } = {}) => {
     tab.dialogueCancelled = false;
     tab.isDraftTest = true;
     tab.draftSessionId = null;
+    tab.openedForEditOnly = false;
     tab.dialogueEdited = false;
     tab.lastEditedNodeTitle = null;
     scrollActiveTabIntoView();
@@ -242,6 +259,16 @@ function restartActiveTab() {
     } else {
         loadDialogue(tab.dialogueName);
     }
+}
+
+// A tab opened via editDialogue() has a dialogueName but was never run (see its comment above).
+// As soon as such a tab is visible in Balloon/Text mode — by switching mode or by switching to
+// that tab — start it from its default "Start" node instead of waiting for a manual action.
+function ensureActiveTabStarted() {
+    if (selectedMode.value === 'edit') return;
+    const tab = activeTab.value;
+    if (!tab.openedForEditOnly) return;
+    restartActiveTab();
 }
 
 // ---- Reconciling edits made in Edit mode when returning to Balloon/Text mode ----
@@ -344,6 +371,7 @@ const resumeDialogue = (name) => {
     ensureTestMode();
     const newTab = getOrCreateEmptyTab();
     newTab.dialogueName = name;
+    newTab.openedForEditOnly = false;
     activeTabId.value = newTab.id;
     nextTick(updateScrollState);
     dismissError();
@@ -391,7 +419,10 @@ function editDialogue(name) {
     // live/published path (restartActiveTab's default), which may not exist for this dialogue at
     // all. Leave it alone if a test already ran here, so handleReturnFromEdit can still tell
     // whether that earlier test was live or ephemeral.
-    if (tab.dialogueSteps.length === 0) tab.isDraftTest = true;
+    if (tab.dialogueSteps.length === 0) {
+        tab.isDraftTest = true;
+        tab.openedForEditOnly = true;
+    }
     scrollActiveTabIntoView();
     selectedMode.value = 'edit';
 }
@@ -464,6 +495,7 @@ function scrollActiveTabIntoView() {
 watch(activeTabId, () => {
     dismissError();
     scrollActiveTabIntoView();
+    ensureActiveTabStarted();
 });
 
 onMounted(() => {

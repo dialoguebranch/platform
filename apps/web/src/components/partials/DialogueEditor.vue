@@ -217,7 +217,7 @@ defineExpose({
 <template>
     <div class="relative h-full">
         <div v-if="!dialogueName" class="flex items-center justify-center h-full text-grey-dark font-title text-sm">
-            Select "Edit" on a draft dialogue to open it here.
+            Open a dialogue from the Dialogue Browser to start editing.
         </div>
         <VueFlow
             v-else

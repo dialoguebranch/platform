@@ -72,14 +72,9 @@ function getBasicReplyTextClasses(stepIndex, reply) {
 </script>
 
 <template>
-    <div>
-    <div v-if="dialogueSteps.length === 0 && dialogueName" class="flex flex-col items-center justify-center h-full gap-3 font-title text-sm text-grey-dark p-8">
-        <span>No dialogue running yet.</span>
-        <button
-            type="button"
-            class="rounded-xl bg-orange-dark hover:bg-orange-medium text-white uppercase p-3 min-w-[160px] cursor-pointer"
-            @click="$emit('restartDialogue')"
-        >Start Dialogue</button>
+    <div class="h-full">
+    <div v-if="!dialogueName" class="flex items-center justify-center h-full font-title text-sm text-grey-dark p-8">
+        Open a dialogue from the Dialogue Browser to start testing.
     </div>
     <div v-for="(step, stepIndex) in dialogueSteps" class="dialogue-step font-title p-2 mb-8">
         <div class="flex gap-5 mb-5">
