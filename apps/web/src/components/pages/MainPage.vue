@@ -119,26 +119,29 @@ function onMetadataSaved(updated) {
     state.value.selectedProject = { slug: updated.slug, displayName: updated.displayName };
 }
 
-function onSaveProjectClick() {
-    closeProjectMenu();
-    logEvent('project', 'Save project — not yet implemented');
-}
-
-// Whether the currently selected project has any draft dialogues at all — reported by
-// DialogueBrowser (which already fetches this list) whenever it (re)loads its tree.
-const hasDraftDialogues = ref(false);
+// Whether the currently selected project has any dialogue that's new, changed, or pending
+// deletion — reported by DialogueBrowser (which already fetches this list) whenever it
+// (re)loads its tree.
+const hasUnpublishedChanges = ref(false);
 const publishing = ref(false);
 const isAdmin = computed(() => !!state.value.user?.roles?.includes('admin'));
-const canPublish = computed(() => isAdmin.value && hasDraftDialogues.value);
+const canPublish = computed(() => isAdmin.value && hasUnpublishedChanges.value);
 const publishDisabledReason = computed(() => {
     if (!isAdmin.value) return 'Only administrators can publish projects.';
-    if (!hasDraftDialogues.value) return 'There are no draft dialogues to publish.';
+    if (!hasUnpublishedChanges.value) return 'There are no unpublished changes to publish.';
     return '';
 });
+
+const publishConfirm = ref(false);
 
 function onPublishProjectClick() {
     if (!canPublish.value || publishing.value) return;
     closeProjectMenu();
+    publishConfirm.value = true;
+}
+
+function confirmPublish() {
+    publishConfirm.value = false;
     const slug = state.value.selectedProject?.slug;
     publishing.value = true;
     client.publishProject(slug)
@@ -196,23 +199,22 @@ function confirmDelegateAction() {
     delegateConfirmAction.value = null;
 }
 
-function onSelectDialogue(dialogueName) {
-    panels.value.selectMobileTab(1);
-    interactionTester.value.loadDialogue(dialogueName);
-}
-
-function onTestDraftDialogue(dialogueName) {
-    panels.value.selectMobileTab(1);
-    interactionTester.value.loadDraftDialogue(dialogueName);
-}
-
 function onResumeDialogue(dialogueName) {
     panels.value.selectMobileTab(1);
     interactionTester.value.resumeDialogue(dialogueName);
 }
 
+function onOpenDialogue(dialogueName, isDraft) {
+    panels.value.selectMobileTab(1);
+    interactionTester.value.openDialogue(dialogueName, isDraft);
+}
+
 function onNewDialogueStep() {
     variableBrowser.value.loadVariables();
+}
+
+function onDialogueSaved() {
+    dialogueBrowser.value?.listDialogues();
 }
 
 function onChangeVariable() {
@@ -275,10 +277,6 @@ function onResizePanels() {
                         <FontAwesomeIcon v-if="publishing" icon="fa-solid fa-circle-notch" class="w-4 animate-spin text-orange-medium" />
                         <FontAwesomeIcon v-else icon="fa-solid fa-rocket" class="w-4" :class="canPublish ? 'text-orange-medium' : 'text-grey-light'" />
                         Publish Project
-                    </button>
-                    <button type="button" class="flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm text-orange-darker hover:bg-grey-lighter cursor-pointer transition-colors" @click="onSaveProjectClick">
-                        <FontAwesomeIcon icon="fa-solid fa-floppy-disk" class="w-4 text-orange-medium" />
-                        Save Project
                     </button>
                     <div class="border-t border-grey-light mx-3"></div>
                     <button type="button" class="flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm text-orange-darker hover:bg-grey-lighter cursor-pointer transition-colors" @click="onSwitchProjectClick">
@@ -347,6 +345,25 @@ function onResizePanels() {
             </div>
         </Teleport>
 
+        <Teleport to="body">
+            <div v-if="publishConfirm" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
+                <div class="bg-white rounded-xl shadow-2xl p-5 font-title text-sm w-96">
+                    <div class="font-bold text-orange-darker mb-2 flex items-center gap-2">
+                        <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" class="text-orange-medium" />
+                        Publish Project
+                    </div>
+                    <p class="text-grey-dark mb-4">
+                        This publishes the current draft state of every dialogue in this project as a new version,
+                        immediately replacing what's live. This cannot be undone. Continue?
+                    </p>
+                    <div class="flex gap-2 justify-end">
+                        <button type="button" class="px-3 py-1.5 rounded border border-grey-light text-grey-dark hover:bg-grey-lighter text-xs font-semibold cursor-pointer" @click="publishConfirm = false">Cancel</button>
+                        <button type="button" class="px-3 py-1.5 rounded bg-orange-darker text-white hover:bg-orange-dark text-xs font-semibold cursor-pointer" @click="confirmPublish">Publish</button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
         <ResizablePanels
             ref="panels"
             class="grow"
@@ -359,15 +376,14 @@ function onResizePanels() {
                     ref="dialogue-browser"
                     class="grow"
                     :openTabs="interactionTester?.tabs ?? []"
-                    @selectDialogue="onSelectDialogue"
-                    @testDraftDialogue="onTestDraftDialogue"
                     @resumeDialogue="onResumeDialogue"
                     @activateTab="onActivateTab"
-                    @hasDraftDialogues="hasDraftDialogues = $event"
+                    @hasUnpublishedChanges="hasUnpublishedChanges = $event"
+                    @openDialogue="onOpenDialogue"
                 />
             </template>
             <template #main>
-                <InteractionTester ref="interaction-tester" class="grow" @newDialogueStep="onNewDialogueStep" />
+                <InteractionTester ref="interaction-tester" class="grow" @newDialogueStep="onNewDialogueStep" @dialogueSaved="onDialogueSaved" />
             </template>
             <template #right>
                 <VariableBrowser ref="variable-browser" class="grow" @changeVariable="onChangeVariable" />

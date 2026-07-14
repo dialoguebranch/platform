@@ -21,11 +21,10 @@ const props = defineProps({
 });
 
 const emit = defineEmits([
-    'selectDialogue',
-    'testDraftDialogue',
     'resumeDialogue',
     'activateTab',
-    'hasDraftDialogues',
+    'hasUnpublishedChanges',
+    'openDialogue',
 ]);
 
 const client = useClient();
@@ -35,7 +34,7 @@ const openFolders = ref({});
 const ongoingConfirm = ref(null); // { dialogueName, loggedDialogueId, secondsSinceLastEngagement, alreadyOpenTabId? }
 const cancelConfirm = ref(false);
 
-// entries: array of { name, isPublished, isDraft }
+// entries: array of { name, isPublished, isDraft, isNew, isChanged, isDeleted }
 function buildTree(entries) {
     const root = {};
     for (const entry of entries) {
@@ -46,7 +45,14 @@ function buildTree(entries) {
             node = node[parts[i]]._children;
         }
         const leaf = parts[parts.length - 1];
-        node[leaf] = { _file: entry.name, _isPublished: entry.isPublished, _isDraft: entry.isDraft };
+        node[leaf] = {
+            _file: entry.name,
+            _isPublished: entry.isPublished,
+            _isDraft: entry.isDraft,
+            _isNew: entry.isNew,
+            _isChanged: entry.isChanged,
+            _isDeleted: entry.isDeleted,
+        };
     }
     return root;
 }
@@ -60,14 +66,24 @@ function listDialogues() {
     ])
     .then(([published, drafts]) => {
         const publishedNames = new Set(published.dialogueNames ?? []);
-        const draftNames = new Set((drafts ?? []).map((d) => d.name));
-        emit('hasDraftDialogues', draftNames.size > 0);
-        const allNames = new Set([...publishedNames, ...draftNames]);
-        const entries = [...allNames].map((name) => ({
-            name,
-            isPublished: publishedNames.has(name),
-            isDraft: draftNames.has(name),
-        }));
+        const draftsByName = new Map((drafts ?? []).map((d) => [d.name, d]));
+        // "Publish Project" should only be enabled when there's actually something to publish —
+        // a dialogue that's new, changed, or pending deletion — not merely because a draft row
+        // exists (it may already be perfectly in sync with what's published).
+        emit('hasUnpublishedChanges',
+            [...draftsByName.values()].some((d) => d.isNew || d.isChanged || d.isDeleted));
+        const allNames = new Set([...publishedNames, ...draftsByName.keys()]);
+        const entries = [...allNames].map((name) => {
+            const draft = draftsByName.get(name);
+            return {
+                name,
+                isPublished: publishedNames.has(name),
+                isDraft: draftsByName.has(name),
+                isNew: draft?.isNew ?? false,
+                isChanged: draft?.isChanged ?? false,
+                isDeleted: draft?.isDeleted ?? false,
+            };
+        });
         const root = buildTree(entries);
         tree.value = Object.entries(root).sort(([, a], [, b]) => {
             const aIsFolder = !a._file;
@@ -84,6 +100,39 @@ function listDialogues() {
 
 function toggleFolder(path) {
     openFolders.value[path] = !openFolders.value[path];
+}
+
+// ---- New dialogue creation ----
+
+const showNewDialogueInput = ref(false);
+const newDialogueName = ref('');
+const creatingDialogue = ref(false);
+
+function onNewDialogueClick() {
+    newDialogueName.value = '';
+    showNewDialogueInput.value = true;
+}
+
+function cancelNewDialogue() {
+    showNewDialogueInput.value = false;
+}
+
+function submitNewDialogue() {
+    const name = newDialogueName.value.trim();
+    if (!name || creatingDialogue.value) return;
+    creatingDialogue.value = true;
+    dismissError();
+    client.createDraftDialogue(state.value.selectedProject?.slug, name)
+    .then(() => {
+        showNewDialogueInput.value = false;
+        listDialogues();
+    })
+    .catch((error) => {
+        showError(describeError(error));
+    })
+    .finally(() => {
+        creatingDialogue.value = false;
+    });
 }
 
 const hasActiveDialogue = computed(() =>
@@ -158,10 +207,28 @@ defineExpose({
         <MainPagePanelHeader title="Dialogue Browser" class="sm:ml-2">
             <template #buttons>
                 <IconButton icon="fa-solid fa-rotate-left" title="Retrieve most recent ongoing (server-side) dialogue" :disabled="hasActiveDialogue" @click="checkOngoingDialogue" />
+                <IconButton icon="fa-solid fa-plus" title="New Dialogue" @click="onNewDialogueClick" />
                 <IconButton icon="fa-solid fa-arrows-rotate" @click="listDialogues" />
             </template>
         </MainPagePanelHeader>
         <MainPagePanelContainer class="p-1 gap-1 flex flex-col sm:ml-1">
+            <div v-if="showNewDialogueInput" class="flex items-center gap-1 p-1">
+                <input
+                    v-model="newDialogueName"
+                    type="text"
+                    placeholder="folder/dialogue-name"
+                    autofocus
+                    class="flex-1 min-w-0 font-mono text-xs px-1.5 py-1 border border-grey-light rounded bg-white focus:outline-none focus:border-orange-dark"
+                    @keyup.enter="submitNewDialogue"
+                    @keyup.esc="cancelNewDialogue"
+                />
+                <button type="button" title="Create" class="shrink-0 text-icon-button hover:text-icon-button-hover cursor-pointer" :disabled="creatingDialogue" @click="submitNewDialogue">
+                    <FontAwesomeIcon :icon="creatingDialogue ? 'fa-solid fa-circle-notch' : 'fa-solid fa-check'" :class="{ 'animate-spin': creatingDialogue }" />
+                </button>
+                <button type="button" title="Cancel" class="shrink-0 text-grey-dark hover:text-orange-dark cursor-pointer" @click="cancelNewDialogue">
+                    <FontAwesomeIcon icon="fa-solid fa-xmark" />
+                </button>
+            </div>
             <DialogueTreeNode
                 v-for="[name, node] in tree"
                 :key="name"
@@ -170,8 +237,8 @@ defineExpose({
                 :path="name"
                 :openFolders="openFolders"
                 @toggleFolder="toggleFolder"
-                @selectDialogue="$emit('selectDialogue', $event)"
-                @testDraftDialogue="$emit('testDraftDialogue', $event)"
+                @openDialogue="(name, isDraft) => $emit('openDialogue', name, isDraft)"
+                @dialoguesChanged="listDialogues"
             />
         </MainPagePanelContainer>
     </div>

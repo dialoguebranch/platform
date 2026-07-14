@@ -6,17 +6,19 @@ const state = inject('state');
 import { logEvent } from '@/composables/debug-log.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
-import { INTERACTION_TESTER_STYLE_TEXT, INTERACTION_TESTER_STYLE_BALLOONS } from '@/dlb-lib/WCTAClientState.js';
+import { INTERACTION_TESTER_STYLE_TEXT, INTERACTION_TESTER_STYLE_BALLOONS, INTERACTION_TESTER_STYLE_EDIT } from '@/dlb-lib/WCTAClientState.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import IconButton from '../widgets/IconButton.vue';
 import BalloonDialogueComponent from './BalloonDialogueComponent.vue';
 import TextDialogueComponent from './TextDialogueComponent.vue';
+import DialogueEditor from './DialogueEditor.vue';
 import MainPagePanelHeader from '../widgets/MainPagePanelHeader.vue';
 import MainPagePanelContainer from '../widgets/MainPagePanelContainer.vue';
 import ModeSelector from '../widgets/ModeSelector.vue';
 
 const emit = defineEmits([
     'newDialogueStep',
+    'dialogueSaved',
 ]);
 
 const modes = [
@@ -30,18 +32,38 @@ const modes = [
         icon: 'fa-solid fa-paragraph',
         title: 'Text style — shows dialogue as a plain scrollable transcript',
     },
+    {
+        name: 'edit',
+        icon: 'fa-solid fa-diagram-project',
+        title: 'Edit mode — edit the active tab\'s dialogue nodes',
+    },
 ];
 
 // Backed by the `state.interactionTesterStyle` cookie (see WCTAClientState.js) so the chosen
 // mode survives a page reload.
 const selectedMode = computed({
-    get: () => state.value.interactionTesterStyle === INTERACTION_TESTER_STYLE_TEXT ? 'text' : 'balloon',
+    get: () => {
+        if (state.value.interactionTesterStyle === INTERACTION_TESTER_STYLE_TEXT) return 'text';
+        if (state.value.interactionTesterStyle === INTERACTION_TESTER_STYLE_EDIT) return 'edit';
+        return 'balloon';
+    },
     set: (mode) => {
         state.value.interactionTesterStyle = mode === 'text'
             ? INTERACTION_TESTER_STYLE_TEXT
-            : INTERACTION_TESTER_STYLE_BALLOONS;
+            : mode === 'edit'
+                ? INTERACTION_TESTER_STYLE_EDIT
+                : INTERACTION_TESTER_STYLE_BALLOONS;
     },
 });
+
+// The last non-edit mode selected (balloon/text) — used to jump back out of edit mode whenever
+// the user explicitly runs/tests/resumes a dialogue, so that action doesn't get hidden behind
+// the node editor.
+const lastTestMode = ref('balloon');
+
+function ensureTestMode() {
+    if (selectedMode.value === 'edit') selectedMode.value = lastTestMode.value;
+}
 
 // ---- Tab state ----
 
@@ -57,6 +79,11 @@ function createTab() {
         dialogueCancelled: false,
         isDraftTest: false,
         draftSessionId: null,
+        // Tracks edits made in Edit mode since this tab's test last (re)started, so that leaving
+        // Edit mode again can offer to restart the test with up-to-date content (see
+        // handleReturnFromEdit / onEditorNodeChanged below).
+        dialogueEdited: false,
+        lastEditedNodeTitle: null,
     };
 }
 
@@ -83,7 +110,9 @@ const closeConfirm = ref(null); // { id }
 
 function closeTab(id) {
     const tab = tabs.value.find(t => t.id === id);
-    if (tab && tab.dialogueName && !tab.dialogueEnded) {
+    // Only warn about an "ongoing" dialogue if one has actually been started (has steps) — a
+    // tab opened purely via editDialogue() has a dialogueName but was never run.
+    if (tab && tab.dialogueSteps.length > 0 && !tab.dialogueEnded) {
         closeConfirm.value = { id };
         return;
     }
@@ -131,8 +160,11 @@ const client = useClient();
 
 const balloons = useTemplateRef('balloons');
 const textComponent = useTemplateRef('text-component');
+const dialogueEditor = useTemplateRef('dialogue-editor');
 
-watch(selectedMode, (mode) => {
+watch(selectedMode, (mode, oldMode) => {
+    if (mode !== 'edit') lastTestMode.value = mode;
+    if (oldMode === 'edit' && mode !== 'edit') handleReturnFromEdit(activeTab.value);
     if (mode === 'text') nextTick(() => scrollTextToBottom());
 });
 
@@ -141,6 +173,7 @@ const scrollTextToBottom = () => {
 };
 
 const loadDialogue = (name) => {
+    ensureTestMode();
     const tab = getOrCreateEmptyTab();
     activeTabId.value = tab.id;
     tab.dialogueName = name;
@@ -169,8 +202,12 @@ const loadDialogue = (name) => {
 
 // Starts an ephemeral draft test session (see /draft/* end-points) — not saved to dialogue
 // history, and reads/writes the tester's real variables (revertible via revertVariables()).
-const loadDraftDialogue = (name) => {
-    const tab = getOrCreateEmptyTab();
+// Pass `tab` to restart a specific, already-open tab in place (e.g. from handleReturnFromEdit)
+// rather than the default of finding/creating an empty one; `startNodeId` starts the test from a
+// particular node instead of the dialogue's default "Start" node.
+const loadDraftDialogue = (name, { tab: givenTab, startNodeId } = {}) => {
+    if (!givenTab) ensureTestMode();
+    const tab = givenTab ?? getOrCreateEmptyTab();
     activeTabId.value = tab.id;
     tab.dialogueName = name;
     tab.dialogueSteps = [];
@@ -178,10 +215,12 @@ const loadDraftDialogue = (name) => {
     tab.dialogueCancelled = false;
     tab.isDraftTest = true;
     tab.draftSessionId = null;
+    tab.dialogueEdited = false;
+    tab.lastEditedNodeTitle = null;
     scrollActiveTabIntoView();
     dismissError();
     logEvent('dialogue', 'Draft test started: $1', name);
-    client.startDraftDialogue(state.value.selectedProject?.slug, name, 'en')
+    client.startDraftDialogue(state.value.selectedProject?.slug, name, 'en', startNodeId)
     .then(({ draftSessionId, dialogueStep }) => {
         tab.draftSessionId = draftSessionId;
         tab.dialogueName = dialogueStep.dialogueName;
@@ -199,10 +238,63 @@ const loadDraftDialogue = (name) => {
 function restartActiveTab() {
     const tab = activeTab.value;
     if (tab.isDraftTest) {
-        loadDraftDialogue(tab.dialogueName);
+        loadDraftDialogue(tab.dialogueName, { tab });
     } else {
         loadDialogue(tab.dialogueName);
     }
+}
+
+// ---- Reconciling edits made in Edit mode when returning to Balloon/Text mode ----
+
+const editSwitchNotice = ref(null); // { dialogueName }
+const restartPrompt = ref(null); // { tabId, dialogueName, lastEditedNodeTitle }
+
+function onEditorNodeChanged(nodeTitle) {
+    const tab = activeTab.value;
+    tab.dialogueEdited = true;
+    tab.lastEditedNodeTitle = nodeTitle;
+}
+
+function onEditorNodeDeleted(nodeTitle) {
+    const tab = activeTab.value;
+    tab.dialogueEdited = true;
+    if (tab.lastEditedNodeTitle === nodeTitle) tab.lastEditedNodeTitle = null;
+}
+
+// Called whenever the mode switches away from 'edit' back to Balloon/Text. If the dialogue in the
+// tab being left was edited and already had a test running, that test's content is now stale:
+// a "live" (published, logged) test is force-switched to an ephemeral draft test (with a notice,
+// since that's a mode change the user didn't explicitly choose); an already-ephemeral test instead
+// prompts to restart from Start or from the node that was last edited.
+function handleReturnFromEdit(tab) {
+    if (!tab.dialogueEdited || tab.dialogueSteps.length === 0) return;
+    if (!tab.isDraftTest) {
+        editSwitchNotice.value = { dialogueName: tab.dialogueName };
+        loadDraftDialogue(tab.dialogueName, { tab });
+        return;
+    }
+    if (!tab.lastEditedNodeTitle) {
+        loadDraftDialogue(tab.dialogueName, { tab });
+        return;
+    }
+    restartPrompt.value = {
+        tabId: tab.id,
+        dialogueName: tab.dialogueName,
+        lastEditedNodeTitle: tab.lastEditedNodeTitle,
+    };
+}
+
+function confirmRestartFromStart() {
+    const tab = tabs.value.find(t => t.id === restartPrompt.value.tabId);
+    restartPrompt.value = null;
+    if (tab) loadDraftDialogue(tab.dialogueName, { tab });
+}
+
+function confirmRestartFromLastEditedNode() {
+    const tab = tabs.value.find(t => t.id === restartPrompt.value.tabId);
+    const startNodeId = restartPrompt.value.lastEditedNodeTitle;
+    restartPrompt.value = null;
+    if (tab) loadDraftDialogue(tab.dialogueName, { tab, startNodeId });
 }
 
 function onRevertVariablesClick() {
@@ -249,6 +341,7 @@ const resize = () => {
 };
 
 const resumeDialogue = (name) => {
+    ensureTestMode();
     const newTab = getOrCreateEmptyTab();
     newTab.dialogueName = name;
     activeTabId.value = newTab.id;
@@ -281,8 +374,40 @@ function clearAllTabs() {
 }
 
 function activateTab(tabId) {
+    ensureTestMode();
     activeTabId.value = tabId;
     nextTick(scrollActiveTabIntoView);
+}
+
+// Opens (or reuses an empty tab for) the given dialogue in Edit mode — unlike loadDialogue, this
+// never starts a running dialogue session; it just associates the tab with a dialogue name so
+// the node editor has something to load.
+function editDialogue(name) {
+    const tab = getOrCreateEmptyTab();
+    activeTabId.value = tab.id;
+    tab.dialogueName = name;
+    // A dialogue can only be opened for editing if it already has a draft, so default a tab
+    // that's never been tested to ephemeral draft testing — always possible — rather than the
+    // live/published path (restartActiveTab's default), which may not exist for this dialogue at
+    // all. Leave it alone if a test already ran here, so handleReturnFromEdit can still tell
+    // whether that earlier test was live or ephemeral.
+    if (tab.dialogueSteps.length === 0) tab.isDraftTest = true;
+    scrollActiveTabIntoView();
+    selectedMode.value = 'edit';
+}
+
+// Opens a dialogue from the Dialogue Browser according to whatever mode the tester is currently
+// in, rather than always forcing one particular mode: if we're already in Edit mode, open the
+// node editor (same as editDialogue); otherwise start a running test — as an ephemeral draft test
+// if the dialogue has a draft, or a normal (logged) test if it's published-only.
+function openDialogue(name, isDraft) {
+    if (selectedMode.value === 'edit') {
+        editDialogue(name);
+    } else if (isDraft) {
+        loadDraftDialogue(name);
+    } else {
+        loadDialogue(name);
+    }
 }
 
 defineExpose({
@@ -294,6 +419,8 @@ defineExpose({
     resize,
     clearAllTabs,
     activateTab,
+    editDialogue,
+    openDialogue,
 });
 
 // ---- Tab bar scroll ----
@@ -429,28 +556,44 @@ function onSelectReply(dialogueStep, reply) {
         <MainPagePanelHeader title="Interaction Tester">
             <template #buttons>
                 <ModeSelector :modes="modes" v-model="selectedMode" />
-                <IconButton
-                    icon="fa-solid fa-arrows-rotate"
-                    :class="{ 'animate-spin': reloading }"
-                    :title="activeTab.dialogueName && !activeTab.dialogueEnded && !activeTab.isDraftTest ? 'Refresh current dialogue step' : 'Refresh current dialogue step (not available for draft tests)'"
-                    :disabled="reloading || !activeTab.dialogueName || activeTab.dialogueEnded || activeTab.isDraftTest"
-                    @click="reloadStep"
-                />
-                <IconButton
-                    icon="fa-solid fa-circle-xmark"
-                    color="warning"
-                    :disabled="activeTab.dialogueName === null || activeTab.dialogueEnded"
-                    :title="activeTab.dialogueName && !activeTab.dialogueEnded ? 'Cancel the current dialogue' : 'Cancel the current dialogue (no dialogue active)'"
-                    @click="onCancelClick"
-                />
-                <IconButton
-                    v-if="activeTab.isDraftTest"
-                    icon="fa-solid fa-clock-rotate-left"
-                    color="warning"
-                    :disabled="!activeTab.draftSessionId"
-                    title="Revert any variable changes made during this draft test back to their original values"
-                    @click="onRevertVariablesClick"
-                />
+                <template v-if="selectedMode !== 'edit'">
+                    <IconButton
+                        icon="fa-solid fa-arrows-rotate"
+                        :class="{ 'animate-spin': reloading }"
+                        :title="activeTab.dialogueName && !activeTab.dialogueEnded && !activeTab.isDraftTest ? 'Refresh current dialogue step' : 'Refresh current dialogue step (not available for draft tests)'"
+                        :disabled="reloading || !activeTab.dialogueName || activeTab.dialogueEnded || activeTab.isDraftTest"
+                        @click="reloadStep"
+                    />
+                    <IconButton
+                        icon="fa-solid fa-circle-xmark"
+                        color="warning"
+                        :disabled="activeTab.dialogueName === null || activeTab.dialogueEnded"
+                        :title="activeTab.dialogueName && !activeTab.dialogueEnded ? 'Cancel the current dialogue' : 'Cancel the current dialogue (no dialogue active)'"
+                        @click="onCancelClick"
+                    />
+                    <IconButton
+                        v-if="activeTab.isDraftTest"
+                        icon="fa-solid fa-clock-rotate-left"
+                        color="warning"
+                        :disabled="!activeTab.draftSessionId"
+                        title="Revert any variable changes made during this draft test back to their original values"
+                        @click="onRevertVariablesClick"
+                    />
+                </template>
+                <template v-else>
+                    <IconButton
+                        v-if="activeTab.dialogueName"
+                        icon="fa-solid fa-plus"
+                        title="Add Node"
+                        :disabled="dialogueEditor?.isCreatingNode?.()"
+                        @click="dialogueEditor?.addNode()"
+                    />
+                    <IconButton
+                        icon="fa-solid fa-arrows-rotate"
+                        :class="{ 'animate-spin': dialogueEditor?.isLoading?.() }"
+                        @click="dialogueEditor?.reload()"
+                    />
+                </template>
             </template>
         </MainPagePanelHeader>
 
@@ -527,12 +670,49 @@ function onSelectReply(dialogueStep, reply) {
             </div>
         </Teleport>
 
+        <!-- Informational: a "live" (published, logged) test was force-switched to Ephemeral
+             draft test mode because its dialogue was edited -->
+        <Teleport to="body">
+            <div v-if="editSwitchNotice" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
+                <div class="bg-white rounded shadow-lg p-4 font-title text-sm w-96">
+                    <div class="font-semibold text-orange-darker mb-2">Switched to Ephemeral Draft Test</div>
+                    <p class="text-grey-dark mb-4">
+                        You edited <code class="font-mono font-bold text-orange-darker">{{ editSwitchNotice.dialogueName }}</code>
+                        while this test was running, so it has been restarted as an ephemeral draft test to reflect your changes.
+                    </p>
+                    <div class="flex justify-end">
+                        <button type="button" class="px-3 py-1.5 rounded bg-orange-darker text-white hover:bg-orange-dark text-xs font-semibold cursor-pointer" @click="editSwitchNotice = null">OK</button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
+        <!-- An already-Ephemeral draft test's dialogue was edited: ask where to restart from -->
+        <Teleport to="body">
+            <div v-if="restartPrompt" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
+                <div class="bg-white rounded shadow-lg p-4 font-title text-sm w-96">
+                    <div class="font-semibold text-orange-darker mb-2">Dialogue Edited</div>
+                    <p class="text-grey-dark mb-4">
+                        You edited <code class="font-mono font-bold text-orange-darker">{{ restartPrompt.dialogueName }}</code>.
+                        Restart this draft test from the start, or from
+                        <code class="font-mono font-bold text-orange-darker">{{ restartPrompt.lastEditedNodeTitle }}</code>,
+                        the node you last edited?
+                    </p>
+                    <div class="flex flex-col gap-2">
+                        <button type="button" class="px-3 py-1.5 rounded bg-orange-darker text-white hover:bg-orange-dark text-xs font-semibold cursor-pointer" @click="confirmRestartFromLastEditedNode">Restart from "{{ restartPrompt.lastEditedNodeTitle }}"</button>
+                        <button type="button" class="px-3 py-1.5 rounded border border-grey-light text-grey-dark hover:bg-grey-lighter text-xs font-semibold cursor-pointer" @click="confirmRestartFromStart">Restart from Start</button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
         <!-- Active tab content -->
         <div class="relative grow min-h-0 flex flex-col">
-            <MainPagePanelContainer class="-mt-px">
+            <MainPagePanelContainer v-if="selectedMode !== 'edit'" class="-mt-px">
                 <BalloonDialogueComponent
                     v-if="selectedMode === 'balloon'"
                     ref="balloons"
+                    :dialogueName="activeTab.dialogueName"
                     :dialogueSteps="activeTab.dialogueSteps"
                     :dialogueEnded="activeTab.dialogueEnded"
                     :dialogueCancelled="activeTab.dialogueCancelled"
@@ -542,6 +722,7 @@ function onSelectReply(dialogueStep, reply) {
                 <TextDialogueComponent
                     v-if="selectedMode === 'text'"
                     ref="text-component"
+                    :dialogueName="activeTab.dialogueName"
                     :dialogueSteps="activeTab.dialogueSteps"
                     :dialogueEnded="activeTab.dialogueEnded"
                     :dialogueCancelled="activeTab.dialogueCancelled"
@@ -549,7 +730,16 @@ function onSelectReply(dialogueStep, reply) {
                     @restartDialogue="restartActiveTab"
                 />
             </MainPagePanelContainer>
-            <div v-if="activeTab.loggedDialogueId" class="absolute bottom-3 left-3 font-mono text-[10px] text-gray-400 pointer-events-none">
+            <MainPagePanelContainer v-else class="-mt-px !overflow-hidden relative">
+                <DialogueEditor
+                    ref="dialogue-editor"
+                    :dialogueName="activeTab.dialogueName"
+                    @nodeChanged="onEditorNodeChanged"
+                    @nodeDeleted="onEditorNodeDeleted"
+                    @dialogueSaved="$emit('dialogueSaved')"
+                />
+            </MainPagePanelContainer>
+            <div v-if="activeTab.loggedDialogueId && selectedMode !== 'edit'" class="absolute bottom-3 left-3 font-mono text-[10px] text-gray-400 pointer-events-none">
                 <span class="font-semibold">Logged Dialogue ID:</span> {{ activeTab.loggedDialogueId }}
             </div>
         </div>

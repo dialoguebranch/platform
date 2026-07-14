@@ -118,7 +118,8 @@ public class DraftExecutionController {
 			@RequestParam(value = "projectSlug") String projectSlug,
 			@RequestParam(value = "dialogueName") String dialogueName,
 			@RequestParam(value = "language") String language,
-			@RequestParam(value = "timeZone") String timeZone
+			@RequestParam(value = "timeZone") String timeZone,
+			@RequestParam(value = "startNodeId", required = false) String startNodeId
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
@@ -130,6 +131,7 @@ public class DraftExecutionController {
 							.findDialogue(project, dialogueName)
 							.orElseThrow(() -> new NotFoundException(
 									"Dialogue not found: " + dialogueName));
+					AuthoringController.checkNotDeleted(dialogue);
 
 					ZoneId timeZoneId = ControllerFunctions.parseTimeZone(timeZone);
 					UserService userService = application.getApplicationManager()
@@ -137,7 +139,8 @@ public class DraftExecutionController {
 
 					DraftExecutionService.StartResult result;
 					try {
-						result = draftExecutionService.startSession(userService, dialogue, language);
+						result = draftExecutionService.startSession(userService, project, dialogue,
+								language, startNodeId);
 					} catch (ExecutionException e) {
 						throw ControllerFunctions.createHttpException(e);
 					}

@@ -31,6 +31,7 @@ import { DocumentFunctions } from '../dlb-lib/util/DocumentFunctions.js';
 
 export const INTERACTION_TESTER_STYLE_TEXT = "TEXT";
 export const INTERACTION_TESTER_STYLE_BALLOONS = "BALLOONS";
+export const INTERACTION_TESTER_STYLE_EDIT = "EDIT";
 
 /**
  * The WCTAClientState is the client-specific ClientState object for the Dialogue Branch Web Client Test Application.
@@ -192,7 +193,8 @@ export class WCTAClientState extends ClientState {
     // ----- interactionTesterStyle
 
     /**
-     * Sets the style of the interaction tester (as either 'text' or 'balloons' style).
+     * Sets the style of the interaction tester (one of INTERACTION_TESTER_STYLE_TEXT,
+     * _BALLOONS, or _EDIT).
      * @param {String} interactionTesterStyle - the style value for the interaction tester.
      */
     set interactionTesterStyle(interactionTesterStyle) {
@@ -201,8 +203,9 @@ export class WCTAClientState extends ClientState {
     }
 
     /**
-     * Returns the style of the interaction tester (as either 'text' or 'balloons' style).
-     * @returns the style of the interaction tester (as either 'text' or 'balloons' style).
+     * Returns the style of the interaction tester (one of INTERACTION_TESTER_STYLE_TEXT,
+     * _BALLOONS, or _EDIT).
+     * @returns the style of the interaction tester.
      */
     get interactionTesterStyle() {
         return this._interactionTesterStyle;
@@ -239,7 +242,8 @@ export class WCTAClientState extends ClientState {
 
         cookieValue = DocumentFunctions.getCookie('state.interactionTesterStyle');
         if(cookieValue != null) {
-            if(cookieValue == INTERACTION_TESTER_STYLE_TEXT || cookieValue == INTERACTION_TESTER_STYLE_BALLOONS) {
+            if(cookieValue == INTERACTION_TESTER_STYLE_TEXT || cookieValue == INTERACTION_TESTER_STYLE_BALLOONS
+                    || cookieValue == INTERACTION_TESTER_STYLE_EDIT) {
                 this._interactionTesterStyle = cookieValue;
                 this.logger.debug(this._LOGTAG, "Found a valid cookie-stored value for 'state.interactionTesterStyle': "+cookieValue);
             }

@@ -272,13 +272,14 @@ export class DialogueBranchClient {
         .then((response) => this._handleResponse(response));
     }
 
-    startDraftDialogue(projectSlug, dialogueName, language) {
+    startDraftDialogue(projectSlug, dialogueName, language, startNodeId) {
         let url = this._baseUrl + "/draft/start";
 
         url += "?projectSlug=" + encodeURIComponent(projectSlug);
         url += "&dialogueName=" + encodeURIComponent(dialogueName);
         url += "&language=" + language;
         url += "&timeZone=" + this._timeZone;
+        if (startNodeId) url += "&startNodeId=" + encodeURIComponent(startNodeId);
 
         return this._fetch(url, {
             method: "POST",
@@ -337,6 +338,155 @@ export class DialogueBranchClient {
             }
         })
         .then((response) => this._handleResponse(response));
+    }
+
+    // -----------------------------------------------------------------
+    // ---------- Authoring (draft dialogue & node CRUD) ----------
+    // -----------------------------------------------------------------
+
+    createDraftDialogue(projectSlug, name) {
+        const url = this._baseUrl + "/authoring/create-dialogue?projectSlug=" + encodeURIComponent(projectSlug);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ name }),
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // Soft-delete: marks the dialogue as pending deletion (reversible via restoreDraftDialogue)
+    // until the project is next published.
+    deleteDraftDialogue(projectSlug, dialogueName) {
+        const url = this._baseUrl + "/authoring/delete-dialogue?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { 'Authorization': 'Bearer ' + this._accessToken },
+        }).then((response) => { if (!response.ok) return Promise.reject(response); });
+    }
+
+    restoreDraftDialogue(projectSlug, dialogueName) {
+        const url = this._baseUrl + "/authoring/restore-dialogue?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { 'Authorization': 'Bearer ' + this._accessToken },
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // Scans the whole project for [[...]] reply links that reference the given dialogue (any
+    // node within it) — used both to preview a rename's blast radius and to warn about dangling
+    // links before a delete.
+    findDialogueReferences(projectSlug, dialogueName) {
+        const url = this._baseUrl + "/authoring/find-dialogue-references?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            },
+        }).then((response) => this._handleResponse(response));
+    }
+
+    renameDraftDialogue(projectSlug, dialogueName, newName, updateReferences) {
+        const url = this._baseUrl + "/authoring/rename-dialogue?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName)
+            + "&newName=" + encodeURIComponent(newName)
+            + "&updateReferences=" + !!updateReferences;
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { 'Authorization': 'Bearer ' + this._accessToken },
+        }).then((response) => this._handleResponse(response));
+    }
+
+    listDraftNodes(projectSlug, dialogueName) {
+        const url = this._baseUrl + "/authoring/list-nodes?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            },
+        }).then((response) => this._handleResponse(response));
+    }
+
+    createDraftNode(projectSlug, dialogueName, title, header, body) {
+        const url = this._baseUrl + "/authoring/create-node?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ title, header, body }),
+        }).then((response) => this._handleResponse(response));
+    }
+
+    updateDraftNode(projectSlug, dialogueName, nodeTitle, header, body) {
+        const url = this._baseUrl + "/authoring/update-node?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName)
+            + "&nodeTitle=" + encodeURIComponent(nodeTitle);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ header, body }),
+        }).then((response) => this._handleResponse(response));
+    }
+
+    deleteDraftNode(projectSlug, dialogueName, nodeTitle) {
+        const url = this._baseUrl + "/authoring/delete-node?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName)
+            + "&nodeTitle=" + encodeURIComponent(nodeTitle);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { 'Authorization': 'Bearer ' + this._accessToken },
+        }).then((response) => { if (!response.ok) return Promise.reject(response); });
+    }
+
+    // Scans the whole project for [[...]] reply links that reference the given node — used both
+    // to preview a rename's blast radius and to warn about dangling links before a delete.
+    findNodeReferences(projectSlug, dialogueName, nodeTitle) {
+        const url = this._baseUrl + "/authoring/find-node-references?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName)
+            + "&nodeTitle=" + encodeURIComponent(nodeTitle);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            },
+        }).then((response) => this._handleResponse(response));
+    }
+
+    renameDraftNode(projectSlug, dialogueName, oldTitle, newTitle, updateReferences) {
+        const url = this._baseUrl + "/authoring/rename-node?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName)
+            + "&oldTitle=" + encodeURIComponent(oldTitle)
+            + "&newTitle=" + encodeURIComponent(newTitle)
+            + "&updateReferences=" + !!updateReferences;
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { 'Authorization': 'Bearer ' + this._accessToken },
+        }).then((response) => this._handleResponse(response));
     }
 
     getVariables() {
