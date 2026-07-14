@@ -29,7 +29,7 @@ class ProjectServiceTest {
 
     @Test
     void deleteProjectRemovesSoftDeletedDraftDialoguesTooWithoutForeignKeyViolation() {
-        DBProject project = projectService.createProject("delete-project-test", "Delete Project Test", "");
+        DBProject project = projectService.createProject("delete-project-test", "Delete Project Test", "", "en", "English");
         DBDraftDialogue kept = draftDialogueService.createDialogue(project, "kept");
         draftDialogueService.createNode(kept, "Start", "title: Start\nspeaker: Narrator", "");
         DBDraftDialogue pendingDeletion = draftDialogueService.createDialogue(project, "pending-deletion");

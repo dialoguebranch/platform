@@ -30,7 +30,6 @@ package com.dialoguebranch.editing.writer;
 
 import com.dialoguebranch.model.execute.Language;
 import com.dialoguebranch.model.execute.LanguageMap;
-import com.dialoguebranch.model.execute.LanguageSet;
 import com.dialoguebranch.model.common.ProjectMetaData;
 import nl.rrd.utils.xml.XMLWriter;
 
@@ -71,8 +70,9 @@ public class ProjectMetaDataWriter {
     }
 
     /**
-     * Writes the given {@link LanguageMap} as a {@code <language-map>} XML element containing
-     * one {@code <language-set>} child per entry.
+     * Writes the given {@link LanguageMap} as a {@code <language-map>} XML element containing a
+     * {@code <source-language>} child and one {@code <translation-language>} child per
+     * translation language.
      *
      * @param writer the XML writer to write to.
      * @param languageMap the language map to serialise.
@@ -81,38 +81,21 @@ public class ProjectMetaDataWriter {
     public static void writeLanguageMapXML(XMLWriter writer, LanguageMap languageMap) throws IOException {
         writer.writeStartElement("language-map");
 
-        for(LanguageSet languageSet : languageMap.getLanguageSets()) {
-            writeLanguageSetXML(writer,languageSet);
+        if(languageMap.getSourceLanguage() != null) {
+            writer.writeStartElement("source-language");
+            writer.writeAttribute("name",languageMap.getSourceLanguage().getName());
+            writer.writeAttribute("code",languageMap.getSourceLanguage().getCode());
+            writer.writeEndElement(); // source-language
         }
 
-        writer.writeEndElement(); // language-map
-    }
-
-    /**
-     * Writes the given {@link LanguageSet} as a {@code <language-set>} XML element containing
-     * a {@code <source-language>} child and one {@code <translation-language>} child per
-     * translation language.
-     *
-     * @param writer the XML writer to write to.
-     * @param languageSet the language set to serialise.
-     * @throws IOException if a writing error occurs.
-     */
-    public static void writeLanguageSetXML(XMLWriter writer, LanguageSet languageSet) throws IOException {
-        writer.writeStartElement("language-set");
-
-        writer.writeStartElement("source-language");
-        writer.writeAttribute("name",languageSet.getSourceLanguage().getName());
-        writer.writeAttribute("code",languageSet.getSourceLanguage().getCode());
-        writer.writeEndElement(); // source-language
-
-        for(Language language : languageSet.getTranslationLanguages()) {
+        for(Language language : languageMap.getTranslationLanguages()) {
             writer.writeStartElement("translation-language");
             writer.writeAttribute("name",language.getName());
             writer.writeAttribute("code",language.getCode());
             writer.writeEndElement();
         }
 
-        writer.writeEndElement(); // language-set
+        writer.writeEndElement(); // language-map
     }
 
 }

@@ -202,9 +202,7 @@ public class ProjectTest {
     public void testSourceLanguageIsEnglish() {
         ProjectMetaData meta = parseResult.getProject().getMetaData();
         assertNotNull("ProjectMetaData should be present", meta);
-        List<String> sourceCodes = meta.getSourceLanguageCodes();
-        assertEquals("Expected exactly one source language", 1, sourceCodes.size());
-        assertEquals("Source language should be 'en'", LANG_EN, sourceCodes.get(0));
+        assertEquals("Source language should be 'en'", LANG_EN, meta.getSourceLanguageCode());
     }
 
     /**

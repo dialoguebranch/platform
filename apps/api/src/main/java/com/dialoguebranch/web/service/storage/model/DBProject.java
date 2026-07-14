@@ -28,6 +28,7 @@
 
 package com.dialoguebranch.web.service.storage.model;
 
+import com.dialoguebranch.exception.UnknownLanguageCodeException;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
@@ -67,15 +68,14 @@ public class DBProject {
 	@JoinColumn(name = "latest_version_id")
 	private DBProjectVersion latestVersion;
 
-	@OneToOne(fetch = FetchType.EAGER)
-	@JoinColumn(name = "default_language_set_id")
-	private DBLanguageSet defaultLanguageSet;
+	@Column(name = "source_language_code", nullable = false, length = 16)
+	private String sourceLanguageCode;
+
+	@Column(name = "source_language_name", nullable = false, length = 64)
+	private String sourceLanguageName;
 
 	@OneToMany(mappedBy = "project", fetch = FetchType.EAGER)
-	private Set<DBLanguageSet> languageSets = new HashSet<>();
-
-	@OneToMany(mappedBy = "project", fetch = FetchType.EAGER)
-	private Set<DBProjectLanguageMapping> languageMappings = new HashSet<>();
+	private Set<DBTranslationLanguage> translationLanguages = new HashSet<>();
 
 	@OneToMany(mappedBy = "project")
 	@JsonIgnore
@@ -189,60 +189,76 @@ public class DBProject {
 	}
 
 	/**
-	 * Returns this project's default {@link DBLanguageSet}, or {@code null} if the project has
-	 * not yet been assigned one (e.g. seed projects that predate the LanguageSet model). Every
-	 * project created through the API is guaranteed to have exactly one.
+	 * Returns the code of this project's source language (e.g. {@code "en"}) — the language its
+	 * {@code .dlb} scripts are written in. Every project has exactly one.
 	 *
-	 * @return the default language set, or {@code null}.
+	 * @return the source language code.
 	 */
-	public DBLanguageSet getDefaultLanguageSet() {
-		return defaultLanguageSet;
+	public String getSourceLanguageCode() {
+		return sourceLanguageCode;
 	}
 
 	/**
-	 * Sets this project's default {@link DBLanguageSet}.
+	 * Sets the code of this project's source language.
 	 *
-	 * @param defaultLanguageSet the default language set.
+	 * @param sourceLanguageCode the source language code.
 	 */
-	public void setDefaultLanguageSet(DBLanguageSet defaultLanguageSet) {
-		this.defaultLanguageSet = defaultLanguageSet;
+	public void setSourceLanguageCode(String sourceLanguageCode) {
+		this.sourceLanguageCode = sourceLanguageCode;
 	}
 
 	/**
-	 * Returns the set of all {@link DBLanguageSet}s defined for this project.
+	 * Returns the human-readable name of this project's source language (e.g. {@code "English"}).
 	 *
-	 * @return the set of language sets.
+	 * @return the source language name.
 	 */
-	public Set<DBLanguageSet> getLanguageSets() {
-		return languageSets;
+	public String getSourceLanguageName() {
+		return sourceLanguageName;
 	}
 
 	/**
-	 * Sets the set of all {@link DBLanguageSet}s for this project.
+	 * Sets the human-readable name of this project's source language.
 	 *
-	 * @param languageSets the set of language sets.
+	 * @param sourceLanguageName the source language name.
 	 */
-	public void setLanguageSets(Set<DBLanguageSet> languageSets) {
-		this.languageSets = languageSets;
+	public void setSourceLanguageName(String sourceLanguageName) {
+		this.sourceLanguageName = sourceLanguageName;
 	}
 
 	/**
-	 * Returns the set of {@link DBProjectLanguageMapping}s defining the language map for this
-	 * project.
+	 * Returns the set of {@link DBTranslationLanguage}s for this project — the additional
+	 * languages (beyond its source language) its dialogues have translations for.
 	 *
-	 * @return the set of language mappings.
+	 * @return the set of translation languages.
 	 */
-	public Set<DBProjectLanguageMapping> getLanguageMappings() {
-		return languageMappings;
+	public Set<DBTranslationLanguage> getTranslationLanguages() {
+		return translationLanguages;
 	}
 
 	/**
-	 * Sets the set of {@link DBProjectLanguageMapping}s for this project.
+	 * Sets the set of {@link DBTranslationLanguage}s for this project.
 	 *
-	 * @param languageMappings the set of language mappings.
+	 * @param translationLanguages the set of translation languages.
 	 */
-	public void setLanguageMappings(Set<DBProjectLanguageMapping> languageMappings) {
-		this.languageMappings = languageMappings;
+	public void setTranslationLanguages(Set<DBTranslationLanguage> translationLanguages) {
+		this.translationLanguages = translationLanguages;
+	}
+
+	/**
+	 * Checks whether the given {@code languageCode} is one of this project's configured languages
+	 * (its source language or one of its translation languages).
+	 *
+	 * @param languageCode the language code to validate.
+	 * @throws UnknownLanguageCodeException if this project does not support the given language.
+	 */
+	public void validateLanguageCode(String languageCode) throws UnknownLanguageCodeException {
+		boolean supported = languageCode != null && (languageCode.equals(sourceLanguageCode)
+				|| translationLanguages.stream()
+						.anyMatch(t -> languageCode.equals(t.getTranslationLanguageCode())));
+		if (!supported) {
+			throw new UnknownLanguageCodeException("Language code '" + languageCode +
+					"' is not supported in project '" + slug + "'.", languageCode);
+		}
 	}
 
 	/**

@@ -28,8 +28,6 @@
 
 package com.dialoguebranch.web.service.project;
 
-import com.dialoguebranch.model.execute.LanguageMap;
-import com.dialoguebranch.model.execute.LanguageSet;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.execution.DatabasePublishedScriptLoader;
 import com.dialoguebranch.web.service.repository.DBPublishedDialogueRepository;
@@ -124,13 +122,8 @@ public class ProjectLoaderService {
 	public void loadProject(DBProject project, DBProjectVersion latestVersion) {
 		String projectSlug = project.getSlug();
 
-		// Determine the source language from the project's language mappings.
-		String sourceLanguage = "en";
-		LanguageMap languageMap = projectService.getLanguageMap(project);
-		if (languageMap != null && !languageMap.getLanguageSets().isEmpty()) {
-			LanguageSet firstSet = languageMap.getLanguageSets().iterator().next();
-			sourceLanguage = firstSet.getSourceLanguage().getCode();
-		}
+		String sourceLanguage = project.getSourceLanguageCode() != null
+				? project.getSourceLanguageCode() : "en";
 
 		// Fetch all published dialogues for this version and build the script content map.
 		List<DBPublishedDialogue> dialogues =

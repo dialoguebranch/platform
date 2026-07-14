@@ -260,8 +260,8 @@ public class PublishService {
 			translationsByDialogue.put(draft.getName(), translations);
 		}
 
-		String sourceLanguage = project.getDefaultLanguageSet() != null
-				? project.getDefaultLanguageSet().getSourceLanguageCode() : "";
+		String sourceLanguage = project.getSourceLanguageCode() != null
+				? project.getSourceLanguageCode() : "";
 		ScriptLoader scriptLoader = new DatabasePublishedScriptLoader(
 				sourceLanguage, scriptsByName, translationsByLanguage(translationsByDialogue));
 		ProjectParserResult result = new ProjectParser(scriptLoader).parse();

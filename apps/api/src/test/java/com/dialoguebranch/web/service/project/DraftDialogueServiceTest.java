@@ -41,7 +41,7 @@ class DraftDialogueServiceTest {
 
     @Test
     void findNodeReferencesFindsInternalReference() {
-        DBProject project = projectService.createProject("ref-test-internal", "Ref Test", "");
+        DBProject project = projectService.createProject("ref-test-internal", "Ref Test", "", "en", "English");
         DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "main");
         draftDialogueService.createNode(dialogue, "Start",
                 "title: Start\nposition: 0,0", "[[Continue|Middle]]");
@@ -59,7 +59,7 @@ class DraftDialogueServiceTest {
 
     @Test
     void findNodeReferencesFindsExternalReferenceAcrossDialogues() {
-        DBProject project = projectService.createProject("ref-test-external", "Ref Test", "");
+        DBProject project = projectService.createProject("ref-test-external", "Ref Test", "", "en", "English");
         DBDraftDialogue origin = draftDialogueService.createDialogue(project, "folderA/One");
         // A bare (no-slash, no-dot) dialogue reference resolves relative to the origin's own
         // folder — see ExternalNodePointer.getAbsoluteDialogueId — so "dialogueTwo.End" from
@@ -80,7 +80,7 @@ class DraftDialogueServiceTest {
 
     @Test
     void findNodeReferencesIgnoresUnrelatedReplies() {
-        DBProject project = projectService.createProject("ref-test-unrelated", "Ref Test", "");
+        DBProject project = projectService.createProject("ref-test-unrelated", "Ref Test", "", "en", "English");
         DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "main");
         draftDialogueService.createNode(dialogue, "Start",
                 "title: Start\nposition: 0,0", "[[Continue|Other]]");
@@ -94,7 +94,7 @@ class DraftDialogueServiceTest {
 
     @Test
     void renameNodeUpdatesTitleAndRewritesReferencesWhenRequested() throws Exception {
-        DBProject project = projectService.createProject("rename-test-rewrite", "Rename Test", "");
+        DBProject project = projectService.createProject("rename-test-rewrite", "Rename Test", "", "en", "English");
         DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "main");
         draftDialogueService.createNode(dialogue, "Start",
                 "title: Start\nposition: 0,0",
@@ -119,7 +119,7 @@ class DraftDialogueServiceTest {
 
     @Test
     void renameNodeLeavesReferencesUntouchedWhenNotRequested() throws Exception {
-        DBProject project = projectService.createProject("rename-test-no-rewrite", "Rename Test", "");
+        DBProject project = projectService.createProject("rename-test-no-rewrite", "Rename Test", "", "en", "English");
         DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "main");
         draftDialogueService.createNode(dialogue, "Start",
                 "title: Start\nposition: 0,0", "[[Continue|Middle]]");
@@ -134,7 +134,7 @@ class DraftDialogueServiceTest {
 
     @Test
     void renameNodeRejectsDuplicateTitleWithinDialogue() {
-        DBProject project = projectService.createProject("rename-test-duplicate", "Rename Test", "");
+        DBProject project = projectService.createProject("rename-test-duplicate", "Rename Test", "", "en", "English");
         DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "main");
         draftDialogueService.createNode(dialogue, "Start", "title: Start", "");
         DBDraftNode middle = draftDialogueService.createNode(dialogue, "Middle", "title: Middle", "");
@@ -145,7 +145,7 @@ class DraftDialogueServiceTest {
 
     @Test
     void renameNodeRejectsInvalidTitleFormat() {
-        DBProject project = projectService.createProject("rename-test-invalid", "Rename Test", "");
+        DBProject project = projectService.createProject("rename-test-invalid", "Rename Test", "", "en", "English");
         DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "main");
         DBDraftNode node = draftDialogueService.createNode(dialogue, "Start", "title: Start", "");
 
@@ -155,7 +155,7 @@ class DraftDialogueServiceTest {
 
     @Test
     void renameNodeMarksBothDialoguesChanged() throws Exception {
-        DBProject project = projectService.createProject("rename-node-flags-test", "Rename Test", "");
+        DBProject project = projectService.createProject("rename-node-flags-test", "Rename Test", "", "en", "English");
         DBDraftDialogue main = draftDialogueService.createDialogue(project, "main");
         draftDialogueService.createNode(main, "Start",
                 "title: Start\nspeaker: Narrator\nposition: 0,0", "[[Go|other.Target]]");
@@ -180,7 +180,7 @@ class DraftDialogueServiceTest {
 
     @Test
     void renameDialogueUpdatesNameAndRewritesReferencesWhenRequested() throws Exception {
-        DBProject project = projectService.createProject("rename-dialogue-rewrite", "Rename Dialogue Test", "");
+        DBProject project = projectService.createProject("rename-dialogue-rewrite", "Rename Dialogue Test", "", "en", "English");
         DBDraftDialogue main = draftDialogueService.createDialogue(project, "main");
         draftDialogueService.createNode(main, "Start",
                 "title: Start\nspeaker: Narrator\nposition: 0,0", "[[Go to menu|menu.Start]]");
@@ -206,7 +206,7 @@ class DraftDialogueServiceTest {
 
     @Test
     void renameDialogueLeavesReferencesUntouchedWhenNotRequested() throws Exception {
-        DBProject project = projectService.createProject("rename-dialogue-no-rewrite", "Rename Dialogue Test", "");
+        DBProject project = projectService.createProject("rename-dialogue-no-rewrite", "Rename Dialogue Test", "", "en", "English");
         DBDraftDialogue main = draftDialogueService.createDialogue(project, "main");
         draftDialogueService.createNode(main, "Start",
                 "title: Start\nposition: 0,0", "[[Go to menu|menu.Start]]");
@@ -221,7 +221,7 @@ class DraftDialogueServiceTest {
 
     @Test
     void renameDialogueRejectsDuplicateNameAndInvalidFormat() {
-        DBProject project = projectService.createProject("rename-dialogue-invalid", "Rename Dialogue Test", "");
+        DBProject project = projectService.createProject("rename-dialogue-invalid", "Rename Dialogue Test", "", "en", "English");
         DBDraftDialogue main = draftDialogueService.createDialogue(project, "main");
         DBDraftDialogue menu = draftDialogueService.createDialogue(project, "menu");
 
@@ -233,7 +233,7 @@ class DraftDialogueServiceTest {
 
     @Test
     void renameDialogueChainKeepsOriginalRenamedFromUntilPublished() throws Exception {
-        DBProject project = projectService.createProject("rename-dialogue-chain", "Rename Dialogue Test", "");
+        DBProject project = projectService.createProject("rename-dialogue-chain", "Rename Dialogue Test", "", "en", "English");
         DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "a");
         draftDialogueService.createNode(dialogue, "Start", "title: Start\nspeaker: Narrator", "");
 
@@ -251,7 +251,7 @@ class DraftDialogueServiceTest {
 
     @Test
     void createDialogueSetsIsNewAndIsChanged() {
-        DBProject project = projectService.createProject("flags-test-create", "Flags Test", "");
+        DBProject project = projectService.createProject("flags-test-create", "Flags Test", "", "en", "English");
         DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "basic");
 
         assertTrue(dialogue.getIsNew());
@@ -261,7 +261,7 @@ class DraftDialogueServiceTest {
 
     @Test
     void nodeMutationsMarkDialogueChanged() throws Exception {
-        DBProject project = projectService.createProject("flags-test-node-mutations", "Flags Test", "");
+        DBProject project = projectService.createProject("flags-test-node-mutations", "Flags Test", "", "en", "English");
         DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "basic");
         DBDraftNode start = draftDialogueService.createNode(dialogue, "Start",
                 "title: Start\nspeaker: Narrator\nposition: 0,0", "");
@@ -279,7 +279,7 @@ class DraftDialogueServiceTest {
 
     @Test
     void deleteNodeRemovesNodeAndMarksDialogueChanged() throws Exception {
-        DBProject project = projectService.createProject("flags-test-delete-node", "Flags Test", "");
+        DBProject project = projectService.createProject("flags-test-delete-node", "Flags Test", "", "en", "English");
         DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "basic");
         draftDialogueService.createNode(dialogue, "Start", "title: Start\nspeaker: Narrator", "");
         DBDraftNode extra = draftDialogueService.createNode(dialogue, "Extra",
@@ -299,7 +299,7 @@ class DraftDialogueServiceTest {
 
     @Test
     void translationMutationsMarkDialogueChanged() throws Exception {
-        DBProject project = projectService.createProject("flags-test-translations", "Flags Test", "");
+        DBProject project = projectService.createProject("flags-test-translations", "Flags Test", "", "en", "English");
         DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "basic");
         draftDialogueService.createNode(dialogue, "Start", "title: Start\nspeaker: Narrator", "");
 
@@ -326,7 +326,7 @@ class DraftDialogueServiceTest {
 
     @Test
     void deleteDialogueSoftDeletesAndRestoreReverts() {
-        DBProject project = projectService.createProject("soft-delete-test", "Soft Delete Test", "");
+        DBProject project = projectService.createProject("soft-delete-test", "Soft Delete Test", "", "en", "English");
         DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "basic");
         draftDialogueService.createNode(dialogue, "Start", "title: Start", "");
 
@@ -344,7 +344,7 @@ class DraftDialogueServiceTest {
 
     @Test
     void publishExcludesDeletedDialoguesAndHardDeletesThem() throws Exception {
-        DBProject project = projectService.createProject("publish-delete-test", "Publish Delete Test", "");
+        DBProject project = projectService.createProject("publish-delete-test", "Publish Delete Test", "", "en", "English");
         DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "basic");
         draftDialogueService.createNode(dialogue, "Start", "title: Start\nspeaker: Narrator", "");
         PublishService.PublishResult firstPublish = publishService.publish(project, null);
@@ -365,7 +365,7 @@ class DraftDialogueServiceTest {
 
     @Test
     void publishResetsFlagsForPublishedDialogues() throws Exception {
-        DBProject project = projectService.createProject("publish-reset-test", "Publish Reset Test", "");
+        DBProject project = projectService.createProject("publish-reset-test", "Publish Reset Test", "", "en", "English");
         DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "basic");
         draftDialogueService.createNode(dialogue, "Start", "title: Start\nspeaker: Narrator", "");
         assertTrue(dialogue.getIsNew());
@@ -383,7 +383,7 @@ class DraftDialogueServiceTest {
 
     @Test
     void createDialogueFromScriptSplitsNodesAndSkipsUntitledBlocks() {
-        DBProject project = projectService.createProject("from-script-test", "From Script Test", "");
+        DBProject project = projectService.createProject("from-script-test", "From Script Test", "", "en", "English");
         String script = "title: Start\nspeaker: Narrator\nposition: 0,0\n---\n[[Continue|End]]\n===\n"
                 + "title: End\nspeaker: Narrator\nposition: 100,0\n---\n\n===\n";
 

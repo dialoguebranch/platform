@@ -48,7 +48,6 @@ import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import com.dialoguebranch.model.execute.Language;
-import com.dialoguebranch.model.execute.LanguageSet;
 import com.dialoguebranch.model.common.ProjectMetaData;
 import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.model.edit.EditableProject;
@@ -501,46 +500,40 @@ public class ProjectTool {
         // ---- Language Map ----
         System.out.println();
         System.out.println("  Language Mappings:");
-        if (meta.getLanguageMap() == null || meta.getLanguageMap().getLanguageSets().isEmpty()) {
-            System.out.println("    (no language map defined)");
+        Language source = meta.getLanguageMap() != null ? meta.getLanguageMap().getSourceLanguage() : null;
+        if (source == null) {
+            System.out.println("    (no source language defined)");
         } else {
-            for (LanguageSet languageSet : meta.getLanguageMap().getLanguageSets()) {
-                Language source = languageSet.getSourceLanguage();
-                List<Language> translations = languageSet.getTranslationLanguages();
+            List<Language> translations = meta.getLanguageMap().getTranslationLanguages();
 
-                System.out.print("    [source] " + source.getName() + " (" + source.getCode() + ")");
-                if (translations.isEmpty()) {
-                    System.out.println("  →  (no translations)");
-                } else {
-                    System.out.println();
-                    for (Language translation : translations) {
-                        System.out.println("        →  " + translation.getName()
-                                + " (" + translation.getCode() + ")");
-                    }
+            System.out.print("    [source] " + source.getName() + " (" + source.getCode() + ")");
+            if (translations.isEmpty()) {
+                System.out.println("  →  (no translations)");
+            } else {
+                System.out.println();
+                for (Language translation : translations) {
+                    System.out.println("        →  " + translation.getName()
+                            + " (" + translation.getCode() + ")");
                 }
             }
         }
 
-        // ---- Dialogues per source language ----
+        // ---- Dialogues (source language) ----
         System.out.println();
-        System.out.println("  Dialogues (source languages):");
+        System.out.println("  Dialogues (source language):");
 
-        if (meta.getLanguageMap() == null) {
-            System.out.println("    (no language map — cannot determine source languages)");
+        if (source == null) {
+            System.out.println("    (no source language — cannot determine dialogues)");
         } else {
-            for (LanguageSet languageSet : meta.getLanguageMap().getLanguageSets()) {
-                Language sourceLanguage = languageSet.getSourceLanguage();
-                ScriptTreeNode sourceTree = project.getAvailableScriptsForLanguage(sourceLanguage);
+            ScriptTreeNode sourceTree = project.getAvailableScriptsForLanguage(source);
 
-                System.out.println();
-                System.out.println("    Language: " + sourceLanguage.getName()
-                        + " (" + sourceLanguage.getCode() + ")");
+            System.out.println();
+            System.out.println("    Language: " + source.getName()
+                    + " (" + source.getCode() + ")");
 
-                if (sourceTree == null) {
-                    System.out.println("      (no scripts found)");
-                    continue;
-                }
-
+            if (sourceTree == null) {
+                System.out.println("      (no scripts found)");
+            } else {
                 Map<String, Integer> dialogueNodeCounts = new LinkedHashMap<>();
                 collectNodeCounts(sourceTree, "", dialogueNodeCounts);
 

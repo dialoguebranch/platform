@@ -3,10 +3,8 @@
 <dlb-project name="Project Test Project" version="1">
 	<description>This is a Dialogue Branch project used for testing the implementation of projects into the Dialogue Branch core.</description>
 	<language-map>
-		<language-set>
-			<source-language name="English" code="en" default="true" />
-			<translation-language name="Dutch (Netherlands)" code="nl-NL" />
-			<translation-language name="Portuguese (Portugal)" code="pt-PT" />
-		</language-set>
+		<source-language name="English" code="en" />
+		<translation-language name="Dutch (Netherlands)" code="nl-NL" />
+		<translation-language name="Portuguese (Portugal)" code="pt-PT" />
 	</language-map>
 </dlb-project>

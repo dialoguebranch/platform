@@ -128,18 +128,18 @@ export class DialogueBranchClient {
         }).then((response) => { if (!response.ok) return Promise.reject(response); });
     }
 
-    addLanguageMapping(projectSlug, sourceLanguageName, sourceLanguageCode, translationLanguageName, translationLanguageCode) {
-        const url = this._baseUrl + "/project/add-language-mapping?projectSlug=" + encodeURIComponent(projectSlug);
+    addTranslationLanguage(projectSlug, translationLanguageName, translationLanguageCode) {
+        const url = this._baseUrl + "/project/add-translation-language?projectSlug=" + encodeURIComponent(projectSlug);
 
         return this._fetch(url, {
             method: "POST",
             headers: { 'Authorization': 'Bearer ' + this._accessToken, "Content-Type": "application/json" },
-            body: JSON.stringify({ sourceLanguageName, sourceLanguageCode, translationLanguageName, translationLanguageCode }),
+            body: JSON.stringify({ translationLanguageName, translationLanguageCode }),
         }).then((response) => this._handleResponse(response));
     }
 
-    removeLanguageMapping(projectSlug, mappingId) {
-        const url = this._baseUrl + "/project/remove-language-mapping?projectSlug=" + encodeURIComponent(projectSlug) + "&mappingId=" + encodeURIComponent(mappingId);
+    removeTranslationLanguage(projectSlug, translationLanguageId) {
+        const url = this._baseUrl + "/project/remove-translation-language?projectSlug=" + encodeURIComponent(projectSlug) + "&translationLanguageId=" + encodeURIComponent(translationLanguageId);
 
         return this._fetch(url, {
             method: "POST",

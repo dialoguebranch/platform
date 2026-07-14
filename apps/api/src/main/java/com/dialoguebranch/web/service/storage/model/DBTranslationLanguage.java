@@ -34,24 +34,25 @@ import jakarta.persistence.*;
 import java.util.UUID;
 
 /**
- * JPA entity representing a single source-to-translation language mapping in the
- * {@code project_language_mappings} table. The full set of mappings for a project corresponds to
- * a {@link com.dialoguebranch.model.execute.LanguageMap}, where rows sharing the same
- * {@code sourceLanguage} form a single {@link com.dialoguebranch.model.execute.LanguageSet}.
+ * JPA entity representing a single translation language of a project in the
+ * {@code project_translation_languages} table. A project's source language is a fixed property of
+ * {@link DBProject} itself ({@link DBProject#getSourceLanguageCode()}); this entity only records
+ * the zero-or-more additional languages that project's dialogues have (or will have) {@code .json}
+ * translation files for.
  *
  * @author Harm op den Akker
  */
 @Entity
 @Table(
-	name = "project_language_mappings",
+	name = "project_translation_languages",
 	uniqueConstraints = {
 		@UniqueConstraint(
-			name = "uq_project_language_mappings",
-			columnNames = { "project_id", "source_language_code", "translation_language_code" }
+			name = "uq_project_translation_languages",
+			columnNames = { "project_id", "translation_language_code" }
 		)
 	}
 )
-public class DBProjectLanguageMapping {
+public class DBTranslationLanguage {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.UUID)
@@ -62,12 +63,6 @@ public class DBProjectLanguageMapping {
 	@JsonIgnore
 	private DBProject project;
 
-	@Column(name = "source_language_name", nullable = false, length = 64)
-	private String sourceLanguageName;
-
-	@Column(name = "source_language_code", nullable = false, length = 16)
-	private String sourceLanguageCode;
-
 	@Column(name = "translation_language_name", nullable = false, length = 64)
 	private String translationLanguageName;
 
@@ -75,13 +70,13 @@ public class DBProjectLanguageMapping {
 	private String translationLanguageCode;
 
 	/**
-	 * Creates an empty instance of {@link DBProjectLanguageMapping}.
+	 * Creates an empty instance of {@link DBTranslationLanguage}.
 	 */
-	public DBProjectLanguageMapping() {
+	public DBTranslationLanguage() {
 	}
 
 	/**
-	 * Returns the unique UUID identifier of this language mapping.
+	 * Returns the unique UUID identifier of this translation language.
 	 *
 	 * @return the UUID identifier.
 	 */
@@ -90,7 +85,7 @@ public class DBProjectLanguageMapping {
 	}
 
 	/**
-	 * Sets the unique UUID identifier of this language mapping.
+	 * Sets the unique UUID identifier of this translation language.
 	 *
 	 * @param id the UUID identifier.
 	 */
@@ -99,7 +94,7 @@ public class DBProjectLanguageMapping {
 	}
 
 	/**
-	 * Returns the {@link DBProject} this language mapping belongs to.
+	 * Returns the {@link DBProject} this translation language belongs to.
 	 *
 	 * @return the owning project.
 	 */
@@ -108,7 +103,7 @@ public class DBProjectLanguageMapping {
 	}
 
 	/**
-	 * Sets the {@link DBProject} this language mapping belongs to.
+	 * Sets the {@link DBProject} this translation language belongs to.
 	 *
 	 * @param project the owning project.
 	 */
@@ -117,43 +112,7 @@ public class DBProjectLanguageMapping {
 	}
 
 	/**
-	 * Returns the human-readable name of the source language (e.g. {@code "English"}).
-	 *
-	 * @return the source language name.
-	 */
-	public String getSourceLanguageName() {
-		return sourceLanguageName;
-	}
-
-	/**
-	 * Sets the human-readable name of the source language.
-	 *
-	 * @param sourceLanguageName the source language name.
-	 */
-	public void setSourceLanguageName(String sourceLanguageName) {
-		this.sourceLanguageName = sourceLanguageName;
-	}
-
-	/**
-	 * Returns the code of the source language (e.g. {@code "en"}).
-	 *
-	 * @return the source language code.
-	 */
-	public String getSourceLanguageCode() {
-		return sourceLanguageCode;
-	}
-
-	/**
-	 * Sets the code of the source language.
-	 *
-	 * @param sourceLanguageCode the source language code.
-	 */
-	public void setSourceLanguageCode(String sourceLanguageCode) {
-		this.sourceLanguageCode = sourceLanguageCode;
-	}
-
-	/**
-	 * Returns the human-readable name of the translation language (e.g. {@code "Dutch"}).
+	 * Returns the human-readable name of this translation language (e.g. {@code "Dutch"}).
 	 *
 	 * @return the translation language name.
 	 */
@@ -162,7 +121,7 @@ public class DBProjectLanguageMapping {
 	}
 
 	/**
-	 * Sets the human-readable name of the translation language.
+	 * Sets the human-readable name of this translation language.
 	 *
 	 * @param translationLanguageName the translation language name.
 	 */
@@ -171,7 +130,7 @@ public class DBProjectLanguageMapping {
 	}
 
 	/**
-	 * Returns the code of the translation language (e.g. {@code "nl"}).
+	 * Returns the code of this translation language (e.g. {@code "nl"}).
 	 *
 	 * @return the translation language code.
 	 */
@@ -180,7 +139,7 @@ public class DBProjectLanguageMapping {
 	}
 
 	/**
-	 * Sets the code of the translation language.
+	 * Sets the code of this translation language.
 	 *
 	 * @param translationLanguageCode the translation language code.
 	 */

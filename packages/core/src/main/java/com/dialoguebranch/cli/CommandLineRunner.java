@@ -32,7 +32,6 @@ import com.dialoguebranch.exception.DialogueBranchException;
 import com.dialoguebranch.exception.InvalidInputException;
 import com.dialoguebranch.exception.ScriptParseException;
 import com.dialoguebranch.model.execute.Language;
-import com.dialoguebranch.model.execute.LanguageSet;
 import com.dialoguebranch.model.common.ProjectMetaData;
 import com.dialoguebranch.execution.parser.*;
 import com.dialoguebranch.model.edit.EditableProject;
@@ -338,11 +337,10 @@ public class CommandLineRunner {
 			// For every source language, go through their corresponding translation languages
 			// and make sure that a translation file (.json) exists for every matching source script
 
-			for(Language sourceLanguage : metaData.getSourceLanguages()) {
+			Language sourceLanguage = metaData.getSourceLanguage();
+			if (sourceLanguage != null) {
 				try {
-					LanguageSet languageSet = metaData.getLanguageSetForSourceLanguage(
-							sourceLanguage.getCode());
-					for(Language translationLanguage : languageSet.getTranslationLanguages()) {
+					for(Language translationLanguage : metaData.getLanguageMap().getTranslationLanguages()) {
 
 						System.out.print("Generating translation scripts for source language '"
 								+ sourceLanguage.getCode()+"' and translation language '" +
@@ -428,24 +426,19 @@ public class CommandLineRunner {
 			// For every source language, go through their corresponding translation languages
 			// and make sure that a translation file (.json) exists for every matching source script
 
-			for(Language sourceLanguage : metaData.getSourceLanguages()) {
-				try {
-					LanguageSet languageSet = metaData.getLanguageSetForSourceLanguage(
-							sourceLanguage.getCode());
-					for (Language translationLanguage : languageSet.getTranslationLanguages()) {
+			Language sourceLanguage = metaData.getSourceLanguage();
+			if (sourceLanguage != null) {
+				for (Language translationLanguage : metaData.getLanguageMap().getTranslationLanguages()) {
 
-						System.out.println("Generating CSV files for source language '"
-								+ sourceLanguage.getCode() + "' and translation language '" +
-								translationLanguage.getCode() + "'.");
+					System.out.println("Generating CSV files for source language '"
+							+ sourceLanguage.getCode() + "' and translation language '" +
+							translationLanguage.getCode() + "'.");
 
-						ScriptTreeNode translationLanguageTree =
-								editableProject.getAvailableScriptsForLanguage(translationLanguage);
+					ScriptTreeNode translationLanguageTree =
+							editableProject.getAvailableScriptsForLanguage(translationLanguage);
 
-						editableProject.generateTranslationTSVs(translationLanguageTree);
+					editableProject.generateTranslationTSVs(translationLanguageTree);
 
-					}
-				} catch (DialogueBranchException e) {
-					throw new RuntimeException(e);
 				}
 			}
 

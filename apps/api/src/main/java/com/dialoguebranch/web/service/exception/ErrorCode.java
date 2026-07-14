@@ -63,4 +63,7 @@ public class ErrorCode {
 	/** In case an error occurred related to the Keycloak service. */
 	public static final String KEYCLOAK_ERROR = "KEYCLOAK_ERROR";
 
+	/** In case a requested language code is not supported by the relevant project. */
+	public static final String UNKNOWN_LANGUAGE_CODE = "UNKNOWN_LANGUAGE_CODE";
+
 }

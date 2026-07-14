@@ -183,7 +183,9 @@ public class ExecutableProject implements DialogueBranchProject {
 
 		// If there is metadata, obtain the list of languages from there
 		} else {
-			return null; //TODO: Implement.
+			for(Language language : metaData.getSupportedLanguages()) {
+				result.add(language.getCode());
+			}
 		}
 
 		return result;
@@ -238,6 +240,16 @@ public class ExecutableProject implements DialogueBranchProject {
 		for (ResourcePointer match : matches) {
 			lngMap.put(match.getLanguage(), match);
 		}
+
+		// Prefer the source language defined in the project metadata, if any
+		if (metaData != null && metaData.getLanguageMap() != null
+				&& metaData.getLanguageMap().getSourceLanguage() != null) {
+			ResourcePointer sourceMatch = lngMap.get(
+					metaData.getLanguageMap().getSourceLanguage().getCode());
+			if (sourceMatch != null)
+				return dialogues.get(sourceMatch);
+		}
+
 		I18nLanguageFinder finder = new I18nLanguageFinder(new ArrayList<>(lngMap.keySet()));
 		finder.setUserLocale(Locale.ENGLISH);
 		String language = finder.find();

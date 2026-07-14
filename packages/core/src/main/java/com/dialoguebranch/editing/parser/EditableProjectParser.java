@@ -34,7 +34,6 @@ import com.dialoguebranch.model.common.ScriptTreeNode;
 import com.dialoguebranch.model.common.ProjectMetaData;
 import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.execute.Language;
-import com.dialoguebranch.model.execute.LanguageSet;
 import com.dialoguebranch.model.common.ResourceType;
 import nl.rrd.utils.exception.ParseException;
 
@@ -69,22 +68,21 @@ public class EditableProjectParser {
         Map<Language, ScriptTreeNode> availableScripts = new HashMap<>();
 
         // Add file listings...
-        for(LanguageSet ls : projectMetaData.getLanguageMap().getLanguageSets()) {
-            Language sourceLanguage = ls.getSourceLanguage();
+        Language sourceLanguage = projectMetaData.getLanguageMap().getSourceLanguage();
+        if(sourceLanguage != null) {
             ScriptTreeNode sourceLanguageTree = processLanguage(
                     projectMetaData.getBasePath(),
                     sourceLanguage,
                     true);
             availableScripts.put(sourceLanguage,sourceLanguageTree);
+        }
 
-            for(Language translationLanguage : ls.getTranslationLanguages()) {
-                ScriptTreeNode translationLanguageTree = processLanguage(
-                        projectMetaData.getBasePath(),
-                        translationLanguage,
-                        false);
-                availableScripts.put(translationLanguage,translationLanguageTree);
-            }
-
+        for(Language translationLanguage : projectMetaData.getLanguageMap().getTranslationLanguages()) {
+            ScriptTreeNode translationLanguageTree = processLanguage(
+                    projectMetaData.getBasePath(),
+                    translationLanguage,
+                    false);
+            availableScripts.put(translationLanguage,translationLanguageTree);
         }
 
         return new EditableProject(projectMetaData,availableScripts);

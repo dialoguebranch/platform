@@ -29,20 +29,14 @@
 package com.dialoguebranch.web.service.controller.schema.authoring;
 
 /**
- * Request payload for adding a language mapping to a project.
+ * Request payload for adding a translation language to a project.
  *
  * @author Harm op den Akker
  */
-public class AddLanguageMappingPayload {
-	private String sourceLanguageName;
-	private String sourceLanguageCode;
+public class AddTranslationLanguagePayload {
 	private String translationLanguageName;
 	private String translationLanguageCode;
 
-	public String getSourceLanguageName() { return sourceLanguageName; }
-	public void setSourceLanguageName(String sourceLanguageName) { this.sourceLanguageName = sourceLanguageName; }
-	public String getSourceLanguageCode() { return sourceLanguageCode; }
-	public void setSourceLanguageCode(String sourceLanguageCode) { this.sourceLanguageCode = sourceLanguageCode; }
 	public String getTranslationLanguageName() { return translationLanguageName; }
 	public void setTranslationLanguageName(String translationLanguageName) { this.translationLanguageName = translationLanguageName; }
 	public String getTranslationLanguageCode() { return translationLanguageCode; }

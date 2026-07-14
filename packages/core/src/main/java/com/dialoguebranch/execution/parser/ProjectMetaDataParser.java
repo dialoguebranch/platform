@@ -30,7 +30,6 @@ package com.dialoguebranch.execution.parser;
 
 import com.dialoguebranch.model.execute.Language;
 import com.dialoguebranch.model.execute.LanguageMap;
-import com.dialoguebranch.model.execute.LanguageSet;
 import com.dialoguebranch.model.common.ProjectMetaData;
 import com.dialoguebranch.model.common.FileStorageSource;
 import nl.rrd.utils.exception.ParseException;
@@ -145,29 +144,31 @@ public class ProjectMetaDataParser {
     private static class LanguageMapXMLHandler extends AbstractSimpleSAXHandler<LanguageMap> {
 
         private LanguageMap result = null;
-        private SimpleSAXHandler<LanguageSet> languageSetHandler = null;
+        private SimpleSAXHandler<Language> languageHandler = null;
 
         @Override
         public void startElement(String name, Attributes attributes, List<String> parents)
                 throws ParseException {
             if(name.equals("language-map")) {
                 result = new LanguageMap();
-            } else if(name.equals("language-set")) {
-                languageSetHandler = new LanguageSetXMLHandler();
-                languageSetHandler.startElement(name,attributes,parents);
+            } else if(name.equals("source-language") || name.equals("translation-language")) {
+                languageHandler = new LanguageXMLHandler();
+                languageHandler.startElement(name,attributes,parents);
             } else {
-                if(languageSetHandler != null)
-                    languageSetHandler.startElement(name,attributes,parents);
+                if(languageHandler != null)
+                    languageHandler.startElement(name,attributes,parents);
             }
         }
 
         @Override
         public void endElement(String name, List<String> parents) throws ParseException {
-            if(languageSetHandler != null) languageSetHandler.endElement(name,parents);
-            if(name.equals("language-set") && languageSetHandler != null) {
-                LanguageSet languageSet = languageSetHandler.getObject();
-                result.addLanguageSet(languageSet);
-                languageSetHandler = null;
+            if(languageHandler != null) languageHandler.endElement(name,parents);
+            if(name.equals("source-language") && languageHandler != null) {
+                result.setSourceLanguage(languageHandler.getObject());
+                languageHandler = null;
+            } else if(name.equals("translation-language") && languageHandler != null) {
+                result.addTranslationLanguage(languageHandler.getObject());
+                languageHandler = null;
             }
         }
 
@@ -176,51 +177,6 @@ public class ProjectMetaDataParser {
 
         @Override
         public LanguageMap getObject() {
-            return result;
-        }
-    }
-
-    private static class LanguageSetXMLHandler extends AbstractSimpleSAXHandler<LanguageSet> {
-
-        private LanguageSet result;
-        private SimpleSAXHandler<Language> languageHandler;
-
-        @Override
-        public void startElement(String name, Attributes attributes, List<String> parents)
-                throws ParseException {
-            if(name.equals("language-set")) {
-                result = new LanguageSet();
-            } else if(name.equals("source-language") || name.equals("translation-language")) {
-                languageHandler = new LanguageXMLHandler();
-                languageHandler.startElement(name,attributes,parents);
-                if(name.equals("source-language")
-                        && "true".equalsIgnoreCase(attributes.getValue("default"))) {
-                    result.setDefault(true);
-                }
-            } else {
-                if(languageHandler != null) languageHandler.startElement(name,attributes,parents);
-            }
-        }
-
-        @Override
-        public void endElement(String name, List<String> parents) throws ParseException {
-            if(languageHandler != null) languageHandler.endElement(name,parents);
-            if(name.equals("source-language") && languageHandler != null) {
-                Language sourceLanguage = languageHandler.getObject();
-                result.setSourceLanguage(sourceLanguage);
-                languageHandler = null;
-            } else if(name.equals("translation-language") && languageHandler != null) {
-                Language translationLanguage = languageHandler.getObject();
-                result.addTranslationLanguage(translationLanguage);
-                languageHandler = null;
-            }
-        }
-
-        @Override
-        public void characters(String ch, List<String> parents) { }
-
-        @Override
-        public LanguageSet getObject() {
             return result;
         }
     }

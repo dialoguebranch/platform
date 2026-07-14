@@ -80,23 +80,18 @@ function loadAvailableLanguages() {
     if (!slug) return;
     client.getProject(slug)
         .then((project) => {
-            const languages = new Map();
-            if (project.defaultLanguageSet) {
-                languages.set(project.defaultLanguageSet.sourceLanguageCode,
-                    project.defaultLanguageSet.sourceLanguageName);
-            }
-            for (const mapping of project.languageMappings ?? []) {
-                languages.set(mapping.sourceLanguageCode, mapping.sourceLanguageName);
-                languages.set(mapping.translationLanguageCode, mapping.translationLanguageName);
-            }
-            availableLanguages.value = [...languages.entries()].map(([code, name]) => ({ code, name }));
-            selectedLanguage.value = project.defaultLanguageSet?.sourceLanguageCode
-                ?? availableLanguages.value[0]?.code ?? 'en';
+            availableLanguages.value = [
+                { code: project.sourceLanguageCode, name: project.sourceLanguageName },
+                ...(project.translationLanguages ?? []).map((t) => ({
+                    code: t.translationLanguageCode, name: t.translationLanguageName,
+                })),
+            ];
+            selectedLanguage.value = project.sourceLanguageCode ?? 'en';
         })
         .catch(() => {
             // Language selection is a convenience — fall back to a single English option so
             // dialogue testing still works even if the project's language configuration can't be
-            // loaded (e.g. legacy seed data predating the defaultLanguageSet fix).
+            // loaded.
             availableLanguages.value = [{ code: 'en', name: 'English' }];
             selectedLanguage.value = 'en';
         });

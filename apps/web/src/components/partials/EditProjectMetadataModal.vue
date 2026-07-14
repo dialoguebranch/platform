@@ -21,15 +21,15 @@ const error = ref('');
 const displayName = ref('');
 const description = ref('');
 const latestVersion = ref(null);
-const languageMappings = ref([]);
+const sourceLanguageCode = ref('');
+const sourceLanguageName = ref('');
+const translationLanguages = ref([]);
 
-const languageMappingsOpen = ref(false);
-const newSourceName = ref('');
-const newSourceCode = ref('');
+const translationLanguagesOpen = ref(false);
 const newTranslationName = ref('');
 const newTranslationCode = ref('');
-const addingMapping = ref(false);
-const addMappingError = ref('');
+const addingTranslationLanguage = ref(false);
+const addTranslationLanguageError = ref('');
 
 watch(() => props.projectSlug, load, { immediate: true });
 
@@ -41,8 +41,9 @@ function load() {
             displayName.value = project.displayName ?? '';
             description.value = project.description ?? '';
             latestVersion.value = project.latestVersion ?? null;
-            languageMappings.value = [...(project.languageMappings ?? [])].sort((a, b) =>
-                a.sourceLanguageCode.localeCompare(b.sourceLanguageCode) ||
+            sourceLanguageCode.value = project.sourceLanguageCode ?? '';
+            sourceLanguageName.value = project.sourceLanguageName ?? '';
+            translationLanguages.value = [...(project.translationLanguages ?? [])].sort((a, b) =>
                 a.translationLanguageCode.localeCompare(b.translationLanguageCode)
             );
         })
@@ -62,37 +63,33 @@ function onSave() {
         .finally(() => { saving.value = false; });
 }
 
-function onAddMapping() {
-    addMappingError.value = '';
-    if (!newSourceName.value.trim() || !newSourceCode.value.trim() ||
-        !newTranslationName.value.trim() || !newTranslationCode.value.trim()) {
-        addMappingError.value = 'All four fields are required.';
+function onAddTranslationLanguage() {
+    addTranslationLanguageError.value = '';
+    if (!newTranslationName.value.trim() || !newTranslationCode.value.trim()) {
+        addTranslationLanguageError.value = 'Both fields are required.';
         return;
     }
-    addingMapping.value = true;
-    client.addLanguageMapping(
+    addingTranslationLanguage.value = true;
+    client.addTranslationLanguage(
         props.projectSlug,
-        newSourceName.value.trim(), newSourceCode.value.trim(),
         newTranslationName.value.trim(), newTranslationCode.value.trim()
-    ).then((mapping) => {
-        languageMappings.value.push(mapping);
-        newSourceName.value = '';
-        newSourceCode.value = '';
+    ).then((translationLanguage) => {
+        translationLanguages.value.push(translationLanguage);
         newTranslationName.value = '';
         newTranslationCode.value = '';
-        logEvent('project', 'Language mapping added to $1', props.projectSlug);
+        logEvent('project', 'Translation language added to $1', props.projectSlug);
     })
-    .catch(() => { addMappingError.value = 'Failed to add language mapping.'; })
-    .finally(() => { addingMapping.value = false; });
+    .catch(() => { addTranslationLanguageError.value = 'Failed to add translation language.'; })
+    .finally(() => { addingTranslationLanguage.value = false; });
 }
 
-function onRemoveMapping(mapping) {
-    client.removeLanguageMapping(props.projectSlug, mapping.id)
+function onRemoveTranslationLanguage(translationLanguage) {
+    client.removeTranslationLanguage(props.projectSlug, translationLanguage.id)
         .then(() => {
-            languageMappings.value = languageMappings.value.filter(m => m.id !== mapping.id);
-            logEvent('project', 'Language mapping removed from $1', props.projectSlug);
+            translationLanguages.value = translationLanguages.value.filter(t => t.id !== translationLanguage.id);
+            logEvent('project', 'Translation language removed from $1', props.projectSlug);
         })
-        .catch(() => { error.value = 'Failed to remove language mapping.'; });
+        .catch(() => { error.value = 'Failed to remove translation language.'; });
 }
 </script>
 
@@ -143,6 +140,14 @@ function onRemoveMapping(mapping) {
                         ></textarea>
                     </div>
 
+                    <!-- Source language (read-only — fixed at project creation) -->
+                    <div>
+                        <label class="block font-title font-bold text-sm text-orange-darker mb-1">Source Language</label>
+                        <div class="px-3 py-2 border border-grey-light rounded-lg text-sm font-title bg-grey-lighter text-grey-dark">
+                            {{ sourceLanguageName }} <span class="font-mono text-xs">({{ sourceLanguageCode }})</span>
+                        </div>
+                    </div>
+
                     <!-- Published version info (read-only) -->
                     <div v-if="latestVersion" class="bg-grey-lighter border border-grey-light rounded-lg px-4 py-3">
                         <div class="flex items-center gap-1.5 font-title text-xs font-semibold text-orange-darker mb-2 uppercase tracking-wide">
@@ -159,40 +164,36 @@ function onRemoveMapping(mapping) {
                         </dl>
                     </div>
 
-                    <!-- Language mappings (collapsible) -->
+                    <!-- Translation languages (collapsible) -->
                     <div class="border border-grey-light rounded-lg">
                         <button
                             type="button"
-                            :class="['flex items-center gap-2 w-full px-4 py-3 bg-grey-lighter hover:bg-grey-light font-title font-bold text-sm text-orange-darker cursor-pointer select-none transition-colors', languageMappingsOpen ? 'rounded-t-lg' : 'rounded-lg']"
-                            @click="languageMappingsOpen = !languageMappingsOpen"
+                            :class="['flex items-center gap-2 w-full px-4 py-3 bg-grey-lighter hover:bg-grey-light font-title font-bold text-sm text-orange-darker cursor-pointer select-none transition-colors', translationLanguagesOpen ? 'rounded-t-lg' : 'rounded-lg']"
+                            @click="translationLanguagesOpen = !translationLanguagesOpen"
                         >
                             <FontAwesomeIcon icon="fa-solid fa-language" class="text-base" />
-                            Language Mappings
-                            <span class="ml-1 text-xs font-normal text-grey-dark">({{ languageMappings.length }})</span>
-                            <FontAwesomeIcon :icon="languageMappingsOpen ? 'fa-solid fa-caret-up' : 'fa-solid fa-caret-down'" class="ml-auto text-orange-medium" />
+                            Translation Languages
+                            <span class="ml-1 text-xs font-normal text-grey-dark">({{ translationLanguages.length }})</span>
+                            <FontAwesomeIcon :icon="translationLanguagesOpen ? 'fa-solid fa-caret-up' : 'fa-solid fa-caret-down'" class="ml-auto text-orange-medium" />
                         </button>
 
-                        <div v-if="languageMappingsOpen" class="px-4 py-3 flex flex-col gap-3">
-                            <!-- Existing mappings -->
-                            <div v-if="languageMappings.length === 0" class="text-sm text-grey-dark italic">No language mappings defined.</div>
+                        <div v-if="translationLanguagesOpen" class="px-4 py-3 flex flex-col gap-3">
+                            <!-- Existing translation languages -->
+                            <div v-if="translationLanguages.length === 0" class="text-sm text-grey-dark italic">No translation languages defined.</div>
                             <table v-else class="w-full text-xs font-title border border-grey-light rounded-lg overflow-hidden">
                                 <thead class="bg-grey-lighter text-orange-darker font-semibold">
                                     <tr>
-                                        <th class="text-left px-3 py-2">Source</th>
-                                        <th class="text-left px-3 py-2">Code</th>
                                         <th class="text-left px-3 py-2">Translation</th>
                                         <th class="text-left px-3 py-2">Code</th>
                                         <th class="px-2 py-2"></th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="m in languageMappings" :key="m.id" class="border-t border-grey-lighter hover:bg-grey-lighter">
-                                        <td class="px-3 py-2">{{ m.sourceLanguageName }}</td>
-                                        <td class="px-3 py-2 font-mono text-orange-darker">{{ m.sourceLanguageCode }}</td>
-                                        <td class="px-3 py-2">{{ m.translationLanguageName }}</td>
-                                        <td class="px-3 py-2 font-mono text-orange-darker">{{ m.translationLanguageCode }}</td>
+                                    <tr v-for="t in translationLanguages" :key="t.id" class="border-t border-grey-lighter hover:bg-grey-lighter">
+                                        <td class="px-3 py-2">{{ t.translationLanguageName }}</td>
+                                        <td class="px-3 py-2 font-mono text-orange-darker">{{ t.translationLanguageCode }}</td>
                                         <td class="px-2 py-2 text-right">
-                                            <button class="text-red-dark hover:text-red-darker cursor-pointer" title="Remove mapping" @click="onRemoveMapping(m)">
+                                            <button class="text-red-dark hover:text-red-darker cursor-pointer" title="Remove translation language" @click="onRemoveTranslationLanguage(t)">
                                                 <FontAwesomeIcon icon="fa-solid fa-trash" />
                                             </button>
                                         </td>
@@ -200,30 +201,22 @@ function onRemoveMapping(mapping) {
                                 </tbody>
                             </table>
 
-                            <!-- Add new mapping -->
+                            <!-- Add new translation language -->
                             <div class="border border-dashed border-orange-medium rounded-lg px-3 py-3 flex flex-col gap-2">
-                                <span class="font-title font-semibold text-xs text-orange-darker">Add Language Mapping</span>
+                                <span class="font-title font-semibold text-xs text-orange-darker">Add Translation Language</span>
                                 <div class="grid grid-cols-2 gap-2">
                                     <div>
-                                        <label class="text-xs text-grey-dark mb-0.5 block">Source language name</label>
-                                        <TextInput class="w-full" v-model="newSourceName" placeholder="e.g. English" />
-                                    </div>
-                                    <div>
-                                        <label class="text-xs text-grey-dark mb-0.5 block">Source code</label>
-                                        <TextInput class="w-full" v-model="newSourceCode" placeholder="e.g. en" />
-                                    </div>
-                                    <div>
-                                        <label class="text-xs text-grey-dark mb-0.5 block">Translation language name</label>
+                                        <label class="text-xs text-grey-dark mb-0.5 block">Language name</label>
                                         <TextInput class="w-full" v-model="newTranslationName" placeholder="e.g. Dutch" />
                                     </div>
                                     <div>
-                                        <label class="text-xs text-grey-dark mb-0.5 block">Translation code</label>
+                                        <label class="text-xs text-grey-dark mb-0.5 block">Language code</label>
                                         <TextInput class="w-full" v-model="newTranslationCode" placeholder="e.g. nl" />
                                     </div>
                                 </div>
-                                <div v-if="addMappingError" class="text-xs text-red-dark font-title">{{ addMappingError }}</div>
+                                <div v-if="addTranslationLanguageError" class="text-xs text-red-dark font-title">{{ addTranslationLanguageError }}</div>
                                 <div>
-                                    <PushButton text="Add Mapping" :loading="addingMapping" @click="onAddMapping" />
+                                    <PushButton text="Add Language" :loading="addingTranslationLanguage" @click="onAddTranslationLanguage" />
                                 </div>
                             </div>
                         </div>

@@ -106,8 +106,8 @@ const canCreateProject = computed(() => {
     return selectedLanguageCode.value.trim().length > 0;
 });
 
-// The code/name pair that becomes the project's default LanguageSet source language, resolved
-// from whichever mode is active.
+// The code/name pair that becomes the project's source language, resolved from whichever mode is
+// active.
 const defaultLanguage = computed(() => {
     if (languageMode.value === 'custom') {
         return { code: customLanguageCode.value.trim(), name: customLanguageName.value.trim() };

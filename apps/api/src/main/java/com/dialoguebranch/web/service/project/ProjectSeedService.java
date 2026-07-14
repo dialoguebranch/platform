@@ -34,7 +34,6 @@ import com.dialoguebranch.execution.parser.ProjectParserResult;
 import com.dialoguebranch.model.common.ProjectMetaData;
 import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.model.execute.Language;
-import com.dialoguebranch.model.execute.LanguageSet;
 import com.dialoguebranch.model.execute.ResourcePointer;
 import com.dialoguebranch.web.service.execution.SpringResourceScriptLoader;
 import com.dialoguebranch.web.service.storage.model.DBProject;
@@ -179,30 +178,20 @@ public class ProjectSeedService {
 							path, w)));
 		}
 
-		// -- Step 3: Create the project record --
-		DBProject project = projectService.createProject(
-				projectFolderName, metaData.getName(), metaData.getDescription());
+		// -- Step 3: Create the project record, including its (required) source language --
+		Language source = metaData.getLanguageMap() != null
+				? metaData.getLanguageMap().getSourceLanguage() : null;
+		if (source == null) {
+			logger.error("Seed project '{}': dlb-project.xml has no <source-language> — not seeding.",
+					projectFolderName);
+			return;
+		}
+		DBProject project = projectService.createProject(projectFolderName, metaData.getName(),
+				metaData.getDescription(), source.getCode(), source.getName());
 
-		// -- Step 4: Store language mappings, and mark the project's default language set --
-		if (metaData.getLanguageMap() != null) {
-			List<LanguageSet> languageSets = metaData.getLanguageMap().getLanguageSets();
-			for (LanguageSet languageSet : languageSets) {
-				Language source = languageSet.getSourceLanguage();
-				for (Language translation : languageSet.getTranslationLanguages()) {
-					projectService.addLanguageMapping(project, source, translation);
-				}
-			}
-
-			// Prefer whichever language set's source-language is explicitly marked
-			// default="true" in dlb-project.xml; fall back to the first one for seed projects
-			// that don't declare a default (so this remains backward-compatible).
-			languageSets.stream()
-					.filter(LanguageSet::isDefault)
-					.findFirst()
-					.or(() -> languageSets.stream().findFirst())
-					.ifPresent(languageSet -> projectService.setDefaultLanguageSet(project,
-							languageSet.getSourceLanguage().getCode(),
-							languageSet.getSourceLanguage().getName()));
+		// -- Step 4: Store translation languages --
+		for (Language translation : metaData.getLanguageMap().getTranslationLanguages()) {
+			projectService.addTranslationLanguage(project, translation.getName(), translation.getCode());
 		}
 
 		// -- Step 5: List the seed source files --

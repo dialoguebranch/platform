@@ -33,34 +33,53 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * A {@link LanguageMap} is a wrapper object containing a {@link List} of {@link LanguageSet}s, as
- * well as some convenience methods for manipulating {@link LanguageSet}s.
+ * A {@link LanguageMap} describes a Dialogue Branch project's language configuration: exactly one
+ * source {@link Language} (the language its {@code .dlb} scripts are written in) and zero or more
+ * translation {@link Language}s (for which {@code .json} translation files may exist).
  *
  * @author Harm op den Akker
  */
 public class LanguageMap {
 
-	private List<LanguageSet> languageSets;
+	private Language sourceLanguage;
+	private List<Language> translationLanguages;
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
 
 	/**
-	 * Creates an instance of an empty {@link LanguageMap}.
+	 * Creates an instance of an empty {@link LanguageMap}, with no source language and no
+	 * translation languages.
 	 */
 	public LanguageMap() {
-		languageSets = new ArrayList<>();
+		translationLanguages = new ArrayList<>();
 	}
 
 	/**
-	 * Creates an instance of a {@link LanguageMap} with a given list of {@link LanguageSet}s. If
-	 * the given list of language sets is {@code null}, an empty list will be set instead.
+	 * Creates an instance of a {@link LanguageMap} with a given {@code sourceLanguage} and no
+	 * translation languages.
 	 *
-	 * @param languageSets a list of {@link LanguageSet}s contained in this {@link LanguageMap}.
+	 * @param sourceLanguage the source {@link Language} of this {@link LanguageMap}.
 	 */
-	public LanguageMap(List<LanguageSet> languageSets) {
-        this.languageSets = Objects.requireNonNullElseGet(languageSets, ArrayList::new);
+	public LanguageMap(Language sourceLanguage) {
+		this.sourceLanguage = sourceLanguage;
+		this.translationLanguages = new ArrayList<>();
+	}
+
+	/**
+	 * Creates an instance of a {@link LanguageMap} with a given {@code sourceLanguage} and list of
+	 * {@code translationLanguages}. If the given list of translation languages is {@code null}, an
+	 * empty list will be set instead.
+	 *
+	 * @param sourceLanguage the source {@link Language} of this {@link LanguageMap}.
+	 * @param translationLanguages a list of translation {@link Language}s for this
+	 *                              {@link LanguageMap}.
+	 */
+	public LanguageMap(Language sourceLanguage, List<Language> translationLanguages) {
+		this.sourceLanguage = sourceLanguage;
+		this.translationLanguages = Objects.requireNonNullElseGet(
+				translationLanguages, ArrayList::new);
 	}
 
 	// ----------------------------------------------------------- //
@@ -68,24 +87,43 @@ public class LanguageMap {
 	// ----------------------------------------------------------- //
 
 	/**
-	 * Returns the {@link List} of {@link LanguageSet}s in this {@link LanguageMap}.
+	 * Returns the source {@link Language} of this {@link LanguageMap}, or {@code null} if none has
+	 * been set.
 	 *
-	 * @return the {@link List} of {@link LanguageSet}s in this {@link LanguageMap}.
+	 * @return the source language of this {@link LanguageMap}.
 	 */
-	public List<LanguageSet> getLanguageSets() {
-		return languageSets;
+	public Language getSourceLanguage() {
+		return sourceLanguage;
 	}
 
 	/**
-	 * Sets the {@link List} of {@link LanguageSet}s for this {@link LanguageMap}. If the given
-	 * {@code languageSets} is {@code null}, the current list of language sets will be set to an
-	 * empty list.
+	 * Sets the source {@link Language} of this {@link LanguageMap}.
 	 *
-	 * @param languageSets the {@link List} of {@link LanguageSet}s for this
-	 *                     {@link LanguageMap}.
+	 * @param sourceLanguage the source language of this {@link LanguageMap}.
 	 */
-	public void setLanguageSets(List<LanguageSet> languageSets) {
-		this.languageSets = Objects.requireNonNullElseGet(languageSets, ArrayList::new);
+	public void setSourceLanguage(Language sourceLanguage) {
+		this.sourceLanguage = sourceLanguage;
+	}
+
+	/**
+	 * Returns the {@link List} of translation {@link Language}s in this {@link LanguageMap}.
+	 *
+	 * @return the list of translation languages in this {@link LanguageMap}.
+	 */
+	public List<Language> getTranslationLanguages() {
+		return translationLanguages;
+	}
+
+	/**
+	 * Sets the {@link List} of translation {@link Language}s for this {@link LanguageMap}. If the
+	 * given {@code translationLanguages} is {@code null}, the current list will be set to an empty
+	 * list.
+	 *
+	 * @param translationLanguages the list of translation languages for this {@link LanguageMap}.
+	 */
+	public void setTranslationLanguages(List<Language> translationLanguages) {
+		this.translationLanguages = Objects.requireNonNullElseGet(
+				translationLanguages, ArrayList::new);
 	}
 
 	// ------------------------------------------------------- //
@@ -93,21 +131,25 @@ public class LanguageMap {
 	// ------------------------------------------------------- //
 
 	/**
-	 * Adds the given {@link LanguageSet} to this {@link LanguageMap}, unless the given {@code
-	 * languageSet} is {@code null}, in which case, this method does nothing.
+	 * Adds the given {@link Language} to the list of translation languages in this
+	 * {@link LanguageMap}, unless {@code translationLanguage} is {@code null}, in which case this
+	 * method does nothing.
 	 *
-	 * @param languageSet the {@link LanguageSet} to add to this {@link LanguageMap}.
+	 * @param translationLanguage the translation {@link Language} to add to this
+	 *                            {@link LanguageMap}.
 	 */
-	public void addLanguageSet(LanguageSet languageSet) {
-		if(languageSet != null)
-			languageSets.add(languageSet);
+	public void addTranslationLanguage(Language translationLanguage) {
+		if (translationLanguage != null)
+			translationLanguages.add(translationLanguage);
 	}
 
 	@Override
 	public String toString() {
 		StringBuilder result = new StringBuilder("LanguageMap: \n");
-		for(LanguageSet languageSet : languageSets) {
-			result.append(languageSet.toString());
+		if (sourceLanguage != null)
+			result.append("[SourceLanguage:").append(sourceLanguage).append("]\n");
+		for (Language language : translationLanguages) {
+			result.append(language).append("\n");
 		}
 		return result.toString();
 	}

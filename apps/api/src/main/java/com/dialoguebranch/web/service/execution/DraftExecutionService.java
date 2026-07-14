@@ -29,6 +29,7 @@
 package com.dialoguebranch.web.service.execution;
 
 import com.dialoguebranch.exception.ExecutionException;
+import com.dialoguebranch.exception.UnknownLanguageCodeException;
 import com.dialoguebranch.execution.ActiveDialogue;
 import com.dialoguebranch.execution.ExecuteNodeResult;
 import com.dialoguebranch.execution.Variable;
@@ -45,6 +46,7 @@ import com.dialoguebranch.model.execute.ResourcePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import com.dialoguebranch.web.service.exception.BadRequestException;
+import com.dialoguebranch.web.service.exception.ErrorCode;
 import com.dialoguebranch.web.service.exception.NotFoundException;
 import com.dialoguebranch.web.service.exception.ProjectParseHttpError;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
@@ -138,6 +140,12 @@ public class DraftExecutionService {
 	public StartResult startSession(UserService userService, DBProject project,
 									DBDraftDialogue dialogue, String language, String startNodeId)
 			throws BadRequestException, ExecutionException {
+		try {
+			project.validateLanguageCode(language);
+		} catch (UnknownLanguageCodeException e) {
+			throw new BadRequestException(ErrorCode.UNKNOWN_LANGUAGE_CODE, e.getMessage());
+		}
+
 		// The dialogue under test may contain node pointers to sibling dialogues in the same
 		// project — parsing needs all of them available, not just this one, otherwise those
 		// pointers are reported as pointing to an "unknown dialogue". Every dialogue in a project
@@ -163,8 +171,8 @@ public class DraftExecutionService {
 
 		// The project's actual source language — NOT `language` (the language being requested for
 		// this test), which may instead name one of the project's translation languages.
-		String sourceLanguage = project.getDefaultLanguageSet() != null
-				? project.getDefaultLanguageSet().getSourceLanguageCode() : "";
+		String sourceLanguage = project.getSourceLanguageCode() != null
+				? project.getSourceLanguageCode() : "";
 		ScriptLoader scriptLoader = new DatabasePublishedScriptLoader(
 				sourceLanguage, scriptContents, translationContents);
 

@@ -29,6 +29,7 @@
 package com.dialoguebranch.web.service.execution;
 
 import com.dialoguebranch.exception.ExecutionException;
+import com.dialoguebranch.exception.UnknownLanguageCodeException;
 import com.dialoguebranch.execution.parser.ScriptLoader;
 import com.dialoguebranch.i18n.TranslationContext;
 import com.dialoguebranch.model.execute.Dialogue;
@@ -238,6 +239,24 @@ public class ApplicationManager {
 		DialogueBranchProject project = projects.get(projectSlug);
 		if (project == null) return new ArrayList<>();
 		return new ArrayList<>(project.getResourcePointers());
+	}
+
+	/**
+	 * Checks whether the given {@code language} is supported (as either the source language or a
+	 * translation language) by the named project's metadata. If the project isn't loaded or has no
+	 * metadata, this is a no-op — dialogue lookup will fail with a more specific error in that case.
+	 *
+	 * @param projectSlug the project folder name / slug.
+	 * @param language    the language code to validate.
+	 * @throws UnknownLanguageCodeException if the project's metadata is present and does not list
+	 *                                       {@code language} as a supported language.
+	 */
+	public void validateLanguage(String projectSlug, String language)
+			throws UnknownLanguageCodeException {
+		DialogueBranchProject project = projects.get(projectSlug);
+		if (project instanceof ExecutableProject execProject && execProject.getMetaData() != null) {
+			execProject.getMetaData().validateLanguageCode(language);
+		}
 	}
 
 	/**

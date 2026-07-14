@@ -29,6 +29,7 @@
 package com.dialoguebranch.web.service.controller;
 
 import com.dialoguebranch.exception.ExecutionException;
+import com.dialoguebranch.exception.UnknownLanguageCodeException;
 import com.dialoguebranch.execution.ExecuteNodeResult;
 import com.dialoguebranch.model.execute.LoggedInteraction;
 import com.dialoguebranch.model.execute.MessageSource;
@@ -255,6 +256,8 @@ public class DialogueController {
 			return DialogueMessageFactory.generateDialogueMessage(node);
 		} catch (ExecutionException e) {
 			throw ControllerFunctions.createHttpException(e);
+		} catch (UnknownLanguageCodeException e) {
+			throw new BadRequestException(ErrorCode.UNKNOWN_LANGUAGE_CODE, e.getMessage());
 		}
 	}
 

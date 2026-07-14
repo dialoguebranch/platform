@@ -32,7 +32,6 @@ import com.dialoguebranch.exception.DuplicateLanguageCodeException;
 import com.dialoguebranch.exception.UnknownLanguageCodeException;
 import com.dialoguebranch.model.execute.Language;
 import com.dialoguebranch.model.execute.LanguageMap;
-import com.dialoguebranch.model.execute.LanguageSet;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -242,111 +241,81 @@ public class ProjectMetaData {
 	// ------------------------------------------------------- //
 
 	/**
-	 * Attempts to set a new language with the given {@code name} and {@code code} to the given
-	 * {@link LanguageSet} as the source language in this Dialogue Branch project. This method
-	 * will succeed and return {@code true} if and only if a language with the given {@code code}
-	 * does not exist yet in the {@link LanguageMap} of this Dialogue Branch project.
+	 * Sets the source language of this Dialogue Branch project to a new language with the given
+	 * {@code name} and {@code code}. This method will fail with a
+	 * {@link DuplicateLanguageCodeException} if a language with the given {@code code} already
+	 * exists as a translation language in this Dialogue Branch project.
 	 *
-	 * @param name the name of the source language to add.
-	 * @param code the code of the source language to add.
-	 * @param languageSet the language set to which to add the language
+	 * @param name the name of the source language.
+	 * @param code the code of the source language.
 	 * @throws DuplicateLanguageCodeException in case a language with the given {@code code}
 	 *                                           already exists in this Dialogue Branch project.
 	 */
-	public void setSourceLanguage(String name, String code, LanguageSet languageSet)
+	public void setSourceLanguage(String name, String code)
 			throws DuplicateLanguageCodeException {
 		if(languageExists(code))
 			throw new DuplicateLanguageCodeException("A language with the given language " +
 					"code '"+code+"' is already defined in this DialogueBranch project.",code);
 
-		languageSet.setSourceLanguage(new Language(name,code));
+		languageMap.setSourceLanguage(new Language(name,code));
 	}
 
 	/**
-	 * Attempts to add a new source language to this Dialogue Branch project with the given
-	 * {@code name} and {@code code} by creating a new {@link LanguageSet} for it. This method
-	 * will fail with a {@link DuplicateLanguageCodeException} if a language with the given
-	 * {@code code} already exists in this Dialogue Branch project. Otherwise, it will return a
-	 * pointer to the newly created {@link LanguageSet}.
-	 *
-	 * @param name the name of the source language to add.
-	 * @param code the code of the source language to add.
-	 * @throws DuplicateLanguageCodeException in case a language with the given {@code code}
-	 *                                           already exists in this Dialogue Branch project.
-	 * @return the newly created {@link LanguageSet}
-	 */
-	public LanguageSet addSourceLanguage(String name, String code)
-			throws DuplicateLanguageCodeException {
-		if(languageExists(code))
-			throw new DuplicateLanguageCodeException("A language with the given language " +
-					"code '"+code+"' is already defined in this DialogueBranch project.",code);
-
-		LanguageSet languageSet = new LanguageSet(new Language(name, code));
-		languageMap.addLanguageSet(languageSet);
-		return languageSet;
-	}
-
-	/**
-	 * Attempts to add a new language with the given {@code name} and {@code code} to the given
-	 * {@link LanguageSet} as a translation language. This method will succeed and return
-	 * {@code true} if and only if a language with the given {@code code} does not exist yet
-	 * in this {@link LanguageMap}.
+	 * Attempts to add a new language with the given {@code name} and {@code code} to this Dialogue
+	 * Branch project as a translation language. This method will fail with a
+	 * {@link DuplicateLanguageCodeException} if a language with the given {@code code} already
+	 * exists in this Dialogue Branch project.
 	 *
 	 * @param name the name of the language to add.
 	 * @param code the code of the language to add.
-	 * @param languageSet the language set to which to add the language
 	 * @throws DuplicateLanguageCodeException in case a language with the given {@code code}
 	 *                                           already exists in this Dialogue Branch project.
 	 */
-	public void addTranslationLanguage(String name, String code, LanguageSet languageSet)
+	public void addTranslationLanguage(String name, String code)
 			throws DuplicateLanguageCodeException {
 		if(languageExists(code))
 			throw new DuplicateLanguageCodeException("A language with the given language " +
 					"code '"+code+"' is already defined in this DialogueBranch project.",code);
 
-		languageSet.addTranslationLanguage(new Language(name,code));
+		languageMap.addTranslationLanguage(new Language(name,code));
 	}
 
 	/**
 	 * Checks whether a language with the given {@code languageCode} exists in this {@link
-	 * LanguageMap}.
+	 * LanguageMap}, either as the source language or as a translation language.
 	 *
 	 * @param languageCode the language code to search for
 	 * @return true if the given {@code languageCode} exists, false otherwise
 	 */
 	public boolean languageExists(String languageCode) {
-		for(LanguageSet languageSet : languageMap.getLanguageSets()) {
-			if(languageSet.getSourceLanguage().getCode().equals(languageCode)) return true;
-			for(Language translationLanguage : languageSet.getTranslationLanguages()) {
-				if(translationLanguage.getCode().equals(languageCode)) return true;
-			}
+		if(languageMap.getSourceLanguage() != null
+				&& languageMap.getSourceLanguage().getCode().equals(languageCode))
+			return true;
+		for(Language translationLanguage : languageMap.getTranslationLanguages()) {
+			if(translationLanguage.getCode().equals(languageCode)) return true;
 		}
 		return false;
 	}
 
 	/**
-	 * Returns the {@link LanguageSet} in this Dialogue Branch project for which the source
-	 * language code matches the given {@code code}.
+	 * Checks whether a language with the given {@code languageCode} is supported by this Dialogue
+	 * Branch project (either as its source language or as one of its translation languages).
 	 *
-	 * @param sourceLanguageCode the language code of the source language for which to look up its
-	 *                           {@link LanguageSet}.
-	 * @return the {@link LanguageSet} with a source language with the given {@code code}.
-	 * @throws UnknownLanguageCodeException if no language set exists with the given source
-	 *                                         language code.
+	 * @param languageCode the language code to validate.
+	 * @throws UnknownLanguageCodeException if no language with the given {@code languageCode} is
+	 *                                      supported by this Dialogue Branch project.
 	 */
-	public LanguageSet getLanguageSetForSourceLanguage(String sourceLanguageCode)
-			throws UnknownLanguageCodeException {
-		for(LanguageSet languageSet : languageMap.getLanguageSets()) {
-			if(languageSet.getSourceLanguage().getCode().equals(sourceLanguageCode))
-				return languageSet;
+	public void validateLanguageCode(String languageCode) throws UnknownLanguageCodeException {
+		if(!languageExists(languageCode)) {
+			throw new UnknownLanguageCodeException("Language code '"+languageCode+"' is not " +
+					"supported in Dialogue Branch project '"+name+"'.",languageCode);
 		}
-		throw new UnknownLanguageCodeException("No language set found with source language '"
-				+sourceLanguageCode+"'.",sourceLanguageCode);
 	}
 
 	/**
 	 * Returns a list of {@link Language} objects representing all the different languages supported
-	 * in this Dialogue Branch project.
+	 * in this Dialogue Branch project (the source language, if set, followed by every translation
+	 * language).
 	 *
 	 * @return the list of {@link Language}s, supported in this project.
 	 */
@@ -354,18 +323,11 @@ public class ProjectMetaData {
 		List<Language> result = new ArrayList<>();
 
 		if(languageMap != null) {
-			List<LanguageSet> languageSets = languageMap.getLanguageSets();
-			if(languageSets != null) {
-				for(LanguageSet languageSet : languageSets) {
-					Language sourceLanguage = languageSet.getSourceLanguage();
-					if(sourceLanguage != null) {
-						result.add(sourceLanguage);
-					}
-					List<Language> translationLanguages = languageSet.getTranslationLanguages();
-					if(translationLanguages != null) {
-                        result.addAll(translationLanguages);
-					}
-				}
+			if(languageMap.getSourceLanguage() != null) {
+				result.add(languageMap.getSourceLanguage());
+			}
+			if(languageMap.getTranslationLanguages() != null) {
+				result.addAll(languageMap.getTranslationLanguages());
 			}
 		}
 		return result;
@@ -388,38 +350,24 @@ public class ProjectMetaData {
 	}
 
 	/**
-	 * Returns a list of all source languages defined in this {@link ProjectMetaData} as {@link
-	 * Language} objects.
+	 * Returns the source language of this Dialogue Branch project, or {@code null} if none has
+	 * been defined.
 	 *
-	 * @return a list of all source languages defined in this {@link ProjectMetaData} as {@link
-	 *         Language} objects.
+	 * @return the source {@link Language} of this Dialogue Branch project, or {@code null}.
 	 */
-	public List<Language> getSourceLanguages() {
-		List<Language> result = new ArrayList<>();
-
-		if(languageMap != null) {
-			for(LanguageSet languageSet : languageMap.getLanguageSets()) {
-				if(languageSet.getSourceLanguage() != null) {
-					result.add(languageSet.getSourceLanguage());
-				}
-			}
-		}
-
-		return result;
+	public Language getSourceLanguage() {
+		return languageMap != null ? languageMap.getSourceLanguage() : null;
 	}
 
 	/**
-	 * Returns a list of language code, representing all available "source" languages as defined in
-	 * this {@link ProjectMetaData}.
+	 * Returns the language code of the source language of this Dialogue Branch project, or
+	 * {@code null} if none has been defined.
 	 *
-	 * @return a list of all source languages as language code strings.
+	 * @return the source language code of this Dialogue Branch project, or {@code null}.
 	 */
-	public List<String> getSourceLanguageCodes() {
-		List<String> result = new ArrayList<>();
-		for(Language language : getSourceLanguages()) {
-			result.add(language.getCode());
-		}
-		return result;
+	public String getSourceLanguageCode() {
+		Language source = getSourceLanguage();
+		return source != null ? source.getCode() : null;
 	}
 
 	/**

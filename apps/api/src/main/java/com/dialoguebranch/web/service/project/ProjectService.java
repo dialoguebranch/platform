@@ -28,38 +28,30 @@
 
 package com.dialoguebranch.web.service.project;
 
-import com.dialoguebranch.model.execute.Language;
-import com.dialoguebranch.model.execute.LanguageMap;
-import com.dialoguebranch.model.execute.LanguageSet;
 import com.dialoguebranch.model.execute.NodeHeader;
-import com.dialoguebranch.web.service.repository.DBLanguageSetRepository;
-import com.dialoguebranch.web.service.repository.DBLanguageSetTranslationRepository;
-import com.dialoguebranch.web.service.repository.DBProjectLanguageMappingRepository;
 import com.dialoguebranch.web.service.repository.DBProjectRepository;
 import com.dialoguebranch.web.service.repository.DBProjectVersionRepository;
 import com.dialoguebranch.web.service.repository.DBPublishedDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBPublishedTranslationRepository;
+import com.dialoguebranch.web.service.repository.DBTranslationLanguageRepository;
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
-import com.dialoguebranch.web.service.storage.model.DBLanguageSet;
 import com.dialoguebranch.web.service.storage.model.DBProject;
-import com.dialoguebranch.web.service.storage.model.DBProjectLanguageMapping;
 import com.dialoguebranch.web.service.storage.model.DBProjectVersion;
 import com.dialoguebranch.web.service.storage.model.DBPublishedDialogue;
+import com.dialoguebranch.web.service.storage.model.DBTranslationLanguage;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Service for managing {@link DBProject} records and their associated language mappings. Handles
- * creation, retrieval, update and deletion of projects, and provides conversion between the
- * flat {@link DBProjectLanguageMapping} rows and the structured {@link LanguageMap} domain model.
+ * Service for managing {@link DBProject} records — creation, retrieval, update and deletion of
+ * projects, and management of their translation languages. A project always has exactly one
+ * source language (set at creation time, stored directly on {@link DBProject}) and zero or more
+ * translation languages ({@link DBTranslationLanguage} rows).
  *
  * @author Harm op den Akker
  */
@@ -72,26 +64,20 @@ public class ProjectService {
 	private static final String DEFAULT_NODE_BODY = "Start your dialogue here...";
 
 	private final DBProjectRepository projectRepository;
-	private final DBProjectLanguageMappingRepository languageMappingRepository;
-	private final DBLanguageSetRepository languageSetRepository;
-	private final DBLanguageSetTranslationRepository languageSetTranslationRepository;
+	private final DBTranslationLanguageRepository translationLanguageRepository;
 	private final DBProjectVersionRepository projectVersionRepository;
 	private final DBPublishedDialogueRepository publishedDialogueRepository;
 	private final DBPublishedTranslationRepository publishedTranslationRepository;
 	private final DraftDialogueService draftDialogueService;
 
 	public ProjectService(DBProjectRepository projectRepository,
-						  DBProjectLanguageMappingRepository languageMappingRepository,
-						  DBLanguageSetRepository languageSetRepository,
-						  DBLanguageSetTranslationRepository languageSetTranslationRepository,
+						  DBTranslationLanguageRepository translationLanguageRepository,
 						  DBProjectVersionRepository projectVersionRepository,
 						  DBPublishedDialogueRepository publishedDialogueRepository,
 						  DBPublishedTranslationRepository publishedTranslationRepository,
 						  DraftDialogueService draftDialogueService) {
 		this.projectRepository = projectRepository;
-		this.languageMappingRepository = languageMappingRepository;
-		this.languageSetRepository = languageSetRepository;
-		this.languageSetTranslationRepository = languageSetTranslationRepository;
+		this.translationLanguageRepository = translationLanguageRepository;
 		this.projectVersionRepository = projectVersionRepository;
 		this.publishedDialogueRepository = publishedDialogueRepository;
 		this.publishedTranslationRepository = publishedTranslationRepository;
@@ -132,48 +118,49 @@ public class ProjectService {
 	}
 
 	/**
-	 * Creates and persists a new project with the given attributes and no default language. Only
-	 * used for seed projects, which define their own language map separately; every project
-	 * created through the API must have a default language (see
-	 * {@link #createProject(String, String, String, String, String)}).
+	 * Creates and persists a new project with the given attributes and source language. Does not
+	 * create any dialogue content — used both by seed projects (which define their own dialogues
+	 * from source files) and by {@link #createProjectWithStarterDialogue} as its base step.
 	 *
-	 * @param slug        the unique project slug.
-	 * @param displayName the human-readable display name.
-	 * @param description the project description.
+	 * @param slug               the unique project slug.
+	 * @param displayName        the human-readable display name.
+	 * @param description        the project description.
+	 * @param sourceLanguageCode the ISO code of the project's source language.
+	 * @param sourceLanguageName the human-readable name of the project's source language.
 	 * @return the newly created {@link DBProject}.
 	 */
-	public DBProject createProject(String slug, String displayName, String description) {
+	public DBProject createProject(String slug, String displayName, String description,
+									String sourceLanguageCode, String sourceLanguageName) {
 		Instant now = Instant.now();
 		DBProject project = new DBProject();
 		project.setSlug(slug);
 		project.setDisplayName(displayName);
 		project.setDescription(description);
+		project.setSourceLanguageCode(sourceLanguageCode);
+		project.setSourceLanguageName(sourceLanguageName);
 		project.setCreatedAt(now);
 		project.setUpdatedAt(now);
 		return projectRepository.save(project);
 	}
 
 	/**
-	 * Creates and persists a new project with the given attributes, along with its first
-	 * {@link DBLanguageSet} — using the given source language, with no translations yet — which
-	 * is immediately marked as the project's default language set. A project always has exactly
-	 * one default language set among one or more defined language sets.
+	 * Creates and persists a new project exactly as {@link #createProject}, and additionally
+	 * creates a starter draft dialogue named {@code "default"} with a single {@code "Start"} node,
+	 * so every new project authored through the API has something to run immediately. Used only by
+	 * the {@code /create-project} endpoint (the "Create New Project" wizard flow).
 	 *
-	 * <p>Also creates a starter draft dialogue named {@code "default"} with a single
-	 * {@code "Start"} node, so every new project has something to run immediately.</p>
-	 *
-	 * @param slug                   the unique project slug.
-	 * @param displayName            the human-readable display name.
-	 * @param description            the project description.
-	 * @param defaultLanguageCode    the ISO code of the project's default (source) language.
-	 * @param defaultLanguageName    the human-readable name of the project's default language.
+	 * @param slug               the unique project slug.
+	 * @param displayName        the human-readable display name.
+	 * @param description        the project description.
+	 * @param sourceLanguageCode the ISO code of the project's source language.
+	 * @param sourceLanguageName the human-readable name of the project's source language.
 	 * @return the newly created {@link DBProject}.
 	 */
 	@Transactional
-	public DBProject createProject(String slug, String displayName, String description,
-									String defaultLanguageCode, String defaultLanguageName) {
-		DBProject project = createProject(slug, displayName, description);
-		setDefaultLanguageSet(project, defaultLanguageCode, defaultLanguageName);
+	public DBProject createProjectWithStarterDialogue(String slug, String displayName,
+			String description, String sourceLanguageCode, String sourceLanguageName) {
+		DBProject project = createProject(slug, displayName, description,
+				sourceLanguageCode, sourceLanguageName);
 
 		DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, DEFAULT_DIALOGUE_NAME);
 		NodeHeader header = new NodeHeader(DEFAULT_NODE_TITLE);
@@ -181,32 +168,6 @@ public class ProjectService {
 		draftDialogueService.createNode(dialogue, DEFAULT_NODE_TITLE, header.toString(), DEFAULT_NODE_BODY);
 
 		return project;
-	}
-
-	/**
-	 * Creates and persists a new {@link DBLanguageSet} for the given project with the given source
-	 * language, and marks it as the project's default language set. A project always has exactly
-	 * one default language set among one or more defined language sets.
-	 *
-	 * @param project             the project to set the default language set for.
-	 * @param defaultLanguageCode the ISO code of the project's default (source) language.
-	 * @param defaultLanguageName the human-readable name of the project's default language.
-	 * @return the newly created, now-default {@link DBLanguageSet}.
-	 */
-	@Transactional
-	public DBLanguageSet setDefaultLanguageSet(DBProject project, String defaultLanguageCode,
-												String defaultLanguageName) {
-		DBLanguageSet languageSet = new DBLanguageSet();
-		languageSet.setProject(project);
-		languageSet.setSourceLanguageCode(defaultLanguageCode);
-		languageSet.setSourceLanguageName(defaultLanguageName);
-		languageSet = languageSetRepository.save(languageSet);
-
-		project.setDefaultLanguageSet(languageSet);
-		project.setUpdatedAt(Instant.now());
-		projectRepository.save(project);
-
-		return languageSet;
 	}
 
 	/**
@@ -235,31 +196,24 @@ public class ProjectService {
 	}
 
 	/**
-	 * Deletes the given project and all its associated data: language sets (and their
-	 * translations), language mappings, draft dialogues (and their nodes/translations), and
-	 * published versions (and their published dialogues/translations).
+	 * Deletes the given project and all its associated data: translation languages, draft
+	 * dialogues (and their nodes/translations), and published versions (and their published
+	 * dialogues/translations).
 	 *
 	 * <p>None of these relationships cascade at the database or JPA level, and
-	 * {@code default_language_set_id}/{@code latest_version_id} are circular references back into
-	 * tables that reference the project — so children must be deleted (and those two references
-	 * nulled out) before the project row itself can be deleted.</p>
+	 * {@code latest_version_id} is a circular reference back into a table that references the
+	 * project — so children must be deleted (and that reference nulled out) before the project
+	 * row itself can be deleted.</p>
 	 *
 	 * @param project the project to delete.
 	 */
 	@Transactional
 	public void deleteProject(DBProject project) {
-		// Break the circular references back into this project before deleting anything.
-		project.setDefaultLanguageSet(null);
+		// Break the circular reference back into this project before deleting anything.
 		project.setLatestVersion(null);
 		projectRepository.save(project);
 
-		for (DBLanguageSet languageSet : languageSetRepository.findByProject(project)) {
-			languageSetTranslationRepository.deleteAll(
-					languageSetTranslationRepository.findByLanguageSet(languageSet));
-		}
-		languageSetRepository.deleteAll(languageSetRepository.findByProject(project));
-
-		languageMappingRepository.deleteAll(languageMappingRepository.findByProject(project));
+		translationLanguageRepository.deleteAll(translationLanguageRepository.findByProject(project));
 
 		// Whole-project deletion is final, so every draft dialogue must actually be removed here
 		// (deleteDialogue is a revertible soft-delete, which would leave rows behind referencing
@@ -283,59 +237,38 @@ public class ProjectService {
 	}
 
 	// ----------------------------------------------------------------------- //
-	// -------------------- Language Mapping Management -------------------- //
+	// -------------------- Translation Language Management -------------------- //
 	// ----------------------------------------------------------------------- //
 
 	/**
-	 * Adds a source-to-translation language mapping to the given project.
+	 * Adds a translation language to the given project.
 	 *
-	 * @param project             the owning project.
-	 * @param sourceLanguage      the source {@link Language} (name + code).
-	 * @param translationLanguage the translation {@link Language} (name + code).
-	 * @return the newly created {@link DBProjectLanguageMapping}.
+	 * @param project                    the owning project.
+	 * @param translationLanguageName    the human-readable name of the translation language.
+	 * @param translationLanguageCode    the ISO code of the translation language.
+	 * @return the newly created {@link DBTranslationLanguage}.
 	 */
-	public DBProjectLanguageMapping addLanguageMapping(DBProject project, Language sourceLanguage,
-													   Language translationLanguage) {
-		DBProjectLanguageMapping mapping = new DBProjectLanguageMapping();
-		mapping.setProject(project);
-		mapping.setSourceLanguageName(sourceLanguage.getName());
-		mapping.setSourceLanguageCode(sourceLanguage.getCode());
-		mapping.setTranslationLanguageName(translationLanguage.getName());
-		mapping.setTranslationLanguageCode(translationLanguage.getCode());
-		return languageMappingRepository.save(mapping);
+	public DBTranslationLanguage addTranslationLanguage(DBProject project,
+			String translationLanguageName, String translationLanguageCode) {
+		DBTranslationLanguage translationLanguage = new DBTranslationLanguage();
+		translationLanguage.setProject(project);
+		translationLanguage.setTranslationLanguageName(translationLanguageName);
+		translationLanguage.setTranslationLanguageCode(translationLanguageCode);
+		return translationLanguageRepository.save(translationLanguage);
 	}
 
 	/**
-	 * Removes the language mapping with the given {@code id}.
+	 * Removes the translation language with the given {@code id} from the given project, if it
+	 * actually belongs to it. Does nothing if no such translation language exists for this
+	 * project (e.g. it belongs to a different project, or was already removed).
 	 *
-	 * @param mappingId the UUID of the mapping to remove.
+	 * @param project the project the translation language must belong to.
+	 * @param id      the UUID of the translation language to remove.
 	 */
-	public void removeLanguageMapping(UUID mappingId) {
-		languageMappingRepository.deleteById(mappingId);
-	}
-
-	/**
-	 * Builds a {@link LanguageMap} from all {@link DBProjectLanguageMapping} rows for the given
-	 * project. Rows sharing the same {@code sourceLanguage} are grouped into a single
-	 * {@link LanguageSet}.
-	 *
-	 * @param project the project whose language mappings to convert.
-	 * @return the reconstructed {@link LanguageMap}.
-	 */
-	public LanguageMap getLanguageMap(DBProject project) {
-		List<DBProjectLanguageMapping> mappings = languageMappingRepository.findByProject(project);
-
-		Map<String, LanguageSet> setsBySource = new LinkedHashMap<>();
-		for (DBProjectLanguageMapping mapping : mappings) {
-			setsBySource.computeIfAbsent(
-					mapping.getSourceLanguageCode(),
-					src -> new LanguageSet(new Language(mapping.getSourceLanguageName(),
-							mapping.getSourceLanguageCode()))
-			).addTranslationLanguage(new Language(mapping.getTranslationLanguageName(),
-					mapping.getTranslationLanguageCode()));
-		}
-
-		return new LanguageMap(new ArrayList<>(setsBySource.values()));
+	public void removeTranslationLanguage(DBProject project, UUID id) {
+		translationLanguageRepository.findById(id)
+				.filter(t -> t.getProject().getId().equals(project.getId()))
+				.ifPresent(translationLanguageRepository::delete);
 	}
 
 }

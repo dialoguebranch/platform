@@ -282,8 +282,7 @@ public class ProjectParser {
 		}
 
 		for (ResourcePointer fileDescription : translations.keySet()) {
-			Dialogue source = findSourceDialogue(fileDescription.getDialogueName(),
-					fileDescription.getLanguage());
+			Dialogue source = findSourceDialogue(fileDescription.getDialogueName());
 			if (source == null) {
 				getParseErrors(readResult, fileDescription).add(new ParseException(
 						"No source dialogue found for translation: " + fileDescription));
@@ -299,20 +298,18 @@ public class ProjectParser {
 	/**
 	 * Finds the source {@link Dialogue} for a given dialogue name and translation language code.
 	 *
-	 * <p>When a {@link ProjectScriptLoader} with {@link ProjectMetaData} is available, the language
-	 * map is consulted to find the source language that is paired with the given translation
-	 * language. This ensures the correct source script is used regardless of how many source
-	 * languages exist in the project.</p>
+	 * <p>When a {@link ProjectScriptLoader} with {@link ProjectMetaData} is available, its single
+	 * source language is used directly (a project has exactly one). This ensures the correct
+	 * source script is used regardless of how many translation languages exist in the project.</p>
 	 *
-	 * <p>If no metadata is available (e.g. when using a {@link DirectoryScriptLoader}), or if the
-	 * translation language is not found in the language map, the method falls back to
+	 * <p>If no metadata is available (e.g. when using a {@link DirectoryScriptLoader}), or its
+	 * source language isn't among the matches found, the method falls back to
 	 * {@link I18nLanguageFinder} with {@link Locale#ENGLISH} to pick the best available source.</p>
 	 *
-	 * @param dlgName             the dialogue name to look up.
-	 * @param translationLanguage the language code of the translation being resolved.
+	 * @param dlgName the dialogue name to look up.
 	 * @return the source {@link Dialogue}, or {@code null} if none could be found.
 	 */
-	private Dialogue findSourceDialogue(String dlgName, String translationLanguage) {
+	private Dialogue findSourceDialogue(String dlgName) {
 		List<ResourcePointer> matches = new ArrayList<>();
 		for (ResourcePointer fileDescription : dialogues.keySet()) {
 			if (fileDescription.getDialogueName().equals(dlgName))
@@ -327,20 +324,15 @@ public class ProjectParser {
 		for (ResourcePointer match : matches)
 			lngMap.put(match.getLanguage(), match);
 
-		// Prefer the source language defined in the project metadata for this translation language
+		// Prefer the source language defined in the project metadata
 		if (scriptLoader instanceof ProjectScriptLoader projectScriptLoader) {
 			ProjectMetaData metaData = projectScriptLoader.getProjectMetaData();
-			if (metaData != null && metaData.getLanguageMap() != null) {
-				for (LanguageSet languageSet : metaData.getLanguageMap().getLanguageSets()) {
-					for (Language translationLng : languageSet.getTranslationLanguages()) {
-						if (translationLng.getCode().equals(translationLanguage)) {
-							String sourceCode = languageSet.getSourceLanguage().getCode();
-							ResourcePointer sourcePointer = lngMap.get(sourceCode);
-							if (sourcePointer != null)
-								return dialogues.get(sourcePointer);
-						}
-					}
-				}
+			if (metaData != null && metaData.getLanguageMap() != null
+					&& metaData.getLanguageMap().getSourceLanguage() != null) {
+				ResourcePointer sourcePointer = lngMap.get(
+						metaData.getLanguageMap().getSourceLanguage().getCode());
+				if (sourcePointer != null)
+					return dialogues.get(sourcePointer);
 			}
 		}
 

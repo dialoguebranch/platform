@@ -28,7 +28,6 @@
 
 package com.dialoguebranch.web.service.controller;
 
-import com.dialoguebranch.model.execute.Language;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.QueryRunner;
 import com.dialoguebranch.web.service.auth.AuthenticationInfo;
@@ -39,7 +38,7 @@ import com.dialoguebranch.web.service.exception.HttpException;
 import com.dialoguebranch.web.service.exception.NotFoundException;
 import com.dialoguebranch.web.service.project.ProjectService;
 import com.dialoguebranch.web.service.storage.model.DBProject;
-import com.dialoguebranch.web.service.storage.model.DBProjectLanguageMapping;
+import com.dialoguebranch.web.service.storage.model.DBTranslationLanguage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -149,7 +148,7 @@ public class ProjectController {
 					if (projectService.findBySlug(payload.getSlug()).isPresent())
 						throw new ConflictException(
 								"A project with slug '" + payload.getSlug() + "' already exists.");
-					return projectService.createProject(payload.getSlug(),
+					return projectService.createProjectWithStarterDialogue(payload.getSlug(),
 							payload.getDisplayName(), payload.getDescription(),
 							payload.getDefaultLanguageCode(), payload.getDefaultLanguageName());
 				},
@@ -204,53 +203,53 @@ public class ProjectController {
 	}
 
 	// ------------------------------------------------------------------------ //
-	// -------------------- Language Mapping Management -------------------- //
+	// -------------------- Translation Language Management -------------------- //
 	// ------------------------------------------------------------------------ //
 
-	@Operation(summary = "Add a language mapping to a project.")
+	@Operation(summary = "Add a translation language to a project.")
 	@Parameter(name = "version", hidden = true)
-	@PostMapping("/add-language-mapping")
+	@PostMapping("/add-translation-language")
 	@ResponseStatus(HttpStatus.CREATED)
-	public DBProjectLanguageMapping addLanguageMapping(
+	public DBTranslationLanguage addTranslationLanguage(
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
 			@RequestParam(value = "projectSlug") String projectSlug,
-			@RequestBody AddLanguageMappingPayload payload
+			@RequestBody AddTranslationLanguagePayload payload
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info("POST /v{}/project/add-language-mapping [user: {}]", version,
+					logger.info("POST /v{}/project/add-translation-language [user: {}]", version,
 							user);
 					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectSlug));
-					Language source = new Language(payload.getSourceLanguageName(),
-							payload.getSourceLanguageCode());
-					Language translation = new Language(payload.getTranslationLanguageName(),
-							payload.getTranslationLanguageCode());
-					return projectService.addLanguageMapping(project, source, translation);
+					return projectService.addTranslationLanguage(project,
+							payload.getTranslationLanguageName(), payload.getTranslationLanguageCode());
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
-	@Operation(summary = "Remove a language mapping from a project.")
+	@Operation(summary = "Remove a translation language from a project.")
 	@Parameter(name = "version", hidden = true)
-	@PostMapping("/remove-language-mapping")
+	@PostMapping("/remove-translation-language")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void removeLanguageMapping(
+	public void removeTranslationLanguage(
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
 			@RequestParam(value = "projectSlug") String projectSlug,
-			@RequestParam(value = "mappingId") UUID mappingId
+			@RequestParam(value = "translationLanguageId") UUID translationLanguageId
 	) throws HttpException {
 		QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info("POST /v{}/project/remove-language-mapping [user: {}]",
+					logger.info("POST /v{}/project/remove-translation-language [user: {}]",
 							version, user);
-					projectService.removeLanguageMapping(mappingId);
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					projectService.removeTranslationLanguage(project, translationLanguageId);
 					return null;
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
