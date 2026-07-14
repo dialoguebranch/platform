@@ -173,7 +173,29 @@ public class ProjectService {
 	public DBProject createProject(String slug, String displayName, String description,
 									String defaultLanguageCode, String defaultLanguageName) {
 		DBProject project = createProject(slug, displayName, description);
+		setDefaultLanguageSet(project, defaultLanguageCode, defaultLanguageName);
 
+		DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, DEFAULT_DIALOGUE_NAME);
+		NodeHeader header = new NodeHeader(DEFAULT_NODE_TITLE);
+		header.setSpeaker(DEFAULT_NODE_SPEAKER);
+		draftDialogueService.createNode(dialogue, DEFAULT_NODE_TITLE, header.toString(), DEFAULT_NODE_BODY);
+
+		return project;
+	}
+
+	/**
+	 * Creates and persists a new {@link DBLanguageSet} for the given project with the given source
+	 * language, and marks it as the project's default language set. A project always has exactly
+	 * one default language set among one or more defined language sets.
+	 *
+	 * @param project             the project to set the default language set for.
+	 * @param defaultLanguageCode the ISO code of the project's default (source) language.
+	 * @param defaultLanguageName the human-readable name of the project's default language.
+	 * @return the newly created, now-default {@link DBLanguageSet}.
+	 */
+	@Transactional
+	public DBLanguageSet setDefaultLanguageSet(DBProject project, String defaultLanguageCode,
+												String defaultLanguageName) {
 		DBLanguageSet languageSet = new DBLanguageSet();
 		languageSet.setProject(project);
 		languageSet.setSourceLanguageCode(defaultLanguageCode);
@@ -182,14 +204,9 @@ public class ProjectService {
 
 		project.setDefaultLanguageSet(languageSet);
 		project.setUpdatedAt(Instant.now());
-		project = projectRepository.save(project);
+		projectRepository.save(project);
 
-		DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, DEFAULT_DIALOGUE_NAME);
-		NodeHeader header = new NodeHeader(DEFAULT_NODE_TITLE);
-		header.setSpeaker(DEFAULT_NODE_SPEAKER);
-		draftDialogueService.createNode(dialogue, DEFAULT_NODE_TITLE, header.toString(), DEFAULT_NODE_BODY);
-
-		return project;
+		return languageSet;
 	}
 
 	/**

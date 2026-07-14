@@ -65,6 +65,43 @@ function ensureTestMode() {
     if (selectedMode.value === 'edit') selectedMode.value = lastTestMode.value;
 }
 
+// ---- Language selection ----
+
+// The language new dialogue tests are started in — a plain global setting (not persisted across
+// reloads; it's reset to the project's default source language every time the project loads,
+// since a language code from one project may not even be valid for another). Once a tab has
+// actually started, it remembers its own language (see createTab's `language` field) so changing
+// this afterward only affects subsequently-started tabs, not ones already running.
+const availableLanguages = ref([]); // [{ code, name }]
+const selectedLanguage = ref('');
+
+function loadAvailableLanguages() {
+    const slug = state.value.selectedProject?.slug;
+    if (!slug) return;
+    client.getProject(slug)
+        .then((project) => {
+            const languages = new Map();
+            if (project.defaultLanguageSet) {
+                languages.set(project.defaultLanguageSet.sourceLanguageCode,
+                    project.defaultLanguageSet.sourceLanguageName);
+            }
+            for (const mapping of project.languageMappings ?? []) {
+                languages.set(mapping.sourceLanguageCode, mapping.sourceLanguageName);
+                languages.set(mapping.translationLanguageCode, mapping.translationLanguageName);
+            }
+            availableLanguages.value = [...languages.entries()].map(([code, name]) => ({ code, name }));
+            selectedLanguage.value = project.defaultLanguageSet?.sourceLanguageCode
+                ?? availableLanguages.value[0]?.code ?? 'en';
+        })
+        .catch(() => {
+            // Language selection is a convenience — fall back to a single English option so
+            // dialogue testing still works even if the project's language configuration can't be
+            // loaded (e.g. legacy seed data predating the defaultLanguageSet fix).
+            availableLanguages.value = [{ code: 'en', name: 'English' }];
+            selectedLanguage.value = 'en';
+        });
+}
+
 // ---- Tab state ----
 
 let nextTabId = 1;
@@ -79,6 +116,11 @@ function createTab() {
         dialogueCancelled: false,
         isDraftTest: false,
         draftSessionId: null,
+        // The language this tab's dialogue was actually started in — set by loadDialogue()/
+        // loadDraftDialogue() the first time a test starts, then reused on every subsequent
+        // restart so changing the workspace's language selector never changes an already-running
+        // tab out from under it.
+        language: null,
         // Tracks edits made in Edit mode since this tab's test last (re)started, so that leaving
         // Edit mode again can offer to restart the test with up-to-date content (see
         // handleReturnFromEdit / onEditorNodeChanged below).
@@ -89,6 +131,11 @@ function createTab() {
         // load that's merely in flight (which also has a dialogueName with no steps yet) so
         // ensureActiveTabStarted only acts on the former (see its comment below).
         openedForEditOnly: false,
+        // Set when loadDraftDialogue() fails to start a test session — { message, errors } (see
+        // ProjectParseHttpError.java), rendered inline by BalloonDialogueComponent/
+        // TextDialogueComponent instead of a transient toast, since the details list needs to
+        // stick around for the user to expand and read at their own pace.
+        startError: null,
     };
 }
 
@@ -187,11 +234,12 @@ const scrollTextToBottom = () => {
     if (textComponent.value) textComponent.value.scrollToBottom();
 };
 
-const loadDialogue = (name) => {
+const loadDialogue = (name, language) => {
     ensureTestMode();
     const tab = getOrCreateEmptyTab();
     activeTabId.value = tab.id;
     tab.dialogueName = name;
+    tab.language = language ?? selectedLanguage.value;
     tab.dialogueSteps = [];
     tab.dialogueEnded = false;
     tab.dialogueCancelled = false;
@@ -201,7 +249,7 @@ const loadDialogue = (name) => {
     scrollActiveTabIntoView();
     dismissError();
     logEvent('dialogue', 'Dialogue started: $1', name);
-    client.startDialogue(state.value.selectedProject?.slug, name, 'en')
+    client.startDialogue(state.value.selectedProject?.slug, name, tab.language)
     .then((dialogueStep) => {
         tab.dialogueName = dialogueStep.dialogueName;
         tab.loggedDialogueId = dialogueStep.loggedDialogueId;
@@ -221,11 +269,12 @@ const loadDialogue = (name) => {
 // Pass `tab` to restart a specific, already-open tab in place (e.g. from handleReturnFromEdit)
 // rather than the default of finding/creating an empty one; `startNodeId` starts the test from a
 // particular node instead of the dialogue's default "Start" node.
-const loadDraftDialogue = (name, { tab: givenTab, startNodeId } = {}) => {
+const loadDraftDialogue = (name, { tab: givenTab, startNodeId, language } = {}) => {
     if (!givenTab) ensureTestMode();
     const tab = givenTab ?? getOrCreateEmptyTab();
     activeTabId.value = tab.id;
     tab.dialogueName = name;
+    tab.language = language ?? selectedLanguage.value;
     tab.dialogueSteps = [];
     tab.dialogueEnded = false;
     tab.dialogueCancelled = false;
@@ -234,10 +283,11 @@ const loadDraftDialogue = (name, { tab: givenTab, startNodeId } = {}) => {
     tab.openedForEditOnly = false;
     tab.dialogueEdited = false;
     tab.lastEditedNodeTitle = null;
+    tab.startError = null;
     scrollActiveTabIntoView();
     dismissError();
     logEvent('dialogue', 'Draft test started: $1', name);
-    client.startDraftDialogue(state.value.selectedProject?.slug, name, 'en', startNodeId)
+    client.startDraftDialogue(state.value.selectedProject?.slug, name, tab.language, startNodeId)
     .then(({ draftSessionId, dialogueStep }) => {
         tab.draftSessionId = draftSessionId;
         tab.dialogueName = dialogueStep.dialogueName;
@@ -248,16 +298,24 @@ const loadDraftDialogue = (name, { tab: givenTab, startNodeId } = {}) => {
         scrollTextToBottom();
     })
     .catch((error) => {
-        showError(describeError(error));
+        // A structured "errors" field (see ProjectParseHttpError.java) means the whole project
+        // currently fails to parse — shown inline with an expandable details list, since it needs
+        // to stick around rather than vanish with a toast. Anything else (network error, other
+        // 4xx) falls back to the generic toast as usual.
+        if (error?.errors) {
+            tab.startError = { message: error.message, errors: error.errors };
+        } else {
+            showError(describeError(error));
+        }
     });
 };
 
 function restartActiveTab() {
     const tab = activeTab.value;
     if (tab.isDraftTest) {
-        loadDraftDialogue(tab.dialogueName, { tab });
+        loadDraftDialogue(tab.dialogueName, { tab, language: tab.language });
     } else {
-        loadDialogue(tab.dialogueName);
+        loadDialogue(tab.dialogueName, tab.language);
     }
 }
 
@@ -297,11 +355,11 @@ function handleReturnFromEdit(tab) {
     if (!tab.dialogueEdited || tab.dialogueSteps.length === 0) return;
     if (!tab.isDraftTest) {
         editSwitchNotice.value = { dialogueName: tab.dialogueName };
-        loadDraftDialogue(tab.dialogueName, { tab });
+        loadDraftDialogue(tab.dialogueName, { tab, language: tab.language });
         return;
     }
     if (!tab.lastEditedNodeTitle) {
-        loadDraftDialogue(tab.dialogueName, { tab });
+        loadDraftDialogue(tab.dialogueName, { tab, language: tab.language });
         return;
     }
     restartPrompt.value = {
@@ -314,14 +372,14 @@ function handleReturnFromEdit(tab) {
 function confirmRestartFromStart() {
     const tab = tabs.value.find(t => t.id === restartPrompt.value.tabId);
     restartPrompt.value = null;
-    if (tab) loadDraftDialogue(tab.dialogueName, { tab });
+    if (tab) loadDraftDialogue(tab.dialogueName, { tab, language: tab.language });
 }
 
 function confirmRestartFromLastEditedNode() {
     const tab = tabs.value.find(t => t.id === restartPrompt.value.tabId);
     const startNodeId = restartPrompt.value.lastEditedNodeTitle;
     restartPrompt.value = null;
-    if (tab) loadDraftDialogue(tab.dialogueName, { tab, startNodeId });
+    if (tab) loadDraftDialogue(tab.dialogueName, { tab, startNodeId, language: tab.language });
 }
 
 function onRevertVariablesClick() {
@@ -502,6 +560,7 @@ onMounted(() => {
     updateScrollState();
     tabBar.value?.addEventListener('scroll', updateScrollState);
     new ResizeObserver(updateScrollState).observe(tabBar.value);
+    loadAvailableLanguages();
 });
 
 function onCancelClick() {
@@ -587,6 +646,14 @@ function onSelectReply(dialogueStep, reply) {
     <div class="flex flex-col gap-1">
         <MainPagePanelHeader title="Dialogue Workspace">
             <template #buttons>
+                <select
+                    v-if="availableLanguages.length > 0"
+                    v-model="selectedLanguage"
+                    title="Language new dialogue tests are started in"
+                    class="h-7.5 px-2 border border-grey-light rounded-lg text-xs font-title focus:outline-none focus:border-orange-dark bg-white cursor-pointer"
+                >
+                    <option v-for="lang in availableLanguages" :key="lang.code" :value="lang.code">{{ lang.name }}</option>
+                </select>
                 <ModeSelector :modes="modes" v-model="selectedMode" />
                 <template v-if="selectedMode !== 'edit'">
                     <IconButton
@@ -748,6 +815,7 @@ function onSelectReply(dialogueStep, reply) {
                     :dialogueSteps="activeTab.dialogueSteps"
                     :dialogueEnded="activeTab.dialogueEnded"
                     :dialogueCancelled="activeTab.dialogueCancelled"
+                    :startError="activeTab.startError"
                     @selectReply="onSelectReply"
                     @restartDialogue="restartActiveTab"
                 />
@@ -758,6 +826,7 @@ function onSelectReply(dialogueStep, reply) {
                     :dialogueSteps="activeTab.dialogueSteps"
                     :dialogueEnded="activeTab.dialogueEnded"
                     :dialogueCancelled="activeTab.dialogueCancelled"
+                    :startError="activeTab.startError"
                     @selectReply="onSelectReply"
                     @restartDialogue="restartActiveTab"
                 />

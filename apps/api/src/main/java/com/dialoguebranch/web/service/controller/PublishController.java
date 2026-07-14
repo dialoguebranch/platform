@@ -108,6 +108,52 @@ public class PublishController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	@Operation(summary = "Returns the version number the next publish of this project would create.")
+	@Parameter(name = "version", hidden = true)
+	@GetMapping("/next-version")
+	public int nextVersion(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("GET /v{}/publish/next-version [user: {}]", version, user);
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					return publishService.getNextVersionNumber(project);
+				},
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
+				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
+	}
+
+	@Operation(summary = "Validates the current draft as it would be published, without publishing it.")
+	@Parameter(name = "version", hidden = true)
+	@PostMapping("/verify")
+	public PublishService.VerifyResult verify(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("POST /v{}/publish/verify [user: {}]", version, user);
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					try {
+						return publishService.verify(project);
+					} catch (IOException e) {
+						throw new RuntimeException(e);
+					}
+				},
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
+				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
+	}
+
 	@Operation(summary = "Validate and publish the current draft as a new project version.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/create-version")

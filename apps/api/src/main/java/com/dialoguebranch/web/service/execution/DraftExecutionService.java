@@ -46,8 +46,10 @@ import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import com.dialoguebranch.web.service.exception.BadRequestException;
 import com.dialoguebranch.web.service.exception.NotFoundException;
+import com.dialoguebranch.web.service.exception.ProjectParseHttpError;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
+import com.dialoguebranch.web.service.storage.model.DBDraftTranslation;
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import nl.rrd.utils.datetime.DateTimeUtils;
 import nl.rrd.utils.expressions.EvaluationException;
@@ -55,9 +57,9 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.ZonedDateTime;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -143,14 +145,28 @@ public class DraftExecutionService {
 		// ProjectSeedService and PublishService), so simply including every draft dialogue's
 		// current content (not just the one being tested) is enough for cross-references to
 		// resolve.
+		// scriptContents holds every dialogue's own (source-language) script; translationContents
+		// holds every dialogue's translations, keyed by language — both are needed so `language`
+		// below can resolve to either kind, exactly as a real project's content is structured.
 		Map<String, String> scriptContents = new LinkedHashMap<>();
+		Map<String, Map<String, String>> translationContents = new LinkedHashMap<>();
 		for (DBDraftDialogue projectDialogue : draftDialogueService.listDialogues(project)) {
 			scriptContents.put(projectDialogue.getName(),
 					draftDialogueService.reconstructScript(projectDialogue));
+			for (DBDraftTranslation translation :
+					draftDialogueService.listTranslations(projectDialogue)) {
+				translationContents.computeIfAbsent(translation.getLanguage(),
+								(k) -> new LinkedHashMap<>())
+						.put(projectDialogue.getName(), translation.getContent());
+			}
 		}
 
+		// The project's actual source language — NOT `language` (the language being requested for
+		// this test), which may instead name one of the project's translation languages.
+		String sourceLanguage = project.getDefaultLanguageSet() != null
+				? project.getDefaultLanguageSet().getSourceLanguageCode() : "";
 		ScriptLoader scriptLoader = new DatabasePublishedScriptLoader(
-				language, scriptContents, Collections.emptyMap());
+				sourceLanguage, scriptContents, translationContents);
 
 		ProjectParserResult parserResult;
 		try {
@@ -161,21 +177,29 @@ public class DraftExecutionService {
 		}
 
 		if (!parserResult.getParseErrors().isEmpty()) {
-			StringBuilder message = new StringBuilder("Project '" + project.getSlug() +
-					"' does not currently parse (needed to test-run draft dialogue '" +
-					dialogue.getName() + "'):");
-			parserResult.getParseErrors().forEach((path, errors) -> errors.forEach(err ->
-					message.append(" ").append(err.getMessage())));
-			throw new BadRequestException(message.toString());
+			Map<String, List<String>> errors = new LinkedHashMap<>();
+			parserResult.getParseErrors().forEach((path, exceptions) -> errors.put(path,
+					exceptions.stream().map(Throwable::getMessage).toList()));
+			throw new BadRequestException(new ProjectParseHttpError("The current project '" +
+					project.getSlug() + "' contains errors, preventing execution of dialogues.",
+					errors));
 		}
 
 		ExecutableProject executableProject = (ExecutableProject) parserResult.getProject();
+		// `language` may be the project's source language (the dialogue's own script, stored under
+		// ResourceType.SCRIPT) or one of its translation languages (stored separately under
+		// ResourceType.TRANSLATION, per ProjectParser.createTranslatedDialogues) — try both, since
+		// the caller doesn't distinguish which kind of language it asked for.
 		ResourcePointer pointer =
 				new ResourcePointer(language, dialogue.getName(), ResourceType.SCRIPT);
 		Dialogue dialogueDefinition = executableProject.getDialogues().get(pointer);
 		if (dialogueDefinition == null) {
+			pointer = new ResourcePointer(language, dialogue.getName(), ResourceType.TRANSLATION);
+			dialogueDefinition = executableProject.getDialogues().get(pointer);
+		}
+		if (dialogueDefinition == null) {
 			throw new BadRequestException("Draft dialogue '" + dialogue.getName() +
-					"' could not be parsed into a runnable dialogue.");
+					"' could not be parsed into a runnable dialogue in language '" + language + "'.");
 		}
 
 		ActiveDialogue activeDialogue = new ActiveDialogue(pointer, dialogueDefinition);

@@ -43,6 +43,7 @@ import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.model.common.ProjectMetaData;
 import com.dialoguebranch.model.execute.*;
+import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.i18n.I18nLanguageFinder;
 import com.dialoguebranch.i18n.ContextTranslation;
@@ -160,29 +161,64 @@ public class ProjectParser {
 				translationFiles.add(fileDescription);
 		}
 
-		Set<String> dialogueNames = new HashSet<>();
+		// Every dialogue file that produced a Dialogue object at all, whether or not it also has
+		// parse errors of its own — used below so a dialogue's external node pointers are still
+		// checked even when that same dialogue has an unrelated (e.g. internal-pointer) error.
+		Map<ResourcePointer, Dialogue> allParsedDialogues = new LinkedHashMap<>();
+
 		for (ResourcePointer fileDescription : dialogueFiles) {
 			fileDescriptionsSet.add(fileDescription);
 			ParserResult dlgReadResult = parseDialogueFile(fileDescription);
+			if (dlgReadResult.getDialogue() != null)
+				allParsedDialogues.put(fileDescription, dlgReadResult.getDialogue());
 			if (dlgReadResult.getParseErrors().isEmpty()) {
 				dialogues.put(fileDescription, dlgReadResult.getDialogue());
-				dialogueNames.add(dlgReadResult.getDialogue().getDialogueName());
 			} else {
 				getParseErrors(readResult, fileDescription).addAll(dlgReadResult.getParseErrors());
 			}
 		}
 
-		if (readResult.getParseErrors().isEmpty()) {
-			// validate referenced dialogues in external node pointers
-			for (ResourcePointer fileDescription : dialogues.keySet()) {
-				Dialogue dlg = dialogues.get(fileDescription);
-				for (String refName : dlg.getDialoguesReferenced()) {
-					if (!dialogueNames.contains(refName)) {
-						getParseErrors(readResult, fileDescription).add(
-							new ParseException(String.format(
-							"Found external node pointer in dialogue %s to unknown dialogue %s",
-							dlg.getDialogueName(), refName)));
-					}
+		// Validate external node pointers among whichever dialogues parsed successfully above,
+		// regardless of whether some OTHER dialogue file failed to parse — those are unrelated
+		// errors and must not suppress reporting of these ones (previously this whole block was
+		// gated on readResult.getParseErrors().isEmpty(), which meant a single unrelated parse
+		// error anywhere in the project — e.g. an internal-pointer error in the very same
+		// dialogue — silently hid every external-pointer error project-wide).
+
+		// A dialogue name may have multiple source-language variants, all parsed into separate
+		// Dialogue instances — build a lookup from name to every variant so an external node
+		// pointer's target node can be checked against all of them.
+		Map<String, List<Dialogue>> dialoguesByName = new HashMap<>();
+		for (Dialogue dlg : dialogues.values()) {
+			dialoguesByName.computeIfAbsent(dlg.getDialogueName(), (k) -> new ArrayList<>())
+					.add(dlg);
+		}
+
+		// validate referenced dialogues and nodes in external node pointers — scanning every
+		// dialogue that parsed at all (not just error-free ones), so a broken external pointer
+		// sitting next to some other, unrelated error in the same dialogue is still reported.
+		// Iterating the pointers themselves (rather than just the set of referenced dialogue
+		// names) keeps the originating node's title on hand for the error message.
+		for (ResourcePointer fileDescription : allParsedDialogues.keySet()) {
+			Dialogue dlg = allParsedDialogues.get(fileDescription);
+			for (ExternalNodePointer pointer : dlg.getExternalNodePointers()) {
+				List<Dialogue> targetVariants =
+						dialoguesByName.get(pointer.getAbsoluteTargetDialogue());
+				if (targetVariants == null) {
+					getParseErrors(readResult, fileDescription).add(
+						new ParseException(String.format(
+						"Found external node pointer in node %s to unknown dialogue %s",
+						pointer.getOriginNodeId(), pointer.getAbsoluteTargetDialogue())));
+					continue;
+				}
+				boolean nodeFound = targetVariants.stream()
+						.anyMatch((t) -> t.nodeExists(pointer.getTargetNodeId()));
+				if (!nodeFound) {
+					getParseErrors(readResult, fileDescription).add(
+						new ParseException(String.format(
+						"Found external node pointer in node %s to non-existing node %s in " +
+						"dialogue %s", pointer.getOriginNodeId(), pointer.getTargetNodeId(),
+						pointer.getAbsoluteTargetDialogue())));
 				}
 			}
 		}

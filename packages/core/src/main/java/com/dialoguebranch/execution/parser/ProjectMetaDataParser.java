@@ -193,6 +193,10 @@ public class ProjectMetaDataParser {
             } else if(name.equals("source-language") || name.equals("translation-language")) {
                 languageHandler = new LanguageXMLHandler();
                 languageHandler.startElement(name,attributes,parents);
+                if(name.equals("source-language")
+                        && "true".equalsIgnoreCase(attributes.getValue("default"))) {
+                    result.setDefault(true);
+                }
             } else {
                 if(languageHandler != null) languageHandler.startElement(name,attributes,parents);
             }

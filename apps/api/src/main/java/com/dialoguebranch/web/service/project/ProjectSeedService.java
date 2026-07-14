@@ -183,14 +183,26 @@ public class ProjectSeedService {
 		DBProject project = projectService.createProject(
 				projectFolderName, metaData.getName(), metaData.getDescription());
 
-		// -- Step 4: Store language mappings --
+		// -- Step 4: Store language mappings, and mark the project's default language set --
 		if (metaData.getLanguageMap() != null) {
-			for (LanguageSet languageSet : metaData.getLanguageMap().getLanguageSets()) {
+			List<LanguageSet> languageSets = metaData.getLanguageMap().getLanguageSets();
+			for (LanguageSet languageSet : languageSets) {
 				Language source = languageSet.getSourceLanguage();
 				for (Language translation : languageSet.getTranslationLanguages()) {
 					projectService.addLanguageMapping(project, source, translation);
 				}
 			}
+
+			// Prefer whichever language set's source-language is explicitly marked
+			// default="true" in dlb-project.xml; fall back to the first one for seed projects
+			// that don't declare a default (so this remains backward-compatible).
+			languageSets.stream()
+					.filter(LanguageSet::isDefault)
+					.findFirst()
+					.or(() -> languageSets.stream().findFirst())
+					.ifPresent(languageSet -> projectService.setDefaultLanguageSet(project,
+							languageSet.getSourceLanguage().getCode(),
+							languageSet.getSourceLanguage().getName()));
 		}
 
 		// -- Step 5: List the seed source files --

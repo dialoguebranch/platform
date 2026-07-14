@@ -42,6 +42,7 @@ public class LanguageSet {
 
 	private Language sourceLanguage;
 	private List<Language> translationLanguages;
+	private boolean isDefault = false;
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
@@ -113,6 +114,26 @@ public class LanguageSet {
 	 */
 	public void setTranslationLanguages(List<Language> translationLanguages) {
 		this.translationLanguages = translationLanguages;
+	}
+
+	/**
+	 * Returns whether this is the project's default {@link LanguageSet} — i.e. whose source
+	 * language is the project's default (source) language. A project should have exactly one
+	 * default language set among one or more defined language sets.
+	 *
+	 * @return whether this is the project's default language set.
+	 */
+	public boolean isDefault() {
+		return isDefault;
+	}
+
+	/**
+	 * Sets whether this is the project's default {@link LanguageSet}.
+	 *
+	 * @param isDefault whether this is the project's default language set.
+	 */
+	public void setDefault(boolean isDefault) {
+		this.isDefault = isDefault;
 	}
 
 	// ------------------------------------------------------- //

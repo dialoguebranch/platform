@@ -161,6 +161,33 @@ export class DialogueBranchClient {
         }).then((response) => this._handleResponse(response));
     }
 
+    // Validates the project's current draft exactly as publishProject() would, but without
+    // actually publishing anything. Returns { valid, errors } — see PublishService.VerifyResult.
+    verifyProject(projectSlug) {
+        const url = this._baseUrl + "/publish/verify?projectSlug=" + encodeURIComponent(projectSlug);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            }
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // Returns the version number the next publishProject() call would create, without creating it.
+    getNextProjectVersion(projectSlug) {
+        const url = this._baseUrl + "/publish/next-version?projectSlug=" + encodeURIComponent(projectSlug);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            }
+        }).then((response) => this._handleResponse(response));
+    }
+
     listDialogues(projectSlug) {
         const url = this._baseUrl + "/dialogue/list-dialogues?projectSlug=" + encodeURIComponent(projectSlug);
 
@@ -664,8 +691,20 @@ export class DialogueBranchClient {
             } else {
                 return response.text();
             }
-        } else {
-            return Promise.reject(response);
         }
+        // Error responses are JSON HttpError bodies (code, message, fieldErrors, and — for some
+        // errors, e.g. a project that fails to parse — a structured "errors" field mirroring
+        // /publish/verify's shape). Parse it so callers (see error-message.js) can show the
+        // actual backend message instead of just the HTTP status.
+        return response.json()
+            .catch(() => null)
+            .then((body) => Promise.reject({
+                status: response.status,
+                statusText: response.statusText,
+                code: body?.code ?? null,
+                message: body?.message ?? null,
+                fieldErrors: body?.fieldErrors ?? [],
+                errors: body?.errors ?? null,
+            }));
     }
 }

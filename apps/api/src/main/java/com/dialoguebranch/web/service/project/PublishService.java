@@ -31,8 +31,7 @@ package com.dialoguebranch.web.service.project;
 import com.dialoguebranch.execution.parser.ScriptLoader;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;
-import com.dialoguebranch.model.common.ResourceType;
-import com.dialoguebranch.model.execute.ResourcePointer;
+import com.dialoguebranch.web.service.execution.DatabasePublishedScriptLoader;
 import com.dialoguebranch.web.service.repository.DBProjectRepository;
 import com.dialoguebranch.web.service.repository.DBProjectVersionRepository;
 import com.dialoguebranch.web.service.repository.DBPublishedDialogueRepository;
@@ -49,10 +48,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
-import java.io.Reader;
-import java.io.StringReader;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,6 +98,44 @@ public class PublishService {
 		return versionRepository.findByProjectOrderByVersionNumberDesc(project);
 	}
 
+	/**
+	 * Returns the version number that would be assigned to the next published version of the
+	 * given project, without creating one.
+	 *
+	 * @param project the project to compute the next version number for.
+	 * @return the next version number.
+	 */
+	public int getNextVersionNumber(DBProject project) {
+		return versionRepository
+				.findByProjectOrderByVersionNumberDesc(project)
+				.stream()
+				.findFirst()
+				.map(v -> v.getVersionNumber() + 1)
+				.orElse(1);
+	}
+
+	// ----------------------------------------------------------- //
+	// -------------------- Verify Operation ---------------------- //
+	// ----------------------------------------------------------- //
+
+	/**
+	 * Validates the given project's current draft exactly as {@link #publish} would, but without
+	 * any side effects — no version is created and no draft state is changed. Used to let a client
+	 * check for errors before committing to an actual publish.
+	 *
+	 * @param project the project to validate.
+	 * @return the result of the validation.
+	 * @throws IOException if script reconstruction fails unexpectedly.
+	 */
+	public VerifyResult verify(DBProject project) throws IOException {
+		List<DBDraftDialogue> drafts = draftDialogueService.listDialogues(project).stream()
+				.filter(draft -> !draft.getIsDeleted())
+				.toList();
+		ProjectParserResult result = validateDrafts(project, drafts).result();
+		if (result.getParseErrors().isEmpty()) return VerifyResult.valid();
+		return VerifyResult.invalid(toErrorMessages(result.getParseErrors()));
+	}
+
 	// ----------------------------------------------------------- //
 	// -------------------- Publish Operation -------------------- //
 	// ----------------------------------------------------------- //
@@ -130,36 +164,15 @@ public class PublishService {
 				.filter(draft -> !draft.getIsDeleted())
 				.toList();
 
-		// Build an in-memory map of dialogue name → script content for validation
-		Map<String, String> scriptsByName = new LinkedHashMap<>();
-		Map<String, Map<String, String>> translationsByDialogue = new LinkedHashMap<>();
-
-		for (DBDraftDialogue draft : drafts) {
-			String script = draftDialogueService.reconstructScript(draft);
-			scriptsByName.put(draft.getName(), script);
-
-			Map<String, String> translations = new LinkedHashMap<>();
-			for (DBDraftTranslation t : draftDialogueService.listTranslations(draft)) {
-				translations.put(t.getLanguage(), t.getContent());
-			}
-			translationsByDialogue.put(draft.getName(), translations);
+		DraftValidation validation = validateDrafts(project, drafts);
+		if (!validation.result().getParseErrors().isEmpty()) {
+			return PublishResult.failure(validation.result().getParseErrors());
 		}
-
-		// Validate the full project via ProjectParser using an in-memory ScriptLoader
-		ScriptLoader scriptLoader = new InMemoryScriptLoader(scriptsByName, translationsByDialogue);
-		ProjectParserResult result = new ProjectParser(scriptLoader).parse();
-
-		if (!result.getParseErrors().isEmpty()) {
-			return PublishResult.failure(result.getParseErrors());
-		}
+		Map<String, String> scriptsByName = validation.scripts();
+		Map<String, Map<String, String>> translationsByDialogue = validation.translations();
 
 		// Determine next version number
-		int nextVersion = versionRepository
-				.findByProjectOrderByVersionNumberDesc(project)
-				.stream()
-				.findFirst()
-				.map(v -> v.getVersionNumber() + 1)
-				.orElse(1);
+		int nextVersion = getNextVersionNumber(project);
 
 		// Create the project version record
 		DBProjectVersion version = new DBProjectVersion();
@@ -214,59 +227,141 @@ public class PublishService {
 		return PublishResult.success(version);
 	}
 
-	// --------------------------------------------------------------- //
-	// -------------------- In-memory ScriptLoader -------------------- //
-	// --------------------------------------------------------------- //
+	// ------------------------------------------------------------- //
+	// -------------------- Shared Draft Validation ------------------ //
+	// ------------------------------------------------------------- //
 
 	/**
-	 * A {@link ScriptLoader} implementation that serves reconstructed dialogue scripts and
-	 * translation JSON from in-memory maps, allowing {@link ProjectParser} to validate project
-	 * content without touching the filesystem.
+	 * Reconstructs {@code .dlb} script content and translations for the given draft dialogues and
+	 * validates the result with {@link ProjectParser}. Used by both {@link #verify} (which only
+	 * needs the parse result) and {@link #publish} (which also needs the reconstructed content to
+	 * copy into the published tables), so both stay in sync on exactly what gets validated.
+	 *
+	 * @param project the project {@code drafts} belongs to, used only to look up its source
+	 *                language code for the reconstructed scripts (see
+	 *                {@link DatabasePublishedScriptLoader}).
+	 * @param drafts  the non-deleted draft dialogues to validate.
+	 * @return the reconstructed content alongside the parse result.
+	 * @throws IOException if script reconstruction fails unexpectedly.
 	 */
-	private static class InMemoryScriptLoader implements ScriptLoader {
+	private DraftValidation validateDrafts(DBProject project, List<DBDraftDialogue> drafts)
+			throws IOException {
+		Map<String, String> scriptsByName = new LinkedHashMap<>();
+		Map<String, Map<String, String>> translationsByDialogue = new LinkedHashMap<>();
 
-		private final Map<String, String> scripts;
-		private final Map<String, Map<String, String>> translations;
+		for (DBDraftDialogue draft : drafts) {
+			String script = draftDialogueService.reconstructScript(draft);
+			scriptsByName.put(draft.getName(), script);
 
-		InMemoryScriptLoader(Map<String, String> scripts,
-						   Map<String, Map<String, String>> translations) {
-			this.scripts = scripts;
-			this.translations = translations;
+			Map<String, String> translations = new LinkedHashMap<>();
+			for (DBDraftTranslation t : draftDialogueService.listTranslations(draft)) {
+				translations.put(t.getLanguage(), t.getContent());
+			}
+			translationsByDialogue.put(draft.getName(), translations);
 		}
 
-		@Override
-		public List<ResourcePointer> listDialogueBranchFiles() {
-			List<ResourcePointer> pointers = new ArrayList<>();
-			for (String dialogueName : scripts.keySet()) {
-				pointers.add(new ResourcePointer("", dialogueName, ResourceType.SCRIPT));
-				Map<String, String> langs = translations.getOrDefault(dialogueName, Map.of());
-				for (String language : langs.keySet()) {
-					pointers.add(new ResourcePointer(language, dialogueName,
-							ResourceType.TRANSLATION));
-				}
+		String sourceLanguage = project.getDefaultLanguageSet() != null
+				? project.getDefaultLanguageSet().getSourceLanguageCode() : "";
+		ScriptLoader scriptLoader = new DatabasePublishedScriptLoader(
+				sourceLanguage, scriptsByName, translationsByLanguage(translationsByDialogue));
+		ProjectParserResult result = new ProjectParser(scriptLoader).parse();
+		return new DraftValidation(scriptsByName, translationsByDialogue, result);
+	}
+
+	/**
+	 * Re-keys a dialogue-name → language → content map into the language → dialogue-name → content
+	 * shape {@link DatabasePublishedScriptLoader} expects (matching how {@link ProjectLoaderService}
+	 * already builds it from published records).
+	 */
+	private static Map<String, Map<String, String>> translationsByLanguage(
+			Map<String, Map<String, String>> translationsByDialogue) {
+		Map<String, Map<String, String>> byLanguage = new LinkedHashMap<>();
+		for (Map.Entry<String, Map<String, String>> dialogueEntry :
+				translationsByDialogue.entrySet()) {
+			String dialogueName = dialogueEntry.getKey();
+			for (Map.Entry<String, String> langEntry : dialogueEntry.getValue().entrySet()) {
+				byLanguage.computeIfAbsent(langEntry.getKey(), (k) -> new LinkedHashMap<>())
+						.put(dialogueName, langEntry.getValue());
 			}
-			return pointers;
+		}
+		return byLanguage;
+	}
+
+	/**
+	 * Reduces {@link ParseException}s down to their message text, which is all a client needs to
+	 * display a list of validation errors.
+	 */
+	private static Map<String, List<String>> toErrorMessages(
+			Map<String, List<ParseException>> parseErrors) {
+		Map<String, List<String>> messages = new LinkedHashMap<>();
+		for (Map.Entry<String, List<ParseException>> entry : parseErrors.entrySet()) {
+			messages.put(entry.getKey(),
+					entry.getValue().stream().map(Throwable::getMessage).toList());
+		}
+		return messages;
+	}
+
+	/**
+	 * The reconstructed script/translation content for a set of draft dialogues, alongside the
+	 * {@link ProjectParser} result of validating that content. See {@link #validateDrafts}.
+	 */
+	private record DraftValidation(Map<String, String> scripts,
+									Map<String, Map<String, String>> translations,
+									ProjectParserResult result) { }
+
+	// -------------------------------------------------------- //
+	// -------------------- Verify Result ---------------------- //
+	// -------------------------------------------------------- //
+
+	/**
+	 * Represents the outcome of validating a project's draft without publishing it, containing
+	 * either nothing (on success) or a map of dialogue name to error messages (on failure).
+	 */
+	public static class VerifyResult {
+
+		private final boolean valid;
+		private final Map<String, List<String>> errors;
+
+		private VerifyResult(boolean valid, Map<String, List<String>> errors) {
+			this.valid = valid;
+			this.errors = errors;
 		}
 
-		@Override
-		public Reader openFile(ResourcePointer fileDescription) throws IOException {
-			String dialogueName = fileDescription.getDialogueName();
+		/**
+		 * Creates a {@link VerifyResult} indicating the project's draft is valid.
+		 *
+		 * @return a valid result.
+		 */
+		public static VerifyResult valid() {
+			return new VerifyResult(true, null);
+		}
 
-			if (fileDescription.getResourceType() == ResourceType.SCRIPT) {
-				String content = scripts.get(dialogueName);
-				if (content == null)
-					throw new IOException("Script not found: " + dialogueName);
-				return new StringReader(content);
-			} else {
-				String language = fileDescription.getLanguage();
-				String content = translations
-						.getOrDefault(dialogueName, Map.of())
-						.get(language);
-				if (content == null)
-					throw new IOException(
-							"Translation not found: " + dialogueName + "/" + language);
-				return new StringReader(content);
-			}
+		/**
+		 * Creates a {@link VerifyResult} indicating the project's draft has validation errors.
+		 *
+		 * @param errors a map of dialogue name to the list of error messages for that dialogue.
+		 * @return an invalid result.
+		 */
+		public static VerifyResult invalid(Map<String, List<String>> errors) {
+			return new VerifyResult(false, errors);
+		}
+
+		/**
+		 * Returns {@code true} if the project's draft is valid and ready to publish.
+		 *
+		 * @return whether the draft is valid.
+		 */
+		public boolean isValid() {
+			return valid;
+		}
+
+		/**
+		 * Returns the validation errors, or {@code null} if the draft is valid.
+		 *
+		 * @return a map of dialogue name to error messages, or {@code null}.
+		 */
+		public Map<String, List<String>> getErrors() {
+			return errors;
 		}
 	}
 

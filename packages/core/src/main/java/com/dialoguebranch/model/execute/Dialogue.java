@@ -55,6 +55,7 @@ public class Dialogue {
 	private Set<String> variablesNeeded = new HashSet<>();
 	private Set<String> variablesWritten = new HashSet<>();
 	private Set<String> dialoguesReferenced = new HashSet<>();
+	private Set<ExternalNodePointer> externalNodePointers = new HashSet<>();
 	
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
@@ -90,6 +91,7 @@ public class Dialogue {
 		variablesNeeded.addAll(other.variablesNeeded);
 		variablesWritten.addAll(other.variablesWritten);
 		dialoguesReferenced.addAll(other.dialoguesReferenced);
+		externalNodePointers.addAll(other.externalNodePointers);
 	}
 	
 	// ------------------------------------------------- //
@@ -143,6 +145,7 @@ public class Dialogue {
 				continue;
 			ExternalNodePointer extPointer = (ExternalNodePointer)nodePointer;
 			dialoguesReferenced.add(extPointer.getAbsoluteTargetDialogue());
+			externalNodePointers.add(extPointer);
 		}
 	}
 	
@@ -197,7 +200,20 @@ public class Dialogue {
 	public Set<String> getDialoguesReferenced() {
 		return Collections.unmodifiableSet(dialoguesReferenced);
 	}
-	
+
+	/**
+	 * Returns an unmodifiable {@link Set} of all {@link ExternalNodePointer}s found in this
+	 * {@link Dialogue}, i.e. every reply-option link that points to a node in another dialogue.
+	 * Unlike {@link #getDialoguesReferenced()}, which only records the referenced dialogue names,
+	 * this retains the specific target node identifier of each pointer as well, so callers can
+	 * validate that the referenced node actually exists in the target dialogue.
+	 *
+	 * @return an unmodifiable set of external node pointers found in this dialogue.
+	 */
+	public Set<ExternalNodePointer> getExternalNodePointers() {
+		return Collections.unmodifiableSet(externalNodePointers);
+	}
+
 	// ------------------------------------------------- //
 	// -------------------- Setters -------------------- //
 	// ------------------------------------------------- //

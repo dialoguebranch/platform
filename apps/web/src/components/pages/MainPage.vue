@@ -1,13 +1,11 @@
 <script setup>
 import { inject, onMounted, onUnmounted, ref, computed, useTemplateRef } from 'vue';
-import { logEvent } from '../../composables/debug-log.js';
-import { describeError } from '../../composables/error-message.js';
-import { showError } from '../../composables/error-toast.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useClient } from '../../composables/client.js';
 import { useStateManagement } from '../../composables/state-management.js';
 import DialogueBrowser from '../partials/DialogueBrowser.vue';
 import EditProjectMetadataModal from '../partials/EditProjectMetadataModal.vue';
+import PublishProjectWizardModal from '../partials/PublishProjectWizardModal.vue';
 import SetDelegateUserModal from '../partials/SetDelegateUserModal.vue';
 import HeaderMenuItem from '../widgets/HeaderMenuItem.vue';
 import DialogueWorkspace from '../partials/DialogueWorkspace.vue';
@@ -123,7 +121,6 @@ function onMetadataSaved(updated) {
 // deletion — reported by DialogueBrowser (which already fetches this list) whenever it
 // (re)loads its tree.
 const hasUnpublishedChanges = ref(false);
-const publishing = ref(false);
 const isAdmin = computed(() => !!state.value.user?.roles?.includes('admin'));
 const canPublish = computed(() => isAdmin.value && hasUnpublishedChanges.value);
 const publishDisabledReason = computed(() => {
@@ -132,38 +129,18 @@ const publishDisabledReason = computed(() => {
     return '';
 });
 
-const publishConfirm = ref(false);
+const showPublishWizard = ref(false);
 
 function onPublishProjectClick() {
-    if (!canPublish.value || publishing.value) return;
+    if (!canPublish.value) return;
     closeProjectMenu();
-    publishConfirm.value = true;
+    showPublishWizard.value = true;
 }
 
-function confirmPublish() {
-    publishConfirm.value = false;
-    const slug = state.value.selectedProject?.slug;
-    publishing.value = true;
-    client.publishProject(slug)
-        .then((result) => {
-            if (result.success) {
-                logEvent('project', 'Project $1 published as version $2', slug, result.version?.versionNumber);
-                // Refresh the tree so newly-published dialogues show their "Published" badge.
-                dialogueBrowser.value?.listDialogues();
-            } else {
-                const fileCount = Object.keys(result.errors ?? {}).length;
-                const errorCount = Object.values(result.errors ?? {})
-                    .reduce((sum, list) => sum + list.length, 0);
-                showError(`Publishing failed: ${errorCount} validation error${errorCount === 1 ? '' : 's'} ` +
-                    `across ${fileCount} dialogue${fileCount === 1 ? '' : 's'}. See the Debug Console for details.`);
-            }
-        })
-        .catch((error) => {
-            showError(describeError(error));
-        })
-        .finally(() => {
-            publishing.value = false;
-        });
+function onProjectPublished() {
+    showPublishWizard.value = false;
+    // Refresh the tree so newly-published dialogues show their "Published" badge.
+    dialogueBrowser.value?.listDialogues();
 }
 
 const activeDelegateUser = ref(null);
@@ -270,12 +247,11 @@ function onResizePanels() {
                     <button
                         type="button"
                         :class="['flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm transition-colors', canPublish ? 'text-orange-darker hover:bg-grey-lighter cursor-pointer' : 'text-grey-light cursor-not-allowed']"
-                        :disabled="!canPublish || publishing"
+                        :disabled="!canPublish"
                         :title="publishDisabledReason"
                         @click="onPublishProjectClick"
                     >
-                        <FontAwesomeIcon v-if="publishing" icon="fa-solid fa-circle-notch" class="w-4 animate-spin text-orange-medium" />
-                        <FontAwesomeIcon v-else icon="fa-solid fa-rocket" class="w-4" :class="canPublish ? 'text-orange-medium' : 'text-grey-light'" />
+                        <FontAwesomeIcon icon="fa-solid fa-rocket" class="w-4" :class="canPublish ? 'text-orange-medium' : 'text-grey-light'" />
                         Publish Project
                     </button>
                     <div class="border-t border-grey-light mx-3"></div>
@@ -345,24 +321,13 @@ function onResizePanels() {
             </div>
         </Teleport>
 
-        <Teleport to="body">
-            <div v-if="publishConfirm" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
-                <div class="bg-white rounded-xl shadow-2xl p-5 font-title text-sm w-96">
-                    <div class="font-bold text-orange-darker mb-2 flex items-center gap-2">
-                        <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" class="text-orange-medium" />
-                        Publish Project
-                    </div>
-                    <p class="text-grey-dark mb-4">
-                        This publishes the current draft state of every dialogue in this project as a new version,
-                        immediately replacing what's live. This cannot be undone. Continue?
-                    </p>
-                    <div class="flex gap-2 justify-end">
-                        <button type="button" class="px-3 py-1.5 rounded border border-grey-light text-grey-dark hover:bg-grey-lighter text-xs font-semibold cursor-pointer" @click="publishConfirm = false">Cancel</button>
-                        <button type="button" class="px-3 py-1.5 rounded bg-orange-darker text-white hover:bg-orange-dark text-xs font-semibold cursor-pointer" @click="confirmPublish">Publish</button>
-                    </div>
-                </div>
-            </div>
-        </Teleport>
+        <PublishProjectWizardModal
+            v-if="showPublishWizard"
+            :projectSlug="state.selectedProject?.slug"
+            :projectDisplayName="state.selectedProject?.displayName ?? state.selectedProject?.slug"
+            @close="showPublishWizard = false"
+            @published="onProjectPublished"
+        />
 
         <ResizablePanels
             ref="panels"

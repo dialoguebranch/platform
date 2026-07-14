@@ -3,12 +3,14 @@ import { nextTick, ref, useTemplateRef } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { BasicReply } from '@/dlb-lib/model/BasicReply';
 import { AutoForwardReply } from '@/dlb-lib/model/AutoForwardReply';
+import CollapsibleErrorList from '../widgets/CollapsibleErrorList.vue';
 
 const props = defineProps([
     'dialogueName',
     'dialogueSteps',
     'dialogueEnded',
     'dialogueCancelled',
+    'startError',
 ]);
 
 const emit = defineEmits([
@@ -75,6 +77,16 @@ function getBasicReplyTextClasses(stepIndex, reply) {
     <div class="h-full">
     <div v-if="!dialogueName" class="flex items-center justify-center h-full font-title text-sm text-grey-dark p-8">
         Open a dialogue from the Dialogue Browser to start testing.
+    </div>
+    <div v-else-if="startError" class="flex flex-col items-center justify-center h-full gap-3 font-title text-sm text-grey-dark p-8 text-center">
+        <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" class="text-red-dark text-2xl" />
+        <span>{{ startError.message }}</span>
+        <CollapsibleErrorList :errors="startError.errors" />
+        <button
+            type="button"
+            class="rounded-xl bg-orange-dark hover:bg-orange-medium text-white uppercase p-3 min-w-[160px] cursor-pointer"
+            @click="$emit('restartDialogue')"
+        >Try Again</button>
     </div>
     <div v-for="(step, stepIndex) in dialogueSteps" class="dialogue-step font-title p-2 mb-8">
         <div class="flex gap-5 mb-5">

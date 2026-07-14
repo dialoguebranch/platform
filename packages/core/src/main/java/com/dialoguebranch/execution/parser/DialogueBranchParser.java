@@ -177,27 +177,29 @@ public class DialogueBranchParser implements AutoCloseable {
 					moveToNextNode();
 			}
 		}
-		if (foundNodeError)
-			return result;
-		if (!dialogue.nodeExists("Start")) {
-			result.getParseErrors().add(new LineNumberParseException(
-					"Node with title \"Start\" not found",
-					reader.getLineNum(), reader.getColNum()));
+		if (!foundNodeError) {
+			if (!dialogue.nodeExists("Start")) {
+				result.getParseErrors().add(new LineNumberParseException(
+						"Node with title \"Start\" not found",
+						reader.getLineNum(), reader.getColNum()));
+			}
+			for (NodeState.NodePointerToken pointerToken : nodePointerTokens) {
+				if (!(pointerToken.pointer() instanceof InternalNodePointer pointer))
+					continue;
+				if (dialogue.nodeExists(pointer.getTargetNodeId()))
+					continue;
+				BodyToken token = pointerToken.token();
+				LineNumberParseException parseEx = new LineNumberParseException(
+						"Found reply with pointer to non-existing node: " +
+						pointer.getTargetNodeId(), token.getLineNumber(), token.getColNumber());
+				result.getParseErrors().add(createNodeParseException(
+						pointerToken.nodeTitle(), parseEx));
+			}
 		}
-		for (NodeState.NodePointerToken pointerToken : nodePointerTokens) {
-			if (!(pointerToken.pointer() instanceof InternalNodePointer pointer))
-				continue;
-			if (dialogue.nodeExists(pointer.getTargetNodeId()))
-				continue;
-			BodyToken token = pointerToken.token();
-			LineNumberParseException parseEx = new LineNumberParseException(
-					"Found reply with pointer to non-existing node: " +
-					pointer.getTargetNodeId(), token.getLineNumber(), token.getColNumber());
-			result.getParseErrors().add(createNodeParseException(
-					pointerToken.nodeTitle(), parseEx));
-		}
-		if (!result.getParseErrors().isEmpty())
-			return result;
+		// Always expose the dialogue built so far, even if it (or a sibling node) has parse
+		// errors — e.g. so ProjectParser can still validate this dialogue's external node
+		// pointers against the rest of the project. A non-empty getParseErrors() still means
+		// this dialogue is not safe to execute or publish; callers must keep checking that.
 		result.setDialogue(dialogue);
 		this.dialogue = null;
 		nodePointerTokens = null;
