@@ -23,7 +23,7 @@ const props = defineProps({
 const emit = defineEmits([
     'resumeDialogue',
     'activateTab',
-    'hasDraftDialogues',
+    'hasUnpublishedChanges',
     'openDialogue',
 ]);
 
@@ -67,7 +67,11 @@ function listDialogues() {
     .then(([published, drafts]) => {
         const publishedNames = new Set(published.dialogueNames ?? []);
         const draftsByName = new Map((drafts ?? []).map((d) => [d.name, d]));
-        emit('hasDraftDialogues', draftsByName.size > 0);
+        // "Publish Project" should only be enabled when there's actually something to publish —
+        // a dialogue that's new, changed, or pending deletion — not merely because a draft row
+        // exists (it may already be perfectly in sync with what's published).
+        emit('hasUnpublishedChanges',
+            [...draftsByName.values()].some((d) => d.isNew || d.isChanged || d.isDeleted));
         const allNames = new Set([...publishedNames, ...draftsByName.keys()]);
         const entries = [...allNames].map((name) => {
             const draft = draftsByName.get(name);

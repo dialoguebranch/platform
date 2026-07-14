@@ -19,9 +19,12 @@ const props = defineProps({
     dialogueName: { type: String, default: null },
 });
 
-// Lets InteractionTester.vue track, per tab, whether its dialogue was edited and which node was
-// most recently touched — used to offer restarting a draft test from that node instead of Start.
-const emit = defineEmits(['nodeChanged', 'nodeDeleted']);
+// nodeChanged/nodeDeleted let InteractionTester.vue track, per tab, whether its dialogue was
+// edited and which node was most recently touched — used to offer restarting a draft test from
+// that node instead of Start (deliberately not raised for position-only drags, which don't affect
+// what a test run does). dialogueSaved fires on every successful save, including drags — used to
+// tell the Dialogue Browser its "New"/"Draft"/"Deleted" labels and Publish-enablement may be stale.
+const emit = defineEmits(['nodeChanged', 'nodeDeleted', 'dialogueSaved']);
 
 const state = inject('state');
 const client = useClient();
@@ -121,8 +124,11 @@ function onNodeDragStop({ node }) {
         .then((updated) => {
             // Position-only changes don't count as content edits — they don't affect what a test
             // run of this dialogue actually does — so no 'nodeChanged' here (see InteractionTester's
-            // handleReturnFromEdit, which restarts/notifies based on that event).
+            // handleReturnFromEdit, which restarts/notifies based on that event). They do still
+            // change the draft's published-vs-current status, though (position is part of the
+            // reconstructed script), so 'dialogueSaved' still fires.
             rawNodesByTitle.value.set(node.id, updated);
+            emit('dialogueSaved');
         })
         .catch((error) => {
             showError(describeError(error));
@@ -156,6 +162,7 @@ function addNode() {
         .then(() => {
             loadNodes();
             emit('nodeChanged', title);
+            emit('dialogueSaved');
         })
         .catch((error) => {
             showError(describeError(error));
@@ -179,6 +186,7 @@ function onNodeSaved(updatedNode) {
     buildGraph([...rawNodesByTitle.value.values()]);
     selectedNodeTitle.value = null;
     emit('nodeChanged', updatedNode.title);
+    emit('dialogueSaved');
 }
 
 function onNodeDeleted(deletedTitle) {
@@ -186,6 +194,7 @@ function onNodeDeleted(deletedTitle) {
     buildGraph([...rawNodesByTitle.value.values()]);
     selectedNodeTitle.value = null;
     emit('nodeDeleted', deletedTitle);
+    emit('dialogueSaved');
 }
 
 function onNodeRenamed(updatedNode) {
@@ -194,6 +203,7 @@ function onNodeRenamed(updatedNode) {
     selectedNodeTitle.value = null;
     loadNodes();
     emit('nodeChanged', updatedNode.title);
+    emit('dialogueSaved');
 }
 
 defineExpose({

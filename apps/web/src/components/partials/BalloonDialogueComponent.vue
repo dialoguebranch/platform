@@ -6,6 +6,7 @@ import { BasicReply } from '@/dlb-lib/model/BasicReply';
 import { AutoForwardReply } from '@/dlb-lib/model/AutoForwardReply';
 
 const props = defineProps([
+    'dialogueName',
     'dialogueSteps',
     'dialogueEnded',
     'dialogueCancelled',
@@ -32,7 +33,15 @@ const currentStep = computed(() => {
 
 <template>
     <div ref="root">
-        <div v-if="currentStep" ref="root" class="flex flex-col font-title">
+        <div v-if="!currentStep && dialogueName" class="flex flex-col items-center justify-center h-full gap-3 font-title text-sm text-grey-dark">
+            <span>No dialogue running yet.</span>
+            <button
+                type="button"
+                class="rounded-xl bg-orange-dark hover:bg-orange-medium text-white uppercase p-3 min-w-[160px] cursor-pointer"
+                @click="$emit('restartDialogue')"
+            >Start Dialogue</button>
+        </div>
+        <div v-else-if="currentStep" class="flex flex-col font-title">
             <div
                 class="mt-10 flex flex-col relative"
                 :class="resizableClasses({

@@ -18,6 +18,7 @@ import ModeSelector from '../widgets/ModeSelector.vue';
 
 const emit = defineEmits([
     'newDialogueStep',
+    'dialogueSaved',
 ]);
 
 const modes = [
@@ -385,6 +386,12 @@ function editDialogue(name) {
     const tab = getOrCreateEmptyTab();
     activeTabId.value = tab.id;
     tab.dialogueName = name;
+    // A dialogue can only be opened for editing if it already has a draft, so default a tab
+    // that's never been tested to ephemeral draft testing — always possible — rather than the
+    // live/published path (restartActiveTab's default), which may not exist for this dialogue at
+    // all. Leave it alone if a test already ran here, so handleReturnFromEdit can still tell
+    // whether that earlier test was live or ephemeral.
+    if (tab.dialogueSteps.length === 0) tab.isDraftTest = true;
     scrollActiveTabIntoView();
     selectedMode.value = 'edit';
 }
@@ -705,6 +712,7 @@ function onSelectReply(dialogueStep, reply) {
                 <BalloonDialogueComponent
                     v-if="selectedMode === 'balloon'"
                     ref="balloons"
+                    :dialogueName="activeTab.dialogueName"
                     :dialogueSteps="activeTab.dialogueSteps"
                     :dialogueEnded="activeTab.dialogueEnded"
                     :dialogueCancelled="activeTab.dialogueCancelled"
@@ -714,6 +722,7 @@ function onSelectReply(dialogueStep, reply) {
                 <TextDialogueComponent
                     v-if="selectedMode === 'text'"
                     ref="text-component"
+                    :dialogueName="activeTab.dialogueName"
                     :dialogueSteps="activeTab.dialogueSteps"
                     :dialogueEnded="activeTab.dialogueEnded"
                     :dialogueCancelled="activeTab.dialogueCancelled"
@@ -727,6 +736,7 @@ function onSelectReply(dialogueStep, reply) {
                     :dialogueName="activeTab.dialogueName"
                     @nodeChanged="onEditorNodeChanged"
                     @nodeDeleted="onEditorNodeDeleted"
+                    @dialogueSaved="$emit('dialogueSaved')"
                 />
             </MainPagePanelContainer>
             <div v-if="activeTab.loggedDialogueId && selectedMode !== 'edit'" class="absolute bottom-3 left-3 font-mono text-[10px] text-gray-400 pointer-events-none">
