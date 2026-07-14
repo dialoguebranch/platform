@@ -250,50 +250,6 @@ class DraftDialogueServiceTest {
     }
 
     @Test
-    void findOrCreateDraftDialogueCopiesFromPublishedWhenNoDraftExists() throws Exception {
-        DBProject project = projectService.createProject("auto-draft-test", "Auto Draft Test", "");
-        DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "basic");
-        draftDialogueService.createNode(dialogue, "Start",
-                "title: Start\nspeaker: Narrator\nposition: 0,0", "[[Continue|End]]");
-        draftDialogueService.createNode(dialogue, "End",
-                "title: End\nspeaker: Narrator\nposition: 100,0", "");
-
-        PublishService.PublishResult publishResult = publishService.publish(project, null);
-        if (!publishResult.isSuccess()) {
-            throw new AssertionError("Publish failed: " + publishResult.getErrors());
-        }
-
-        // Simulate exactly the reported bug scenario: a dialogue that has a published version
-        // but no draft dialogue row at all (e.g. one that was hard-deleted as part of an earlier
-        // publish's pending-deletion cleanup).
-        draftDialogueService.hardDeleteDialogue(dialogue);
-        assertTrue(draftDialogueService.findDialogue(project, "basic").isEmpty());
-
-        DBDraftDialogue recreated = draftDialogueService
-                .findOrCreateDraftDialogue(project, "basic")
-                .orElseThrow();
-
-        List<DBDraftNode> nodes = draftDialogueService.listNodes(recreated);
-        assertEquals(2, nodes.size());
-        assertEquals("Start", nodes.get(0).getTitle());
-        assertTrue(nodes.get(0).getHeader().contains("title: Start"));
-        assertTrue(nodes.get(0).getBody().contains("[[Continue|End]]"));
-        assertEquals("End", nodes.get(1).getTitle());
-
-        // A second call should just find the now-existing draft rather than copying again.
-        DBDraftDialogue again = draftDialogueService.findOrCreateDraftDialogue(project, "basic")
-                .orElseThrow();
-        assertEquals(recreated.getId(), again.getId());
-    }
-
-    @Test
-    void findOrCreateDraftDialogueReturnsEmptyWhenDialogueDoesNotExistAtAll() {
-        DBProject project = projectService.createProject("auto-draft-missing", "Auto Draft Test", "");
-
-        assertTrue(draftDialogueService.findOrCreateDraftDialogue(project, "nonexistent").isEmpty());
-    }
-
-    @Test
     void createDialogueSetsIsNewAndIsChanged() {
         DBProject project = projectService.createProject("flags-test-create", "Flags Test", "");
         DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "basic");
@@ -301,26 +257,6 @@ class DraftDialogueServiceTest {
         assertTrue(dialogue.getIsNew());
         assertTrue(dialogue.getIsChanged());
         assertFalse(dialogue.getIsDeleted());
-    }
-
-    @Test
-    void findOrCreateDraftDialogueResetsFlagsWhenCopyingFromPublished() throws Exception {
-        DBProject project = projectService.createProject("flags-test-copy", "Flags Test", "");
-        DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "basic");
-        draftDialogueService.createNode(dialogue, "Start",
-                "title: Start\nspeaker: Narrator\nposition: 0,0", "");
-
-        PublishService.PublishResult publishResult = publishService.publish(project, null);
-        if (!publishResult.isSuccess()) {
-            throw new AssertionError("Publish failed: " + publishResult.getErrors());
-        }
-
-        draftDialogueService.hardDeleteDialogue(dialogue);
-        DBDraftDialogue recreated = draftDialogueService.findOrCreateDraftDialogue(project, "basic")
-                .orElseThrow();
-
-        assertFalse(recreated.getIsNew());
-        assertFalse(recreated.getIsChanged());
     }
 
     @Test
@@ -375,10 +311,9 @@ class DraftDialogueServiceTest {
             throw new AssertionError("Publish failed: " + secondPublish.getErrors());
         }
 
+        // Once truly gone from the published set, the draft row is gone too — there's no
+        // resurrection path anymore (see findDialogue, the only lookup left).
         assertTrue(draftDialogueService.findDialogue(project, "basic").isEmpty());
-        // Once truly gone from the published set, re-opening it for editing should treat it as a
-        // brand new dialogue, not resurrect the deleted one.
-        assertTrue(draftDialogueService.findOrCreateDraftDialogue(project, "basic").isEmpty());
     }
 
     @Test

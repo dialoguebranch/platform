@@ -294,7 +294,7 @@ public class AuthoringController {
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectSlug));
 					DBDraftDialogue dialogue = draftDialogueService
-							.findOrCreateDraftDialogue(project, dialogueName)
+							.findDialogue(project, dialogueName)
 							.orElseThrow(() -> new NotFoundException(
 									"Dialogue not found: " + dialogueName));
 					return draftDialogueService.listNodes(dialogue);

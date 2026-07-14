@@ -36,12 +36,10 @@ import com.dialoguebranch.web.service.exception.ConflictException;
 import com.dialoguebranch.web.service.repository.DBDraftDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBDraftNodeRepository;
 import com.dialoguebranch.web.service.repository.DBDraftTranslationRepository;
-import com.dialoguebranch.web.service.repository.DBPublishedDialogueRepository;
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
 import com.dialoguebranch.web.service.storage.model.DBDraftNode;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslation;
 import com.dialoguebranch.web.service.storage.model.DBProject;
-import com.dialoguebranch.web.service.storage.model.DBProjectVersion;
 import com.dialoguebranch.web.service.storage.model.DBPublishedDialogue;
 import nl.rrd.utils.exception.ParseException;
 import org.slf4j.Logger;
@@ -76,16 +74,13 @@ public class DraftDialogueService {
 	private final DBDraftDialogueRepository dialogueRepository;
 	private final DBDraftNodeRepository nodeRepository;
 	private final DBDraftTranslationRepository translationRepository;
-	private final DBPublishedDialogueRepository publishedDialogueRepository;
 
 	public DraftDialogueService(DBDraftDialogueRepository dialogueRepository,
 								DBDraftNodeRepository nodeRepository,
-								DBDraftTranslationRepository translationRepository,
-								DBPublishedDialogueRepository publishedDialogueRepository) {
+								DBDraftTranslationRepository translationRepository) {
 		this.dialogueRepository = dialogueRepository;
 		this.nodeRepository = nodeRepository;
 		this.translationRepository = translationRepository;
-		this.publishedDialogueRepository = publishedDialogueRepository;
 	}
 
 	// --------------------------------------------------------------- //
@@ -115,44 +110,11 @@ public class DraftDialogueService {
 	}
 
 	/**
-	 * Returns the draft dialogue with the given name within the given project, creating it first
-	 * by copying the content of the latest published version of that dialogue if no draft exists
-	 * yet. Returns {@link Optional#empty()} only if there is neither a draft nor a published
-	 * dialogue with this name in the project.
-	 *
-	 * @param project the owning project.
-	 * @param name    the dialogue name.
-	 * @return the existing or newly-created draft dialogue, or empty if the dialogue doesn't
-	 *         exist in any form.
-	 */
-	@Transactional
-	public Optional<DBDraftDialogue> findOrCreateDraftDialogue(DBProject project, String name) {
-		Optional<DBDraftDialogue> existing = findDialogue(project, name);
-		if (existing.isPresent()) return existing;
-
-		DBProjectVersion latestVersion = project.getLatestVersion();
-		if (latestVersion == null) return Optional.empty();
-		Optional<DBPublishedDialogue> published = publishedDialogueRepository
-				.findByVersionAndName(latestVersion, name);
-		if (published.isEmpty()) return Optional.empty();
-
-		DBDraftDialogue dialogue =
-				createDialogueFromScript(project, name, published.get().getContent());
-		// createDialogueFromScript defaults a freshly-created dialogue to isNew/isChanged=true —
-		// override that here, since this copy is by construction identical to (and thus already in
-		// sync with) the published content it was just copied from.
-		dialogue.setIsNew(false);
-		dialogue.setIsChanged(false);
-		return Optional.of(dialogueRepository.save(dialogue));
-	}
-
-	/**
 	 * Creates a new draft dialogue in {@code project} named {@code name}, populated by splitting
 	 * the given full {@code .dlb} script {@code content} into per-node header/body pairs
 	 * (mirroring the inverse of {@link #reconstructScript}) and creating a {@link DBDraftNode} for
-	 * each. Used both to back-fill a draft from an existing published version (see {@link
-	 * #findOrCreateDraftDialogue}) and to seed a project's initial drafts directly from its
-	 * {@code .dlb} source files (see {@code ProjectSeedService}).
+	 * each. Used to seed a project's initial drafts directly from its {@code .dlb} source files
+	 * (see {@code ProjectSeedService}), before they're published for the first time.
 	 *
 	 * @param project the owning project.
 	 * @param name    the dialogue name.
@@ -225,8 +187,9 @@ public class DraftDialogueService {
 		dialogue.setName(name);
 		dialogue.setCreatedAt(now);
 		dialogue.setUpdatedAt(now);
-		// A freshly-created dialogue has no published counterpart by definition, until proven
-		// otherwise by the caller (see findOrCreateDraftDialogue, which overrides this).
+		// A freshly-created dialogue has no published counterpart yet by definition — it only
+		// stops being new/changed once it's actually included in a publish (see
+		// PublishService#publish).
 		dialogue.setIsNew(true);
 		dialogue.setIsChanged(true);
 		dialogue.setIsDeleted(false);

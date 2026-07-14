@@ -244,8 +244,11 @@ public class ProjectService {
 
 		languageMappingRepository.deleteAll(languageMappingRepository.findByProject(project));
 
+		// Whole-project deletion is final, so every draft dialogue must actually be removed here
+		// (deleteDialogue is a revertible soft-delete, which would leave rows behind referencing
+		// this project and violate the foreign key when the project row itself is deleted below).
 		for (DBDraftDialogue dialogue : draftDialogueService.listDialogues(project)) {
-			draftDialogueService.deleteDialogue(dialogue);
+			draftDialogueService.hardDeleteDialogue(dialogue);
 		}
 
 		for (DBProjectVersion version :
