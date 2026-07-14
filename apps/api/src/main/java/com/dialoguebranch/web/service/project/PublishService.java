@@ -121,7 +121,14 @@ public class PublishService {
 	 */
 	@Transactional
 	public PublishResult publish(DBProject project, DBUser publishedBy) throws IOException {
-		List<DBDraftDialogue> drafts = draftDialogueService.listDialogues(project);
+		// Every dialogue in the project always has a draft — seeded projects create drafts first
+		// and publish from them (see ProjectSeedService), and any dialogue added since is created
+		// as a draft too. Dialogues pending deletion are excluded from what gets published, but
+		// stay around as drafts until the publish actually succeeds (see below).
+		List<DBDraftDialogue> allDrafts = draftDialogueService.listDialogues(project);
+		List<DBDraftDialogue> drafts = allDrafts.stream()
+				.filter(draft -> !draft.getIsDeleted())
+				.toList();
 
 		// Build an in-memory map of dialogue name → script content for validation
 		Map<String, String> scriptsByName = new LinkedHashMap<>();
@@ -162,7 +169,9 @@ public class PublishService {
 		version.setPublishedBy(publishedBy);
 		version = versionRepository.save(version);
 
-		// Copy draft content into published tables
+		// Copy draft content into published tables, and reconcile each dialogue's draft status —
+		// it's no longer new, no longer changed, and no longer remembers a prior name, since this
+		// version now reflects it exactly.
 		for (DBDraftDialogue draft : drafts) {
 			DBPublishedDialogue published = new DBPublishedDialogue();
 			published.setVersion(version);
@@ -177,6 +186,19 @@ public class PublishService {
 				translation.setLanguage(entry.getKey());
 				translation.setContent(entry.getValue());
 				publishedTranslationRepository.save(translation);
+			}
+
+			draft.setIsNew(false);
+			draft.setIsChanged(false);
+			draft.setRenamedFrom(null);
+			draftDialogueService.save(draft);
+		}
+
+		// Dialogues that were pending deletion are now genuinely gone from the published set (they
+		// were excluded above) — their draft rows can be permanently removed.
+		for (DBDraftDialogue draft : allDrafts) {
+			if (draft.getIsDeleted()) {
+				draftDialogueService.hardDeleteDialogue(draft);
 			}
 		}
 

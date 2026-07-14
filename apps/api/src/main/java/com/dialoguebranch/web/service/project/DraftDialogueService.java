@@ -136,8 +136,34 @@ public class DraftDialogueService {
 				.findByVersionAndName(latestVersion, name);
 		if (published.isEmpty()) return Optional.empty();
 
+		DBDraftDialogue dialogue =
+				createDialogueFromScript(project, name, published.get().getContent());
+		// createDialogueFromScript defaults a freshly-created dialogue to isNew/isChanged=true —
+		// override that here, since this copy is by construction identical to (and thus already in
+		// sync with) the published content it was just copied from.
+		dialogue.setIsNew(false);
+		dialogue.setIsChanged(false);
+		return Optional.of(dialogueRepository.save(dialogue));
+	}
+
+	/**
+	 * Creates a new draft dialogue in {@code project} named {@code name}, populated by splitting
+	 * the given full {@code .dlb} script {@code content} into per-node header/body pairs
+	 * (mirroring the inverse of {@link #reconstructScript}) and creating a {@link DBDraftNode} for
+	 * each. Used both to back-fill a draft from an existing published version (see {@link
+	 * #findOrCreateDraftDialogue}) and to seed a project's initial drafts directly from its
+	 * {@code .dlb} source files (see {@code ProjectSeedService}).
+	 *
+	 * @param project the owning project.
+	 * @param name    the dialogue name.
+	 * @param content the full {@code .dlb} script content to populate the new draft from.
+	 * @return the newly created {@link DBDraftDialogue}.
+	 */
+	@Transactional
+	public DBDraftDialogue createDialogueFromScript(DBProject project, String name,
+													String content) {
 		DBDraftDialogue dialogue = createDialogue(project, name);
-		List<String[]> nodeBlocks = splitPublishedScript(published.get().getContent());
+		List<String[]> nodeBlocks = splitPublishedScript(content);
 		Instant now = Instant.now();
 		int index = 0;
 		for (String[] block : nodeBlocks) {
@@ -145,8 +171,8 @@ public class DraftDialogueService {
 			String body = block[1];
 			String title = extractHeaderTag(header, "title");
 			if (title == null || title.isEmpty()) {
-				logger.warn("Skipping a node with no 'title' tag while copying published " +
-						"dialogue '{}' (project '{}') into a new draft.", name, project.getSlug());
+				logger.warn("Skipping a node with no 'title' tag while creating draft dialogue " +
+						"'{}' (project '{}') from script content.", name, project.getSlug());
 				continue;
 			}
 			DBDraftNode node = new DBDraftNode();
@@ -154,14 +180,14 @@ public class DraftDialogueService {
 			node.setTitle(title);
 			node.setHeader(header);
 			node.setBody(body);
-			// Strictly increasing timestamps preserve the published script's node order when
-			// nodes are later re-read via findByDraftDialogueOrderByCreatedAt.
+			// Strictly increasing timestamps preserve the source script's node order when nodes
+			// are later re-read via findByDraftDialogueOrderByCreatedAt.
 			node.setCreatedAt(now.plus(index, ChronoUnit.MILLIS));
 			node.setUpdatedAt(now.plus(index, ChronoUnit.MILLIS));
 			nodeRepository.save(node);
 			index++;
 		}
-		return Optional.of(dialogue);
+		return dialogue;
 	}
 
 	/**
@@ -173,6 +199,16 @@ public class DraftDialogueService {
 	 */
 	public Optional<DBDraftDialogue> findDialogueById(UUID id) {
 		return dialogueRepository.findById(id);
+	}
+
+	/**
+	 * Persists changes made directly to a {@link DBDraftDialogue} (e.g. its status flags).
+	 *
+	 * @param dialogue the draft dialogue to save.
+	 * @return the saved dialogue.
+	 */
+	public DBDraftDialogue save(DBDraftDialogue dialogue) {
+		return dialogueRepository.save(dialogue);
 	}
 
 	/**
@@ -189,19 +225,68 @@ public class DraftDialogueService {
 		dialogue.setName(name);
 		dialogue.setCreatedAt(now);
 		dialogue.setUpdatedAt(now);
+		// A freshly-created dialogue has no published counterpart by definition, until proven
+		// otherwise by the caller (see findOrCreateDraftDialogue, which overrides this).
+		dialogue.setIsNew(true);
+		dialogue.setIsChanged(true);
+		dialogue.setIsDeleted(false);
 		return dialogueRepository.save(dialogue);
 	}
 
 	/**
-	 * Deletes the given draft dialogue and all its associated nodes and translations.
+	 * Marks the given draft dialogue as pending deletion ({@code isDeleted = true}). This is a
+	 * soft delete: the row and its nodes/translations are left untouched, so the deletion can
+	 * still be reverted via {@link #restoreDialogue}. It only takes permanent effect — dropping
+	 * the dialogue's published counterpart (if any) from the new version, and hard-deleting this
+	 * row — the next time the project is published (see {@link PublishService#publish}).
 	 *
-	 * @param dialogue the draft dialogue to delete.
+	 * @param dialogue the draft dialogue to mark for deletion.
 	 */
 	@Transactional
 	public void deleteDialogue(DBDraftDialogue dialogue) {
+		dialogue.setIsDeleted(true);
+		dialogue.setUpdatedAt(Instant.now());
+		dialogueRepository.save(dialogue);
+	}
+
+	/**
+	 * Reverts a pending deletion previously made via {@link #deleteDialogue}, marking the given
+	 * draft dialogue as {@code isDeleted = false} again.
+	 *
+	 * @param dialogue the draft dialogue to restore.
+	 */
+	@Transactional
+	public void restoreDialogue(DBDraftDialogue dialogue) {
+		dialogue.setIsDeleted(false);
+		dialogue.setUpdatedAt(Instant.now());
+		dialogueRepository.save(dialogue);
+	}
+
+	/**
+	 * Permanently deletes the given draft dialogue and all its nodes/translations — unlike {@link
+	 * #deleteDialogue}, this cannot be undone. Used by {@link PublishService#publish} once a
+	 * dialogue's pending deletion has actually taken effect in a new published version.
+	 *
+	 * @param dialogue the draft dialogue to permanently delete.
+	 */
+	@Transactional
+	public void hardDeleteDialogue(DBDraftDialogue dialogue) {
 		translationRepository.deleteAll(translationRepository.findByDraftDialogue(dialogue));
 		nodeRepository.deleteAll(nodeRepository.findByDraftDialogueOrderByCreatedAt(dialogue));
 		dialogueRepository.delete(dialogue);
+	}
+
+	/**
+	 * Marks the given draft dialogue as having unpublished changes, and persists it. Called by
+	 * every operation that mutates a dialogue's effective content (node create/update/delete/
+	 * rename, or a sibling dialogue's rename rewriting one of its references).
+	 *
+	 * @param dialogue the draft dialogue to mark as changed.
+	 */
+	private void markChanged(DBDraftDialogue dialogue) {
+		dialogue.setIsChanged(true);
+		dialogue.setUpdatedAt(Instant.now());
+		dialogueRepository.save(dialogue);
 	}
 
 	// ---------------------------------------------------------- //
@@ -249,7 +334,9 @@ public class DraftDialogueService {
 		node.setBody(body);
 		node.setCreatedAt(now);
 		node.setUpdatedAt(now);
-		return nodeRepository.save(node);
+		DBDraftNode saved = nodeRepository.save(node);
+		markChanged(dialogue);
+		return saved;
 	}
 
 	/**
@@ -264,7 +351,9 @@ public class DraftDialogueService {
 		node.setHeader(header);
 		node.setBody(body);
 		node.setUpdatedAt(Instant.now());
-		return nodeRepository.save(node);
+		DBDraftNode saved = nodeRepository.save(node);
+		markChanged(node.getDraftDialogue());
+		return saved;
 	}
 
 	/**
@@ -273,7 +362,9 @@ public class DraftDialogueService {
 	 * @param node the node to delete.
 	 */
 	public void deleteNode(DBDraftNode node) {
+		DBDraftDialogue dialogue = node.getDraftDialogue();
 		nodeRepository.delete(node);
+		markChanged(dialogue);
 	}
 
 	/**
@@ -300,6 +391,34 @@ public class DraftDialogueService {
 				while (matcher.find()) {
 					if (replyTargetMatches(matcher.group(1), dialogue.getName(), node.getTitle(),
 							dialogueName, nodeTitle)) {
+						references.add(new NodeReference(dialogue.getName(), node.getTitle(),
+								matcher.group(0)));
+					}
+				}
+			}
+		}
+		return references;
+	}
+
+	/**
+	 * Scans every draft dialogue in the given project for {@code [[...]]} reply links whose
+	 * external node pointer resolves to the given {@code dialogueName} — regardless of which node
+	 * within it they target. Used when renaming a whole dialogue (unlike {@link #findNodeReferences},
+	 * which targets one specific node).
+	 *
+	 * @param project      the project to scan.
+	 * @param dialogueName the name (including path) of the dialogue being searched for.
+	 * @return every referencing reply found, across all draft dialogues in the project.
+	 */
+	public List<NodeReference> findDialogueReferences(DBProject project, String dialogueName) {
+		List<NodeReference> references = new ArrayList<>();
+		for (DBDraftDialogue dialogue : dialogueRepository.findByProject(project)) {
+			for (DBDraftNode node : nodeRepository.findByDraftDialogueOrderByCreatedAt(dialogue)) {
+				if (node.getBody() == null) continue;
+				Matcher matcher = REPLY_PATTERN.matcher(node.getBody());
+				while (matcher.find()) {
+					if (replyTargetDialogueMatches(matcher.group(1), dialogue.getName(),
+							node.getTitle(), dialogueName)) {
 						references.add(new NodeReference(dialogue.getName(), node.getTitle(),
 								matcher.group(0)));
 					}
@@ -372,6 +491,7 @@ public class DraftDialogueService {
 				refNode.setBody(rewrittenBody);
 				refNode.setUpdatedAt(Instant.now());
 				nodeRepository.save(refNode);
+				markChanged(refDialogue);
 			}
 		}
 
@@ -379,8 +499,91 @@ public class DraftDialogueService {
 		node.setHeader(rewriteTitleTag(node.getHeader(), newTitle));
 		node.setUpdatedAt(Instant.now());
 		DBDraftNode renamed = nodeRepository.save(node);
+		markChanged(dialogue);
 
 		return new RenameResult(renamed, referencesUpdated);
+	}
+
+	/**
+	 * Renames a draft dialogue: updates its {@code name} column. If it has a published counterpart
+	 * (i.e. it isn't {@link DBDraftDialogue#getIsNew() new}) and hasn't already been renamed since
+	 * its last publish, its current name is remembered in {@link DBDraftDialogue#getRenamedFrom()}
+	 * — this is how the next publish knows which published entry to drop, and how a later rename in
+	 * the same unpublished chain (e.g. {@code A -> B -> C}) keeps remembering the original published
+	 * name ({@code A}) rather than the intermediate one.
+	 *
+	 * <p>If {@code updateReferences} is {@code true}, every reply link elsewhere in the project
+	 * that points into this dialogue (found via {@link #findDialogueReferences}) is rewritten in
+	 * place to point at the new name instead; otherwise those links are left as-is (and will now be
+	 * dangling). Rewritten references are always written as an explicit {@code ./<name>} absolute
+	 * reference (see {@code ExternalNodePointer.getAbsoluteDialogueId}) rather than reconstructing
+	 * whatever relative form the author originally used, since that form is always unambiguous
+	 * regardless of the referencing dialogue's own folder.</p>
+	 *
+	 * @param project          the owning project.
+	 * @param dialogue         the dialogue to rename.
+	 * @param newName          the new dialogue name.
+	 * @param updateReferences whether to rewrite references elsewhere in the project.
+	 * @return the renamed dialogue plus how many individual reply links were rewritten.
+	 * @throws BadRequestException if {@code newName} is not a valid dialogue name.
+	 * @throws ConflictException   if a dialogue with {@code newName} already exists in the project.
+	 */
+	@Transactional
+	public DialogueRenameResult renameDialogue(DBProject project, DBDraftDialogue dialogue,
+											   String newName, boolean updateReferences)
+			throws BadRequestException, ConflictException {
+		if (!newName.matches(DialogueBranchParser.DIALOGUE_NAME_REGEX)) {
+			throw new BadRequestException("Invalid dialogue name: '" + newName + "'.");
+		}
+		String oldName = dialogue.getName();
+		if (!oldName.equals(newName)
+				&& dialogueRepository.findByProjectAndName(project, newName).isPresent()) {
+			throw new ConflictException(
+					"A dialogue named '" + newName + "' already exists in this project.");
+		}
+
+		int referencesUpdated = 0;
+		if (updateReferences) {
+			List<NodeReference> references = findDialogueReferences(project, oldName);
+			referencesUpdated = references.size();
+
+			// A single referencing node may appear more than once above (if it links into the
+			// renamed dialogue multiple times) — rewrite each referencing node's body exactly once.
+			List<String> distinctReferencingNodes = new ArrayList<>();
+			for (NodeReference reference : references) {
+				String key = reference.getDialogueName() + " " + reference.getNodeTitle();
+				if (!distinctReferencingNodes.contains(key)) {
+					distinctReferencingNodes.add(key);
+				}
+			}
+
+			for (String key : distinctReferencingNodes) {
+				String[] parts = key.split(" ", 2);
+				DBDraftDialogue refDialogue = dialogueRepository
+						.findByProjectAndName(project, parts[0])
+						.orElseThrow(() -> new IllegalStateException(
+								"Referencing dialogue disappeared during rename: " + parts[0]));
+				DBDraftNode refNode = nodeRepository
+						.findByDraftDialogueAndTitle(refDialogue, parts[1])
+						.orElseThrow(() -> new IllegalStateException(
+								"Referencing node disappeared during rename: " + parts[1]));
+				String rewrittenBody = rewriteReplyDialogueTargets(refNode.getBody(),
+						refDialogue.getName(), refNode.getTitle(), oldName, newName);
+				refNode.setBody(rewrittenBody);
+				refNode.setUpdatedAt(Instant.now());
+				nodeRepository.save(refNode);
+				markChanged(refDialogue);
+			}
+		}
+
+		if (!dialogue.getIsNew() && dialogue.getRenamedFrom() == null) {
+			dialogue.setRenamedFrom(oldName);
+		}
+		dialogue.setName(newName);
+		markChanged(dialogue);
+		DBDraftDialogue renamed = dialogueRepository.save(dialogue);
+
+		return new DialogueRenameResult(renamed, referencesUpdated);
 	}
 
 	/**
@@ -421,6 +624,36 @@ public class DraftDialogueService {
 			}
 		}
 		return false;
+	}
+
+	/**
+	 * Determines whether the target dialogue of a single {@code [[...]]} reply (given the text
+	 * between its brackets) resolves to {@code targetDialogueName} — regardless of which node
+	 * within it is targeted. A bare {@code NODE_NAME_REGEX} token is always an internal
+	 * (same-dialogue) pointer and thus never a reference to another dialogue.
+	 *
+	 * @param bracketInnerText   the text between the {@code [[} and {@code ]]} of one reply.
+	 * @param originDialogueName the name of the dialogue the reply is written in.
+	 * @param originNodeTitle    the title of the node the reply is written in.
+	 * @param targetDialogueName the dialogue name being searched for.
+	 * @return whether this reply's target dialogue resolves to {@code targetDialogueName}.
+	 */
+	private boolean replyTargetDialogueMatches(String bracketInnerText, String originDialogueName,
+											   String originNodeTitle, String targetDialogueName) {
+		String token = replyTargetToken(bracketInnerText);
+		if (token == null || token.matches(DialogueBranchParser.NODE_NAME_REGEX)) return false;
+		if (!token.matches(DialogueBranchParser.EXTERNAL_NODE_POINTER_REGEX)) return false;
+
+		int sep = token.lastIndexOf('.');
+		String dialogueRef = token.substring(0, sep);
+		String title = token.substring(sep + 1);
+		try {
+			ExternalNodePointer pointer = new ExternalNodePointer(originDialogueName,
+					originNodeTitle, dialogueRef, title);
+			return pointer.getAbsoluteTargetDialogue().equals(targetDialogueName);
+		} catch (ParseException e) {
+			return false;
+		}
 	}
 
 	/**
@@ -474,6 +707,48 @@ public class DraftDialogueService {
 					int sep = token.lastIndexOf('.');
 					parts[targetIndex] = token.substring(0, sep + 1) + newTitle;
 				}
+				replacement = "[[" + String.join("|", parts) + "]]";
+			}
+			matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
+		}
+		matcher.appendTail(result);
+		return result.toString();
+	}
+
+	/**
+	 * Rewrites every {@code [[...]]} reply in {@code body} whose target dialogue resolves to
+	 * {@code oldDialogueName} so that it points at {@code newDialogueName} instead — regardless of
+	 * which node within it was targeted — leaving every other reply, and the node-title portion of
+	 * the token, untouched. The rewritten dialogue reference is always written as an explicit
+	 * {@code ./<name>} absolute reference (see {@code ExternalNodePointer.getAbsoluteDialogueId}),
+	 * which resolves correctly regardless of the referencing dialogue's own folder — rather than
+	 * reconstructing whatever relative form ({@code ../}, bare, etc.) the author originally used.
+	 *
+	 * @param body               the raw body script to rewrite.
+	 * @param originDialogueName the name of the dialogue {@code body} belongs to.
+	 * @param originNodeTitle    the title of the node {@code body} belongs to.
+	 * @param oldDialogueName    the old name of the dialogue being renamed.
+	 * @param newDialogueName    the new name of the dialogue being renamed.
+	 * @return the rewritten body.
+	 */
+	private String rewriteReplyDialogueTargets(String body, String originDialogueName,
+											   String originNodeTitle, String oldDialogueName,
+											   String newDialogueName) {
+		if (body == null) return null;
+		Matcher matcher = REPLY_PATTERN.matcher(body);
+		StringBuilder result = new StringBuilder();
+		while (matcher.find()) {
+			String inner = matcher.group(1);
+			String replacement = matcher.group(0);
+			if (replyTargetDialogueMatches(inner, originDialogueName, originNodeTitle,
+					oldDialogueName)) {
+				String[] parts = inner.split("\\|", -1);
+				int targetIndex = parts.length == 1 ? 0 : 1;
+				String token = parts[targetIndex].trim();
+				int sep = token.lastIndexOf('.');
+				String title = token.substring(sep + 1);
+				parts[targetIndex] = "." + DialogueBranchConstants.DLB_PATH_SEPARATOR
+						+ newDialogueName + "." + title;
 				replacement = "[[" + String.join("|", parts) + "]]";
 			}
 			matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
@@ -572,6 +847,35 @@ public class DraftDialogueService {
 		 * How many individual reply links elsewhere in the project were rewritten (0 if not
 		 * requested) — one referencing node can contribute more than one, matching the count
 		 * {@link #findNodeReferences(DBProject, String, String)} would report for it.
+		 */
+		public int getReferencesUpdated() {
+			return referencesUpdated;
+		}
+
+	}
+
+	/**
+	 * The outcome of a {@link #renameDialogue(DBProject, DBDraftDialogue, String, boolean)} call.
+	 */
+	public static class DialogueRenameResult {
+
+		private final DBDraftDialogue dialogue;
+		private final int referencesUpdated;
+
+		public DialogueRenameResult(DBDraftDialogue dialogue, int referencesUpdated) {
+			this.dialogue = dialogue;
+			this.referencesUpdated = referencesUpdated;
+		}
+
+		/** The renamed dialogue. */
+		public DBDraftDialogue getDialogue() {
+			return dialogue;
+		}
+
+		/**
+		 * How many individual reply links elsewhere in the project were rewritten (0 if not
+		 * requested) — one referencing node can contribute more than one, matching the count
+		 * {@link #findDialogueReferences(DBProject, String)} would report for it.
 		 */
 		public int getReferencesUpdated() {
 			return referencesUpdated;

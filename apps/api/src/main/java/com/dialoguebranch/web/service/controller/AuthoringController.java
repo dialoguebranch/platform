@@ -33,6 +33,7 @@ import com.dialoguebranch.web.service.QueryRunner;
 import com.dialoguebranch.web.service.auth.AuthenticationInfo;
 import com.dialoguebranch.web.service.controller.schema.authoring.*;
 import com.dialoguebranch.web.service.exception.BadRequestException;
+import com.dialoguebranch.web.service.exception.ConflictException;
 import com.dialoguebranch.web.service.exception.HttpException;
 import com.dialoguebranch.web.service.exception.NotFoundException;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
@@ -89,6 +90,21 @@ public class AuthoringController {
 		this.draftDialogueService = draftDialogueService;
 	}
 
+	/**
+	 * Rejects further editing (or test-running, see {@link DraftExecutionController}) of a
+	 * dialogue that is currently pending deletion, until that deletion is reverted via
+	 * {@code /restore-dialogue}.
+	 *
+	 * @param dialogue the dialogue to check.
+	 * @throws ConflictException if {@code dialogue} is pending deletion.
+	 */
+	static void checkNotDeleted(DBDraftDialogue dialogue) throws ConflictException {
+		if (dialogue.getIsDeleted()) {
+			throw new ConflictException("Dialogue '" + dialogue.getName() + "' is pending " +
+					"deletion — restore it first.");
+		}
+	}
+
 	// ------------------------------------------------------------------ //
 	// -------------------- Dialogue Management -------------------- //
 	// ------------------------------------------------------------------ //
@@ -96,7 +112,7 @@ public class AuthoringController {
 	@Operation(summary = "List all draft dialogues in a project.")
 	@Parameter(name = "version", hidden = true)
 	@GetMapping("/list-dialogues")
-	public List<DBDraftDialogue> listDialogues(
+	public List<DraftDialogueSummary> listDialogues(
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
@@ -108,7 +124,9 @@ public class AuthoringController {
 					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectSlug));
-					return draftDialogueService.listDialogues(project);
+					return draftDialogueService.listDialogues(project).stream()
+							.map(DraftDialogueSummary::new)
+							.toList();
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
@@ -139,7 +157,8 @@ public class AuthoringController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
-	@Operation(summary = "Delete a draft dialogue and all its nodes and translations.")
+	@Operation(summary = "Mark a draft dialogue as pending deletion (revertible via " +
+			"/restore-dialogue until the project is next published).")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/delete-dialogue")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
@@ -162,6 +181,93 @@ public class AuthoringController {
 									"Dialogue not found: " + dialogueName));
 					draftDialogueService.deleteDialogue(dialogue);
 					return null;
+				},
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
+				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
+	}
+
+	@Operation(summary = "Revert a pending deletion made via /delete-dialogue.")
+	@Parameter(name = "version", hidden = true)
+	@PostMapping("/restore-dialogue")
+	public DBDraftDialogue restoreDialogue(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug,
+			@RequestParam(value = "dialogueName") String dialogueName
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("POST /v{}/authoring/restore-dialogue [user: {}]", version, user);
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					DBDraftDialogue dialogue = draftDialogueService
+							.findDialogue(project, dialogueName)
+							.orElseThrow(() -> new NotFoundException(
+									"Dialogue not found: " + dialogueName));
+					draftDialogueService.restoreDialogue(dialogue);
+					return dialogue;
+				},
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
+				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
+	}
+
+	@Operation(summary = "Find all reply links in the project that reference a given dialogue.")
+	@Parameter(name = "version", hidden = true)
+	@GetMapping("/find-dialogue-references")
+	public List<DraftDialogueService.NodeReference> findDialogueReferences(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug,
+			@RequestParam(value = "dialogueName") String dialogueName
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("GET /v{}/authoring/find-dialogue-references [user: {}]", version,
+							user);
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					draftDialogueService.findDialogue(project, dialogueName)
+							.orElseThrow(() -> new NotFoundException(
+									"Dialogue not found: " + dialogueName));
+					return draftDialogueService.findDialogueReferences(project, dialogueName);
+				},
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
+				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
+	}
+
+	@Operation(summary = "Rename a draft dialogue, optionally rewriting references to it " +
+			"elsewhere in the project.")
+	@Parameter(name = "version", hidden = true)
+	@PostMapping("/rename-dialogue")
+	public DraftDialogueService.DialogueRenameResult renameDialogue(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug,
+			@RequestParam(value = "dialogueName") String dialogueName,
+			@RequestParam(value = "newName") String newName,
+			@RequestParam(value = "updateReferences", defaultValue = "false")
+			boolean updateReferences
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("POST /v{}/authoring/rename-dialogue [user: {}]", version, user);
+					if (newName == null || newName.isBlank())
+						throw new BadRequestException("Field 'newName' is required.");
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					DBDraftDialogue dialogue = draftDialogueService
+							.findDialogue(project, dialogueName)
+							.orElseThrow(() -> new NotFoundException(
+									"Dialogue not found: " + dialogueName));
+					checkNotDeleted(dialogue);
+					return draftDialogueService.renameDialogue(project, dialogue, newName,
+							updateReferences);
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
@@ -221,6 +327,7 @@ public class AuthoringController {
 							.findDialogue(project, dialogueName)
 							.orElseThrow(() -> new NotFoundException(
 									"Dialogue not found: " + dialogueName));
+					checkNotDeleted(dialogue);
 					return draftDialogueService.createNode(dialogue, payload.getTitle(),
 							payload.getHeader(), payload.getBody());
 				},
@@ -250,6 +357,7 @@ public class AuthoringController {
 							.findDialogue(project, dialogueName)
 							.orElseThrow(() -> new NotFoundException(
 									"Dialogue not found: " + dialogueName));
+					checkNotDeleted(dialogue);
 					DBDraftNode node = draftDialogueService.findNode(dialogue, nodeTitle)
 							.orElseThrow(() -> new NotFoundException(
 									"Node not found: " + nodeTitle));
@@ -282,6 +390,7 @@ public class AuthoringController {
 							.findDialogue(project, dialogueName)
 							.orElseThrow(() -> new NotFoundException(
 									"Dialogue not found: " + dialogueName));
+					checkNotDeleted(dialogue);
 					DBDraftNode node = draftDialogueService.findNode(dialogue, nodeTitle)
 							.orElseThrow(() -> new NotFoundException(
 									"Node not found: " + nodeTitle));
@@ -349,6 +458,7 @@ public class AuthoringController {
 							.findDialogue(project, dialogueName)
 							.orElseThrow(() -> new NotFoundException(
 									"Dialogue not found: " + dialogueName));
+					checkNotDeleted(dialogue);
 					DBDraftNode node = draftDialogueService.findNode(dialogue, oldTitle)
 							.orElseThrow(() -> new NotFoundException(
 									"Node not found: " + oldTitle));
@@ -386,6 +496,7 @@ public class AuthoringController {
 							.findDialogue(project, dialogueName)
 							.orElseThrow(() -> new NotFoundException(
 									"Dialogue not found: " + dialogueName));
+					checkNotDeleted(dialogue);
 					return draftDialogueService.createOrUpdateTranslation(dialogue, language,
 							payload.getContent());
 				},
@@ -416,6 +527,7 @@ public class AuthoringController {
 							.findDialogue(project, dialogueName)
 							.orElseThrow(() -> new NotFoundException(
 									"Dialogue not found: " + dialogueName));
+					checkNotDeleted(dialogue);
 					DBDraftTranslation translation = draftDialogueService
 							.findTranslation(dialogue, language)
 							.orElseThrow(() -> new NotFoundException(

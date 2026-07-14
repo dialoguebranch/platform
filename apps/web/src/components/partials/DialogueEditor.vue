@@ -19,6 +19,10 @@ const props = defineProps({
     dialogueName: { type: String, default: null },
 });
 
+// Lets InteractionTester.vue track, per tab, whether its dialogue was edited and which node was
+// most recently touched — used to offer restarting a draft test from that node instead of Start.
+const emit = defineEmits(['nodeChanged', 'nodeDeleted']);
+
 const state = inject('state');
 const client = useClient();
 
@@ -115,6 +119,9 @@ function onNodeDragStop({ node }) {
     client.updateDraftNode(state.value.selectedProject?.slug, props.dialogueName, node.id,
         newHeader, rawNode.body)
         .then((updated) => {
+            // Position-only changes don't count as content edits — they don't affect what a test
+            // run of this dialogue actually does — so no 'nodeChanged' here (see InteractionTester's
+            // handleReturnFromEdit, which restarts/notifies based on that event).
             rawNodesByTitle.value.set(node.id, updated);
         })
         .catch((error) => {
@@ -148,6 +155,7 @@ function addNode() {
     client.createDraftNode(state.value.selectedProject?.slug, props.dialogueName, title, header, '')
         .then(() => {
             loadNodes();
+            emit('nodeChanged', title);
         })
         .catch((error) => {
             showError(describeError(error));
@@ -170,19 +178,22 @@ function onNodeSaved(updatedNode) {
     rawNodesByTitle.value.set(updatedNode.title, updatedNode);
     buildGraph([...rawNodesByTitle.value.values()]);
     selectedNodeTitle.value = null;
+    emit('nodeChanged', updatedNode.title);
 }
 
 function onNodeDeleted(deletedTitle) {
     rawNodesByTitle.value.delete(deletedTitle);
     buildGraph([...rawNodesByTitle.value.values()]);
     selectedNodeTitle.value = null;
+    emit('nodeDeleted', deletedTitle);
 }
 
-function onNodeRenamed() {
+function onNodeRenamed(updatedNode) {
     // A rename can rewrite OTHER nodes' bodies too (if references were updated) — a full reload
     // is simplest and safest, rather than trying to replicate that rewrite client-side.
     selectedNodeTitle.value = null;
     loadNodes();
+    emit('nodeChanged', updatedNode.title);
 }
 
 defineExpose({

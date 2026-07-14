@@ -21,12 +21,10 @@ const props = defineProps({
 });
 
 const emit = defineEmits([
-    'selectDialogue',
-    'testDraftDialogue',
     'resumeDialogue',
     'activateTab',
     'hasDraftDialogues',
-    'editDialogue',
+    'openDialogue',
 ]);
 
 const client = useClient();
@@ -36,7 +34,7 @@ const openFolders = ref({});
 const ongoingConfirm = ref(null); // { dialogueName, loggedDialogueId, secondsSinceLastEngagement, alreadyOpenTabId? }
 const cancelConfirm = ref(false);
 
-// entries: array of { name, isPublished, isDraft }
+// entries: array of { name, isPublished, isDraft, isNew, isChanged, isDeleted }
 function buildTree(entries) {
     const root = {};
     for (const entry of entries) {
@@ -47,7 +45,14 @@ function buildTree(entries) {
             node = node[parts[i]]._children;
         }
         const leaf = parts[parts.length - 1];
-        node[leaf] = { _file: entry.name, _isPublished: entry.isPublished, _isDraft: entry.isDraft };
+        node[leaf] = {
+            _file: entry.name,
+            _isPublished: entry.isPublished,
+            _isDraft: entry.isDraft,
+            _isNew: entry.isNew,
+            _isChanged: entry.isChanged,
+            _isDeleted: entry.isDeleted,
+        };
     }
     return root;
 }
@@ -61,14 +66,20 @@ function listDialogues() {
     ])
     .then(([published, drafts]) => {
         const publishedNames = new Set(published.dialogueNames ?? []);
-        const draftNames = new Set((drafts ?? []).map((d) => d.name));
-        emit('hasDraftDialogues', draftNames.size > 0);
-        const allNames = new Set([...publishedNames, ...draftNames]);
-        const entries = [...allNames].map((name) => ({
-            name,
-            isPublished: publishedNames.has(name),
-            isDraft: draftNames.has(name),
-        }));
+        const draftsByName = new Map((drafts ?? []).map((d) => [d.name, d]));
+        emit('hasDraftDialogues', draftsByName.size > 0);
+        const allNames = new Set([...publishedNames, ...draftsByName.keys()]);
+        const entries = [...allNames].map((name) => {
+            const draft = draftsByName.get(name);
+            return {
+                name,
+                isPublished: publishedNames.has(name),
+                isDraft: draftsByName.has(name),
+                isNew: draft?.isNew ?? false,
+                isChanged: draft?.isChanged ?? false,
+                isDeleted: draft?.isDeleted ?? false,
+            };
+        });
         const root = buildTree(entries);
         tree.value = Object.entries(root).sort(([, a], [, b]) => {
             const aIsFolder = !a._file;
@@ -222,9 +233,8 @@ defineExpose({
                 :path="name"
                 :openFolders="openFolders"
                 @toggleFolder="toggleFolder"
-                @selectDialogue="$emit('selectDialogue', $event)"
-                @testDraftDialogue="$emit('testDraftDialogue', $event)"
-                @editDialogue="$emit('editDialogue', $event)"
+                @openDialogue="(name, isDraft) => $emit('openDialogue', name, isDraft)"
+                @dialoguesChanged="listDialogues"
             />
         </MainPagePanelContainer>
     </div>

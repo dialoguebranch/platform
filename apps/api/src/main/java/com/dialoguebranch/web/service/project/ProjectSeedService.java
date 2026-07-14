@@ -32,17 +32,12 @@ import com.dialoguebranch.execution.parser.ProjectMetaDataParser;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;
 import com.dialoguebranch.model.common.ProjectMetaData;
+import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.model.execute.Language;
 import com.dialoguebranch.model.execute.LanguageSet;
 import com.dialoguebranch.model.execute.ResourcePointer;
 import com.dialoguebranch.web.service.execution.SpringResourceScriptLoader;
-import com.dialoguebranch.web.service.repository.DBProjectVersionRepository;
-import com.dialoguebranch.web.service.repository.DBPublishedDialogueRepository;
-import com.dialoguebranch.web.service.repository.DBPublishedTranslationRepository;
 import com.dialoguebranch.web.service.storage.model.DBProject;
-import com.dialoguebranch.web.service.storage.model.DBProjectVersion;
-import com.dialoguebranch.web.service.storage.model.DBPublishedDialogue;
-import com.dialoguebranch.web.service.storage.model.DBPublishedTranslation;
 import nl.rrd.utils.exception.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,17 +52,15 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.*;
 import java.net.URI;
 import java.nio.file.Files;
-import java.time.Instant;
 import java.util.List;
 
 /**
  * Seeds the database with projects from the {@code projects-seed/} classpath directory on first
  * startup. Each sub-directory of {@code projects-seed/} is treated as a potential Dialogue Branch
  * project. If a project with the same name does not yet exist in the database, the seed project is
- * validated and, if it passes without errors, inserted as a published project version.
- *
- * <p>Seed projects bypass the draft layer entirely and are inserted directly into the published
- * tables.</p>
+ * validated and, if it passes without errors, created as draft dialogues and then published as the
+ * project's version 1 — the exact same path any other project takes from authoring to publishing,
+ * so seeded projects never start with published dialogues that lack a corresponding draft.
  *
  * @author Harm op den Akker
  */
@@ -80,18 +73,15 @@ public class ProjectSeedService {
 	private static final Logger logger = LoggerFactory.getLogger(ProjectSeedService.class);
 
 	private final ProjectService projectService;
-	private final DBProjectVersionRepository versionRepository;
-	private final DBPublishedDialogueRepository publishedDialogueRepository;
-	private final DBPublishedTranslationRepository publishedTranslationRepository;
+	private final DraftDialogueService draftDialogueService;
+	private final PublishService publishService;
 
 	public ProjectSeedService(ProjectService projectService,
-							  DBProjectVersionRepository versionRepository,
-							  DBPublishedDialogueRepository publishedDialogueRepository,
-							  DBPublishedTranslationRepository publishedTranslationRepository) {
+							  DraftDialogueService draftDialogueService,
+							  PublishService publishService) {
 		this.projectService = projectService;
-		this.versionRepository = versionRepository;
-		this.publishedDialogueRepository = publishedDialogueRepository;
-		this.publishedTranslationRepository = publishedTranslationRepository;
+		this.draftDialogueService = draftDialogueService;
+		this.publishService = publishService;
 	}
 
 	// ------------------------------------------------------------------ //
@@ -203,15 +193,7 @@ public class ProjectSeedService {
 			}
 		}
 
-		// -- Step 5: Create version 1 as the published snapshot --
-		DBProjectVersion version = new DBProjectVersion();
-		version.setProject(project);
-		version.setVersionNumber(1);
-		version.setPublishedAt(Instant.now());
-		version.setPublishedBy(null);
-		version = versionRepository.save(version);
-
-		// -- Step 6: Copy dialogue and translation content into published tables --
+		// -- Step 5: List the seed source files --
 		List<ResourcePointer> files;
 		try {
 			files = scriptLoader.listDialogueBranchFiles();
@@ -221,38 +203,36 @@ public class ProjectSeedService {
 			return;
 		}
 
+		// -- Step 6: Create draft dialogues (scripts first, then translations, since a
+		// translation needs its dialogue's draft to already exist) --
 		for (ResourcePointer pointer : files) {
-			if (pointer.getResourceType().name().equals("SCRIPT")) {
-				String content = readContent(scriptLoader, pointer);
-				if (content == null) continue;
-
-				DBPublishedDialogue publishedDialogue = new DBPublishedDialogue();
-				publishedDialogue.setVersion(version);
-				publishedDialogue.setName(pointer.getDialogueName());
-				publishedDialogue.setContent(content);
-				publishedDialogueRepository.save(publishedDialogue);
-
-			} else {
-				// Find the matching published dialogue for this translation
-				String dialogueName = pointer.getDialogueName();
-				publishedDialogueRepository.findByVersionAndName(version, dialogueName)
-						.ifPresent(publishedDialogue -> {
-							String content = readContent(scriptLoader, pointer);
-							if (content == null) return;
-
-							DBPublishedTranslation translation = new DBPublishedTranslation();
-							translation.setPublishedDialogue(publishedDialogue);
-							translation.setLanguage(pointer.getLanguage());
-							translation.setContent(content);
-							publishedTranslationRepository.save(translation);
-						});
-			}
+			if (pointer.getResourceType() != ResourceType.SCRIPT) continue;
+			String content = readContent(scriptLoader, pointer);
+			if (content == null) continue;
+			draftDialogueService.createDialogueFromScript(project, pointer.getDialogueName(),
+					content);
+		}
+		for (ResourcePointer pointer : files) {
+			if (pointer.getResourceType() != ResourceType.TRANSLATION) continue;
+			String content = readContent(scriptLoader, pointer);
+			if (content == null) continue;
+			draftDialogueService.findDialogue(project, pointer.getDialogueName())
+					.ifPresent(dialogue -> draftDialogueService.createOrUpdateTranslation(
+							dialogue, pointer.getLanguage(), content));
 		}
 
-		// -- Step 7: Set latest_version_id on the project --
-		project.setLatestVersion(version);
-		project.setUpdatedAt(Instant.now());
-		projectService.save(project);
+		// -- Step 7: Publish the drafts as version 1 — the same path as any later publish --
+		try {
+			PublishService.PublishResult publishResult = publishService.publish(project, null);
+			if (!publishResult.isSuccess()) {
+				throw new IllegalStateException("Seed project '" + projectFolderName +
+						"' failed to publish after passing its own pre-validation: " +
+						publishResult.getErrors());
+			}
+		} catch (IOException e) {
+			throw new UncheckedIOException("Seed project '" + projectFolderName +
+					"': failed to publish seeded drafts: " + e.getMessage(), e);
+		}
 
 		logger.info("Successfully seeded project '{}' as version 1 ({} files).",
 				projectFolderName, files.size());

@@ -48,6 +48,7 @@ import com.dialoguebranch.web.service.exception.BadRequestException;
 import com.dialoguebranch.web.service.exception.NotFoundException;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
+import com.dialoguebranch.web.service.storage.model.DBProject;
 import nl.rrd.utils.datetime.DateTimeUtils;
 import nl.rrd.utils.expressions.EvaluationException;
 import org.springframework.stereotype.Service;
@@ -114,23 +115,39 @@ public class DraftExecutionService {
 	}
 
 	/**
-	 * Parses the current content of the given draft dialogue and starts an ephemeral test session
-	 * for it, snapshotting the user's variable state beforehand (before the start node's own "set"
-	 * commands, if any, are executed).
+	 * Parses the current content of the given draft dialogue's whole project (so that any node
+	 * pointers to sibling dialogues resolve) and starts an ephemeral test session for the given
+	 * dialogue specifically, snapshotting the user's variable state beforehand (before the start
+	 * node's own "set" commands, if any, are executed).
 	 *
 	 * @param userService the {@link UserService} of the user testing the draft.
+	 * @param project     the project {@code dialogue} belongs to (passed explicitly rather than
+	 *                    read via {@code dialogue.getProject()}, which is a lazy relation that may
+	 *                    no longer have an active Hibernate session attached by this point).
 	 * @param dialogue    the draft dialogue to test.
 	 * @param language    the ISO language code to parse the draft content as.
+	 * @param startNodeId the node ID to start the test from, or {@code null} to start from the
+	 *                    dialogue's default "Start" node.
 	 * @return the new session's ID and the {@link ExecuteNodeResult} for its start node.
 	 * @throws BadRequestException if the draft content does not currently parse.
-	 * @throws ExecutionException  if the dialogue cannot be started.
+	 * @throws ExecutionException  if the dialogue cannot be started, e.g. {@code startNodeId} does
+	 *                             not exist in the dialogue.
 	 */
-	public StartResult startSession(UserService userService, DBDraftDialogue dialogue,
-									String language) throws BadRequestException, ExecutionException {
-		String scriptContent = draftDialogueService.reconstructScript(dialogue);
-
+	public StartResult startSession(UserService userService, DBProject project,
+									DBDraftDialogue dialogue, String language, String startNodeId)
+			throws BadRequestException, ExecutionException {
+		// The dialogue under test may contain node pointers to sibling dialogues in the same
+		// project — parsing needs all of them available, not just this one, otherwise those
+		// pointers are reported as pointing to an "unknown dialogue". Every dialogue in a project
+		// always has a draft (seeded/published dialogues get their drafts created up front — see
+		// ProjectSeedService and PublishService), so simply including every draft dialogue's
+		// current content (not just the one being tested) is enough for cross-references to
+		// resolve.
 		Map<String, String> scriptContents = new LinkedHashMap<>();
-		scriptContents.put(dialogue.getName(), scriptContent);
+		for (DBDraftDialogue projectDialogue : draftDialogueService.listDialogues(project)) {
+			scriptContents.put(projectDialogue.getName(),
+					draftDialogueService.reconstructScript(projectDialogue));
+		}
 
 		ScriptLoader scriptLoader = new DatabasePublishedScriptLoader(
 				language, scriptContents, Collections.emptyMap());
@@ -144,17 +161,18 @@ public class DraftExecutionService {
 		}
 
 		if (!parserResult.getParseErrors().isEmpty()) {
-			StringBuilder message = new StringBuilder("Draft dialogue '" + dialogue.getName() +
-					"' does not currently parse:");
+			StringBuilder message = new StringBuilder("Project '" + project.getSlug() +
+					"' does not currently parse (needed to test-run draft dialogue '" +
+					dialogue.getName() + "'):");
 			parserResult.getParseErrors().forEach((path, errors) -> errors.forEach(err ->
 					message.append(" ").append(err.getMessage())));
 			throw new BadRequestException(message.toString());
 		}
 
-		ExecutableProject project = (ExecutableProject) parserResult.getProject();
+		ExecutableProject executableProject = (ExecutableProject) parserResult.getProject();
 		ResourcePointer pointer =
 				new ResourcePointer(language, dialogue.getName(), ResourceType.SCRIPT);
-		Dialogue dialogueDefinition = project.getDialogues().get(pointer);
+		Dialogue dialogueDefinition = executableProject.getDialogues().get(pointer);
 		if (dialogueDefinition == null) {
 			throw new BadRequestException("Draft dialogue '" + dialogue.getName() +
 					"' could not be parsed into a runnable dialogue.");
@@ -172,7 +190,7 @@ public class DraftExecutionService {
 				DateTimeUtils.nowMs(userService.getDialogueBranchUser().getTimeZone());
 		Node startNode;
 		try {
-			startNode = activeDialogue.startDialogue(eventTime);
+			startNode = activeDialogue.startDialogue(startNodeId, eventTime);
 		} catch (EvaluationException e) {
 			throw new RuntimeException("Expression evaluation error: " + e.getMessage(), e);
 		}

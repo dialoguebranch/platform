@@ -272,13 +272,14 @@ export class DialogueBranchClient {
         .then((response) => this._handleResponse(response));
     }
 
-    startDraftDialogue(projectSlug, dialogueName, language) {
+    startDraftDialogue(projectSlug, dialogueName, language, startNodeId) {
         let url = this._baseUrl + "/draft/start";
 
         url += "?projectSlug=" + encodeURIComponent(projectSlug);
         url += "&dialogueName=" + encodeURIComponent(dialogueName);
         url += "&language=" + language;
         url += "&timeZone=" + this._timeZone;
+        if (startNodeId) url += "&startNodeId=" + encodeURIComponent(startNodeId);
 
         return this._fetch(url, {
             method: "POST",
@@ -353,6 +354,56 @@ export class DialogueBranchClient {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({ name }),
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // Soft-delete: marks the dialogue as pending deletion (reversible via restoreDraftDialogue)
+    // until the project is next published.
+    deleteDraftDialogue(projectSlug, dialogueName) {
+        const url = this._baseUrl + "/authoring/delete-dialogue?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { 'Authorization': 'Bearer ' + this._accessToken },
+        }).then((response) => { if (!response.ok) return Promise.reject(response); });
+    }
+
+    restoreDraftDialogue(projectSlug, dialogueName) {
+        const url = this._baseUrl + "/authoring/restore-dialogue?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { 'Authorization': 'Bearer ' + this._accessToken },
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // Scans the whole project for [[...]] reply links that reference the given dialogue (any
+    // node within it) — used both to preview a rename's blast radius and to warn about dangling
+    // links before a delete.
+    findDialogueReferences(projectSlug, dialogueName) {
+        const url = this._baseUrl + "/authoring/find-dialogue-references?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            },
+        }).then((response) => this._handleResponse(response));
+    }
+
+    renameDraftDialogue(projectSlug, dialogueName, newName, updateReferences) {
+        const url = this._baseUrl + "/authoring/rename-dialogue?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName)
+            + "&newName=" + encodeURIComponent(newName)
+            + "&updateReferences=" + !!updateReferences;
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { 'Authorization': 'Bearer ' + this._accessToken },
         }).then((response) => this._handleResponse(response));
     }
 

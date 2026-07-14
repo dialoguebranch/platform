@@ -78,6 +78,38 @@ public class DBDraftDialogue {
 	@Column(name = "updated_at", nullable = false)
 	private Instant updatedAt;
 
+	/** Whether this dialogue has no published counterpart yet. Implies {@link #isChanged}. */
+	@Column(name = "is_new", nullable = false)
+	private boolean isNew;
+
+	/**
+	 * Whether this dialogue's draft content currently differs from its latest published version
+	 * (or there is no published version at all). Maintained explicitly by every operation that
+	 * mutates a dialogue's effective content, and reconciled (reset to {@code false}) whenever the
+	 * project is published.
+	 */
+	@Column(name = "is_changed", nullable = false)
+	private boolean isChanged;
+
+	/**
+	 * Whether this dialogue is pending deletion. A soft-delete: the row and its nodes/translations
+	 * are kept (and the deletion is revertible) until the project is next published, at which
+	 * point its published counterpart (if any) is dropped from the new version and this draft row
+	 * is hard-deleted for real.
+	 */
+	@Column(name = "is_deleted", nullable = false)
+	private boolean isDeleted;
+
+	/**
+	 * If this dialogue has been renamed since it was last published, the name its published
+	 * counterpart is still known by — used to find and optionally rewrite references to the old
+	 * name elsewhere in the project, and to know which published entry to drop on the next
+	 * publish. {@code null} if the dialogue hasn't been renamed since it was last in sync with its
+	 * published version (including if it's new and was never published under any name).
+	 */
+	@Column(name = "renamed_from")
+	private String renamedFrom;
+
 	/**
 	 * Creates an empty instance of {@link DBDraftDialogue}.
 	 */
@@ -208,6 +240,81 @@ public class DBDraftDialogue {
 	 */
 	public void setUpdatedAt(Instant updatedAt) {
 		this.updatedAt = updatedAt;
+	}
+
+	/**
+	 * Returns whether this dialogue has no published counterpart yet.
+	 *
+	 * @return whether this dialogue is new.
+	 */
+	public boolean getIsNew() {
+		return isNew;
+	}
+
+	/**
+	 * Sets whether this dialogue has no published counterpart yet.
+	 *
+	 * @param isNew whether this dialogue is new.
+	 */
+	public void setIsNew(boolean isNew) {
+		this.isNew = isNew;
+	}
+
+	/**
+	 * Returns whether this dialogue's draft content currently differs from its latest published
+	 * version (or there is no published version at all).
+	 *
+	 * @return whether this dialogue has unpublished changes.
+	 */
+	public boolean getIsChanged() {
+		return isChanged;
+	}
+
+	/**
+	 * Sets whether this dialogue's draft content currently differs from its latest published
+	 * version.
+	 *
+	 * @param isChanged whether this dialogue has unpublished changes.
+	 */
+	public void setIsChanged(boolean isChanged) {
+		this.isChanged = isChanged;
+	}
+
+	/**
+	 * Returns whether this dialogue is pending deletion.
+	 *
+	 * @return whether this dialogue is pending deletion.
+	 */
+	public boolean getIsDeleted() {
+		return isDeleted;
+	}
+
+	/**
+	 * Sets whether this dialogue is pending deletion.
+	 *
+	 * @param isDeleted whether this dialogue is pending deletion.
+	 */
+	public void setIsDeleted(boolean isDeleted) {
+		this.isDeleted = isDeleted;
+	}
+
+	/**
+	 * Returns the published name this dialogue is still known by, if it has been renamed since it
+	 * was last published, or {@code null} otherwise.
+	 *
+	 * @return the prior published name, or {@code null}.
+	 */
+	public String getRenamedFrom() {
+		return renamedFrom;
+	}
+
+	/**
+	 * Sets the published name this dialogue is still known by.
+	 *
+	 * @param renamedFrom the prior published name, or {@code null}.
+	 */
+	public void setRenamedFrom(String renamedFrom) {
+		this.renamedFrom = renamedFrom;
 	}
 
 }

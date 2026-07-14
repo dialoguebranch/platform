@@ -196,24 +196,14 @@ function confirmDelegateAction() {
     delegateConfirmAction.value = null;
 }
 
-function onSelectDialogue(dialogueName) {
-    panels.value.selectMobileTab(1);
-    interactionTester.value.loadDialogue(dialogueName);
-}
-
-function onTestDraftDialogue(dialogueName) {
-    panels.value.selectMobileTab(1);
-    interactionTester.value.loadDraftDialogue(dialogueName);
-}
-
 function onResumeDialogue(dialogueName) {
     panels.value.selectMobileTab(1);
     interactionTester.value.resumeDialogue(dialogueName);
 }
 
-function onEditDialogue(dialogueName) {
+function onOpenDialogue(dialogueName, isDraft) {
     panels.value.selectMobileTab(1);
-    interactionTester.value.editDialogue(dialogueName);
+    interactionTester.value.openDialogue(dialogueName, isDraft);
 }
 
 function onNewDialogueStep() {
@@ -364,12 +354,10 @@ function onResizePanels() {
                     ref="dialogue-browser"
                     class="grow"
                     :openTabs="interactionTester?.tabs ?? []"
-                    @selectDialogue="onSelectDialogue"
-                    @testDraftDialogue="onTestDraftDialogue"
                     @resumeDialogue="onResumeDialogue"
                     @activateTab="onActivateTab"
                     @hasDraftDialogues="hasDraftDialogues = $event"
-                    @editDialogue="onEditDialogue"
+                    @openDialogue="onOpenDialogue"
                 />
             </template>
             <template #main>
