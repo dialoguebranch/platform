@@ -41,15 +41,16 @@ Test reports are written to `build/reports/tests/test/index.html`.
 
 ```bash
 cd apps/api
-./gradlew build          # compile; also runs updateConfig + listDialogueFiles as part of processResources
+./gradlew build          # compile; also runs updateConfig as part of processResources
 ./gradlew updateConfig   # regenerates src/main/resources/deployment.properties (version + buildTime)
-./gradlew listDialogueFiles  # regenerates src/main/resources/dialogues/dialogues.json
 ```
 
 Docker build (from repo root):
 ```bash
 docker build -t dlb-web-service -f apps/api/Dockerfile .
 ```
+
+Database schema is managed by Flyway (`src/main/resources/db/migration/V*__*.sql`); migrations run automatically on startup against the configured MariaDB instance — there is no separate manual migrate command.
 
 ### Web client (`apps/web/`)
 
@@ -114,9 +115,21 @@ The service is a pure OAuth2 resource server: it validates bearer tokens issued 
 
 Variable storage is pluggable: `VariableStoreJSONStorageHandler` (file-based) or `VariableStoreDatabaseStorageHandler` (MariaDB via Hibernate). An optional external variable service can be enabled via `DLB_EXTERNAL_VARIABLE_SERVICE_ENABLED`.
 
-Dialogue scripts are loaded from `src/main/resources/dlb-projects/` at startup via `SpringResourceFileLoader`. The `listDialogueFiles` Gradle task must be run (automatically during `build` via `processResources`) to regenerate `dialogues.json`.
+Projects are seeded into the database from `src/main/resources/projects-seed/` (one sub-directory per project, each a standard `.dlb`/`dlb-project.xml` file tree) by `ProjectSeedService` on first startup only; from then on, dialogue content lives in MariaDB, not on disk.
 
 API configuration flows: `application.yml` → overridable at runtime by environment variables following the pattern `dlb.<property.path>` → `DLB_PROPERTY_PATH`.
+
+#### Draft dialogues and publishing
+
+Authoring (used by the web client's visual editor) operates on a separate, mutable **draft** copy of each dialogue, keeping published (runtime-served) content immutable until explicitly published:
+
+- **`DBDraftDialogue` / `DBDraftNode` / `DBDraftTranslation`** (`service/storage/model/`) — JPA entities holding the working copy of a dialogue's nodes and translations, one row set per project. `DBDraftDialogue` tracks `isNew`, `isChanged`, `isDeleted`, and `renamedFrom` flags that are maintained by every mutating operation (not computed on the fly) and reconciled on publish — see the Javadoc on those fields for the exact state machine.
+- **`DraftDialogueService`** — CRUD for draft dialogues/nodes/translations: create, rename (with cross-reference detection via `find-*-references` endpoints), delete/restore (soft delete, reversible until publish), and translation updates.
+- **`PublishService`** — Reconciles drafts into the published `Dialogue`/`Script` model: drops soft-deleted drafts for real, clears `isNew`/`isChanged`/`renamedFrom` on success.
+- **`AuthoringController`** (`/v{version}/authoring`) — REST surface for the above: `list-dialogues`, `create-dialogue`, `delete-dialogue`, `restore-dialogue`, `rename-dialogue`, `find-dialogue-references`, `list-nodes`, `create-node`, `update-node`, `delete-node`, `rename-node`, `find-node-references`, `update-translation`, `delete-translation`.
+- **`DraftExecutionController` / `DraftExecutionService`** — Lets the web client run/test a dialogue against its unpublished draft content (an ephemeral "draft test" session), separate from normal runtime execution against published content.
+
+Migration `V6__add_draft_dialogue_status_flags.sql` added the `is_new`/`is_changed`/`is_deleted`/`renamed_from` columns backing this.
 
 ### Web client (`apps/web`)
 
@@ -127,10 +140,21 @@ A single-page Vue 3 app. Key structure:
 - **`src/dlb-lib/DialogueBranchClient.js`** — Thin fetch-based API client; wraps all REST calls; returns parsed model objects
 - **`src/dlb-lib/WCTAClientState.js`** — App-specific state; extends the reusable `ClientState`
 - **`src/components/pages/`** — `MainPage.vue`, `ProjectSelectorPage.vue`. There is no login page: `src/keycloak.js` initialises Keycloak with `onLoad: 'login-required'`, so an unauthenticated user is redirected straight to Keycloak's hosted login page before the app ever mounts.
-- **`src/components/partials/`** — `DialogueBrowser.vue` (folder tree), `DialogueTreeNode.vue`, `InteractionTester.vue`, `BalloonDialogueComponent.vue`, `TextDialogueComponent.vue`, `VariableBrowser.vue`
-- **`src/components/widgets/`** — Reusable UI primitives (buttons, panels, inputs)
+- **`src/components/partials/`** — `DialogueBrowser.vue` (folder tree, with New/Draft/Deleted badges and publish-enablement driven by draft status), `DialogueTreeNode.vue`, `InteractionTester.vue`, `DialogueEditor.vue`, `NodeEditPanel.vue`, `BalloonDialogueComponent.vue`, `TextDialogueComponent.vue`, `VariableBrowser.vue`
+- **`src/components/widgets/`** — Reusable UI primitives (buttons, panels, inputs, `ModeSelector.vue`)
 
 The app uses Tailwind CSS v4 (Vite plugin) and Font Awesome for icons. `__APP_VERSION__` is injected at build time from `package.json`.
+
+#### Visual dialogue editor
+
+`InteractionTester.vue` hosts three modes via `ModeSelector` — balloon, text, and **edit** — for the active tab. Edit mode embeds `DialogueEditor.vue`, a node-graph view built on `@vue-flow/core`:
+
+- **`DialogueEditor.vue`** — Fetches a dialogue's draft nodes (`list-nodes`) and lays them out as a graph: `[[reply link]]` targets (parsed by `DlbReplyLinks.js`) become edges, and each node's `position` header tag (parsed/written by `DlbHeaderTags.js`) becomes its canvas coordinates, with a grid fallback for nodes authored before the editor existed (i.e. with no `position` tag yet). Dragging a node persists its new position via `update-node`.
+- **`NodeEditPanel.vue`** — Side panel for editing one node's title, speaker, color, and body text; saves via `update-node`/`rename-node`, prompting to update cross-references when a rename affects other nodes.
+- **`DlbHeaderTags.js`** — Parses/serializes the `key: value` header block above a node's `---` separator, mirroring `EditableHeaderParser.java`'s semantics exactly (including the reserved tags `title`/`speaker`/`position`/`colorId` from `DialogueBranchConstants`).
+- **`node-colors.js`** — Maps a node's `colorId` tag to an accent color, shared between the graph nodes and the color picker so they never drift apart visually.
+
+Edits in this mode operate on the draft copy of the dialogue (see [Draft dialogues and publishing](#draft-dialogues-and-publishing) in the API architecture section above); leaving edit mode back to balloon/text reconciles any in-flight test session against the now-stale draft content.
 
 ## Versioning
 
