@@ -1,6 +1,6 @@
 <script setup>
 import { ref, inject, watch, computed } from 'vue';
-import { VueFlow, MarkerType, BaseEdge, getStraightPath } from '@vue-flow/core';
+import { VueFlow, MarkerType, BaseEdge, getStraightPath, useVueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useClient } from '@/composables/client.js';
@@ -106,6 +106,8 @@ function floatingEdgePath(sourceNode, targetNode) {
     return { path, labelX, labelY };
 }
 
+const { fitView, setCenter, getViewport } = useVueFlow();
+
 const loading = ref(false);
 const flowNodes = ref([]);
 const flowEdges = ref([]);
@@ -183,7 +185,38 @@ function loadNodes() {
         });
 }
 
-watch(() => props.dialogueName, loadNodes, { immediate: true });
+// Center the view on the Start node once — the next time this dialogue's nodes are measured
+// after a genuine "open" (dialogueName changing, including switching tabs), rather than on every
+// node measurement (e.g. after adding/renaming a node, or a manual refresh), which would yank the
+// view away from wherever the user is currently working.
+let centerOnOpenPending = false;
+
+watch(() => props.dialogueName, (name) => {
+    centerOnOpenPending = !!name;
+    loadNodes();
+}, { immediate: true });
+
+// Fires whenever Vue Flow (re)measures node dimensions — including after the fetch above resolves
+// and populates flowNodes for the first time.
+function onNodesInitialized() {
+    if (!centerOnOpenPending) return;
+    centerOnOpenPending = false;
+
+    const startNode = flowNodes.value.find((n) => isReservedNodeTitle(n.id, RESERVED_NODE_START_ID));
+    if (!startNode) {
+        fitView({ duration: 300 });
+        return;
+    }
+    // Fit to the whole graph first (instantly) to establish the same "see everything" zoom level
+    // as before, then smoothly pan — at that zoom — so the Start node ends up centered rather than
+    // wherever it happened to be laid out.
+    fitView({ duration: 0 }).then(() => {
+        const { zoom } = getViewport();
+        const cx = startNode.position.x + (startNode.dimensions?.width ?? 0) / 2;
+        const cy = startNode.position.y + (startNode.dimensions?.height ?? 0) / 2;
+        setCenter(cx, cy, { zoom, duration: 300 });
+    });
+}
 
 // ---- Position persistence (drag-end, not per-frame — same pattern as ResizablePanels.vue's
 // saveLeftPanelWidth/saveRightPanelWidth on stopDragResize) ----
@@ -299,10 +332,10 @@ defineExpose({
             v-else
             v-model:nodes="flowNodes"
             v-model:edges="flowEdges"
-            fit-view-on-init
             class="h-full"
             @node-drag-stop="onNodeDragStop"
             @node-click="onNodeClick"
+            @nodes-initialized="onNodesInitialized"
         >
             <template #node-dialogueNode="{ data }">
                 <div

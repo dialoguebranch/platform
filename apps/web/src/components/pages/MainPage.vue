@@ -187,7 +187,7 @@ function onOpenDialogue(dialogueName, isDraft) {
 }
 
 function onNewDialogueStep() {
-    variableBrowser.value.loadVariables();
+    variableBrowser.value?.loadVariables();
 }
 
 function onDialogueSaved() {
