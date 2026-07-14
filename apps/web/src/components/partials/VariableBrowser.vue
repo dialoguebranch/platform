@@ -50,6 +50,7 @@ function hideTooltip() {
 
 const emit = defineEmits([
     'changeVariable',
+    'collapse',
 ]);
 
 const client = useClient();
@@ -127,7 +128,8 @@ onMounted(() => {
 <div class="flex flex-col gap-1" v-bind="attrs">
         <MainPagePanelHeader title="Variable Browser" class="sm:mr-1">
             <template #buttons>
-                <IconButton icon="fa-solid fa-arrows-rotate" @click="loadVariables" />
+                <IconButton icon="fa-solid fa-arrows-rotate" title="Refresh variables" @click="loadVariables" />
+                <IconButton icon="fa-solid fa-angles-right" title="Collapse Variable Browser" @click="emit('collapse')" />
             </template>
         </MainPagePanelHeader>
         <MainPagePanelContainer class="sm:mr-1">

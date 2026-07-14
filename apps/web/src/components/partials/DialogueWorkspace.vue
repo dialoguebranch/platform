@@ -19,6 +19,7 @@ import ModeSelector from '../widgets/ModeSelector.vue';
 const emit = defineEmits([
     'newDialogueStep',
     'dialogueSaved',
+    'modeChanged',
 ]);
 
 const modes = [
@@ -210,6 +211,7 @@ const textComponent = useTemplateRef('text-component');
 const dialogueEditor = useTemplateRef('dialogue-editor');
 
 watch(selectedMode, (mode, oldMode) => {
+    emit('modeChanged', mode);
     if (mode !== 'edit') lastTestMode.value = mode;
     if (oldMode === 'edit' && mode !== 'edit') {
         // A tab opened via editDialogue() has a dialogueName but was never run; handleReturnFromEdit

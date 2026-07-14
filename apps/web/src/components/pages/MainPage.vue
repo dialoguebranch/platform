@@ -206,6 +206,12 @@ function onActivateTab(tabId) {
 function onResizePanels() {
     dialogueWorkspace.value.resize();
 }
+
+function onWorkspaceModeChanged(mode) {
+    if (mode === 'edit') {
+        panels.value?.collapseRightPanel();
+    }
+}
 </script>
 
 <template>
@@ -334,6 +340,7 @@ function onResizePanels() {
             class="grow"
             cookiePrefix="mainPage"
             :mobileTabNames="['Dialogues', 'Interactions', 'Variables']"
+            rightPanelLabel="Variables"
             @resize="onResizePanels()"
         >
             <template #left>
@@ -348,10 +355,10 @@ function onResizePanels() {
                 />
             </template>
             <template #main>
-                <DialogueWorkspace ref="dialogue-workspace" class="grow" @newDialogueStep="onNewDialogueStep" @dialogueSaved="onDialogueSaved" />
+                <DialogueWorkspace ref="dialogue-workspace" class="grow" @newDialogueStep="onNewDialogueStep" @dialogueSaved="onDialogueSaved" @modeChanged="onWorkspaceModeChanged" />
             </template>
             <template #right>
-                <VariableBrowser ref="variable-browser" class="grow" @changeVariable="onChangeVariable" />
+                <VariableBrowser ref="variable-browser" class="grow" @changeVariable="onChangeVariable" @collapse="panels?.collapseRightPanel()" />
             </template>
         </ResizablePanels>
 

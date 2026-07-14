@@ -1,10 +1,15 @@
 <script setup>
 import { ref, onMounted, onUnmounted, useTemplateRef } from 'vue';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { DocumentFunctions } from '../../dlb-lib/util/DocumentFunctions.js';
 
 const props = defineProps({
     'cookiePrefix': String,
     'mobileTabNames': Array,
+    'rightPanelLabel': {
+        type: String,
+        default: 'Panel',
+    },
 });
 
 const emit = defineEmits(['resize']);
@@ -18,11 +23,46 @@ const selectMobileTab = (index) => {
 const minPanelWidth = 200;
 const leftPanelWidth = ref(200);
 const rightPanelWidth = ref(200);
+const rightPanelCollapsed = ref(false);
+
+function initCollapsedState() {
+    rightPanelCollapsed.value = DocumentFunctions.getCookie('state.' + props.cookiePrefix + 'RightPanelCollapsed') === 'true';
+}
+
+function saveCollapsedState() {
+    DocumentFunctions.setCookie('state.' + props.cookiePrefix + 'RightPanelCollapsed', rightPanelCollapsed.value.toString(), 365);
+}
+
+function collapseRightPanel() {
+    if (rightPanelCollapsed.value) return;
+    rightPanelCollapsed.value = true;
+    saveCollapsedState();
+    emitResize();
+}
+
+function expandRightPanel() {
+    if (!rightPanelCollapsed.value) return;
+    rightPanelCollapsed.value = false;
+    saveCollapsedState();
+    emitResize();
+}
+
+function toggleRightPanel() {
+    if (rightPanelCollapsed.value) {
+        expandRightPanel();
+    } else {
+        collapseRightPanel();
+    }
+}
 
 defineExpose({
     selectMobileTab,
     minPanelWidth,
     rightPanelWidth,
+    rightPanelCollapsed,
+    collapseRightPanel,
+    expandRightPanel,
+    toggleRightPanel,
 });
 
 const root = useTemplateRef('root');
@@ -32,6 +72,7 @@ var resizeListener;
 var dragResizeState;
 
 onMounted(() => {
+    initCollapsedState();
     initPanelWidths();
     clearDragResizeState();
     resizeListener = () => reduceSideWidthsToFit();
@@ -122,8 +163,10 @@ function onMouseMove(event) {
 }
 
 function onDragLeftDivider(event) {
-    const leftSpace = root.value.clientWidth - 2 * dividerWidth - minPanelWidth -
-        rightPanelWidth.value;
+    const dividerCount = rightPanelCollapsed.value ? 1 : 2;
+    const effectiveRightWidth = rightPanelCollapsed.value ? 0 : rightPanelWidth.value;
+    const leftSpace = root.value.clientWidth - dividerCount * dividerWidth - minPanelWidth -
+        effectiveRightWidth;
     if (leftSpace < minPanelWidth)
         return;
     const prefWidth = dragResizeState.left.startWidth + event.x - dragResizeState.left.startX;
@@ -142,6 +185,16 @@ function onDragRightDivider(event) {
 }
 
 function reduceSideWidthsToFit() {
+    if (rightPanelCollapsed.value) {
+        const maxLeftWidth = root.value.clientWidth - dividerWidth - minPanelWidth;
+        const leftWidth = Math.max(minPanelWidth, Math.min(maxLeftWidth, leftPanelWidth.value));
+        if (leftWidth !== leftPanelWidth.value) {
+            leftPanelWidth.value = leftWidth;
+            saveLeftPanelWidth();
+        }
+        emitResize();
+        return;
+    }
     const sideSpace = root.value.clientWidth - 2 * dividerWidth - minPanelWidth;
     let leftWidth = leftPanelWidth.value;
     let rightWidth = rightPanelWidth.value;
@@ -212,14 +265,28 @@ function getMobilePanelClasses(index) {
             >
                 <slot name="main" />
             </div>
-            <div class="cursor-col-resize hidden sm:block" :style="{width: dividerWidth + 'px'}" @mousedown.prevent="onMouseDownRightDivider"></div>
-            <div
+            <template v-if="!rightPanelCollapsed">
+                <div class="cursor-col-resize hidden sm:block" :style="{width: dividerWidth + 'px'}" @mousedown.prevent="onMouseDownRightDivider"></div>
+                <div
+                    :class="getMobilePanelClasses(2)"
+                    class="sm:flex basis-0 grow sm:basis-auto sm:flex-none overflow-x-hidden flex-col"
+                    :style="{width: rightPanelWidth + 'px'}"
+                >
+                    <slot name="right" />
+                </div>
+            </template>
+            <button
+                v-else
+                type="button"
                 :class="getMobilePanelClasses(2)"
-                class="sm:flex basis-0 grow sm:basis-auto sm:flex-none overflow-x-hidden flex-col"
-                :style="{width: rightPanelWidth + 'px'}"
+                class="sm:flex basis-0 grow sm:basis-auto sm:flex-none sm:w-7 flex-col items-center justify-center gap-2 py-3 bg-grey-lighter hover:bg-menu-item-highlight border-l border-grey-light text-orange-darker cursor-pointer"
+                :title="`Show ${rightPanelLabel}`"
+                @click="expandRightPanel"
             >
-                <slot name="right" />
-            </div>
+                <FontAwesomeIcon icon="fa-solid fa-angles-left" class="text-xs" />
+                <span class="hidden sm:block font-title text-xs [writing-mode:vertical-rl] rotate-180">{{ rightPanelLabel }}</span>
+                <span class="sm:hidden font-title text-sm">Show {{ rightPanelLabel }}</span>
+            </button>
         </div>
     </div>
 </template>
