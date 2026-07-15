@@ -685,6 +685,7 @@ function onSelectReply(dialogueStep, reply) {
     <div class="flex flex-col gap-1">
         <MainPagePanelHeader title="Dialogue Workspace">
             <template #buttons>
+                <span v-if="availableLanguages.length > 0" class="self-center text-xs font-title text-grey-dark whitespace-nowrap">Test dialogues in:</span>
                 <select
                     v-if="availableLanguages.length > 0"
                     v-model="selectedLanguage"

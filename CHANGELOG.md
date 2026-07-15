@@ -25,6 +25,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 - Added small icons in front of the "Mode", "Project", and "User" labels in the Web Client header
   menus, for easier visual scanning.
 - Added a mouseover tooltip ("Refresh dialogue list") to the Dialogue Browser's refresh button.
+- Added a "Test dialogues in:" label before the language selection dropdown in the Dialogue
+  Workspace toolbar, vertically centered alongside the other toolbar controls.
 
 ### Fixed
 
