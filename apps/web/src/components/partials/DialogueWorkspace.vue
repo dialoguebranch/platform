@@ -26,12 +26,12 @@ const modes = [
     {
         name: 'balloon',
         icon: 'fa-regular fa-comments',
-        title: 'Balloon style — shows dialogue as speech bubbles with an avatar',
+        title: 'Test in Speech Bubble Style',
     },
     {
         name: 'text',
         icon: 'fa-solid fa-paragraph',
-        title: 'Text style — shows dialogue as a plain scrollable transcript',
+        title: 'Test in RPG Text Style',
     },
     {
         name: 'edit',
