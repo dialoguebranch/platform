@@ -36,9 +36,18 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 - Aligned `/draft/*` dialogue testing with the `/dialogue/*` behavior above: requesting a language
   a draft dialogue has no translation for now falls back to the source language the same way,
   instead of rejecting the request outright.
+- The Web Client will now *always* switch to the Ephemeral Draft Testing Mode after any dialogue in
+  the project has been edited, even if the change only consisted of moving the position of any node.
+  NOTE: This also means that any "move node" event is immediately saved to the server.
+- The "LoggedDialogueId" in the bottom of interaction testers is now correctly cleared when
+  switching to "Ephemeral Test Mode".
 
 ### Changed
 
 - Logged dialogues are now stored in the database instead of as JSON files on disk, mirroring how
   Dialogue Branch Variables are already stored. This also makes looking up a user's most recent
   ongoing dialogue a single indexed database query instead of a scan of every session file.
+- When in the "Balloon Interaction Tester" mode, the avatar image is now carrying some tools when 
+  you are testing in "Ephemeral Draft Test" mode, just to make this more visually clear.
+- Both the "Balloon Style" and "Text Style" interaction testers show a message "Ephemeral Draft Test"
+  - Session ID: X in the bottom of the panel to indicate that this mode is active.

@@ -6,6 +6,8 @@ import { sanitizeHtml } from '@/composables/sanitize-html.js';
 import { BasicReply } from '@/dlb-lib/model/BasicReply';
 import { AutoForwardReply } from '@/dlb-lib/model/AutoForwardReply';
 import CollapsibleErrorList from '../widgets/CollapsibleErrorList.vue';
+import avatarMartin from '@/assets/img/avatar-martin.png';
+import avatarMartinTools from '@/assets/img/avatar-martin-tools.png';
 
 const props = defineProps([
     'dialogueName',
@@ -14,7 +16,10 @@ const props = defineProps([
     'dialogueCancelled',
     'awaitingReply',
     'startError',
+    'isDraftTest',
 ]);
+
+const avatarSrc = computed(() => props.isDraftTest ? avatarMartinTools : avatarMartin);
 
 defineEmits([
     'selectReply',
@@ -71,7 +76,7 @@ const currentStep = computed(() => {
                     sm: 'flex-row-reverse items-start',
                 })"
             >
-                <img class="w-[300px]" src="@/assets/img/avatar-martin.png"
+                <img class="w-[300px]" :src="avatarSrc"
                     :class="resizableClasses({
                         default: 'self-end',
                         sm: 'self-start',

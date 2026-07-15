@@ -288,6 +288,7 @@ const loadDraftDialogue = (name, { tab: givenTab, startNodeId, language } = {}) 
     tab.dialogueCancelled = false;
     tab.isDraftTest = true;
     tab.draftSessionId = null;
+    tab.loggedDialogueId = null;
     tab.openedForEditOnly = false;
     tab.dialogueEdited = false;
     tab.lastEditedNodeTitle = null;
@@ -848,6 +849,7 @@ function onSelectReply(dialogueStep, reply) {
                     :dialogueCancelled="activeTab.dialogueCancelled"
                     :awaitingReply="activeTab.awaitingReply"
                     :startError="activeTab.startError"
+                    :isDraftTest="activeTab.isDraftTest"
                     @selectReply="onSelectReply"
                     @restartDialogue="restartActiveTab"
                 />
@@ -873,7 +875,10 @@ function onSelectReply(dialogueStep, reply) {
                     @dialogueSaved="$emit('dialogueSaved')"
                 />
             </MainPagePanelContainer>
-            <div v-if="activeTab.loggedDialogueId && selectedMode !== 'edit'" class="absolute bottom-3 left-3 font-mono text-[10px] text-gray-400 pointer-events-none">
+            <div v-if="activeTab.isDraftTest && selectedMode !== 'edit'" class="absolute bottom-3 left-3 font-mono text-[10px] text-gray-400 pointer-events-none">
+                <span class="font-semibold">Ephemeral Draft Test</span><template v-if="activeTab.draftSessionId"> — Session ID: {{ activeTab.draftSessionId }}</template>
+            </div>
+            <div v-else-if="activeTab.loggedDialogueId && selectedMode !== 'edit'" class="absolute bottom-3 left-3 font-mono text-[10px] text-gray-400 pointer-events-none">
                 <span class="font-semibold">Logged Dialogue ID:</span> {{ activeTab.loggedDialogueId }}
             </div>
         </div>
