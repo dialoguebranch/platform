@@ -121,4 +121,23 @@ public record Translatable(NodeBody parent, List<NodeBody.Segment> segments) {
 		}
 		return builder.toString();
 	}
+
+	/**
+	 * Returns a whitespace-normalized string representation of this {@link Translatable}: the
+	 * trimmed {@link #toString()} with every internal run of whitespace (including line breaks
+	 * between source-script lines that belong to the same statement) collapsed to a single space.
+	 * This is the canonical key {@link Translator} matches translations against — a translated
+	 * dialogue's source text and the term keys stored in a translation file both go through this
+	 * same normalization, so this must be used wherever a term key needs to line up with either
+	 * side of that lookup (e.g. when listing a dialogue's translatable terms for editing).
+	 *
+	 * @return a whitespace-normalized string representation of the translatable segments.
+	 */
+	public String toNormalizedString() {
+		String trimmed = toString().trim();
+		if (trimmed.isEmpty())
+			return trimmed;
+		String[] words = trimmed.split("\\s+");
+		return String.join(" ", words);
+	}
 }

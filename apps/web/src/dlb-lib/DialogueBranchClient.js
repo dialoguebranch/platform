@@ -518,6 +518,48 @@ export class DialogueBranchClient {
         }).then((response) => this._handleResponse(response));
     }
 
+    listTranslatableTerms(projectSlug, dialogueName) {
+        const url = this._baseUrl + "/authoring/list-translatable-terms?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            },
+        }).then((response) => this._handleResponse(response));
+    }
+
+    getDraftTranslation(projectSlug, dialogueName, language) {
+        const url = this._baseUrl + "/authoring/get-translation?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName)
+            + "&language=" + encodeURIComponent(language);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            },
+        }).then((response) => this._handleResponse(response));
+    }
+
+    updateDraftTranslation(projectSlug, dialogueName, language, content) {
+        const url = this._baseUrl + "/authoring/update-translation?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName)
+            + "&language=" + encodeURIComponent(language);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ content }),
+        }).then((response) => this._handleResponse(response));
+    }
+
     getVariables() {
         var url = this._baseUrl + "/variables/get";
 

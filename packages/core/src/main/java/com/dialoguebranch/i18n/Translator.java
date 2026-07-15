@@ -67,25 +67,11 @@ public class Translator {
 		}
 		this.normalizedTranslations = new LinkedHashMap<>();
 		for (Translatable key : translations.keySet()) {
-			this.normalizedTranslations.put(getNormalizedText(key),
+			this.normalizedTranslations.put(key.toNormalizedString(),
 					translations.get(key));
 		}
 		preWhitespaceRegex = Pattern.compile("^\\s+");
 		postWhitespaceRegex = Pattern.compile("\\s+$");
-	}
-
-	private String getNormalizedText(Translatable translatable) {
-		String norm = translatable.toString().trim();
-		if (norm.isEmpty())
-			return norm;
-		String[] words = norm.split("\\s+");
-		StringBuilder result = new StringBuilder();
-		for (int i = 0; i < words.length; i++) {
-			if (i > 0)
-				result.append(" ");
-			result.append(words[i]);
-		}
-		return result.toString();
 	}
 
 	/**
@@ -143,8 +129,8 @@ public class Translator {
 		List<ContextTranslation> transList = exactTranslations.get(
 				text.translatable().toString().trim());
 		if (transList == null) {
-			transList = normalizedTranslations.get(getNormalizedText(
-					text.translatable()));
+			transList = normalizedTranslations.get(
+					text.translatable().toNormalizedString());
 		}
 		if (transList == null)
 			return;

@@ -6,12 +6,13 @@ const state = inject('state');
 import { logEvent } from '@/composables/debug-log.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
-import { DIALOGUE_WORKSPACE_STYLE_TEXT, DIALOGUE_WORKSPACE_STYLE_BALLOONS, DIALOGUE_WORKSPACE_STYLE_EDIT, DLB_APP_MODE_DRAFT } from '@/dlb-lib/WCTAClientState.js';
+import { DIALOGUE_WORKSPACE_STYLE_TEXT, DIALOGUE_WORKSPACE_STYLE_BALLOONS, DIALOGUE_WORKSPACE_STYLE_EDIT, DIALOGUE_WORKSPACE_STYLE_TRANSLATE, DLB_APP_MODE_DRAFT } from '@/dlb-lib/WCTAClientState.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import IconButton from '../widgets/IconButton.vue';
 import BalloonDialogueComponent from './BalloonDialogueComponent.vue';
 import TextDialogueComponent from './TextDialogueComponent.vue';
 import DialogueEditor from './DialogueEditor.vue';
+import TranslationEditor from './TranslationEditor.vue';
 import MainPagePanelHeader from '../widgets/MainPagePanelHeader.vue';
 import MainPagePanelContainer from '../widgets/MainPagePanelContainer.vue';
 import ModeSelector from '../widgets/ModeSelector.vue';
@@ -38,22 +39,33 @@ const modes = [
         icon: 'fa-solid fa-diagram-project',
         title: 'Edit mode — edit the active tab\'s dialogue nodes',
     },
+    {
+        name: 'translate',
+        icon: 'fa-solid fa-language',
+        title: 'Edit the active tab\'s dialogue translations',
+    },
 ];
 
-// The node editor is only ever reachable in Draft Mode — Live Mode is testing-only.
+// The node editor and translation editor are only ever reachable in Draft Mode — Live Mode is
+// testing-only.
 const availableModes = computed(() =>
-    state.value.mode === DLB_APP_MODE_DRAFT ? modes : modes.filter((m) => m.name !== 'edit'));
+    state.value.mode === DLB_APP_MODE_DRAFT
+        ? modes
+        : modes.filter((m) => m.name !== 'edit' && m.name !== 'translate'));
 
 // Backed by the `state.dialogueWorkspaceStyle` cookie (see WCTAClientState.js) so the chosen
 // mode survives a page reload.
 const selectedMode = computed({
     get: () => {
-        // A dialogueWorkspaceStyle cookie value of EDIT from an earlier Draft Mode session must
-        // never surface the editor while in Live Mode (e.g. right after loading the app) — Live
-        // Mode is testing-only, and 'edit' isn't even offered in availableModes above.
+        // A dialogueWorkspaceStyle cookie value of EDIT/TRANSLATE from an earlier Draft Mode
+        // session must never surface those panels while in Live Mode (e.g. right after loading
+        // the app) — Live Mode is testing-only, and neither is even offered in availableModes
+        // above.
         if (state.value.dialogueWorkspaceStyle === DIALOGUE_WORKSPACE_STYLE_TEXT) return 'text';
-        if (state.value.dialogueWorkspaceStyle === DIALOGUE_WORKSPACE_STYLE_EDIT
-                && state.value.mode === DLB_APP_MODE_DRAFT) return 'edit';
+        if (state.value.mode === DLB_APP_MODE_DRAFT) {
+            if (state.value.dialogueWorkspaceStyle === DIALOGUE_WORKSPACE_STYLE_EDIT) return 'edit';
+            if (state.value.dialogueWorkspaceStyle === DIALOGUE_WORKSPACE_STYLE_TRANSLATE) return 'translate';
+        }
         return 'balloon';
     },
     set: (mode) => {
@@ -61,17 +73,21 @@ const selectedMode = computed({
             ? DIALOGUE_WORKSPACE_STYLE_TEXT
             : mode === 'edit'
                 ? DIALOGUE_WORKSPACE_STYLE_EDIT
-                : DIALOGUE_WORKSPACE_STYLE_BALLOONS;
+                : mode === 'translate'
+                    ? DIALOGUE_WORKSPACE_STYLE_TRANSLATE
+                    : DIALOGUE_WORKSPACE_STYLE_BALLOONS;
     },
 });
 
-// The last non-edit mode selected (balloon/text) — used to jump back out of edit mode whenever
-// the user explicitly runs/tests/resumes a dialogue, so that action doesn't get hidden behind
-// the node editor.
+// The last non-edit, non-translate mode selected (balloon/text) — used to jump back out of edit
+// or translate mode whenever the user explicitly runs/tests/resumes a dialogue, so that action
+// doesn't get hidden behind the node editor or translation editor.
 const lastTestMode = ref('balloon');
 
 function ensureTestMode() {
-    if (selectedMode.value === 'edit') selectedMode.value = lastTestMode.value;
+    if (selectedMode.value === 'edit' || selectedMode.value === 'translate') {
+        selectedMode.value = lastTestMode.value;
+    }
 }
 
 // ---- Language selection ----
@@ -228,11 +244,16 @@ const dialogueEditor = useTemplateRef('dialogue-editor');
 
 watch(selectedMode, (mode, oldMode) => {
     emit('modeChanged', mode);
-    if (mode !== 'edit') lastTestMode.value = mode;
-    if (oldMode === 'edit' && mode !== 'edit') {
-        // A tab opened via editDialogue() has a dialogueName but was never run; handleReturnFromEdit
-        // only applies to tabs whose test is already running (it bails out otherwise), so this case
-        // is handled separately by starting it fresh instead.
+    if (mode !== 'edit' && mode !== 'translate') lastTestMode.value = mode;
+    const wasAuthoring = oldMode === 'edit' || oldMode === 'translate';
+    const isAuthoring = mode === 'edit' || mode === 'translate';
+    if (wasAuthoring && !isAuthoring) {
+        // A tab opened via editDialogue()/openDialogueForTranslation() has a dialogueName but was
+        // never run; handleReturnFromEdit only applies to tabs whose test is already running (it
+        // bails out via tab.dialogueEdited/dialogueSteps checks otherwise), so that case is
+        // handled separately by starting it fresh instead. handleReturnFromEdit itself is a no-op
+        // unless actual node edits were made (tab.dialogueEdited) — translating alone never sets
+        // that flag, so a translate-only session correctly triggers no reconciliation.
         const tab = activeTab.value;
         if (tab.openedForEditOnly) {
             restartActiveTab();
@@ -339,11 +360,12 @@ function restartActiveTab() {
     }
 }
 
-// A tab opened via editDialogue() has a dialogueName but was never run (see its comment above).
-// As soon as such a tab is visible in Balloon/Text mode — by switching mode or by switching to
-// that tab — start it from its default "Start" node instead of waiting for a manual action.
+// A tab opened via editDialogue()/openDialogueForTranslation() has a dialogueName but was never
+// run (see its comment above). As soon as such a tab is visible in Balloon/Text mode — by
+// switching mode or by switching to that tab — start it from its default "Start" node instead of
+// waiting for a manual action.
 function ensureActiveTabStarted() {
-    if (selectedMode.value === 'edit') return;
+    if (selectedMode.value === 'edit' || selectedMode.value === 'translate') return;
     const tab = activeTab.value;
     if (!tab.openedForEditOnly) return;
     restartActiveTab();
@@ -485,14 +507,14 @@ function activateTab(tabId) {
     nextTick(scrollActiveTabIntoView);
 }
 
-// Opens (or reuses an empty tab for) the given dialogue in Edit mode — unlike loadDialogue, this
-// never starts a running dialogue session; it just associates the tab with a dialogue name so
-// the node editor has something to load.
-function editDialogue(name) {
+// Opens (or reuses an empty tab for) the given dialogue for authoring (Edit or Translate mode) —
+// unlike loadDialogue, this never starts a running dialogue session; it just associates the tab
+// with a dialogue name so the node editor / translation editor has something to load.
+function prepareAuthoringTab(name) {
     const tab = getOrCreateEmptyTab();
     activeTabId.value = tab.id;
     tab.dialogueName = name;
-    // A dialogue can only be opened for editing if it already has a draft, so default a tab
+    // A dialogue can only be opened for authoring if it already has a draft, so default a tab
     // that's never been tested to ephemeral draft testing — always possible — rather than the
     // live/published path (restartActiveTab's default), which may not exist for this dialogue at
     // all. Leave it alone if a test already ran here, so handleReturnFromEdit can still tell
@@ -502,16 +524,29 @@ function editDialogue(name) {
         tab.openedForEditOnly = true;
     }
     scrollActiveTabIntoView();
+    return tab;
+}
+
+function editDialogue(name) {
+    prepareAuthoringTab(name);
     selectedMode.value = 'edit';
 }
 
+function openDialogueForTranslation(name) {
+    prepareAuthoringTab(name);
+    selectedMode.value = 'translate';
+}
+
 // Opens a dialogue from the Dialogue Browser according to whatever mode the workspace is currently
-// in: if we're already in Edit mode (only reachable in Draft Mode), open the node editor (same as
-// editDialogue); otherwise start a running test against whichever execution path the global
-// Live/Draft mode toggle currently selects.
+// in: if we're already in Edit or Translate mode (only reachable in Draft Mode), open the
+// corresponding authoring panel (same as editDialogue/openDialogueForTranslation); otherwise start
+// a running test against whichever execution path the global Live/Draft mode toggle currently
+// selects.
 function openDialogue(name) {
     if (selectedMode.value === 'edit') {
         editDialogue(name);
+    } else if (selectedMode.value === 'translate') {
+        openDialogueForTranslation(name);
     } else if (state.value.mode === DLB_APP_MODE_DRAFT) {
         loadDraftDialogue(name);
     } else {
@@ -695,7 +730,7 @@ function onSelectReply(dialogueStep, reply) {
                     <option v-for="lang in availableLanguages" :key="lang.code" :value="lang.code">{{ lang.name }}</option>
                 </select>
                 <ModeSelector :modes="availableModes" v-model="selectedMode" />
-                <template v-if="selectedMode !== 'edit'">
+                <template v-if="selectedMode !== 'edit' && selectedMode !== 'translate'">
                     <IconButton
                         icon="fa-solid fa-arrows-rotate"
                         :class="{ 'animate-spin': reloading }"
@@ -847,7 +882,7 @@ function onSelectReply(dialogueStep, reply) {
 
         <!-- Active tab content -->
         <div class="relative grow min-h-0 flex flex-col">
-            <MainPagePanelContainer v-if="selectedMode !== 'edit'" class="-mt-px">
+            <MainPagePanelContainer v-if="selectedMode === 'balloon' || selectedMode === 'text'" class="-mt-px">
                 <BalloonDialogueComponent
                     v-if="selectedMode === 'balloon'"
                     ref="balloons"
@@ -874,7 +909,7 @@ function onSelectReply(dialogueStep, reply) {
                     @restartDialogue="restartActiveTab"
                 />
             </MainPagePanelContainer>
-            <MainPagePanelContainer v-else class="-mt-px !overflow-hidden relative">
+            <MainPagePanelContainer v-else-if="selectedMode === 'edit'" class="-mt-px !overflow-hidden relative">
                 <DialogueEditor
                     ref="dialogue-editor"
                     :dialogueName="activeTab.dialogueName"
@@ -883,10 +918,13 @@ function onSelectReply(dialogueStep, reply) {
                     @dialogueSaved="$emit('dialogueSaved')"
                 />
             </MainPagePanelContainer>
-            <div v-if="activeTab.isDraftTest && selectedMode !== 'edit'" class="absolute bottom-3 left-3 font-mono text-[10px] text-gray-400 pointer-events-none">
+            <MainPagePanelContainer v-else-if="selectedMode === 'translate'" class="-mt-px !overflow-hidden relative">
+                <TranslationEditor :dialogueName="activeTab.dialogueName" />
+            </MainPagePanelContainer>
+            <div v-if="activeTab.isDraftTest && selectedMode !== 'edit' && selectedMode !== 'translate'" class="absolute bottom-3 left-3 font-mono text-[10px] text-gray-400 pointer-events-none">
                 <span class="font-semibold">Ephemeral Draft Test</span><template v-if="activeTab.draftSessionId"> — Session ID: {{ activeTab.draftSessionId }}</template>
             </div>
-            <div v-else-if="activeTab.loggedDialogueId && selectedMode !== 'edit'" class="absolute bottom-3 left-3 font-mono text-[10px] text-gray-400 pointer-events-none">
+            <div v-else-if="activeTab.loggedDialogueId && selectedMode !== 'edit' && selectedMode !== 'translate'" class="absolute bottom-3 left-3 font-mono text-[10px] text-gray-400 pointer-events-none">
                 <span class="font-semibold">Logged Dialogue ID:</span> {{ activeTab.loggedDialogueId }}
             </div>
         </div>

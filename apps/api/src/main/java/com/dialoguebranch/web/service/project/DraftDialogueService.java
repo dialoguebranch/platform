@@ -29,10 +29,18 @@
 package com.dialoguebranch.web.service.project;
 
 import com.dialoguebranch.execution.parser.DialogueBranchParser;
+import com.dialoguebranch.execution.parser.ParserResult;
+import com.dialoguebranch.i18n.SourceTranslatable;
+import com.dialoguebranch.i18n.Translatable;
+import com.dialoguebranch.i18n.TranslatableExtractor;
+import com.dialoguebranch.i18n.Translator;
 import com.dialoguebranch.model.common.DialogueBranchConstants;
+import com.dialoguebranch.model.execute.Node;
 import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
+import com.dialoguebranch.web.service.controller.schema.authoring.TranslatableTermSummary;
 import com.dialoguebranch.web.service.exception.BadRequestException;
 import com.dialoguebranch.web.service.exception.ConflictException;
+import com.dialoguebranch.web.service.exception.ProjectParseHttpError;
 import com.dialoguebranch.web.service.repository.DBDraftDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBDraftNodeRepository;
 import com.dialoguebranch.web.service.repository.DBDraftTranslationRepository;
@@ -47,11 +55,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.io.StringReader;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -946,6 +959,62 @@ public class DraftDialogueService {
 	public void deleteTranslation(DBDraftDialogue dialogue, DBDraftTranslation translation) {
 		translationRepository.delete(translation);
 		markChanged(dialogue);
+	}
+
+	/**
+	 * Extracts every translatable term from the given draft dialogue's current content,
+	 * de-duplicated by {@code (speaker, term)} — the same key pair a translation file's content map
+	 * uses (see {@code TranslationFile} in {@code packages/core}) — so the result can be used
+	 * directly to look up or store a translation for each term.
+	 *
+	 * <p>Each term is {@link Translatable#toNormalizedString() whitespace-normalized}, not just
+	 * trimmed — the same canonicalization {@link Translator} applies on both sides of its
+	 * translation lookup (the dialogue's source text and the translation file's term keys), so a
+	 * term whose source text spans multiple script lines (i.e. contains internal line breaks)
+	 * still matches its stored translation instead of always appearing untranslated.</p>
+	 *
+	 * <p>Only this one dialogue's own content is parsed (via {@link DialogueBranchParser}, not the
+	 * full-project {@code ProjectParser} pipeline {@code DraftExecutionService} uses to start a
+	 * test session) since translatable-term extraction only needs this dialogue's own node bodies,
+	 * not cross-dialogue reply-link resolution.</p>
+	 *
+	 * @param dialogue the draft dialogue to extract translatable terms from.
+	 * @return the dialogue's translatable terms, in the order they first appear.
+	 * @throws BadRequestException if the dialogue's current draft content does not currently parse.
+	 */
+	public List<TranslatableTermSummary> listTranslatableTerms(DBDraftDialogue dialogue)
+			throws BadRequestException {
+		String script = reconstructScript(dialogue);
+		ParserResult parserResult;
+		try (DialogueBranchParser parser =
+					 new DialogueBranchParser(dialogue.getName(), new StringReader(script))) {
+			parserResult = parser.readDialogue();
+		} catch (IOException e) {
+			throw new BadRequestException(
+					"Failed to read draft dialogue content: " + e.getMessage());
+		}
+		if (!parserResult.getParseErrors().isEmpty()) {
+			List<String> messages = parserResult.getParseErrors().stream()
+					.map(Throwable::getMessage).toList();
+			throw new BadRequestException(new ProjectParseHttpError("Dialogue '" +
+					dialogue.getName() + "' contains errors, preventing translation.",
+					Map.of(dialogue.getName(), messages)));
+		}
+
+		TranslatableExtractor extractor = new TranslatableExtractor();
+		Set<String> seen = new LinkedHashSet<>();
+		List<TranslatableTermSummary> terms = new ArrayList<>();
+		for (Node node : parserResult.getDialogue().getNodes()) {
+			for (SourceTranslatable sourceTranslatable : extractor.extractFromNode(node)) {
+				String term = sourceTranslatable.translatable().toNormalizedString();
+				if (term.isEmpty()) continue;
+				String key = sourceTranslatable.speaker() + " " + term;
+				if (seen.add(key)) {
+					terms.add(new TranslatableTermSummary(sourceTranslatable.speaker(), term));
+				}
+			}
+		}
+		return terms;
 	}
 
 	// ---------------------------------------------------------------- //

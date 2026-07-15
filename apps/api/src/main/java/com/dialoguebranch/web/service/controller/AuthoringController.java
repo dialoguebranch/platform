@@ -752,4 +752,86 @@ public class AuthoringController {
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
+	/**
+	 * Returns the translation for a draft dialogue in a given language, or {@code null} if none
+	 * exists yet (not an error — a project language may simply have no translations started).
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project the dialogue belongs to.
+	 * @param dialogueName the name of the draft dialogue whose translation should be returned.
+	 * @param language the language code of the translation to return.
+	 * @return the matching translation, or {@code null} if none exists.
+	 * @throws HttpException if the project or dialogue does not exist, or the user is not
+	 * authorized.
+	 */
+	@Operation(summary = "Get the translation for a draft dialogue in a given language.")
+	@Parameter(name = "version", hidden = true)
+	@GetMapping("/get-translation")
+	public DBDraftTranslation getTranslation(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug,
+			@RequestParam(value = "dialogueName") String dialogueName,
+			@RequestParam(value = "language") String language
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("GET /v{}/authoring/get-translation [user: {}]", version, user);
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					DBDraftDialogue dialogue = draftDialogueService
+							.findDialogue(project, dialogueName)
+							.orElseThrow(() -> new NotFoundException(
+									"Dialogue not found: " + dialogueName));
+					return draftDialogueService.findTranslation(dialogue, language).orElse(null);
+				},
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
+				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
+	}
+
+	/**
+	 * Extracts every translatable term from a draft dialogue's current content.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project the dialogue belongs to.
+	 * @param dialogueName the name of the draft dialogue to extract translatable terms from.
+	 * @return the dialogue's translatable terms.
+	 * @throws HttpException if the dialogue's current draft content does not currently parse, the
+	 * project or dialogue does not exist, or the user is not authorized.
+	 */
+	@Operation(summary = "List all translatable terms in a draft dialogue.")
+	@Parameter(name = "version", hidden = true)
+	@GetMapping("/list-translatable-terms")
+	public List<TranslatableTermSummary> listTranslatableTerms(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug,
+			@RequestParam(value = "dialogueName") String dialogueName
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("GET /v{}/authoring/list-translatable-terms [user: {}]", version,
+							user);
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					DBDraftDialogue dialogue = draftDialogueService
+							.findDialogue(project, dialogueName)
+							.orElseThrow(() -> new NotFoundException(
+									"Dialogue not found: " + dialogueName));
+					return draftDialogueService.listTranslatableTerms(dialogue);
+				},
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
+				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
+	}
+
 }

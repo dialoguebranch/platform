@@ -122,10 +122,36 @@ function formatTime(date) {
     return `${h}:${m}:${s}.${ms}`;
 }
 
+// Some API fields (e.g. DBDraftTranslation.content) are themselves a whole JSON document stored
+// as a string, rather than nested JSON structure — recursively parse any string value that looks
+// like a JSON object/array so it gets indented too, instead of showing up as one long line packed
+// with escaped quotes inside an otherwise pretty-printed body. The startsWith/endsWith check keeps
+// this from mangling plain strings that merely happen to be valid JSON on their own (e.g. "123" or
+// "true") into a different type — only strings that look like a JSON object/array are unwrapped.
+function parseNestedJsonStrings(value) {
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        const looksLikeJson = (trimmed.startsWith('{') && trimmed.endsWith('}'))
+            || (trimmed.startsWith('[') && trimmed.endsWith(']'));
+        if (!looksLikeJson) return value;
+        try {
+            return parseNestedJsonStrings(JSON.parse(trimmed));
+        } catch {
+            return value;
+        }
+    }
+    if (Array.isArray(value)) return value.map(parseNestedJsonStrings);
+    if (value && typeof value === 'object') {
+        return Object.fromEntries(
+            Object.entries(value).map(([key, val]) => [key, parseNestedJsonStrings(val)]));
+    }
+    return value;
+}
+
 function prettyBody(raw) {
     if (!raw) return null;
     try {
-        return JSON.stringify(JSON.parse(raw), null, 2);
+        return JSON.stringify(parseNestedJsonStrings(JSON.parse(raw)), null, 2);
     } catch {
         return raw;
     }

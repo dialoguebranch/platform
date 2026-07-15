@@ -27,6 +27,15 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 - Added a mouseover tooltip ("Refresh dialogue list") to the Dialogue Browser's refresh button.
 - Added a "Test dialogues in:" label before the language selection dropdown in the Dialogue
   Workspace toolbar, vertically centered alongside the other toolbar controls.
+- Added a fourth **Translate** mode to the Dialogue Workspace's mode switcher (alongside Speech
+  Bubble Test, RPG Text Test, and Edit), available only in Authoring Mode. It lists every
+  translatable term in the active tab's dialogue, grouped by speaker, with an editable cell per
+  translation language and per-cell autosave (mirroring the Variable Browser's dirty-tracking
+  pattern) — no external export/import round-trip needed to edit translations anymore. Since
+  showing every project translation language as its own column stops scaling once there are more
+  than a couple, the user instead picks which one or two languages to display via "Column 2" /
+  "Column 3" dropdowns (Column 3 can be hidden to save space). Backed by two new read-only API
+  end-points, `/authoring/get-translation` and `/authoring/list-translatable-terms`.
 
 ### Fixed
 
@@ -69,6 +78,19 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   NOTE: This also means that any "move node" event is immediately saved to the server.
 - The "LoggedDialogueId" in the bottom of interaction testers is now correctly cleared when
   switching to "Ephemeral Test Mode".
+- Fixed a term-matching bug in the new Translate mode where a term whose source text spans
+  multiple script lines (e.g. two paragraphs separated by a blank line) always appeared
+  untranslated, even when a matching translation existed. Term keys were built with
+  `Translatable.toExportFriendlyString()`, which only trims the ends of the text, while the actual
+  translation-matching engine (`Translator`) normalizes *all* internal whitespace (including line
+  breaks) to single spaces before comparing — so a multi-line term's key never matched its stored
+  translation. Extracted that normalization into a new shared `Translatable.toNormalizedString()`
+  (`packages/core`) and pointed both `Translator` and the term-listing end-point at it, so term
+  keys are now generated identically everywhere.
+- Fixed the Debug Console showing double-encoded JSON fields (e.g. `DBDraftTranslation.content`,
+  itself a whole JSON document stored as a string) as one long line packed with escaped quotes
+  instead of being indented like the rest of the body. `prettyBody()` now recursively parses and
+  re-indents any string value that looks like a JSON object or array.
 
 ### Changed
 

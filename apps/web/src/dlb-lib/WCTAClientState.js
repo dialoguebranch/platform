@@ -32,6 +32,7 @@ import { DocumentFunctions } from '../dlb-lib/util/DocumentFunctions.js';
 export const DIALOGUE_WORKSPACE_STYLE_TEXT = "TEXT";
 export const DIALOGUE_WORKSPACE_STYLE_BALLOONS = "BALLOONS";
 export const DIALOGUE_WORKSPACE_STYLE_EDIT = "EDIT";
+export const DIALOGUE_WORKSPACE_STYLE_TRANSLATE = "TRANSLATE";
 
 export const DLB_APP_MODE_LIVE = "LIVE";
 export const DLB_APP_MODE_DRAFT = "DRAFT";
@@ -266,7 +267,8 @@ export class WCTAClientState extends ClientState {
         cookieValue = DocumentFunctions.getCookie('state.dialogueWorkspaceStyle');
         if(cookieValue != null) {
             if(cookieValue == DIALOGUE_WORKSPACE_STYLE_TEXT || cookieValue == DIALOGUE_WORKSPACE_STYLE_BALLOONS
-                    || cookieValue == DIALOGUE_WORKSPACE_STYLE_EDIT) {
+                    || cookieValue == DIALOGUE_WORKSPACE_STYLE_EDIT
+                    || cookieValue == DIALOGUE_WORKSPACE_STYLE_TRANSLATE) {
                 this._dialogueWorkspaceStyle = cookieValue;
                 this.logger.debug(this._LOGTAG, "Found a valid cookie-stored value for 'state.dialogueWorkspaceStyle': "+cookieValue);
             }
