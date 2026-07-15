@@ -647,14 +647,18 @@ public class UserService {
 	public DialogueState getDialogueState(ServerLoggedDialogue loggedDialogue,
 										  int loggedInteractionIndex) throws ExecutionException {
 		String dialogueName = loggedDialogue.getDialogueName();
+		String projectSlug = loggedDialogue.getProjectName();
+		// Resolved live against the project's current dialogues (not the per-UserService
+		// dialogueLanguageMap cache, which is only populated once at construction time and can go
+		// stale if dialogues are published after this UserService was created).
 		ResourcePointer dialogueDescription =
-				getDialogueDescriptionFromId(dialogueName,
+				getDialogueDescriptionFromProject(projectSlug, dialogueName,
 				loggedDialogue.getLanguage());
 		if (dialogueDescription == null) {
 			throw new ExecutionException(ExecutionException.Type.DIALOGUE_NOT_FOUND,
-					"Dialogue not found: " + dialogueName);
+					"Dialogue '" + dialogueName + "' not found in project '" + projectSlug + "'.");
 		}
-		Dialogue dialogueDefinition = getDialogueDefinition(
+		Dialogue dialogueDefinition = getDialogueDefinitionForProject(projectSlug,
 				dialogueDescription);
 		List<LoggedInteraction> interactions =
 				loggedDialogue.getInteractionList();
