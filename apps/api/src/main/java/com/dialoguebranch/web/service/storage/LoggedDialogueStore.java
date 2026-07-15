@@ -28,25 +28,28 @@
 
 package com.dialoguebranch.web.service.storage;
 
-import com.dialoguebranch.web.service.DlbProperties;
+import com.dialoguebranch.model.execute.LoggedInteraction;
 import com.dialoguebranch.web.service.execution.UserService;
+import com.dialoguebranch.web.service.repository.DBLoggedDialogueRepository;
+import com.dialoguebranch.web.service.repository.DBUserRepository;
+import com.dialoguebranch.web.service.storage.model.DBLoggedDialogue;
+import com.dialoguebranch.web.service.storage.model.DBUser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.LoggerFactory;
 import nl.rrd.utils.exception.DatabaseException;
-import nl.rrd.utils.io.FileUtils;
-import nl.rrd.utils.json.JsonMapper;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * A {@link LoggedDialogueStore} is a class that acts as the storage for {@link
  * ServerLoggedDialogue} objects, used in the execution of dialogues by the Dialogue Branch Web
- * Service.
+ * Service. It persists dialogues to the {@code logged_dialogues} database table via {@link
+ * DBLoggedDialogueRepository}.
  *
  * <p>A {@link LoggedDialogueStore} does not maintain any data in-memory, but immediately stores
  * any changes made to the configured storage mechanism.</p>
@@ -55,13 +58,14 @@ import java.util.*;
  */
 public class LoggedDialogueStore {
 
-	private final DlbProperties dlbProperties;
+	private static final Logger logger = LoggerFactory.getLogger(LoggedDialogueStore.class);
+	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
 	private final UserService userService;
 	private final String userId;
-	private final File userLogDirectory;
-	private static final Object LOCK = new Object();
-	private static final Logger logger = LoggerFactory.getLogger(LoggedDialogueStore.class);
-	private ServerLoggedDialogue latestStoredServerLoggedDialogue = null;
+	private final DBUserRepository userRepository;
+	private final DBLoggedDialogueRepository loggedDialogueRepository;
+	private final DBUser dbUser;
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
@@ -69,50 +73,26 @@ public class LoggedDialogueStore {
 
 	/**
 	 * Creates an instance of a {@link LoggedDialogueStore} for the user identified by the given
-	 * {@code userId}, with a reference to that user's {@link UserService}. Upon instantiation,
-	 * this {@link LoggedDialogueStore} attempts to create the directory to be used for logging
-	 * dialogues (as defined in the {@link DlbProperties}).
-	 * @param userId the identifier of the Dialogue Branch User for which to instantiate this {@link
-	 *                   LoggedDialogueStore}
-	 * @param userService the {@link UserService} associated with this LoggedDialogueStore
-	 * @param dlbProperties the application configuration properties used to determine the data directory.
-	 * @throws IOException in case of an error instantiating the log folder.
+	 * {@code userId}, with a reference to that user's {@link UserService}.
+	 *
+	 * @param userId the identifier of the Dialogue Branch User for which to instantiate this
+	 *               {@link LoggedDialogueStore}.
+	 * @param userService the {@link UserService} associated with this LoggedDialogueStore.
+	 * @param userRepository repository used to look up or create the {@link DBUser} that owns the
+	 *                        logged dialogues being read or written.
+	 * @param loggedDialogueRepository repository used to read, create, and update {@link
+	 *                                 DBLoggedDialogue} rows.
 	 */
 	public LoggedDialogueStore(String userId, UserService userService,
-							   DlbProperties dlbProperties) throws IOException {
-        logger.info("Initializing LoggedDialogueStore for user '" + userId + "'.");
+							   DBUserRepository userRepository,
+							   DBLoggedDialogueRepository loggedDialogueRepository) {
+		logger.info("Initializing LoggedDialogueStore for user '" + userId + "'.");
 
 		this.userService = userService;
 		this.userId = userId;
-		this.dlbProperties = dlbProperties;
-
-		File dialogueLogDirectory = new File(dlbProperties.getDataDir() + File.separator
-				+ DlbProperties.DIRECTORY_NAME_DIALOGUES);
-
-		// If the application's dialogue log directory doesn't exist yet
-		if(!dialogueLogDirectory.exists()) {
-
-			// Create this directory, and if it fails throw an error
-			if(!dialogueLogDirectory.mkdirs()) {
-				throw new IOException("Unable to create the dialogue log folder at "
-						+ dialogueLogDirectory.getAbsolutePath());
-			} else {
-				logger.info("Created dialogue log directory at: "+dialogueLogDirectory);
-			}
-		}
-
-		// Now instantiate this user's specific directory
-		this.userLogDirectory = new File(dialogueLogDirectory, userId);
-
-		// If the folder doesn't exist, initialize it
-		if(!userLogDirectory.exists()) {
-			if(userLogDirectory.mkdirs()) {
-				logger.info("Created user's dialogue log directory at: "+userLogDirectory);
-			} else {
-				throw new IOException("Unable to create the user's log folder at: "
-						+ userLogDirectory.getAbsolutePath());
-			}
-		}
+		this.userRepository = userRepository;
+		this.loggedDialogueRepository = loggedDialogueRepository;
+		this.dbUser = getOrCreateUser(userId);
 	}
 
 	// ----------------------------------------------------------- //
@@ -125,12 +105,11 @@ public class LoggedDialogueStore {
 	 *
 	 * @param id the identifier of the logged dialogue to find.
 	 * @return the matching {@link ServerLoggedDialogue}, or {@code null}.
-	 * @throws DatabaseException in case of an error reading from the dialogue log files.
-	 * @throws IOException in case of an error reading from the dialogue log files.
+	 * @throws DatabaseException in case of an error reading the logged dialogue.
 	 */
-	public ServerLoggedDialogue findLoggedDialogue(String id)
-			throws DatabaseException, IOException {
-		return readLatestDialogueWithConditions(false, null, null, id);
+	public ServerLoggedDialogue findLoggedDialogue(String id) throws DatabaseException {
+		return toServerLoggedDialogue(
+				loggedDialogueRepository.findByIdAndUser(id, dbUser).orElse(null));
 	}
 
 	/**
@@ -138,12 +117,13 @@ public class LoggedDialogueStore {
 	 * ServerLoggedDialogue} for this user, or {@code null} if none is found.
 	 *
 	 * @return the latest ongoing {@link ServerLoggedDialogue}, or {@code null}.
-	 * @throws IOException in case of an error reading from the dialogue log files.
-	 * @throws DatabaseException in case of an error reading from the dialogue log files.
+	 * @throws DatabaseException in case of an error reading the logged dialogue.
 	 */
-	public ServerLoggedDialogue findLatestOngoingDialogue()
-			throws IOException, DatabaseException {
-		return readLatestDialogueWithConditions(true, null, null, null);
+	public ServerLoggedDialogue findLatestOngoingDialogue() throws DatabaseException {
+		return toServerLoggedDialogue(loggedDialogueRepository
+				.findFirstByUserAndCompletedFalseAndCancelledFalseOrderByLatestInteractionTimestampDesc(
+						dbUser)
+				.orElse(null));
 	}
 
 	/**
@@ -153,12 +133,14 @@ public class LoggedDialogueStore {
 	 *
 	 * @param dialogueName the dialogue name to filter on.
 	 * @return the latest ongoing {@link ServerLoggedDialogue} with the given name, or {@code null}.
-	 * @throws DatabaseException in case of an error reading from the dialogue log files.
-	 * @throws IOException in case of an error reading from the dialogue log files.
+	 * @throws DatabaseException in case of an error reading the logged dialogue.
 	 */
 	public ServerLoggedDialogue findLatestOngoingDialogue(String dialogueName)
-			throws DatabaseException, IOException {
-		return readLatestDialogueWithConditions(true, null, dialogueName, null);
+			throws DatabaseException {
+		return toServerLoggedDialogue(loggedDialogueRepository
+				.findFirstByUserAndDialogueNameAndCompletedFalseAndCancelledFalseOrderByLatestInteractionTimestampDesc(
+						dbUser, dialogueName)
+				.orElse(null));
 	}
 
 	/**
@@ -168,12 +150,14 @@ public class LoggedDialogueStore {
 	 *
 	 * @param projectSlug the project name to filter on.
 	 * @return the latest ongoing {@link ServerLoggedDialogue} within the given project, or {@code null}.
-	 * @throws DatabaseException in case of an error reading from the dialogue log files.
-	 * @throws IOException in case of an error reading from the dialogue log files.
+	 * @throws DatabaseException in case of an error reading the logged dialogue.
 	 */
 	public ServerLoggedDialogue findLatestOngoingDialogueInProject(String projectSlug)
-			throws DatabaseException, IOException {
-		return readLatestDialogueWithConditions(true, projectSlug, null, null);
+			throws DatabaseException {
+		return toServerLoggedDialogue(loggedDialogueRepository
+				.findFirstByUserAndProjectSlugAndCompletedFalseAndCancelledFalseOrderByLatestInteractionTimestampDesc(
+						dbUser, projectSlug)
+				.orElse(null));
 	}
 
 	/**
@@ -183,42 +167,36 @@ public class LoggedDialogueStore {
 	 * @param projectSlug the project name to filter on.
 	 * @param dialogueName the dialogue name to filter on.
 	 * @return the latest ongoing {@link ServerLoggedDialogue}, or {@code null}.
-	 * @throws DatabaseException in case of an error reading from the dialogue log files.
-	 * @throws IOException in case of an error reading from the dialogue log files.
+	 * @throws DatabaseException in case of an error reading the logged dialogue.
 	 */
 	public ServerLoggedDialogue findLatestOngoingDialogue(String projectSlug, String dialogueName)
-			throws DatabaseException, IOException {
-		return readLatestDialogueWithConditions(true, projectSlug, dialogueName, null);
+			throws DatabaseException {
+		return toServerLoggedDialogue(loggedDialogueRepository
+				.findFirstByUserAndProjectSlugAndDialogueNameAndCompletedFalseAndCancelledFalseOrderByLatestInteractionTimestampDesc(
+						dbUser, projectSlug, dialogueName)
+				.orElse(null));
 	}
 
 	/**
 	 * Marks the given {@link ServerLoggedDialogue} as canceled and persists the change.
 	 *
 	 * @param serverLoggedDialogue the dialogue to mark as canceled.
-	 * @throws DatabaseException in case of an error writing to the dialogue log files.
-	 * @throws IOException in case of an error writing to the dialogue log files.
+	 * @throws DatabaseException in case of an error writing the logged dialogue.
 	 */
 	public void setDialogueCancelled(ServerLoggedDialogue serverLoggedDialogue)
-			throws DatabaseException, IOException {
+			throws DatabaseException {
 		serverLoggedDialogue.setCancelled(true);
 		saveToSession(serverLoggedDialogue);
 	}
 
 	/**
-	 * Persists the given {@link ServerLoggedDialogue} to the session log file, replacing any
-	 * previously stored entry with the same ID in that session.
+	 * Persists the given {@link ServerLoggedDialogue}, creating or updating its row as needed.
 	 *
 	 * @param dialogue the {@link ServerLoggedDialogue} to save.
-	 * @throws DatabaseException in case of an error writing to the dialogue log files.
-	 * @throws IOException in case of an error writing to the dialogue log files.
+	 * @throws DatabaseException in case of an error writing the logged dialogue.
 	 */
-	public void saveToSession(ServerLoggedDialogue dialogue)
-			throws DatabaseException, IOException {
-		this.latestStoredServerLoggedDialogue = dialogue;
-		synchronized(LOCK) {
-			List<ServerLoggedDialogue> dialogues = readSessionWith(dialogue);
-			saveToSession(dialogue.getSessionId(), dialogue.getSessionStartTime(), dialogues);
-		}
+	public void saveToSession(ServerLoggedDialogue dialogue) throws DatabaseException {
+		loggedDialogueRepository.save(toDBLoggedDialogue(dialogue));
 	}
 
 	/**
@@ -226,32 +204,9 @@ public class LoggedDialogueStore {
 	 *
 	 * @param sessionId the sessionId for which to check.
 	 * @return true if the sessionId exists, false otherwise.
-	 * @throws DatabaseException if the dialogue log directory cannot be listed.
 	 */
-	public boolean existsSessionId(String sessionId) throws DatabaseException {
-		// First check whether the latest stored in-memory dialogue may be a match
-		if(latestStoredServerLoggedDialogue != null) {
-			if(latestStoredServerLoggedDialogue.getSessionId() != null) {
-				if(latestStoredServerLoggedDialogue.getSessionId().equals(sessionId)) return true;
-			}
-		}
-
-		// If not, check through the available files
-		File[] userLogFiles;
-
-		synchronized (LOCK) {
-			userLogFiles = userLogDirectory.listFiles();
-		}
-
-		if(userLogFiles == null) throw new DatabaseException("Error retrieving file listing " +
-				"from dialogue log directory for user '" + userId + "'.");
-
-		for(File f : userLogFiles) {
-			if (f.getName().endsWith(sessionId + ".json")) {
-				return true;
-			}
-		}
-		return false;
+	public boolean existsSessionId(String sessionId) {
+		return loggedDialogueRepository.existsByUserAndSessionId(dbUser, sessionId);
 	}
 
 	/**
@@ -259,225 +214,90 @@ public class LoggedDialogueStore {
 	 *
 	 * @param sessionId the session ID for which to read all logged dialogues.
 	 * @return the list of {@link ServerLoggedDialogue} entries for the given session.
-	 * @throws DatabaseException if the dialogue log directory cannot be listed.
-	 * @throws IOException if an error occurs reading a log file.
+	 * @throws DatabaseException in case of an error reading a logged dialogue.
 	 */
-	public List<ServerLoggedDialogue> readSession(String sessionId)
-			throws DatabaseException, IOException {
-
-		File[] userLogFiles;
-
-		synchronized (LOCK) {
-			userLogFiles = userLogDirectory.listFiles();
+	public List<ServerLoggedDialogue> readSession(String sessionId) throws DatabaseException {
+		List<ServerLoggedDialogue> result = new ArrayList<>();
+		for (DBLoggedDialogue dbLoggedDialogue :
+				loggedDialogueRepository.findByUserAndSessionIdOrderByUtcTimeAsc(dbUser, sessionId)) {
+			result.add(toServerLoggedDialogue(dbLoggedDialogue));
 		}
-
-		if(userLogFiles == null) throw new DatabaseException("Error retrieving file listing " +
-				"from dialogue log directory for user '" + userId + "'.");
-
-		for(File f : userLogFiles) {
-			if (f.getName().endsWith(sessionId + ".json")) {
-				return readSession(f);
-			}
-		}
-		return new ArrayList<>();
-	}
-
-	// ---------------------------------------------------------------------- //
-	// -------------------- Private Read & Write Methods -------------------- //
-	// ---------------------------------------------------------------------- //
-
-	private void saveToSession(String sessionId, long sessionStartTime,
-									  List<ServerLoggedDialogue> dialogues) throws IOException {
-		synchronized (LOCK) {
-			String json = JsonMapper.generate(dialogues);
-			File dataFile = new File(userLogDirectory, sessionStartTime + " " + sessionId +
-					".json");
-			FileUtils.writeFileString(dataFile, json);
-		}
-	}
-
-	private List<ServerLoggedDialogue> readSession(String sessionId, long sessionStartTime)
-			throws DatabaseException, IOException {
-		File dataFile = new File(userLogDirectory, sessionStartTime + " " + sessionId +
-				".json");
-		return readSession(dataFile);
-	}
-
-	private List<ServerLoggedDialogue> readSession(File sessionFile)
-			throws DatabaseException, IOException {
-		List<ServerLoggedDialogue> result;
-		synchronized (LOCK) {
-			if (!sessionFile.exists())
-				return new ArrayList<>();
-			ObjectMapper mapper = new ObjectMapper();
-			try {
-				result = mapper.readValue(sessionFile,
-						new TypeReference<>() {
-						});
-			} catch (JsonProcessingException ex) {
-				throw new DatabaseException(
-						"Failed to parse logged dialogues: " + sessionFile.getAbsolutePath() +
-								": " + ex.getMessage(), ex);
-			}
-		}
-		result.sort(Comparator.comparingLong(ServerLoggedDialogue::getUtcTime));
 		return result;
 	}
 
-	/**
-	 * Provide the complete list of all LoggedDialogues that are part of the same session as the
-	 * given serverLoggedDialogue, including itself.
-	 *
-	 * @param serverLoggedDialogue the {@link ServerLoggedDialogue} for which to retrieve all of
-	 *                             his friends.
-	 * @return a List of ServerLoggedDialogue objects that form the complete session that the given
-	 *         {@code serverLoggedDialogue} is part of, including itself
-	 * @throws DatabaseException in case of an error reading from the dialogue log files.
-	 * @throws IOException in case of an error reading from the dialogue log files.
-	 */
-	private List<ServerLoggedDialogue> readSessionWith(ServerLoggedDialogue serverLoggedDialogue)
-			throws DatabaseException, IOException {
+	// ---------------------------------------------------------------------- //
+	// -------------------- Private Conversion Methods ----------------------- //
+	// ---------------------------------------------------------------------- //
 
-		// Read all logged dialogues in this session from file
-		List<ServerLoggedDialogue> dialogues = readSession(serverLoggedDialogue.getSessionId(),
-				serverLoggedDialogue.getSessionStartTime());
-
-		// Remove any serverLoggedDialogue (well, it should only be 1) that has the same id as the one
-		// we are adding.
-		dialogues.removeIf(dialogue -> dialogue.getId().equals(serverLoggedDialogue.getId()));
-
-		// Add the new (updated) serverLoggedDialogue provided
-		dialogues.add(serverLoggedDialogue);
-
-		// Sort by time
-		dialogues.sort(Comparator.comparingLong(ServerLoggedDialogue::getUtcTime));
-		return dialogues;
+	private DBUser getOrCreateUser(String username) {
+		return userRepository.findByUsername(username)
+				.orElseGet(() -> userRepository.save(new DBUser(username)));
 	}
 
-	/**
-	 * Dig through the given {@code user}'s log files, and look for the latest {@link
-	 * ServerLoggedDialogue} that matches the conditions provided. This method will look through all
-	 * the user's dialogue log files in order (newest to oldest), and return the first occurrence
-	 * of a {@link ServerLoggedDialogue} that matches all conditions.
-	 *
-	 * <p>If {@code mustBeOngoing} is {@code true} this method will only return a {@link
-	 * ServerLoggedDialogue} for which the #isCancelled and #isCompleted parameters are both false.
-	 * Otherwise, these parameters are ignored.</p>
-	 *
-	 * <p>If a {@code dialogueName} is provided, the returned {@link ServerLoggedDialogue} must have
-	 * this given dialogue name. If {@code null} is provided, the condition is ignored.</p>
-	 *
-	 * <p>If a {@code id} is provided, the returned {@link ServerLoggedDialogue} must have this id.
-	 * If {@code null} is provided, the condition is ignored.</p>
-	 *
-	 * <p>Finally, if no {@link ServerLoggedDialogue} is found that matches all given conditions,
-	 * this method will return {@code null}.</p>
-	 *
-	 * @param mustBeOngoing true if this method should only look for "ongoing" dialogues.
-	 * @param dialogueName an optional dialogue name to look for (or {@code null}).
-	 * @param id an optional id to look for (or {@code null}).
-	 * @return the {@link ServerLoggedDialogue} that matches the conditions, or {@code null} if none
-	 *         can be found.
-	 * @throws DatabaseException in case of an error reading from the dialogue log files.
-	 * @throws IOException in case of an error reading from the dialogue log files.
-	 */
-	private ServerLoggedDialogue readLatestDialogueWithConditions(boolean mustBeOngoing,
-																  String projectSlug,
-																  String dialogueName, String id)
-			throws DatabaseException, IOException {
-
-		// We maintain a reference to the latest stored ServerLoggedDialogue in memory, which
-		// is the prime candidate for any search, so we check it first.
-		if(this.latestStoredServerLoggedDialogue != null) {
-			boolean match = true;
-
-			if(mustBeOngoing) {
-				if(latestStoredServerLoggedDialogue.isCancelled()
-						|| latestStoredServerLoggedDialogue.isCompleted()) match = false;
-			}
-
-			if(match && projectSlug != null) {
-				if(!projectSlug.equals(latestStoredServerLoggedDialogue.getProjectName()))
-					match = false;
-			}
-
-			if(match && dialogueName != null) {
-				if(!latestStoredServerLoggedDialogue.getDialogueName().equals(dialogueName))
-					match = false;
-			}
-
-			if(match && id != null) {
-				if(!latestStoredServerLoggedDialogue.getId().equals(id)) match = false;
-			}
-
-			if(match) return latestStoredServerLoggedDialogue;
-		}
-
-		File[] userLogFiles;
-
-		synchronized (LOCK) {
-			userLogFiles = userLogDirectory.listFiles();
-		}
-
-		if(userLogFiles == null) throw new DatabaseException("Error retrieving file listing " +
-			"from dialogue log directory for user '" + userId + "'.");
-
-		// Go through all files in reverse order (newest first)
-		Arrays.sort(userLogFiles, Collections.reverseOrder());
-
-		for(File f : userLogFiles) {
-			List<ServerLoggedDialogue> serverLoggedDialogues = readSessionFile(f);
-			if(serverLoggedDialogues != null) {
-				for(ServerLoggedDialogue ld : serverLoggedDialogues) {
-					boolean match = true;
-
-					if(mustBeOngoing) {
-						if(ld.isCancelled() || ld.isCompleted()) match = false;
-					}
-
-					if(match && projectSlug != null) {
-						if(!projectSlug.equals(ld.getProjectName())) match = false;
-					}
-
-					if(match && dialogueName != null) {
-						if(!ld.getDialogueName().equals(dialogueName)) match = false;
-					}
-
-					if(match && id != null) {
-						if(!ld.getId().equals(id)) match = false;
-					}
-
-					if(match) return ld;
-				}
-			}
-		}
-
-		return null;
+	private ServerLoggedDialogue toServerLoggedDialogue(DBLoggedDialogue db)
+			throws DatabaseException {
+		if (db == null) return null;
+		ServerLoggedDialogue dialogue = new ServerLoggedDialogue();
+		dialogue.setId(db.getId());
+		dialogue.setSessionId(db.getSessionId());
+		dialogue.setSessionStartTime(db.getSessionStartTime());
+		// Every DBLoggedDialogue returned by this store's queries belongs to this.userId (they're
+		// all scoped to dbUser) — read that directly rather than db.getUser().getUsername(), which
+		// would try to lazily initialize the user association outside its fetch transaction
+		// (open-in-view is disabled) and throw LazyInitializationException.
+		dialogue.setUser(userId);
+		dialogue.setLocalTime(db.getLocalTime());
+		dialogue.setUtcTime(db.getUtcTime());
+		dialogue.setTimezone(db.getTimezone());
+		dialogue.setProjectName(db.getProjectSlug());
+		dialogue.setDialogueName(db.getDialogueName());
+		dialogue.setLanguage(db.getLanguage());
+		dialogue.setPublishedVersionNumber(db.getPublishedVersionNumber());
+		dialogue.setCompleted(db.isCompleted());
+		dialogue.setCancelled(db.isCancelled());
+		dialogue.setInteractionList(parseInteractions(db.getInteractions()));
+		return dialogue;
 	}
 
-	/**
-	 * Private method used to read the JSON contents of a given dialogue log session file and return
-	 * it as a List of ServerLoggedDialogue objects.
-	 * @param sessionFile the File pointer to the dialogue log session file.
-	 * @return a List of ServerLoggedDialogue objects.
-	 * @throws DatabaseException in case of a read error.
-	 * @throws IOException in case of a read error.
-	 */
-	private List<ServerLoggedDialogue> readSessionFile(File sessionFile)
-			throws DatabaseException, IOException {
-		ObjectMapper mapper = new ObjectMapper();
-		List<ServerLoggedDialogue> result;
-		synchronized(LOCK) {
-			try {
-				result = mapper.readValue(sessionFile,
-						new TypeReference<>() {
-						});
-			} catch (JsonProcessingException ex) {
-				throw new DatabaseException("Failed to parse logged dialogues: "
-						+ sessionFile.getAbsolutePath() + ": " + ex.getMessage(), ex);
-			}
+	private DBLoggedDialogue toDBLoggedDialogue(ServerLoggedDialogue dialogue)
+			throws DatabaseException {
+		DBLoggedDialogue db = new DBLoggedDialogue();
+		db.setId(dialogue.getId());
+		db.setUser(dbUser);
+		db.setSessionId(dialogue.getSessionId());
+		db.setSessionStartTime(dialogue.getSessionStartTime());
+		db.setLocalTime(dialogue.getLocalTime());
+		db.setUtcTime(dialogue.getUtcTime());
+		db.setTimezone(dialogue.getTimezone());
+		db.setProjectSlug(dialogue.getProjectName());
+		db.setDialogueName(dialogue.getDialogueName());
+		db.setLanguage(dialogue.getLanguage());
+		db.setPublishedVersionNumber(dialogue.getPublishedVersionNumber());
+		db.setCompleted(dialogue.isCompleted());
+		db.setCancelled(dialogue.isCancelled());
+		db.setLatestInteractionTimestamp(dialogue.getLatestInteractionTimestamp());
+		db.setInteractions(generateInteractions(dialogue.getInteractionList()));
+		return db;
+	}
+
+	private String generateInteractions(List<LoggedInteraction> interactions)
+			throws DatabaseException {
+		try {
+			return OBJECT_MAPPER.writeValueAsString(interactions);
+		} catch (JsonProcessingException ex) {
+			throw new DatabaseException(
+					"Failed to serialize logged interactions: " + ex.getMessage(), ex);
 		}
-		return result;
+	}
+
+	private List<LoggedInteraction> parseInteractions(String json) throws DatabaseException {
+		try {
+			return OBJECT_MAPPER.readValue(json, new TypeReference<>() {
+			});
+		} catch (JsonProcessingException ex) {
+			throw new DatabaseException(
+					"Failed to parse logged interactions: " + ex.getMessage(), ex);
+		}
 	}
 
 }

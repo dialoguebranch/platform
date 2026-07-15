@@ -165,7 +165,8 @@ public class ProjectLoaderService {
 		DatabasePublishedScriptLoader scriptLoader =
 				new DatabasePublishedScriptLoader(sourceLanguage, scriptContents, translationContents);
 
-		application.getApplicationManager().loadProject(projectSlug, scriptLoader);
+		application.getApplicationManager().loadProject(projectSlug, scriptLoader,
+				latestVersion.getVersionNumber());
 	}
 
 }

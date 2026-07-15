@@ -60,6 +60,7 @@ public class ServerLoggedDialogue implements LoggedDialogue {
 	private String projectName;
 	private String dialogueName;
 	private String language;
+	private int publishedVersionNumber;
 	private boolean completed;
 	private boolean cancelled;
 	private List<LoggedInteraction> interactionList = new ArrayList<>();
@@ -233,6 +234,24 @@ public class ServerLoggedDialogue implements LoggedDialogue {
 	 */
 	public void setProjectName(String projectName) {
 		this.projectName = projectName;
+	}
+
+	/**
+	 * Returns the version number of the project's published content that this dialogue was
+	 * started against.
+	 * @return the published version number.
+	 */
+	public int getPublishedVersionNumber() {
+		return publishedVersionNumber;
+	}
+
+	/**
+	 * Sets the version number of the project's published content that this dialogue was started
+	 * against.
+	 * @param publishedVersionNumber the published version number.
+	 */
+	public void setPublishedVersionNumber(int publishedVersionNumber) {
+		this.publishedVersionNumber = publishedVersionNumber;
 	}
 
 	/**

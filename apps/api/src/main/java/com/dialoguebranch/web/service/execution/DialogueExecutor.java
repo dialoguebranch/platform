@@ -126,6 +126,11 @@ public class DialogueExecutor {
 		serverLoggedDialogue.setProjectName(projectSlug);
 		serverLoggedDialogue.setDialogueName(dialogueDefinition.getDialogueName());
 		serverLoggedDialogue.setLanguage(dialogueDescription.getLanguage());
+		Integer publishedVersionNumber =
+				userService.getApplicationManager().getProjectVersion(projectSlug);
+		if (publishedVersionNumber != null) {
+			serverLoggedDialogue.setPublishedVersionNumber(publishedVersionNumber);
+		}
 		updateLoggedDialogue(startNode, serverLoggedDialogue, -1);
 		userService.getLoggedDialogueStore().saveToSession(serverLoggedDialogue);
 		return new ExecuteNodeResult(dialogueDefinition, startNode, serverLoggedDialogue,

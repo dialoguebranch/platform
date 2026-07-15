@@ -22,3 +22,14 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   user's session starts, so any dialogue published after that point was invisible to it. This
   lookup now resolves dialogues live, scoped to the ongoing dialogue's own project, matching how
   `/dialogue/start` already worked.
+- Fixed an issue in the API where `/dialogue/get-ongoing` and `/dialogue/continue` could offer to
+  resume a dialogue whose project had since been republished with different content, even though
+  the dialogue itself still existed under the same name. Each logged dialogue is now pinned to the
+  published version of the project it was started against; if that version is no longer the
+  project's current one, it's treated as stale and no longer offered as resumable.
+
+### Changed
+
+- Logged dialogues are now stored in the database instead of as JSON files on disk, mirroring how
+  Dialogue Branch Variables are already stored. This also makes looking up a user's most recent
+  ongoing dialogue a single indexed database query instead of a scan of every session file.

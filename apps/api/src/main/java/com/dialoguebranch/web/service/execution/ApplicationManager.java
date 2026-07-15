@@ -39,6 +39,8 @@ import com.dialoguebranch.model.common.DialogueBranchProject;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;
 import com.dialoguebranch.web.service.DlbProperties;
+import com.dialoguebranch.web.service.repository.DBLoggedDialogueRepository;
+import com.dialoguebranch.web.service.repository.DBUserRepository;
 import com.dialoguebranch.web.service.storage.VariableStoreStorageHandler;
 import org.slf4j.LoggerFactory;
 import nl.rrd.utils.exception.DatabaseException;
@@ -57,7 +59,7 @@ import java.util.Map;
  * class keeps track of the different active {@link UserService} instances that are needed to serve
  * individual users of the Dialogue Branch Web Service, as well as other application-wide objects.
  *
- * <p>Dialogue Branch projects are loaded into memory via {@link #loadProject(String, ScriptLoader)},
+ * <p>Dialogue Branch projects are loaded into memory via {@link #loadProject(String, ScriptLoader, int)},
  * which is called by {@link com.dialoguebranch.web.service.project.ProjectSeedService} on
  * application startup after all projects have been seeded in the database. The projects map is
  * keyed by project name (slug).</p>
@@ -76,6 +78,9 @@ public class ApplicationManager {
 	/** Loaded Dialogue Branch projects, keyed by project name (folder name). */
 	private final Map<String, DialogueBranchProject> projects = new LinkedHashMap<>();
 
+	/** The published version number currently loaded for each project, keyed by project slug. */
+	private final Map<String, Integer> projectVersions = new LinkedHashMap<>();
+
 	private final DlbProperties dlbProperties;
 	private final List<UserService> activeUserServices = new ArrayList<>();
 	private final UserServiceFactory userServiceFactory;
@@ -86,16 +91,23 @@ public class ApplicationManager {
 
 	/**
 	 * Creates an instance of an {@link ApplicationManager}. Projects are not loaded here;
-	 * they are populated later via {@link #loadProject(String, ScriptLoader)} by the
+	 * they are populated later via {@link #loadProject(String, ScriptLoader, int)} by the
 	 * {@link com.dialoguebranch.web.service.project.ProjectSeedService} once the database is ready.
 	 *
 	 * @param dlbProperties  the application configuration properties.
 	 * @param storageHandler the variable-store storage handler for user sessions.
+	 * @param userRepository repository used to look up or create the {@link
+	 *                        com.dialoguebranch.web.service.storage.model.DBUser} that owns each
+	 *                       user's logged dialogues.
+	 * @param loggedDialogueRepository repository used to read, create, and update logged dialogues.
 	 */
 	public ApplicationManager(DlbProperties dlbProperties,
-							  VariableStoreStorageHandler storageHandler) {
+							  VariableStoreStorageHandler storageHandler,
+							  DBUserRepository userRepository,
+							  DBLoggedDialogueRepository loggedDialogueRepository) {
 		this.dlbProperties = dlbProperties;
-		this.userServiceFactory = new UserServiceFactory(this, storageHandler);
+		this.userServiceFactory = new UserServiceFactory(this, storageHandler, userRepository,
+				loggedDialogueRepository);
 	}
 
 	// ----------------------------------------------------------- //
@@ -242,6 +254,17 @@ public class ApplicationManager {
 	}
 
 	/**
+	 * Returns the published version number currently loaded in memory for the named project, or
+	 * {@code null} if no project with that slug is currently loaded.
+	 *
+	 * @param projectSlug the project folder name / slug.
+	 * @return the currently loaded published version number, or {@code null}.
+	 */
+	public Integer getProjectVersion(String projectSlug) {
+		return projectVersions.get(projectSlug);
+	}
+
+	/**
 	 * Checks whether the given {@code language} is supported (as either the source language or a
 	 * translation language) by the named project's metadata. If the project isn't loaded or has no
 	 * metadata, this is a no-op — dialogue lookup will fail with a more specific error in that case.
@@ -353,8 +376,10 @@ public class ApplicationManager {
 	 *
 	 * @param projectSlug the unique slug name of the project.
 	 * @param scriptLoader  the {@link ScriptLoader} that provides script and translation content.
+	 * @param versionNumber the published version number being loaded, recorded so that logged
+	 *                      dialogues can be pinned to the version they were started against.
 	 */
-	public void loadProject(String projectSlug, ScriptLoader scriptLoader) {
+	public void loadProject(String projectSlug, ScriptLoader scriptLoader, int versionNumber) {
 		logger.info("Loading Dialogue Branch project '{}' into memory.", projectSlug);
 
 		ProjectParser projectParser = new ProjectParser(scriptLoader);
@@ -387,6 +412,7 @@ public class ApplicationManager {
 		}
 
 		projects.put(projectSlug, result.getProject());
+		projectVersions.put(projectSlug, versionNumber);
 		logger.info("Successfully loaded Dialogue Branch project '{}' ({} dialogues).",
 				projectSlug, result.getProject().getDialogues().size());
 	}

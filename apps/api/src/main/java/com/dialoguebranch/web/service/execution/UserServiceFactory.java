@@ -29,6 +29,8 @@
 package com.dialoguebranch.web.service.execution;
 
 import com.dialoguebranch.execution.User;
+import com.dialoguebranch.web.service.repository.DBLoggedDialogueRepository;
+import com.dialoguebranch.web.service.repository.DBUserRepository;
 import com.dialoguebranch.web.service.storage.VariableStoreStorageHandler;
 import nl.rrd.utils.exception.DatabaseException;
 
@@ -49,6 +51,12 @@ public class UserServiceFactory {
 	/** The VariableStorageHandler that all created UserServices should use */
 	private final VariableStoreStorageHandler storageHandler;
 
+	/** Repository used by created UserServices to look up or create their DBUser row */
+	private final DBUserRepository userRepository;
+
+	/** Repository used by created UserServices to read/write logged dialogues */
+	private final DBLoggedDialogueRepository loggedDialogueRepository;
+
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
@@ -63,11 +71,20 @@ public class UserServiceFactory {
 	 * @param storageHandler the {@link VariableStoreStorageHandler} that is passed on to the {@link
 	 *                       UserService} for reading and writing Dialogue Branch variables to
 	 *                       persistent storage.
+	 * @param userRepository repository passed on to created {@link UserService}s for looking up or
+	 *                        creating their {@link
+	 *                       com.dialoguebranch.web.service.storage.model.DBUser} row.
+	 * @param loggedDialogueRepository repository passed on to created {@link UserService}s for
+	 *                                 reading and writing logged dialogues.
 	 */
 	public UserServiceFactory(ApplicationManager applicationManager,
-							  VariableStoreStorageHandler storageHandler) {
+							  VariableStoreStorageHandler storageHandler,
+							  DBUserRepository userRepository,
+							  DBLoggedDialogueRepository loggedDialogueRepository) {
 		this.applicationManager = applicationManager;
 		this.storageHandler = storageHandler;
+		this.userRepository = userRepository;
+		this.loggedDialogueRepository = loggedDialogueRepository;
 	}
 
 	// ----------------------------------------------------------- //
@@ -99,7 +116,8 @@ public class UserServiceFactory {
 	 */
 	public UserService createUserService(String userId, ZoneId timeZone)
 			throws DatabaseException, IOException {
-		return new UserService(new User(userId, timeZone), applicationManager, storageHandler);
+		return new UserService(new User(userId, timeZone), applicationManager, storageHandler,
+				userRepository, loggedDialogueRepository);
 	}
 
 	/**
@@ -112,7 +130,8 @@ public class UserServiceFactory {
 	 * @throws IOException In case of an error loading in the known variables for the User.
 	 */
 	public UserService createUserService(String userId) throws IOException, DatabaseException {
-		return new UserService(new User(userId), applicationManager, storageHandler);
+		return new UserService(new User(userId), applicationManager, storageHandler,
+				userRepository, loggedDialogueRepository);
 	}
 
 }

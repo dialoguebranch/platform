@@ -537,6 +537,20 @@ public class DialogueController {
 
 		ServerLoggedDialogue currentDialogue = userService.getLoggedDialogueStore().
 				findLatestOngoingDialogue(projectSlug, dialogueName);
+
+		if (currentDialogue != null) {
+			Integer currentVersion =
+					application.getApplicationManager().getProjectVersion(projectSlug);
+			if (currentVersion == null
+					|| currentVersion != currentDialogue.getPublishedVersionNumber()) {
+				throw ControllerFunctions.createHttpException(new ExecutionException(
+						ExecutionException.Type.DIALOGUE_NOT_FOUND,
+						"Dialogue '" + dialogueName + "' was started against an outdated " +
+								"published version of project '" + projectSlug + "' and can no " +
+								"longer be continued."));
+			}
+		}
+
 		LoggedInteraction lastInteraction = null;
 		if (currentDialogue != null && !currentDialogue.getInteractionList().isEmpty()) {
 			lastInteraction = currentDialogue.getInteractionList().get(
@@ -906,19 +920,27 @@ public class DialogueController {
 		ServerLoggedDialogue latestOngoingDialogue =
 				userService.getLoggedDialogueStore().findLatestOngoingDialogueInProject(projectSlug);
 
-		if(latestOngoingDialogue != null) {
-			String dialogueName = latestOngoingDialogue.getDialogueName();
-			long latestInteractionTimestamp = latestOngoingDialogue.getLatestInteractionTimestamp();
-			long secondsSinceLastEngagement =
-					(long) Math.floor((System.currentTimeMillis() -
-							latestInteractionTimestamp) / 1000.0);
-			OngoingDialoguePayload ongoingDialoguePayload =
-					new OngoingDialoguePayload(dialogueName, latestOngoingDialogue.getId(),
-							secondsSinceLastEngagement);
-			return new NullableResponse<>(ongoingDialoguePayload);
-		} else {
+		if (latestOngoingDialogue == null) {
 			return new NullableResponse<>(null);
 		}
+
+		// The project has been republished since this dialogue was started — its content is no
+		// longer guaranteed to match, so it's no longer offered as resumable.
+		Integer currentVersion = application.getApplicationManager().getProjectVersion(projectSlug);
+		if (currentVersion == null
+				|| currentVersion != latestOngoingDialogue.getPublishedVersionNumber()) {
+			return new NullableResponse<>(null);
+		}
+
+		String dialogueName = latestOngoingDialogue.getDialogueName();
+		long latestInteractionTimestamp = latestOngoingDialogue.getLatestInteractionTimestamp();
+		long secondsSinceLastEngagement =
+				(long) Math.floor((System.currentTimeMillis() -
+						latestInteractionTimestamp) / 1000.0);
+		OngoingDialoguePayload ongoingDialoguePayload =
+				new OngoingDialoguePayload(dialogueName, latestOngoingDialogue.getId(),
+						secondsSinceLastEngagement);
+		return new NullableResponse<>(ongoingDialoguePayload);
 	}
 
 	// ------------------------------------------------------------------------------ //

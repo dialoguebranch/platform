@@ -34,6 +34,8 @@ import com.dialoguebranch.execution.*;
 import com.dialoguebranch.i18n.TranslationContext;
 import com.dialoguebranch.model.execute.*;
 import com.dialoguebranch.web.service.DlbProperties;
+import com.dialoguebranch.web.service.repository.DBLoggedDialogueRepository;
+import com.dialoguebranch.web.service.repository.DBUserRepository;
 import com.dialoguebranch.web.service.storage.ExternalVariableServiceUpdater;
 import com.dialoguebranch.web.service.storage.LoggedDialogueStore;
 import com.dialoguebranch.web.service.storage.ServerLoggedDialogue;
@@ -93,11 +95,18 @@ public class UserService {
 	 * @param applicationManager the server's {@link ApplicationManager} instance.
 	 * @param storageHandler the {@link VariableStoreStorageHandler} used to read and persist
 	 *                       variables for this user.
+	 * @param userRepository repository used to look up or create the {@link
+	 *                        com.dialoguebranch.web.service.storage.model.DBUser} that owns this
+	 *                       user's logged dialogues.
+	 * @param loggedDialogueRepository repository used to read and write this user's logged
+	 *                                 dialogues.
 	 * @throws DatabaseException if an error occurs reading existing variables from the database.
 	 * @throws IOException if an error occurs initialising the logged dialogue store.
 	 */
 	public UserService(User dialogueBranchUser, ApplicationManager applicationManager,
-					   VariableStoreStorageHandler storageHandler)
+					   VariableStoreStorageHandler storageHandler,
+					   DBUserRepository userRepository,
+					   DBLoggedDialogueRepository loggedDialogueRepository)
 			throws DatabaseException, IOException {
 
 		this.dialogueBranchUser = dialogueBranchUser;
@@ -122,7 +131,7 @@ public class UserService {
 		dialogueExecutor = new DialogueExecutor(this);
 
 		loggedDialogueStore = new LoggedDialogueStore(
-				dialogueBranchUser.getId(), this, dlbProperties);
+				dialogueBranchUser.getId(), this, userRepository, loggedDialogueRepository);
 
 		// create dialogueLanguageMap
 		List<ResourcePointer> dialogues = applicationManager.getDialogueDescriptions();
