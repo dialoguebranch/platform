@@ -165,6 +165,12 @@ function confirmDelete() {
 function referenceDialogueCount(references) {
     return new Set((references ?? []).map((r) => r.dialogueName)).size;
 }
+
+// Lets DialogueEditor.vue's onNodeClick refuse to swap the selected node — which would silently
+// discard this panel's in-progress edits — while a save for the current node is still in flight.
+defineExpose({
+    saving,
+});
 </script>
 
 <template>

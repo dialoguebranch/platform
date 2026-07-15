@@ -1,5 +1,5 @@
 <script setup>
-import { ref, inject, watch, computed } from 'vue';
+import { ref, inject, watch, computed, useTemplateRef } from 'vue';
 import { VueFlow, MarkerType, BaseEdge, getStraightPath, useVueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
@@ -293,8 +293,14 @@ function addNode() {
 
 const selectedNodeTitle = ref(null);
 const selectedNode = computed(() => rawNodesByTitle.value.get(selectedNodeTitle.value) ?? null);
+const nodeEditPanel = useTemplateRef('node-edit-panel');
 
 function onNodeClick({ node }) {
+    // Switching the selected node repopulates NodeEditPanel's form from the new node's data,
+    // silently discarding any in-progress edit to the previously selected node — refuse to do
+    // that while a save for it is still in flight (re-clicking the same node is always a no-op
+    // regardless). See NodeEditPanel's own closePanel() for the equivalent guard on Close/Cancel.
+    if (nodeEditPanel.value?.saving && node.id !== selectedNodeTitle.value) return;
     selectedNodeTitle.value = node.id;
 }
 
@@ -389,6 +395,7 @@ defineExpose({
 
         <NodeEditPanel
             v-if="selectedNode"
+            ref="node-edit-panel"
             :node="selectedNode"
             :dialogueName="dialogueName"
             @close="selectedNodeTitle = null"
