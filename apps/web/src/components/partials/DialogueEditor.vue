@@ -171,16 +171,24 @@ function buildGraph(nodes) {
 
 function loadNodes() {
     if (!props.dialogueName) return;
+    // DialogueEditor is a single persistent instance reused across tabs (see DialogueWorkspace.vue),
+    // so switching to a different dialogue before this fetch resolves must not let the stale
+    // response overwrite the now-current dialogue's graph — capture the name being fetched and
+    // discard the response if props.dialogueName has since moved on.
+    const requestedDialogueName = props.dialogueName;
     loading.value = true;
     dismissError();
-    client.listDraftNodes(state.value.selectedProject?.slug, props.dialogueName)
+    client.listDraftNodes(state.value.selectedProject?.slug, requestedDialogueName)
         .then((nodes) => {
+            if (props.dialogueName !== requestedDialogueName) return;
             buildGraph(nodes);
         })
         .catch((error) => {
+            if (props.dialogueName !== requestedDialogueName) return;
             showError(describeError(error));
         })
         .finally(() => {
+            if (props.dialogueName !== requestedDialogueName) return;
             loading.value = false;
         });
 }

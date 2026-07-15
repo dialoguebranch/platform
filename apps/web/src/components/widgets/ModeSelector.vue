@@ -24,7 +24,6 @@ const offClasses = ['bg-mode-selector-off', 'hover:bg-mode-selector-off-hover'];
             @click="onModeClick(mode)"
         >
             <FontAwesomeIcon class="text-white w-4 h-4" :icon="mode.icon" />
-            {{ model.value }}
         </button>
     </div>
 </template>

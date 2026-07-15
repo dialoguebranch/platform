@@ -2,6 +2,7 @@
 import { computed, useTemplateRef } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useResizablePanel } from '@/composables/resizablepanel.js';
+import { sanitizeHtml } from '@/composables/sanitize-html.js';
 import { BasicReply } from '@/dlb-lib/model/BasicReply';
 import { AutoForwardReply } from '@/dlb-lib/model/AutoForwardReply';
 import CollapsibleErrorList from '../widgets/CollapsibleErrorList.vue';
@@ -11,6 +12,7 @@ const props = defineProps([
     'dialogueSteps',
     'dialogueEnded',
     'dialogueCancelled',
+    'awaitingReply',
     'startError',
 ]);
 
@@ -56,7 +58,7 @@ const currentStep = computed(() => {
                     sm: 'ml-10 mr-20',
                 })"
             >
-                <div class="bg-speech-bubble text-white text-lg rounded-2xl p-5" v-html="currentStep.statement.fullStatement()"></div>
+                <div class="bg-speech-bubble text-white text-lg rounded-2xl p-5" v-html="sanitizeHtml(currentStep.statement.fullStatement())"></div>
                 <div class="border-20 border-transparent border-t-speech-bubble self-end mr-[10%]"></div>
                 <div v-if="dialogueEnded" class="absolute top-full font-title text-sm font-bold italic text-center pt-2 w-full flex items-center justify-center gap-2">
                     {{ dialogueCancelled ? 'This dialogue has been cancelled.' : 'The dialogue has finished.' }}
@@ -85,15 +87,19 @@ const currentStep = computed(() => {
                     <template v-if="!dialogueEnded" v-for="(reply, index) in currentStep.replies">
                         <button
                             v-if="reply instanceof BasicReply"
-                            class="block rounded-xl bg-orange-dark hover:bg-orange-medium text-white text-left p-3 cursor-pointer"
-                            @click="$emit('selectReply', currentStep, reply)"
+                            class="block rounded-xl bg-orange-dark hover:bg-orange-medium text-white text-left p-3 disabled:bg-icon-button-disabled disabled:cursor-not-allowed"
+                            :class="{ 'cursor-pointer': !awaitingReply }"
+                            :disabled="awaitingReply"
+                            @click="!awaitingReply && $emit('selectReply', currentStep, reply)"
                         >
                             {{ reply.statement.fullStatement() }}
                         </button>
                         <button
                             v-if="reply instanceof AutoForwardReply"
-                            class="block rounded-xl bg-orange-dark hover:bg-orange-medium text-white uppercase p-3 min-w-[160px] cursor-pointer"
-                            @click="$emit('selectReply', currentStep, reply)"
+                            class="block rounded-xl bg-orange-dark hover:bg-orange-medium text-white uppercase p-3 min-w-[160px] disabled:bg-icon-button-disabled disabled:cursor-not-allowed"
+                            :class="{ 'cursor-pointer': !awaitingReply }"
+                            :disabled="awaitingReply"
+                            @click="!awaitingReply && $emit('selectReply', currentStep, reply)"
                         >
                             Continue
                         </button>

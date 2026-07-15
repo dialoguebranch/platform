@@ -57,16 +57,24 @@ const client = useClient();
 
 const variables = ref([]);
 
+// Guards against out-of-order responses: loadVariables() can fire in quick succession (e.g. once
+// per dialogue step while testing) with no guarantee the requests resolve in the order they were
+// sent — only the response matching the most recently issued request is allowed to update state.
+let loadRequestId = 0;
+
 const loadVariables = () => {
     dismissError();
+    const requestId = ++loadRequestId;
     client.getVariables()
     .then((vars) => {
+        if (requestId !== loadRequestId) return;
         variables.value = vars;
         dirtyVariables.value = new Set();
         deletingVariables.value = new Set();
         tooltip.value = null;
     })
     .catch((error) => {
+        if (requestId !== loadRequestId) return;
         showError(describeError(error));
     });
 };

@@ -132,6 +132,10 @@ function createTab() {
         // TextDialogueComponent instead of a transient toast, since the details list needs to
         // stick around for the user to expand and read at their own pace.
         startError: null,
+        // True while a progressDialogue/progressDraftDialogue request for this tab's current step
+        // is in flight — disables reply selection so a fast double-click can't fire two progress
+        // requests for the same step (see onSelectReply below).
+        awaitingReply: false,
     };
 }
 
@@ -170,6 +174,10 @@ function closeTab(id) {
 function doCloseTab(id) {
     closeConfirm.value = null;
     const index = tabs.value.findIndex(t => t.id === id);
+    // Can happen if a pending cancelAndCloseTab()/close request resolves after the tab was
+    // already removed some other way — splice(-1, 1) would otherwise delete the last tab instead
+    // of doing nothing.
+    if (index === -1) return;
     tabs.value.splice(index, 1);
     if (tabs.value.length === 0) {
         tabs.value.push(createTab());
@@ -592,8 +600,12 @@ function onCancelClick() {
 
 function onSelectReply(dialogueStep, reply) {
     const tab = activeTab.value;
+    // Guards against a fast double-click/tap firing two progress requests for the same step —
+    // both components also disable reply selection via :awaitingReply, this is the source of truth.
+    if (tab.awaitingReply) return;
     const replyText = reply.statement?.segments?.map(s => s.text).join('') ?? String(reply.replyId);
     dismissError();
+    tab.awaitingReply = true;
 
     if (tab.isDraftTest) {
         logEvent('dialogue', 'Draft test reply selected: $1', replyText);
@@ -613,6 +625,9 @@ function onSelectReply(dialogueStep, reply) {
         })
         .catch((error) => {
             showError(describeError(error));
+        })
+        .finally(() => {
+            tab.awaitingReply = false;
         });
         return;
     }
@@ -635,6 +650,9 @@ function onSelectReply(dialogueStep, reply) {
     })
     .catch((error) => {
         showError(describeError(error));
+    })
+    .finally(() => {
+        tab.awaitingReply = false;
     });
 }
 </script>
@@ -812,6 +830,7 @@ function onSelectReply(dialogueStep, reply) {
                     :dialogueSteps="activeTab.dialogueSteps"
                     :dialogueEnded="activeTab.dialogueEnded"
                     :dialogueCancelled="activeTab.dialogueCancelled"
+                    :awaitingReply="activeTab.awaitingReply"
                     :startError="activeTab.startError"
                     @selectReply="onSelectReply"
                     @restartDialogue="restartActiveTab"
@@ -823,6 +842,7 @@ function onSelectReply(dialogueStep, reply) {
                     :dialogueSteps="activeTab.dialogueSteps"
                     :dialogueEnded="activeTab.dialogueEnded"
                     :dialogueCancelled="activeTab.dialogueCancelled"
+                    :awaitingReply="activeTab.awaitingReply"
                     :startError="activeTab.startError"
                     @selectReply="onSelectReply"
                     @restartDialogue="restartActiveTab"

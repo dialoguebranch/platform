@@ -44,7 +44,7 @@ export class TextAreaLogger extends AbstractLogger {
     // ---------------------------------------
 
     get textArea() {
-        return this.textArea;
+        return this._textArea;
     }
 
     set textArea(textArea) {

@@ -3,6 +3,7 @@ import { nextTick, ref, useTemplateRef } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { BasicReply } from '@/dlb-lib/model/BasicReply';
 import { AutoForwardReply } from '@/dlb-lib/model/AutoForwardReply';
+import { sanitizeHtml } from '@/composables/sanitize-html.js';
 import CollapsibleErrorList from '../widgets/CollapsibleErrorList.vue';
 
 const props = defineProps([
@@ -10,6 +11,7 @@ const props = defineProps([
     'dialogueSteps',
     'dialogueEnded',
     'dialogueCancelled',
+    'awaitingReply',
     'startError',
 ]);
 
@@ -42,8 +44,12 @@ defineExpose({ scrollToBottom });
 
 const selectedReplies = ref({});
 
+function isReplySelectable(stepIndex) {
+    return stepIndex === props.dialogueSteps.length - 1 && !props.awaitingReply;
+}
+
 function onReplyClick(step, stepIndex, reply) {
-    if (stepIndex !== props.dialogueSteps.length - 1) return;
+    if (!isReplySelectable(stepIndex)) return;
     selectedReplies.value[stepIndex] = reply.replyId;
     emit('selectReply', step, reply);
 }
@@ -53,7 +59,7 @@ function getBasicReplyNumberClasses(stepIndex, reply) {
         return 'text-interaction-reply-option';
     } else if (selectedReplies.value[stepIndex] !== undefined) {
         return 'text-icon-button-disabled';
-    } else if (stepIndex === props.dialogueSteps.length - 1) {
+    } else if (isReplySelectable(stepIndex)) {
         return 'text-interaction-reply-option';
     } else {
         return 'text-icon-button-disabled';
@@ -65,7 +71,7 @@ function getBasicReplyTextClasses(stepIndex, reply) {
         return 'text-interaction-reply-option';
     } else if (selectedReplies.value[stepIndex] !== undefined) {
         return 'text-icon-button-disabled';
-    } else if (stepIndex === props.dialogueSteps.length - 1) {
+    } else if (isReplySelectable(stepIndex)) {
         return 'cursor-pointer text-interaction-reply-option hover:text-interaction-reply-option-hover';
     } else {
         return 'text-icon-button-disabled';
@@ -91,7 +97,7 @@ function getBasicReplyTextClasses(stepIndex, reply) {
     <div v-for="(step, stepIndex) in dialogueSteps" class="dialogue-step font-title p-2 mb-8">
         <div class="flex gap-5 mb-5">
             <div class="basis-0 grow-1 font-semibold text-right">{{ step.speaker }}:</div>
-            <div class="basis-0 grow-4 font-light" v-html="step.statement.fullStatement()"></div>
+            <div class="basis-0 grow-4 font-light" v-html="sanitizeHtml(step.statement.fullStatement())"></div>
         </div>
         <div>
             <template v-for="(reply, replyIndex) in step.replies">
@@ -115,10 +121,10 @@ function getBasicReplyTextClasses(stepIndex, reply) {
                     <button
                         class="block m-auto rounded-xl text-white uppercase p-3 min-w-[160px] bg-orange-dark hover:bg-orange-darker disabled:bg-icon-button-disabled"
                         :class="{
-                            'cursor-pointer': stepIndex === dialogueSteps.length - 1,
+                            'cursor-pointer': isReplySelectable(stepIndex),
                         }"
-                        :disabled="stepIndex === dialogueSteps.length - 1 ? null : true"
-                        @click="stepIndex === dialogueSteps.length - 1 ? $emit('selectReply', step, reply) : null"
+                        :disabled="isReplySelectable(stepIndex) ? null : true"
+                        @click="isReplySelectable(stepIndex) ? $emit('selectReply', step, reply) : null"
                     >
                         Continue
                     </button>

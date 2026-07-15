@@ -125,7 +125,7 @@ export class DialogueBranchClient {
         return this._fetch(url, {
             method: "POST",
             headers: { 'Authorization': 'Bearer ' + this._accessToken },
-        }).then((response) => { if (!response.ok) return Promise.reject(response); });
+        }).then((response) => this._handleResponse(response));
     }
 
     addTranslationLanguage(projectSlug, translationLanguageName, translationLanguageCode) {
@@ -144,7 +144,7 @@ export class DialogueBranchClient {
         return this._fetch(url, {
             method: "POST",
             headers: { 'Authorization': 'Bearer ' + this._accessToken },
-        }).then((response) => { if (!response.ok) return Promise.reject(response); });
+        }).then((response) => this._handleResponse(response));
     }
 
     // Validates all of the project's draft dialogues and, if valid, publishes them as a new,
@@ -257,12 +257,10 @@ export class DialogueBranchClient {
         })
         .then((response) => this._handleResponse(response))
         .then((data) => {
-            if('value' in data) {
-                var dialogueData = data.value;
-                if('dialogue' in dialogueData) {
-                    // Create a DialogueStep object from the received data
-                    return this.createDialogueStepObject(dialogueData);
-                }
+            var dialogueData = data?.value;
+            if (dialogueData && 'dialogue' in dialogueData) {
+                // Create a DialogueStep object from the received data
+                return this.createDialogueStepObject(dialogueData);
             }
             return null;
         });
@@ -393,7 +391,7 @@ export class DialogueBranchClient {
         return this._fetch(url, {
             method: "POST",
             headers: { 'Authorization': 'Bearer ' + this._accessToken },
-        }).then((response) => { if (!response.ok) return Promise.reject(response); });
+        }).then((response) => this._handleResponse(response));
     }
 
     restoreDraftDialogue(projectSlug, dialogueName) {
@@ -484,7 +482,7 @@ export class DialogueBranchClient {
         return this._fetch(url, {
             method: "POST",
             headers: { 'Authorization': 'Bearer ' + this._accessToken },
-        }).then((response) => { if (!response.ok) return Promise.reject(response); });
+        }).then((response) => this._handleResponse(response));
     }
 
     // Scans the whole project for [[...]] reply links that reference the given node — used both
@@ -687,7 +685,17 @@ export class DialogueBranchClient {
         if (response.ok) {
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.startsWith('application/json')) {
-                return response.json();
+                // A 2xx response can still have an empty/malformed body (e.g. truncated by a
+                // proxy) — without this catch, response.json()'s rejection has no `status` field
+                // and describeError() would mislabel it as a generic network error.
+                return response.json().catch(() => Promise.reject({
+                    status: response.status,
+                    statusText: response.statusText,
+                    code: null,
+                    message: 'The server returned an invalid response.',
+                    fieldErrors: [],
+                    errors: null,
+                }));
             } else {
                 return response.text();
             }

@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useClient } from '../../composables/client.js';
 import { logEvent } from '../../composables/debug-log.js';
+import { describeError } from '../../composables/error-message.js';
 import TextInput from '../widgets/TextInput.vue';
 import PushButton from '../widgets/PushButton.vue';
 
@@ -178,8 +179,8 @@ function submitCreate() {
             emit('created', project);
             emit('close');
         })
-        .catch(() => {
-            createError.value = 'Failed to create project. The slug may already be in use.';
+        .catch((error) => {
+            createError.value = describeError(error);
         })
         .finally(() => {
             creating.value = false;

@@ -57,14 +57,21 @@ function buildTree(entries) {
     return root;
 }
 
+// Guards against out-of-order responses: listDialogues() is triggered from several independent
+// places (manual refresh, publish, initial mount) with no guarantee they resolve in the order
+// they were sent — only the response matching the most recently issued request may update state.
+let listRequestId = 0;
+
 function listDialogues() {
     const projectSlug = state.value.selectedProject?.slug;
     dismissError();
+    const requestId = ++listRequestId;
     Promise.all([
         client.listDialogues(projectSlug).catch(() => ({ dialogueNames: [] })),
         client.listDraftDialogues(projectSlug).catch(() => []),
     ])
     .then(([published, drafts]) => {
+        if (requestId !== listRequestId) return;
         const publishedNames = new Set(published.dialogueNames ?? []);
         const draftsByName = new Map((drafts ?? []).map((d) => [d.name, d]));
         // "Publish Project" should only be enabled when there's actually something to publish —
@@ -94,6 +101,7 @@ function listDialogues() {
         openFolders.value = {};
     })
     .catch((error) => {
+        if (requestId !== listRequestId) return;
         showError(describeError(error));
     });
 }

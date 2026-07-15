@@ -31,6 +31,14 @@ const error = ref('');
 
 // Re-populate the form whenever a different node is opened (or this one is reloaded after a
 // rename elsewhere touched it) — the panel always reflects props.node, not local-only state.
+// A pending save's `.then()` still fires `emit('saved'|'renamed', ...)` after the panel closes if
+// the user closes it mid-save — guard the close paths (header X, Cancel, backdrop click) so the
+// user can't dismiss the panel while that request is still in flight.
+function closePanel() {
+    if (saving.value) return;
+    emit('close');
+}
+
 function loadFromNode() {
     const tags = parseHeaderTags(props.node.header);
     title.value = props.node.title;
@@ -161,7 +169,7 @@ function referenceDialogueCount(references) {
 
 <template>
     <Teleport to="body">
-        <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" @click.self="emit('close')">
+        <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" @click.self="closePanel">
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 flex flex-col max-h-[85vh]">
 
                 <!-- Header -->
@@ -170,7 +178,12 @@ function referenceDialogueCount(references) {
                         <FontAwesomeIcon icon="fa-solid fa-diagram-project" class="shrink-0" />
                         Edit Node
                     </div>
-                    <button class="text-orange-light hover:text-white cursor-pointer shrink-0" @click="emit('close')">
+                    <button
+                        class="text-orange-light hover:text-white shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-orange-light"
+                        :class="{ 'cursor-pointer': !saving }"
+                        :disabled="saving"
+                        @click="closePanel"
+                    >
                         <FontAwesomeIcon icon="fa-solid fa-xmark" />
                     </button>
                 </div>
@@ -235,7 +248,13 @@ function referenceDialogueCount(references) {
                         Delete
                     </button>
                     <div class="flex gap-3">
-                        <button type="button" class="px-4 py-2 rounded font-title text-sm text-grey-dark border border-grey-light hover:bg-grey-light cursor-pointer" @click="emit('close')">Cancel</button>
+                        <button
+                            type="button"
+                            class="px-4 py-2 rounded font-title text-sm text-grey-dark border border-grey-light hover:bg-grey-light disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                            :class="{ 'cursor-pointer': !saving }"
+                            :disabled="saving"
+                            @click="closePanel"
+                        >Cancel</button>
                         <PushButton text="Save" variant="green" :loading="saving" @click="onSave" />
                     </div>
                 </div>
