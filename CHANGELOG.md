@@ -7,8 +7,18 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Added
+
+- Added an optional `delegateUser` parameter to the API's `/draft/*` end-points (`start`,
+  `progress`, `cancel`, `revert-variables`), matching the existing `/dialogue/*` and
+  `/variables/*` end-points. This lets an admin test-run a draft dialogue on behalf of another
+  user instead of only their own account.
+
 ### Fixed
 
+- Fixed an issue in the Web Client where the delegate user selected via the admin's
+  delegate-user picker was not sent to the API's `/draft/*` end-points, so testing a draft
+  dialogue while impersonating another user silently ran against the admin's own account instead.
 - Fixed an issue in the Web Client, where testing dialogues would always use the `/draft/*`
   end-points, even when the project had no unpublished changes. Now, the Interaction Testers
   correctly use the default `/dialogue/*` end-points for testing dialogues in projects that are
@@ -51,3 +61,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   you are testing in "Ephemeral Draft Test" mode, just to make this more visually clear.
 - Both the "Balloon Style" and "Text Style" interaction testers show a message "Ephemeral Draft Test"
   - Session ID: X in the bottom of the panel to indicate that this mode is active.
+
+### Security
+
+- Fixed a missing authorization check in the API where any authenticated editor or admin could
+  progress, cancel, or revert another user's `/draft/*` test session simply by obtaining its
+  `draftSessionId`, since the session lookup never verified it belonged to the requesting user.
+  Draft test sessions read and write the tester's real Dialogue Branch variables, so this could
+  let one user manipulate another user's variable state without their knowledge. `/draft/progress`,
+  `/draft/cancel`, and `/draft/revert-variables` now verify the session belongs to the requesting
+  (or, for admins, delegated) user before acting on it.

@@ -38,6 +38,7 @@ import com.dialoguebranch.web.service.QueryRunner;
 import com.dialoguebranch.web.service.auth.AuthenticationInfo;
 import com.dialoguebranch.web.service.controller.schema.DraftDialogueMessage;
 import com.dialoguebranch.web.service.exception.BadRequestException;
+import com.dialoguebranch.web.service.exception.ForbiddenException;
 import com.dialoguebranch.web.service.exception.HttpException;
 import com.dialoguebranch.web.service.exception.NotFoundException;
 import com.dialoguebranch.web.service.execution.DraftExecutionService;
@@ -132,6 +133,9 @@ public class DraftExecutionController {
 	 * @param timeZone the current time zone of the user (as IANA, e.g. 'Europe/Lisbon').
 	 * @param startNodeId an optional node title to start the test-run from, instead of the
 	 *                    dialogue's default start node.
+	 * @param delegateUser the user for which to test-run the dialogue (leave empty to test-run
+	 *                     for the currently authenticated user; only admins may set this to a
+	 *                     user other than themselves).
 	 * @return the draft session id and the first {@link DialogueMessage} of the test-run.
 	 * @throws HttpException if the project or dialogue does not exist, execution fails, or the
 	 * user is not authorized.
@@ -147,7 +151,10 @@ public class DraftExecutionController {
 			@RequestParam(value = "dialogueName") String dialogueName,
 			@RequestParam(value = "language") String language,
 			@RequestParam(value = "timeZone") String timeZone,
-			@RequestParam(value = "startNodeId", required = false) String startNodeId
+			@RequestParam(value = "startNodeId", required = false) String startNodeId,
+			@Parameter(description = "The user for which to test-run the dialogue (leave empty " +
+					"if executing for the currently authenticated user)")
+			@RequestParam(value = "delegateUser", required = false) String delegateUser
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
@@ -176,8 +183,8 @@ public class DraftExecutionController {
 							DialogueMessageFactory.generateDialogueMessage(result.executeNodeResult());
 					return new DraftDialogueMessage(result.sessionId(), message);
 				},
-				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
+				version, ControllerFunctions.extractAccessToken(request), response, delegateUser,
+				application, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 	/**
@@ -193,10 +200,13 @@ public class DraftExecutionController {
 	 *                       {@link #start}.
 	 * @param replyId the id of the reply chosen by the tester.
 	 * @param timeZone the current time zone of the user (as IANA, e.g. 'Europe/Lisbon').
+	 * @param delegateUser the user for which to progress the dialogue (leave empty if executing
+	 *                     for the currently authenticated user; only admins may set this to a
+	 *                     user other than themselves).
 	 * @return the next {@link DialogueMessage} of the test-run, or a {@code null}-wrapping
 	 * response if the dialogue has ended.
 	 * @throws HttpException if the request body is not valid JSON, the session does not exist,
-	 * execution fails, or the user is not authorized.
+	 * the session belongs to another user, execution fails, or the user is not authorized.
 	 */
 	@Operation(summary = "Progress a draft test session with a given reply id.")
 	@Parameter(name = "version", hidden = true)
@@ -207,7 +217,10 @@ public class DraftExecutionController {
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
 			@RequestParam(value = "draftSessionId") String draftSessionId,
 			@RequestParam(value = "replyId") int replyId,
-			@RequestParam(value = "timeZone") String timeZone
+			@RequestParam(value = "timeZone") String timeZone,
+			@Parameter(description = "The user for which to progress the dialogue (leave empty " +
+					"if executing for the currently authenticated user)")
+			@RequestParam(value = "delegateUser", required = false) String delegateUser
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
@@ -228,6 +241,7 @@ public class DraftExecutionController {
 					}
 
 					DraftTestSession session = draftExecutionService.getSession(draftSessionId);
+					checkSessionOwner(session, user);
 					ZoneId timeZoneId = ControllerFunctions.parseTimeZone(timeZone);
 					UserService userService = application.getApplicationManager()
 							.getOrCreateActiveUserService(user, timeZoneId);
@@ -246,8 +260,8 @@ public class DraftExecutionController {
 					return new NullableResponse<>(
 							DialogueMessageFactory.generateDialogueMessage(nextNode));
 				},
-				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
+				version, ControllerFunctions.extractAccessToken(request), response, delegateUser,
+				application, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 	/**
@@ -259,7 +273,11 @@ public class DraftExecutionController {
 	 * @param version the API version to use, e.g. '1'.
 	 * @param draftSessionId the id of the draft test session to cancel, as returned by
 	 *                       {@link #start}.
-	 * @throws HttpException if the session does not exist or the user is not authorized.
+	 * @param delegateUser the user for which to cancel the draft test session (leave empty if
+	 *                     executing for the currently authenticated user; only admins may set
+	 *                     this to a user other than themselves).
+	 * @throws HttpException if the session does not exist, the session belongs to another user,
+	 * or the user is not authorized.
 	 */
 	@Operation(summary = "Cancel a draft test session, keeping any variable changes made during it.")
 	@Parameter(name = "version", hidden = true)
@@ -269,17 +287,21 @@ public class DraftExecutionController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "draftSessionId") String draftSessionId
+			@RequestParam(value = "draftSessionId") String draftSessionId,
+			@Parameter(description = "The user for which to cancel the draft test session " +
+					"(leave empty if executing for the currently authenticated user)")
+			@RequestParam(value = "delegateUser", required = false) String delegateUser
 	) throws HttpException {
 		QueryRunner.runQuery(
 				(protocolVersion, user) -> {
 					logger.info("POST /v{}/draft/cancel [user: {}]", version, user);
 					DraftTestSession session = draftExecutionService.getSession(draftSessionId);
+					checkSessionOwner(session, user);
 					draftExecutionService.cancelSession(session);
 					return null;
 				},
-				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
+				version, ControllerFunctions.extractAccessToken(request), response, delegateUser,
+				application, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 	/**
@@ -293,7 +315,11 @@ public class DraftExecutionController {
 	 * @param draftSessionId the id of the draft test session to cancel, as returned by
 	 *                       {@link #start}.
 	 * @param timeZone the current time zone of the user (as IANA, e.g. 'Europe/Lisbon').
-	 * @throws HttpException if the session does not exist or the user is not authorized.
+	 * @param delegateUser the user for which to revert the draft test session's variables (leave
+	 *                     empty if executing for the currently authenticated user; only admins
+	 *                     may set this to a user other than themselves).
+	 * @throws HttpException if the session does not exist, the session belongs to another user,
+	 * or the user is not authorized.
 	 */
 	@Operation(summary = "Cancel a draft test session and revert any variable changes made " +
 			"during it back to their values from before the session started.")
@@ -305,20 +331,40 @@ public class DraftExecutionController {
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
 			@RequestParam(value = "draftSessionId") String draftSessionId,
-			@RequestParam(value = "timeZone") String timeZone
+			@RequestParam(value = "timeZone") String timeZone,
+			@Parameter(description = "The user for which to revert the draft test session's " +
+					"variables (leave empty if executing for the currently authenticated user)")
+			@RequestParam(value = "delegateUser", required = false) String delegateUser
 	) throws HttpException {
 		QueryRunner.runQuery(
 				(protocolVersion, user) -> {
 					logger.info("POST /v{}/draft/revert-variables [user: {}]", version, user);
 					DraftTestSession session = draftExecutionService.getSession(draftSessionId);
+					checkSessionOwner(session, user);
 					ZoneId timeZoneId = ControllerFunctions.parseTimeZone(timeZone);
 					UserService userService = application.getApplicationManager()
 							.getOrCreateActiveUserService(user, timeZoneId);
 					draftExecutionService.revertVariables(session, userService);
 					return null;
 				},
-				version, ControllerFunctions.extractAccessToken(request), response, "", application,
-				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
+				version, ControllerFunctions.extractAccessToken(request), response, delegateUser,
+				application, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
+	}
+
+	/**
+	 * Verifies that the given {@code draftSessionId} belongs to the authenticated user, so that
+	 * one user cannot progress, cancel, or revert another user's draft test session (which reads
+	 * and writes that other user's real Dialogue Branch variables).
+	 *
+	 * @param session the draft test session looked up by id.
+	 * @param user the authenticated user making the request.
+	 * @throws ForbiddenException if the session belongs to a different user.
+	 */
+	private static void checkSessionOwner(DraftTestSession session, String user)
+			throws ForbiddenException {
+		if (!session.getUserId().equals(user)) {
+			throw new ForbiddenException();
+		}
 	}
 
 }

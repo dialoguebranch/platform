@@ -305,6 +305,7 @@ export class DialogueBranchClient {
         url += "&language=" + language;
         url += "&timeZone=" + this._timeZone;
         if (startNodeId) url += "&startNodeId=" + encodeURIComponent(startNodeId);
+        url += this._delegateParam;
 
         return this._fetch(url, {
             method: "POST",
@@ -326,6 +327,7 @@ export class DialogueBranchClient {
         url += "?draftSessionId=" + draftSessionId;
         url += "&replyId=" + replyId;
         url += "&timeZone=" + this._timeZone;
+        url += this._delegateParam;
 
         return this._fetch(url, {
             method: "POST",
@@ -339,7 +341,8 @@ export class DialogueBranchClient {
     }
 
     cancelDraftDialogue(draftSessionId) {
-        const url = this._baseUrl + "/draft/cancel?draftSessionId=" + draftSessionId;
+        const url = this._baseUrl + "/draft/cancel?draftSessionId=" + draftSessionId
+            + this._delegateParam;
 
         return this._fetch(url, {
             method: "POST",
@@ -354,6 +357,7 @@ export class DialogueBranchClient {
     revertDraftVariables(draftSessionId) {
         let url = this._baseUrl + "/draft/revert-variables?draftSessionId=" + draftSessionId;
         url += "&timeZone=" + this._timeZone;
+        url += this._delegateParam;
 
         return this._fetch(url, {
             method: "POST",
