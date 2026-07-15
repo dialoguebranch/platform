@@ -9,6 +9,7 @@ import { useClient } from '../../composables/client.js';
 import { describeError } from '../../composables/error-message.js';
 import { showError, dismissError } from '../../composables/error-toast.js';
 import { useLatestRequest } from '../../composables/latest-request.js';
+import { DLB_APP_MODE_DRAFT } from '../../dlb-lib/WCTAClientState.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
 const state = inject('state');
@@ -29,6 +30,8 @@ const emit = defineEmits([
 ]);
 
 const client = useClient();
+
+const isDraftMode = computed(() => state.value.mode === DLB_APP_MODE_DRAFT);
 
 const tree = ref([]);
 const openFolders = ref({});
@@ -66,30 +69,38 @@ function listDialogues() {
     const projectSlug = state.value.selectedProject?.slug;
     dismissError();
     const requestId = nextListRequest();
-    Promise.all([
-        client.listDialogues(projectSlug).catch(() => ({ dialogueNames: [] })),
-        client.listDraftDialogues(projectSlug).catch(() => []),
-    ])
-    .then(([published, drafts]) => {
+    // The Dialogue Browser only ever shows one source at a time — published dialogues in Live
+    // Mode, draft dialogues in Draft Mode — never a merge of both, so there's nothing to reconcile
+    // by name across the two lists.
+    const listPromise = isDraftMode.value
+        ? client.listDraftDialogues(projectSlug).catch(() => [])
+        : client.listDialogues(projectSlug).catch(() => ({ dialogueNames: [] }));
+    listPromise
+    .then((result) => {
         if (!isCurrentListRequest(requestId)) return;
-        const publishedNames = new Set(published.dialogueNames ?? []);
-        const draftsByName = new Map((drafts ?? []).map((d) => [d.name, d]));
-        // "Publish Project" should only be enabled when there's actually something to publish —
-        // a dialogue that's new, changed, or pending deletion — not merely because a draft row
-        // exists (it may already be perfectly in sync with what's published).
-        emit('hasUnpublishedChanges',
-            [...draftsByName.values()].some((d) => d.isNew || d.isChanged || d.isDeleted));
-        const allNames = new Set([...publishedNames, ...draftsByName.keys()]);
-        const entries = [...allNames].map((name) => {
-            const draft = draftsByName.get(name);
-            return {
+        let entries;
+        if (isDraftMode.value) {
+            const drafts = result ?? [];
+            // "Publish Project" should only be enabled when there's actually something to publish —
+            // a dialogue that's new, changed, or pending deletion — not merely because a draft row
+            // exists (it may already be perfectly in sync with what's published).
+            emit('hasUnpublishedChanges', drafts.some((d) => d.isNew || d.isChanged || d.isDeleted));
+            entries = drafts.map((d) => ({
+                name: d.name,
+                isPublished: !d.isNew,
+                isNew: d.isNew,
+                isChanged: d.isChanged,
+                isDeleted: d.isDeleted,
+            }));
+        } else {
+            entries = (result.dialogueNames ?? []).map((name) => ({
                 name,
-                isPublished: publishedNames.has(name),
-                isNew: draft?.isNew ?? false,
-                isChanged: draft?.isChanged ?? false,
-                isDeleted: draft?.isDeleted ?? false,
-            };
-        });
+                isPublished: true,
+                isNew: false,
+                isChanged: false,
+                isDeleted: false,
+            }));
+        }
         const root = buildTree(entries);
         tree.value = Object.entries(root).sort(([, a], [, b]) => {
             const aIsFolder = !a._file;
@@ -213,9 +224,9 @@ defineExpose({
     <div class="flex flex-col gap-1" v-bind="attrs">
         <MainPagePanelHeader title="Dialogue Browser" class="sm:ml-2">
             <template #buttons>
-                <IconButton icon="fa-solid fa-rotate-left" title="Retrieve most recent ongoing (server-side) dialogue" :disabled="hasActiveDialogue" @click="checkOngoingDialogue" />
-                <IconButton icon="fa-solid fa-plus" title="New Dialogue" @click="onNewDialogueClick" />
-                <IconButton icon="fa-solid fa-arrows-rotate" @click="listDialogues" />
+                <IconButton v-if="!isDraftMode" icon="fa-solid fa-rotate-left" title="Retrieve most recent ongoing (server-side) dialogue" :disabled="hasActiveDialogue" @click="checkOngoingDialogue" />
+                <IconButton v-if="isDraftMode" icon="fa-solid fa-plus" title="New Dialogue" @click="onNewDialogueClick" />
+                <IconButton icon="fa-solid fa-arrows-rotate" title="Refresh dialogue list" @click="listDialogues" />
             </template>
         </MainPagePanelHeader>
         <MainPagePanelContainer class="p-1 gap-1 flex flex-col sm:ml-1">

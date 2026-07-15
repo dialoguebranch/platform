@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useClient } from '@/composables/client.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
+import { DLB_APP_MODE_DRAFT } from '@/dlb-lib/WCTAClientState.js';
 
 const props = defineProps({
     name: String,
@@ -20,6 +21,8 @@ const emit = defineEmits(['toggleFolder', 'openDialogue', 'dialoguesChanged']);
 
 const state = inject('state');
 const client = useClient();
+
+const isDraftMode = computed(() => state.value.mode === DLB_APP_MODE_DRAFT);
 
 function openDialogue() {
     emit('openDialogue', props.node._file);
@@ -186,7 +189,7 @@ function referenceDialogueCount(references) {
             <span
                 v-else-if="node._isChanged"
                 class="shrink-0 font-title text-[9px] font-semibold uppercase text-grey-dark bg-grey-lighter px-1 py-0.5 rounded"
-            >Draft</span>
+            >Changed</span>
 
             <template v-if="node._isDeleted">
                 <button
@@ -201,6 +204,7 @@ function referenceDialogueCount(references) {
             </template>
             <template v-else>
                 <button
+                    v-if="isDraftMode"
                     type="button"
                     title="Rename dialogue"
                     class="shrink-0 cursor-pointer text-grey-dark hover:text-orange-dark"

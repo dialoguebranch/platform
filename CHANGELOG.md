@@ -13,6 +13,18 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `progress`, `cancel`, `revert-variables`), matching the existing `/dialogue/*` and
   `/variables/*` end-points. This lets an admin test-run a draft dialogue on behalf of another
   user instead of only their own account.
+- Added a global **Live Mode / Authoring Mode** toggle to the Web Client header (to the left of
+  the Project menu), replacing the previous behavior where the Dialogue Browser always showed a
+  merged list of published and draft dialogues and the node-graph editor could be opened from any
+  tab regardless of context. In **Live Mode** (the default), the Dialogue Browser lists only
+  published dialogues, testing always runs against the published `/dialogue/*` end-points, and the
+  node editor is unavailable. In **Authoring Mode**, the Dialogue Browser lists only draft
+  dialogues — with their New/Changed/Deleted status and rename/restore controls — testing runs
+  against the ephemeral `/draft/*` end-points, and the node editor becomes available. "Publish
+  Project" is now only actionable in Authoring Mode. Switching modes clears all open dialogue tabs.
+- Added small icons in front of the "Mode", "Project", and "User" labels in the Web Client header
+  menus, for easier visual scanning.
+- Added a mouseover tooltip ("Refresh dialogue list") to the Dialogue Browser's refresh button.
 
 ### Fixed
 
@@ -69,6 +81,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   you are testing in "Ephemeral Draft Test" mode, just to make this more visually clear.
 - Both the "Balloon Style" and "Text Style" interaction testers show a message "Ephemeral Draft Test"
   - Session ID: X in the bottom of the panel to indicate that this mode is active.
+- Renamed the "Draft" badge shown in the Dialogue Browser for a dialogue with unpublished changes
+  to "Changed" — now that Authoring Mode only ever lists draft dialogues, labeling one of them
+  "Draft" no longer distinguished it from the rest of the list.
 
 ### Removed
 

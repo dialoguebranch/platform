@@ -196,7 +196,8 @@ public class PublishService {
 		version = versionRepository.save(version);
 
 		// Copy draft content into published tables, and reconcile each dialogue's draft status —
-		// it's no longer new and no longer changed, since this version now reflects it exactly.
+		// it's no longer new, no longer changed, and no longer remembers a prior name, since this
+		// version now reflects it exactly.
 		for (DBDraftDialogue draft : drafts) {
 			DBPublishedDialogue published = new DBPublishedDialogue();
 			published.setVersion(version);
@@ -215,6 +216,7 @@ public class PublishService {
 
 			draft.setIsNew(false);
 			draft.setIsChanged(false);
+			draft.setPreviousPublishedName(null);
 			draftDialogueService.save(draft);
 		}
 

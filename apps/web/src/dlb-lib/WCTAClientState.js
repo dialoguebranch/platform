@@ -33,6 +33,9 @@ export const DIALOGUE_WORKSPACE_STYLE_TEXT = "TEXT";
 export const DIALOGUE_WORKSPACE_STYLE_BALLOONS = "BALLOONS";
 export const DIALOGUE_WORKSPACE_STYLE_EDIT = "EDIT";
 
+export const DLB_APP_MODE_LIVE = "LIVE";
+export const DLB_APP_MODE_DRAFT = "DRAFT";
+
 /**
  * The WCTAClientState is the client-specific ClientState object for the Dialogue Branch Web Client Test Application.
  *
@@ -54,6 +57,7 @@ export class WCTAClientState extends ClientState {
         super(logger);
         this._LOGTAG = "WCTAClientState";
         this._dialogueWorkspaceStyle = DIALOGUE_WORKSPACE_STYLE_BALLOONS;
+        this._mode = DLB_APP_MODE_LIVE;
         this._selectedProject = null;
         this._debugConsoleShowApi = true;
         this._debugConsoleShowEvents = true;
@@ -211,6 +215,25 @@ export class WCTAClientState extends ClientState {
         return this._dialogueWorkspaceStyle;
     }
 
+    // ----- mode
+
+    /**
+     * Sets the app's global mode (one of DLB_APP_MODE_LIVE or DLB_APP_MODE_DRAFT).
+     * @param {String} mode - the app mode.
+     */
+    set mode(mode) {
+        this._mode = mode;
+        DocumentFunctions.setCookie('state.mode', this._mode, 365);
+    }
+
+    /**
+     * Returns the app's global mode (one of DLB_APP_MODE_LIVE or DLB_APP_MODE_DRAFT).
+     * @returns the app mode.
+     */
+    get mode() {
+        return this._mode;
+    }
+
     // -----------------------------------
     // ---------- Other Methods ----------
     // -----------------------------------
@@ -246,6 +269,14 @@ export class WCTAClientState extends ClientState {
                     || cookieValue == DIALOGUE_WORKSPACE_STYLE_EDIT) {
                 this._dialogueWorkspaceStyle = cookieValue;
                 this.logger.debug(this._LOGTAG, "Found a valid cookie-stored value for 'state.dialogueWorkspaceStyle': "+cookieValue);
+            }
+        }
+
+        cookieValue = DocumentFunctions.getCookie('state.mode');
+        if(cookieValue != null) {
+            if(cookieValue == DLB_APP_MODE_LIVE || cookieValue == DLB_APP_MODE_DRAFT) {
+                this._mode = cookieValue;
+                this.logger.debug(this._LOGTAG, "Found a valid cookie-stored value for 'state.mode': "+cookieValue);
             }
         }
 

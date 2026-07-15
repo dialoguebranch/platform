@@ -42,6 +42,7 @@ public class DraftDialogueSummary {
 	private final boolean isNew;
 	private final boolean isChanged;
 	private final boolean isDeleted;
+	private final String previousPublishedName;
 
 	/**
 	 * Creates a {@link DraftDialogueSummary} from the given {@link DBDraftDialogue} entity,
@@ -54,6 +55,7 @@ public class DraftDialogueSummary {
 		this.isNew = dialogue.getIsNew();
 		this.isChanged = dialogue.getIsChanged();
 		this.isDeleted = dialogue.getIsDeleted();
+		this.previousPublishedName = dialogue.getPreviousPublishedName();
 	}
 
 	/**
@@ -83,6 +85,14 @@ public class DraftDialogueSummary {
 	 */
 	public boolean getIsDeleted() {
 		return isDeleted;
+	}
+
+	/**
+	 * @return the published name this dialogue is still known by, if it has been renamed since it
+	 * was last published, or {@code null} otherwise.
+	 */
+	public String getPreviousPublishedName() {
+		return previousPublishedName;
 	}
 
 }

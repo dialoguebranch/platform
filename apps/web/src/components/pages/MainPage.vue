@@ -11,6 +11,7 @@ import HeaderMenuItem from '../widgets/HeaderMenuItem.vue';
 import DialogueWorkspace from '../partials/DialogueWorkspace.vue';
 import ResizablePanels from '../widgets/ResizablePanels.vue';
 import VariableBrowser from '../partials/VariableBrowser.vue';
+import { DLB_APP_MODE_LIVE, DLB_APP_MODE_DRAFT } from '../../dlb-lib/WCTAClientState.js';
 
 const config = inject('config');
 const state = inject('state');
@@ -87,6 +88,9 @@ function closeUserMenu() {
 }
 
 function onClickOutsideMenus(e) {
+    if (modeMenuRef.value && !modeMenuRef.value.contains(e.target)) {
+        modeMenuOpen.value = false;
+    }
     if (projectMenuRef.value && !projectMenuRef.value.contains(e.target)) {
         projectMenuOpen.value = false;
     }
@@ -97,6 +101,39 @@ function onClickOutsideMenus(e) {
 
 function onLogoutClick() {
     stateManagement.logout();
+}
+
+// The global Live/Draft mode toggle. Switching modes clears all open tabs (same as switching
+// project or delegate user, below) since a tab's running test session is tied to whichever
+// execution path (published vs. draft) was active when it started, and refreshes the Dialogue
+// Browser so it lists the right set of dialogues for the new mode.
+const modeMenuOpen = ref(false);
+const modeMenuRef = ref(null);
+const modeMenuPos = ref({ top: 0, left: 0 });
+
+const modeLabel = computed(() => state.value.mode === DLB_APP_MODE_DRAFT ? 'Authoring Mode' : 'Live Mode');
+const modeDescription = computed(() => state.value.mode === DLB_APP_MODE_DRAFT
+    ? 'Edit and test draft dialogues'
+    : 'Test published dialogues');
+
+function toggleModeMenu() {
+    if (!modeMenuOpen.value && modeMenuRef.value) {
+        const rect = modeMenuRef.value.getBoundingClientRect();
+        modeMenuPos.value = { top: rect.bottom, left: rect.left };
+    }
+    modeMenuOpen.value = !modeMenuOpen.value;
+}
+
+function closeModeMenu() {
+    modeMenuOpen.value = false;
+}
+
+function selectMode(mode) {
+    closeModeMenu();
+    if (state.value.mode === mode) return;
+    state.value.mode = mode;
+    dialogueWorkspace.value?.clearAllTabs();
+    dialogueBrowser.value?.listDialogues();
 }
 
 function onSwitchProjectClick() {
@@ -122,9 +159,11 @@ function onMetadataSaved(updated) {
 // (re)loads its tree.
 const hasUnpublishedChanges = ref(false);
 const isAdmin = computed(() => !!state.value.user?.roles?.includes('admin'));
-const canPublish = computed(() => isAdmin.value && hasUnpublishedChanges.value);
+const canPublish = computed(() =>
+    isAdmin.value && hasUnpublishedChanges.value && state.value.mode === DLB_APP_MODE_DRAFT);
 const publishDisabledReason = computed(() => {
     if (!isAdmin.value) return 'Only administrators can publish projects.';
+    if (state.value.mode !== DLB_APP_MODE_DRAFT) return 'Switch to Authoring Mode to publish.';
     if (!hasUnpublishedChanges.value) return 'There are no unpublished changes to publish.';
     return '';
 });
@@ -186,11 +225,9 @@ function onResumeDialogue(dialogueName) {
 
 function onOpenDialogue(dialogueName) {
     panels.value.selectMobileTab(1);
-    // Test against draft content whenever the project has any unpublished changes — dialogues can
-    // link to one another, so even an unchanged dialogue may reach unpublished content elsewhere
-    // in the project. Only once the whole project is fully published does testing use the
-    // published (logged) path.
-    dialogueWorkspace.value.openDialogue(dialogueName, hasUnpublishedChanges.value);
+    // Which execution path (published vs. draft) to test against is now decided by the global
+    // Live/Draft mode toggle, which DialogueWorkspace reads directly from state.
+    dialogueWorkspace.value.openDialogue(dialogueName);
 }
 
 function onNewDialogueStep() {
@@ -225,6 +262,50 @@ function onWorkspaceModeChanged(mode) {
     <div class="w-screen h-screen flex flex-col">
         <header class="flex items-stretch bg-orange-darker shadow-md shadow-gray-400 z-[100]">
             <a class="shrink-0 border-r border-orange-dark" href="/"><img class="box-content h-[60px] pl-4 pr-4 py-3" src="../../assets/img/dlb-logo-medium-bright.png"></a>
+
+            <!-- Mode dropdown -->
+            <div ref="modeMenuRef" class="hidden sm:flex items-stretch relative border-r border-orange-dark">
+                <button
+                    type="button"
+                    class="flex items-center gap-3 px-4 hover:bg-orange-dark cursor-pointer transition-colors"
+                    @click="toggleModeMenu"
+                >
+                    <div class="flex flex-col justify-center leading-tight text-left">
+                        <span class="flex items-center gap-1 font-title text-[10px] text-orange-light uppercase tracking-wide">
+                            <FontAwesomeIcon icon="fa-solid fa-sliders" class="text-[9px]" />
+                            Mode
+                        </span>
+                        <span class="font-title text-sm font-bold text-white">{{ modeLabel }}</span>
+                        <span class="font-mono text-[10px] text-orange-light">{{ modeDescription }}</span>
+                    </div>
+                    <FontAwesomeIcon :icon="modeMenuOpen ? 'fa-solid fa-caret-up' : 'fa-solid fa-caret-down'" class="text-orange-light text-xs" />
+                </button>
+            </div>
+
+            <Teleport to="body">
+                <div v-if="modeMenuOpen"
+                    class="fixed z-[9999] min-w-[200px] bg-white shadow-lg border border-grey-light rounded-b overflow-hidden"
+                    :style="{ top: modeMenuPos.top + 'px', left: modeMenuPos.left + 'px' }"
+                >
+                    <button
+                        type="button"
+                        :class="['flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm transition-colors', state.mode === DLB_APP_MODE_LIVE ? 'text-orange-darker bg-grey-lighter cursor-default' : 'text-orange-darker hover:bg-grey-lighter cursor-pointer']"
+                        @click="selectMode(DLB_APP_MODE_LIVE)"
+                    >
+                        <FontAwesomeIcon icon="fa-solid fa-play" class="w-4 text-orange-medium" />
+                        Live Mode
+                    </button>
+                    <button
+                        type="button"
+                        :class="['flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm transition-colors', state.mode === DLB_APP_MODE_DRAFT ? 'text-orange-darker bg-grey-lighter cursor-default' : 'text-orange-darker hover:bg-grey-lighter cursor-pointer']"
+                        @click="selectMode(DLB_APP_MODE_DRAFT)"
+                    >
+                        <FontAwesomeIcon icon="fa-solid fa-pen" class="w-4 text-orange-medium" />
+                        Authoring Mode
+                    </button>
+                </div>
+            </Teleport>
+
             <!-- Project dropdown -->
             <div ref="projectMenuRef" class="hidden sm:flex items-stretch relative border-r border-orange-dark">
                 <button
@@ -233,7 +314,10 @@ function onWorkspaceModeChanged(mode) {
                     @click="toggleProjectMenu"
                 >
                     <div class="flex flex-col justify-center leading-tight text-left">
-                        <span class="font-title text-[10px] text-orange-light uppercase tracking-wide">Project</span>
+                        <span class="flex items-center gap-1 font-title text-[10px] text-orange-light uppercase tracking-wide">
+                            <FontAwesomeIcon icon="fa-solid fa-folder" class="text-[9px]" />
+                            Project
+                        </span>
                         <span class="font-title text-sm font-bold text-white">{{ state.selectedProject?.displayName }}</span>
                         <span class="font-mono text-[10px] text-orange-light">{{ state.selectedProject?.slug }}<template v-if="state.selectedProject?.latestVersion"> (v{{ state.selectedProject.latestVersion.versionNumber }})</template></span>
                     </div>
@@ -283,7 +367,10 @@ function onWorkspaceModeChanged(mode) {
                     @click="toggleUserMenu"
                 >
                     <div class="flex flex-col justify-center leading-tight text-left">
-                        <span class="font-title text-[10px] text-orange-light uppercase tracking-wide">User</span>
+                        <span class="flex items-center gap-1 font-title text-[10px] text-orange-light uppercase tracking-wide">
+                            <FontAwesomeIcon icon="fa-solid fa-user" class="text-[9px]" />
+                            User
+                        </span>
                         <span class="font-title text-sm font-bold text-white">
                             {{ state.user?.name }}
                             <span v-if="activeDelegateUser" class="font-normal text-orange-light text-xs"> → {{ activeDelegateUser }}</span>

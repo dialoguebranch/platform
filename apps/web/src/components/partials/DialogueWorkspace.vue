@@ -6,7 +6,7 @@ const state = inject('state');
 import { logEvent } from '@/composables/debug-log.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
-import { DIALOGUE_WORKSPACE_STYLE_TEXT, DIALOGUE_WORKSPACE_STYLE_BALLOONS, DIALOGUE_WORKSPACE_STYLE_EDIT } from '@/dlb-lib/WCTAClientState.js';
+import { DIALOGUE_WORKSPACE_STYLE_TEXT, DIALOGUE_WORKSPACE_STYLE_BALLOONS, DIALOGUE_WORKSPACE_STYLE_EDIT, DLB_APP_MODE_DRAFT } from '@/dlb-lib/WCTAClientState.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import IconButton from '../widgets/IconButton.vue';
 import BalloonDialogueComponent from './BalloonDialogueComponent.vue';
@@ -40,12 +40,20 @@ const modes = [
     },
 ];
 
+// The node editor is only ever reachable in Draft Mode — Live Mode is testing-only.
+const availableModes = computed(() =>
+    state.value.mode === DLB_APP_MODE_DRAFT ? modes : modes.filter((m) => m.name !== 'edit'));
+
 // Backed by the `state.dialogueWorkspaceStyle` cookie (see WCTAClientState.js) so the chosen
 // mode survives a page reload.
 const selectedMode = computed({
     get: () => {
+        // A dialogueWorkspaceStyle cookie value of EDIT from an earlier Draft Mode session must
+        // never surface the editor while in Live Mode (e.g. right after loading the app) — Live
+        // Mode is testing-only, and 'edit' isn't even offered in availableModes above.
         if (state.value.dialogueWorkspaceStyle === DIALOGUE_WORKSPACE_STYLE_TEXT) return 'text';
-        if (state.value.dialogueWorkspaceStyle === DIALOGUE_WORKSPACE_STYLE_EDIT) return 'edit';
+        if (state.value.dialogueWorkspaceStyle === DIALOGUE_WORKSPACE_STYLE_EDIT
+                && state.value.mode === DLB_APP_MODE_DRAFT) return 'edit';
         return 'balloon';
     },
     set: (mode) => {
@@ -498,14 +506,13 @@ function editDialogue(name) {
 }
 
 // Opens a dialogue from the Dialogue Browser according to whatever mode the workspace is currently
-// in, rather than always forcing one particular mode: if we're already in Edit mode, open the
-// node editor (same as editDialogue); otherwise start a running test. isDraft reflects the whole
-// project's publish state (see MainPage's onOpenDialogue), not just this dialogue, since a
-// dialogue can link to others that have unpublished changes of their own.
-function openDialogue(name, isDraft) {
+// in: if we're already in Edit mode (only reachable in Draft Mode), open the node editor (same as
+// editDialogue); otherwise start a running test against whichever execution path the global
+// Live/Draft mode toggle currently selects.
+function openDialogue(name) {
     if (selectedMode.value === 'edit') {
         editDialogue(name);
-    } else if (isDraft) {
+    } else if (state.value.mode === DLB_APP_MODE_DRAFT) {
         loadDraftDialogue(name);
     } else {
         loadDialogue(name);
@@ -686,7 +693,7 @@ function onSelectReply(dialogueStep, reply) {
                 >
                     <option v-for="lang in availableLanguages" :key="lang.code" :value="lang.code">{{ lang.name }}</option>
                 </select>
-                <ModeSelector :modes="modes" v-model="selectedMode" />
+                <ModeSelector :modes="availableModes" v-model="selectedMode" />
                 <template v-if="selectedMode !== 'edit'">
                     <IconButton
                         icon="fa-solid fa-arrows-rotate"

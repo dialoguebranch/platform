@@ -480,7 +480,13 @@ public class DraftDialogueService {
 	}
 
 	/**
-	 * Renames a draft dialogue: updates its {@code name} column.
+	 * Renames a draft dialogue: updates its {@code name} column. If it has a published counterpart
+	 * (i.e. it isn't {@link DBDraftDialogue#getIsNew() new}) and hasn't already been renamed since
+	 * its last publish, its current name is remembered in
+	 * {@link DBDraftDialogue#getPreviousPublishedName()} — this is how the dialogue list knows to
+	 * match this draft against its stale published entry instead of showing both, and how a later
+	 * rename in the same unpublished chain (e.g. {@code A -> B -> C}) keeps remembering the
+	 * original published name ({@code A}) rather than the intermediate one.
 	 *
 	 * <p>If {@code updateReferences} is {@code true}, every reply link elsewhere in the project
 	 * that points into this dialogue (found via {@link #findDialogueReferences}) is rewritten in
@@ -546,6 +552,9 @@ public class DraftDialogueService {
 			}
 		}
 
+		if (!dialogue.getIsNew() && dialogue.getPreviousPublishedName() == null) {
+			dialogue.setPreviousPublishedName(oldName);
+		}
 		dialogue.setName(newName);
 		markChanged(dialogue);
 		DBDraftDialogue renamed = dialogueRepository.save(dialogue);

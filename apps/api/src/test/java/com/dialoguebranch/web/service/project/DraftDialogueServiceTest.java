@@ -16,6 +16,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -197,6 +198,7 @@ class DraftDialogueServiceTest {
                 draftDialogueService.renameDialogue(project, menu, "main-menu", true);
 
         assertEquals("main-menu", result.getDialogue().getName());
+        assertEquals("menu", result.getDialogue().getPreviousPublishedName());
         assertEquals(1, result.getReferencesUpdated());
 
         DBDraftNode reloadedStart = draftDialogueService.findNode(main, "Start").orElseThrow();
@@ -228,6 +230,47 @@ class DraftDialogueServiceTest {
                 draftDialogueService.renameDialogue(project, menu, "main", true));
         assertThrows(BadRequestException.class, () ->
                 draftDialogueService.renameDialogue(project, menu, "invalid name!", true));
+    }
+
+    @Test
+    void renameDialogueChainKeepsOriginalPreviousPublishedNameUntilPublished() throws Exception {
+        DBProject project = projectService.createProject("rename-dialogue-chain", "Rename Dialogue Test", "", "en", "English");
+        DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "a");
+        draftDialogueService.createNode(dialogue, "Start", "title: Start\nspeaker: Narrator", "");
+
+        PublishService.PublishResult publishResult = publishService.publish(project, null);
+        if (!publishResult.isSuccess()) {
+            throw new AssertionError("Publish failed: " + publishResult.getErrors());
+        }
+
+        draftDialogueService.renameDialogue(project, dialogue, "b", false);
+        assertEquals("a", dialogue.getPreviousPublishedName());
+
+        draftDialogueService.renameDialogue(project, dialogue, "c", false);
+        assertEquals("a", dialogue.getPreviousPublishedName());
+    }
+
+    @Test
+    void renameDialoguePublishClearsPreviousPublishedName() throws Exception {
+        DBProject project = projectService.createProject("rename-dialogue-publish-clears", "Rename Dialogue Test", "", "en", "English");
+        DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "a");
+        draftDialogueService.createNode(dialogue, "Start", "title: Start\nspeaker: Narrator", "");
+
+        PublishService.PublishResult publishResult = publishService.publish(project, null);
+        if (!publishResult.isSuccess()) {
+            throw new AssertionError("Publish failed: " + publishResult.getErrors());
+        }
+
+        draftDialogueService.renameDialogue(project, dialogue, "b", false);
+        assertEquals("a", dialogue.getPreviousPublishedName());
+
+        PublishService.PublishResult secondPublish = publishService.publish(project, null);
+        if (!secondPublish.isSuccess()) {
+            throw new AssertionError("Publish failed: " + secondPublish.getErrors());
+        }
+
+        DBDraftDialogue reloaded = draftDialogueService.findDialogue(project, "b").orElseThrow();
+        assertNull(reloaded.getPreviousPublishedName());
     }
 
     @Test
