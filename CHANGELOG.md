@@ -27,6 +27,15 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   the dialogue itself still existed under the same name. Each logged dialogue is now pinned to the
   published version of the project it was started against; if that version is no longer the
   project's current one, it's treated as stale and no longer offered as resumable.
+- Fixed an issue in the API where requesting a dialogue in a specific translation language (e.g.
+  `nl-NL`) via `/dialogue/start` could silently return the source-language content instead,
+  because the language-matching logic never correctly matched against a project's hyphenated
+  language codes and fell through to an unrelated default. Language matching is now an exact match
+  against a project's declared languages, falling back to the source language when there's no
+  exact match — no more silent mismatched-language fallback.
+- Aligned `/draft/*` dialogue testing with the `/dialogue/*` behavior above: requesting a language
+  a draft dialogue has no translation for now falls back to the source language the same way,
+  instead of rejecting the request outright.
 
 ### Changed
 

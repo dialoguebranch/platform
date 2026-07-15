@@ -43,8 +43,6 @@ import com.dialoguebranch.web.service.storage.VariableStoreStorageHandler;
 import org.slf4j.LoggerFactory;
 import nl.rrd.utils.exception.DatabaseException;
 import nl.rrd.utils.exception.ParseException;
-import nl.rrd.utils.i18n.I18nLanguageFinder;
-import nl.rrd.utils.i18n.I18nUtils;
 import org.slf4j.Logger;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
@@ -489,36 +487,50 @@ public class UserService {
 	// ----- Methods (Retrieval)
 
 	/**
-	 * Returns the available dialogues for all agents in the specified preferred
-	 * language. You can specify an ISO language tag such as "en-US".
+	 * Returns the available dialogues for all agents in the specified preferred language. A
+	 * project declares an exact, fixed set of language codes it supports (its source language
+	 * plus each translation language, e.g. {@code "en"}, {@code "nl-NL"}, {@code "pt-PT"}) — a
+	 * dialogue is only returned in {@code language} if that code is an exact match for one of
+	 * them; otherwise it's returned in its source language.
 	 *
-	 * @param language an ISO language tag
+	 * @param language a language code exactly matching one of a project's declared languages, or
+	 *                 {@code null}
 	 * @return a list of dialogue names
 	 */
 	public List<ResourcePointer> getAvailableDialogues(String language) {
-		List<ResourcePointer> filteredAvailableDialogues =
-				new ArrayList<>();
-		Locale prefLocale;
-		try {
-			prefLocale = I18nUtils.languageTagToLocale(language);
-		} catch (ParseException ex) {
-            logger.error("{}: {}", String.format(
-                    "Invalid language tag \"%s\", falling back to system locale",
-                    language), ex.getMessage());
-			prefLocale = Locale.getDefault();
-		}
-		for (Map<String, ResourcePointer> langMap :
-				dialogueLanguageMap.values()) {
-			List<String> keys = new ArrayList<>(langMap.keySet());
-			I18nLanguageFinder i18nFinder = new I18nLanguageFinder(keys);
-			i18nFinder.setUserLocale(prefLocale);
-			String lang = i18nFinder.find();
-			if (lang != null)
-				filteredAvailableDialogues.add(langMap.get(lang));
-			else if (!keys.isEmpty())
-				filteredAvailableDialogues.add(langMap.get(keys.get(0)));
+		List<ResourcePointer> filteredAvailableDialogues = new ArrayList<>();
+		for (Map<String, ResourcePointer> langMap : dialogueLanguageMap.values()) {
+			ResourcePointer match = findExactLanguageMatch(langMap, language);
+			if (match != null)
+				filteredAvailableDialogues.add(match);
 		}
 		return filteredAvailableDialogues;
+	}
+
+	/**
+	 * Returns {@code langMap.get(language)} if {@code language} is non-null and exactly matches
+	 * one of {@code langMap}'s keys, otherwise falls back to the source-language entry (the first
+	 * one inserted — see {@link ExecutableProject#getResourcePointers()}, which always lists a
+	 * dialogue's source pointer before its translations).
+	 *
+	 * <p>Deliberately does not do any locale-aware or fuzzy matching (e.g. treating {@code "nl"}
+	 * as a match for a project that only declares {@code "nl-NL"}): a project's supported
+	 * languages are an exact, fixed set, and requesting a language outside that set should fall
+	 * back to the source language rather than guessing at a "closest" translation.</p>
+	 *
+	 * @param langMap map from a project's declared language code to the dialogue available in it.
+	 * @param language a language code to match exactly, or {@code null}.
+	 * @return the matching or source-language {@link ResourcePointer}, or {@code null} if {@code
+	 * langMap} is empty.
+	 */
+	private ResourcePointer findExactLanguageMatch(Map<String, ResourcePointer> langMap,
+			String language) {
+		if (langMap.isEmpty()) return null;
+		if (language != null) {
+			ResourcePointer match = langMap.get(language);
+			if (match != null) return match;
+		}
+		return langMap.values().iterator().next();
 	}
 
 	/**
@@ -550,7 +562,8 @@ public class UserService {
 	 *
 	 * @param projectSlug the project folder name / slug.
 	 * @param dialogueId the dialogue ID.
-	 * @param language an ISO language tag or null.
+	 * @param language a language code exactly matching one of the project's declared languages,
+	 *                 or {@code null}.
 	 * @return the dialogue description or null.
 	 */
 	public ResourcePointer getDialogueDescriptionFromProject(String projectSlug, String dialogueId,
@@ -564,21 +577,7 @@ public class UserService {
 				langMap.put(pointer.getLanguage(), pointer);
 			}
 		}
-		if (langMap.isEmpty()) return null;
-		if (language != null) {
-			Locale prefLocale;
-			try {
-				prefLocale = I18nUtils.languageTagToLocale(language);
-			} catch (ParseException ex) {
-				prefLocale = Locale.getDefault();
-			}
-			List<String> keys = new ArrayList<>(langMap.keySet());
-			I18nLanguageFinder i18nFinder = new I18nLanguageFinder(keys);
-			i18nFinder.setUserLocale(prefLocale);
-			String lang = i18nFinder.find();
-			if (lang != null) return langMap.get(lang);
-		}
-		return langMap.values().iterator().next();
+		return findExactLanguageMatch(langMap, language);
 	}
 
 	/**

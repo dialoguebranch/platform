@@ -28,7 +28,6 @@
 
 package com.dialoguebranch.web.service.storage.model;
 
-import com.dialoguebranch.exception.UnknownLanguageCodeException;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
@@ -242,23 +241,6 @@ public class DBProject {
 	 */
 	public void setTranslationLanguages(Set<DBTranslationLanguage> translationLanguages) {
 		this.translationLanguages = translationLanguages;
-	}
-
-	/**
-	 * Checks whether the given {@code languageCode} is one of this project's configured languages
-	 * (its source language or one of its translation languages).
-	 *
-	 * @param languageCode the language code to validate.
-	 * @throws UnknownLanguageCodeException if this project does not support the given language.
-	 */
-	public void validateLanguageCode(String languageCode) throws UnknownLanguageCodeException {
-		boolean supported = languageCode != null && (languageCode.equals(sourceLanguageCode)
-				|| translationLanguages.stream()
-						.anyMatch(t -> languageCode.equals(t.getTranslationLanguageCode())));
-		if (!supported) {
-			throw new UnknownLanguageCodeException("Language code '" + languageCode +
-					"' is not supported in project '" + slug + "'.", languageCode);
-		}
 	}
 
 	/**

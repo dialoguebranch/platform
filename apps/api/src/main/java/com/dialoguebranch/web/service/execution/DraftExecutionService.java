@@ -29,7 +29,6 @@
 package com.dialoguebranch.web.service.execution;
 
 import com.dialoguebranch.exception.ExecutionException;
-import com.dialoguebranch.exception.UnknownLanguageCodeException;
 import com.dialoguebranch.execution.ActiveDialogue;
 import com.dialoguebranch.execution.ExecuteNodeResult;
 import com.dialoguebranch.execution.Variable;
@@ -46,7 +45,6 @@ import com.dialoguebranch.model.execute.ResourcePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import com.dialoguebranch.web.service.exception.BadRequestException;
-import com.dialoguebranch.web.service.exception.ErrorCode;
 import com.dialoguebranch.web.service.exception.NotFoundException;
 import com.dialoguebranch.web.service.exception.ProjectParseHttpError;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
@@ -135,7 +133,10 @@ public class DraftExecutionService {
 	 *                    read via {@code dialogue.getProject()}, which is a lazy relation that may
 	 *                    no longer have an active Hibernate session attached by this point).
 	 * @param dialogue    the draft dialogue to test.
-	 * @param language    the ISO language code to parse the draft content as.
+	 * @param language    the language code to parse the draft content as; falls back to the
+	 *                    project's source language if this dialogue has no content in exactly
+	 *                    this language (matching {@code UserService.findExactLanguageMatch}'s
+	 *                    behavior for published dialogues).
 	 * @param startNodeId the node ID to start the test from, or {@code null} to start from the
 	 *                    dialogue's default "Start" node.
 	 * @return the new session's ID and the {@link ExecuteNodeResult} for its start node.
@@ -146,12 +147,6 @@ public class DraftExecutionService {
 	public StartResult startSession(UserService userService, DBProject project,
 									DBDraftDialogue dialogue, String language, String startNodeId)
 			throws BadRequestException, ExecutionException {
-		try {
-			project.validateLanguageCode(language);
-		} catch (UnknownLanguageCodeException e) {
-			throw new BadRequestException(ErrorCode.UNKNOWN_LANGUAGE_CODE, e.getMessage());
-		}
-
 		// The dialogue under test may contain node pointers to sibling dialogues in the same
 		// project — parsing needs all of them available, not just this one, otherwise those
 		// pointers are reported as pointing to an "unknown dialogue". Every dialogue in a project
@@ -212,8 +207,16 @@ public class DraftExecutionService {
 			dialogueDefinition = executableProject.getDialogues().get(pointer);
 		}
 		if (dialogueDefinition == null) {
+			// No content in the requested language (an undeclared code, or a declared translation
+			// language this dialogue doesn't have content for yet) — fall back to the source
+			// language, matching how the published-dialogue path
+			// (UserService.findExactLanguageMatch) behaves, rather than failing the request.
+			pointer = new ResourcePointer(sourceLanguage, dialogue.getName(), ResourceType.SCRIPT);
+			dialogueDefinition = executableProject.getDialogues().get(pointer);
+		}
+		if (dialogueDefinition == null) {
 			throw new BadRequestException("Draft dialogue '" + dialogue.getName() +
-					"' could not be parsed into a runnable dialogue in language '" + language + "'.");
+					"' could not be parsed into a runnable dialogue.");
 		}
 
 		ActiveDialogue activeDialogue = new ActiveDialogue(pointer, dialogueDefinition);
