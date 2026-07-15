@@ -570,6 +570,9 @@ onMounted(() => {
 
 function onCancelClick() {
     const tab = activeTab.value;
+    // A reply is already progressing this tab — cancelling now would race a stale response into
+    // reviving the dialogue after it's marked cancelled (see onSelectReply's stale-cancel guard).
+    if (tab.awaitingReply) return;
     dismissError();
     if (tab.isDraftTest) {
         if (!tab.draftSessionId) return;
@@ -611,6 +614,10 @@ function onSelectReply(dialogueStep, reply) {
         logEvent('dialogue', 'Draft test reply selected: $1', replyText);
         client.progressDraftDialogue(tab.draftSessionId, reply.replyId)
         .then((nextStep) => {
+            // The tab could have been cancelled while this request was in flight (Cancel is
+            // disabled once awaitingReply is set, but this stays correct even if that ever
+            // changes) — a stale response must not resurrect an already-cancelled dialogue.
+            if (tab.dialogueCancelled) return;
             if (nextStep) {
                 tab.dialogueName = nextStep.dialogueName;
                 tab.dialogueSteps.push(nextStep);
@@ -636,6 +643,8 @@ function onSelectReply(dialogueStep, reply) {
     client.progressDialogue(dialogueStep.loggedDialogueId, dialogueStep.loggedInteractionIndex,
         reply.replyId)
     .then((nextStep) => {
+        // See the identical guard in the draft-test branch above.
+        if (tab.dialogueCancelled) return;
         if (nextStep) {
             tab.dialogueName = nextStep.dialogueName;
             tab.dialogueSteps.push(nextStep);
@@ -681,7 +690,7 @@ function onSelectReply(dialogueStep, reply) {
                     <IconButton
                         icon="fa-solid fa-circle-xmark"
                         color="warning"
-                        :disabled="activeTab.dialogueName === null || activeTab.dialogueEnded"
+                        :disabled="activeTab.dialogueName === null || activeTab.dialogueEnded || activeTab.awaitingReply"
                         :title="activeTab.dialogueName && !activeTab.dialogueEnded ? 'Cancel the current dialogue' : 'Cancel the current dialogue (no dialogue active)'"
                         @click="onCancelClick"
                     />
