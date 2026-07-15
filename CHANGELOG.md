@@ -86,6 +86,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 - Renamed the "Draft" badge shown in the Dialogue Browser for a dialogue with unpublished changes
   to "Changed" — now that Authoring Mode only ever lists draft dialogues, labeling one of them
   "Draft" no longer distinguished it from the rest of the list.
+- Renamed the Dialogue Workspace's "Balloon style" and "Text style" mode button tooltips to
+  "Test in Speech Bubble Style" and "Test in RPG Text Style", respectively.
 
 ### Removed
 
