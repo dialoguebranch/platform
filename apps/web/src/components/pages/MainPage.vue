@@ -48,7 +48,7 @@ onMounted(() => {
         const slug = state.value.selectedProject.slug;
         client.getProject(slug)
             .then((project) => {
-                state.value.selectedProject = { slug: project.slug, displayName: project.displayName ?? project.slug };
+                state.value.selectedProject = { slug: project.slug, displayName: project.displayName ?? project.slug, latestVersion: project.latestVersion ?? null };
             })
             .catch(() => { /* keep the slug-only project; header just shows the slug */ });
     }
@@ -114,7 +114,7 @@ function onEditMetadataClick() {
 
 function onMetadataSaved(updated) {
     showEditMetadata.value = false;
-    state.value.selectedProject = { slug: updated.slug, displayName: updated.displayName };
+    state.value.selectedProject = { ...state.value.selectedProject, slug: updated.slug, displayName: updated.displayName };
 }
 
 // Whether the currently selected project has any dialogue that's new, changed, or pending
@@ -137,8 +137,11 @@ function onPublishProjectClick() {
     showPublishWizard.value = true;
 }
 
-function onProjectPublished() {
+function onProjectPublished(version) {
     showPublishWizard.value = false;
+    if (state.value.selectedProject) {
+        state.value.selectedProject = { ...state.value.selectedProject, latestVersion: version ?? state.value.selectedProject.latestVersion };
+    }
     // Refresh the tree so newly-published dialogues show their "Published" badge.
     dialogueBrowser.value?.listDialogues();
 }
@@ -228,7 +231,7 @@ function onWorkspaceModeChanged(mode) {
                     <div class="flex flex-col justify-center leading-tight text-left">
                         <span class="font-title text-[10px] text-orange-light uppercase tracking-wide">Project</span>
                         <span class="font-title text-sm font-bold text-white">{{ state.selectedProject?.displayName }}</span>
-                        <span class="font-mono text-[10px] text-orange-light">{{ state.selectedProject?.slug }}</span>
+                        <span class="font-mono text-[10px] text-orange-light">{{ state.selectedProject?.slug }}<template v-if="state.selectedProject?.latestVersion"> (v{{ state.selectedProject.latestVersion.versionNumber }})</template></span>
                     </div>
                     <FontAwesomeIcon :icon="projectMenuOpen ? 'fa-solid fa-caret-up' : 'fa-solid fa-caret-down'" class="text-orange-light text-xs" />
                 </button>

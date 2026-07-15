@@ -98,7 +98,7 @@ function loadProjects() {
 }
 
 function selectProject(project) {
-    state.value.selectedProject = { slug: project.slug, displayName: project.displayName ?? project.slug };
+    state.value.selectedProject = { slug: project.slug, displayName: project.displayName ?? project.slug, latestVersion: project.latestVersion ?? null };
 }
 
 function onLogoutClick() {
