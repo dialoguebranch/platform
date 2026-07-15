@@ -4,4 +4,5 @@
 /.idea/
 /gradle.properties
 /config/service-users.xml
+/src/main/resources/deployment.properties
 
