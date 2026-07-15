@@ -8,6 +8,7 @@ const attrs = useAttrs();
 import { useClient } from '../../composables/client.js';
 import { describeError } from '../../composables/error-message.js';
 import { showError, dismissError } from '../../composables/error-toast.js';
+import { useLatestRequest } from '../../composables/latest-request.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
 const state = inject('state');
@@ -60,18 +61,18 @@ function buildTree(entries) {
 // Guards against out-of-order responses: listDialogues() is triggered from several independent
 // places (manual refresh, publish, initial mount) with no guarantee they resolve in the order
 // they were sent — only the response matching the most recently issued request may update state.
-let listRequestId = 0;
+const { next: nextListRequest, isCurrent: isCurrentListRequest } = useLatestRequest();
 
 function listDialogues() {
     const projectSlug = state.value.selectedProject?.slug;
     dismissError();
-    const requestId = ++listRequestId;
+    const requestId = nextListRequest();
     Promise.all([
         client.listDialogues(projectSlug).catch(() => ({ dialogueNames: [] })),
         client.listDraftDialogues(projectSlug).catch(() => []),
     ])
     .then(([published, drafts]) => {
-        if (requestId !== listRequestId) return;
+        if (!isCurrentListRequest(requestId)) return;
         const publishedNames = new Set(published.dialogueNames ?? []);
         const draftsByName = new Map((drafts ?? []).map((d) => [d.name, d]));
         // "Publish Project" should only be enabled when there's actually something to publish —
@@ -101,7 +102,7 @@ function listDialogues() {
         openFolders.value = {};
     })
     .catch((error) => {
-        if (requestId !== listRequestId) return;
+        if (!isCurrentListRequest(requestId)) return;
         showError(describeError(error));
     });
 }

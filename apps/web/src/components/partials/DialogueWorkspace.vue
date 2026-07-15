@@ -251,6 +251,9 @@ const loadDialogue = (name, language) => {
     tab.isDraftTest = false;
     tab.draftSessionId = null;
     tab.openedForEditOnly = false;
+    // A fresh test start supersedes whatever reply request (if any) was in flight for this tab —
+    // don't leave reply selection stuck disabled by a stale one that hasn't resolved yet.
+    tab.awaitingReply = false;
     scrollActiveTabIntoView();
     dismissError();
     logEvent('dialogue', 'Dialogue started: $1', name);
@@ -289,6 +292,9 @@ const loadDraftDialogue = (name, { tab: givenTab, startNodeId, language } = {}) 
     tab.dialogueEdited = false;
     tab.lastEditedNodeTitle = null;
     tab.startError = null;
+    // A fresh test start supersedes whatever reply request (if any) was in flight for this tab —
+    // don't leave reply selection stuck disabled by a stale one that hasn't resolved yet.
+    tab.awaitingReply = false;
     scrollActiveTabIntoView();
     dismissError();
     logEvent('dialogue', 'Draft test started: $1', name);

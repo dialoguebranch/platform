@@ -124,7 +124,7 @@ function getBasicReplyTextClasses(stepIndex, reply) {
                             'cursor-pointer': isReplySelectable(stepIndex),
                         }"
                         :disabled="isReplySelectable(stepIndex) ? null : true"
-                        @click="isReplySelectable(stepIndex) ? $emit('selectReply', step, reply) : null"
+                        @click="$emit('selectReply', step, reply)"
                     >
                         Continue
                     </button>

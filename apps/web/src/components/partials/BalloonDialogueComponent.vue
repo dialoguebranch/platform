@@ -90,7 +90,7 @@ const currentStep = computed(() => {
                             class="block rounded-xl bg-orange-dark hover:bg-orange-medium text-white text-left p-3 disabled:bg-icon-button-disabled disabled:cursor-not-allowed"
                             :class="{ 'cursor-pointer': !awaitingReply }"
                             :disabled="awaitingReply"
-                            @click="!awaitingReply && $emit('selectReply', currentStep, reply)"
+                            @click="$emit('selectReply', currentStep, reply)"
                         >
                             {{ reply.statement.fullStatement() }}
                         </button>
@@ -99,7 +99,7 @@ const currentStep = computed(() => {
                             class="block rounded-xl bg-orange-dark hover:bg-orange-medium text-white uppercase p-3 min-w-[160px] disabled:bg-icon-button-disabled disabled:cursor-not-allowed"
                             :class="{ 'cursor-pointer': !awaitingReply }"
                             :disabled="awaitingReply"
-                            @click="!awaitingReply && $emit('selectReply', currentStep, reply)"
+                            @click="$emit('selectReply', currentStep, reply)"
                         >
                             Continue
                         </button>

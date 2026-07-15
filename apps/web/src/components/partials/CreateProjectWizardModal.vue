@@ -169,6 +169,14 @@ function goBack() {
     currentStep.value -= 1;
 }
 
+// A pending create's `.then()`/`.catch()` still fires after the modal closes if the user closes
+// it mid-submit — guard the close paths (header X, Cancel, backdrop click) so the user can't
+// dismiss the modal while that request is still in flight.
+function closeModal() {
+    if (creating.value) return;
+    emit('close');
+}
+
 function submitCreate() {
     createError.value = '';
     creating.value = true;
@@ -190,7 +198,7 @@ function submitCreate() {
 
 <template>
     <Teleport to="body">
-        <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" @click.self="emit('close')">
+        <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" @click.self="closeModal">
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-xl mx-4 flex flex-col">
 
                 <!-- Header -->
@@ -201,7 +209,12 @@ function submitCreate() {
                     </div>
                     <div class="flex items-center gap-3">
                         <span class="text-orange-light text-xs font-title">Step {{ currentStep }} of {{ TOTAL_STEPS }}</span>
-                        <button class="text-orange-light hover:text-white cursor-pointer" @click="emit('close')">
+                        <button
+                            class="text-orange-light hover:text-white disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-orange-light"
+                            :class="{ 'cursor-pointer': !creating }"
+                            :disabled="creating"
+                            @click="closeModal"
+                        >
                             <FontAwesomeIcon icon="fa-solid fa-xmark" />
                         </button>
                     </div>
@@ -332,8 +345,10 @@ function submitCreate() {
                 <div class="flex items-center justify-between gap-3 px-5 py-4 border-t border-grey-light bg-grey-lighter rounded-b-xl shrink-0">
                     <button
                         v-if="currentStep === 1"
-                        class="px-4 py-2 rounded font-title text-sm text-grey-dark border border-grey-light hover:bg-grey-light cursor-pointer"
-                        @click="emit('close')"
+                        class="px-4 py-2 rounded font-title text-sm text-grey-dark border border-grey-light hover:bg-grey-light disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                        :class="{ 'cursor-pointer': !creating }"
+                        :disabled="creating"
+                        @click="closeModal"
                     >Cancel</button>
                     <button
                         v-else

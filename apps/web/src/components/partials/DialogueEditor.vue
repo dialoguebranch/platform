@@ -9,6 +9,7 @@ import { showError, dismissError } from '@/composables/error-toast.js';
 import { parseHeaderTags, serializeHeaderTags, getPosition, setPosition } from '@/dlb-lib/util/DlbHeaderTags.js';
 import { extractReplyLinks } from '@/dlb-lib/util/DlbReplyLinks.js';
 import { colorForId } from '@/composables/node-colors.js';
+import { useLatestRequest } from '@/composables/latest-request.js';
 import NodeEditPanel from './NodeEditPanel.vue';
 
 // Pure content component — no header of its own. It's only ever embedded in
@@ -169,26 +170,28 @@ function buildGraph(nodes) {
     flowEdges.value = newFlowEdges;
 }
 
+// DialogueEditor is a single persistent instance reused across tabs (see DialogueWorkspace.vue),
+// so switching to a different dialogue — or double-clicking Refresh — before a fetch resolves must
+// not let a stale response overwrite the now-current graph. A monotonic request id (rather than
+// comparing dialogue names) also correctly orders two in-flight requests for the *same* name.
+const { next: nextLoadNodesRequest, isCurrent: isCurrentLoadNodesRequest } = useLatestRequest();
+
 function loadNodes() {
     if (!props.dialogueName) return;
-    // DialogueEditor is a single persistent instance reused across tabs (see DialogueWorkspace.vue),
-    // so switching to a different dialogue before this fetch resolves must not let the stale
-    // response overwrite the now-current dialogue's graph — capture the name being fetched and
-    // discard the response if props.dialogueName has since moved on.
-    const requestedDialogueName = props.dialogueName;
     loading.value = true;
     dismissError();
-    client.listDraftNodes(state.value.selectedProject?.slug, requestedDialogueName)
+    const requestId = nextLoadNodesRequest();
+    client.listDraftNodes(state.value.selectedProject?.slug, props.dialogueName)
         .then((nodes) => {
-            if (props.dialogueName !== requestedDialogueName) return;
+            if (!isCurrentLoadNodesRequest(requestId)) return;
             buildGraph(nodes);
         })
         .catch((error) => {
-            if (props.dialogueName !== requestedDialogueName) return;
+            if (!isCurrentLoadNodesRequest(requestId)) return;
             showError(describeError(error));
         })
         .finally(() => {
-            if (props.dialogueName !== requestedDialogueName) return;
+            if (!isCurrentLoadNodesRequest(requestId)) return;
             loading.value = false;
         });
 }

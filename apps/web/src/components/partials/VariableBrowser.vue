@@ -9,6 +9,7 @@ import { useClient } from '@/composables/client.js';
 import { logEvent } from '@/composables/debug-log.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
+import { useLatestRequest } from '@/composables/latest-request.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import IconButton from '../widgets/IconButton.vue';
 import MainPagePanelHeader from '../widgets/MainPagePanelHeader.vue';
@@ -60,21 +61,21 @@ const variables = ref([]);
 // Guards against out-of-order responses: loadVariables() can fire in quick succession (e.g. once
 // per dialogue step while testing) with no guarantee the requests resolve in the order they were
 // sent — only the response matching the most recently issued request is allowed to update state.
-let loadRequestId = 0;
+const { next: nextLoadRequest, isCurrent: isCurrentLoadRequest } = useLatestRequest();
 
 const loadVariables = () => {
     dismissError();
-    const requestId = ++loadRequestId;
+    const requestId = nextLoadRequest();
     client.getVariables()
     .then((vars) => {
-        if (requestId !== loadRequestId) return;
+        if (!isCurrentLoadRequest(requestId)) return;
         variables.value = vars;
         dirtyVariables.value = new Set();
         deletingVariables.value = new Set();
         tooltip.value = null;
     })
     .catch((error) => {
-        if (requestId !== loadRequestId) return;
+        if (!isCurrentLoadRequest(requestId)) return;
         showError(describeError(error));
     });
 };
