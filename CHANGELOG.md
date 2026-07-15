@@ -54,6 +54,10 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- `/draft/*` end-point session IDs (`draftSessionId`) are now generated the same way as
+  `loggedDialogueId`s: a bare 32-character hex string (dashes stripped from the underlying UUID),
+  instead of the standard hyphenated UUID form. Purely cosmetic — the ID is only ever used as an
+  opaque token by both the API and the Web Client.
 - Logged dialogues are now stored in the database instead of as JSON files on disk, mirroring how
   Dialogue Branch Variables are already stored. This also makes looking up a user's most recent
   ongoing dialogue a single indexed database query instead of a scan of every session file.

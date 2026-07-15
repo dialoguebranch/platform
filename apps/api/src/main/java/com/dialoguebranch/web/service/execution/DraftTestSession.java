@@ -67,7 +67,7 @@ public class DraftTestSession {
 	 */
 	public DraftTestSession(String userId, ActiveDialogue activeDialogue,
 							Dialogue dialogueDefinition, Variable[] variableSnapshot) {
-		this.id = UUID.randomUUID().toString();
+		this.id = UUID.randomUUID().toString().toLowerCase().replaceAll("-", "");
 		this.userId = userId;
 		this.activeDialogue = activeDialogue;
 		this.dialogueDefinition = dialogueDefinition;
