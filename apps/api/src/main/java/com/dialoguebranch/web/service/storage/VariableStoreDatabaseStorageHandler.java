@@ -32,6 +32,7 @@ import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.Variable;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.VariableStoreChange;
+import com.dialoguebranch.execution.VariableStoreOnChangeListener;
 import com.dialoguebranch.execution.VariableUpdatedSource;
 import com.dialoguebranch.web.service.storage.model.DBUser;
 import com.dialoguebranch.web.service.storage.model.DBVariable;
@@ -61,7 +62,7 @@ import java.util.stream.Collectors;
  * @author Harm op den Akker
  */
 @Service
-public class VariableStoreDatabaseStorageHandler implements VariableStoreStorageHandler {
+public class VariableStoreDatabaseStorageHandler implements VariableStoreOnChangeListener {
 
     private static final Logger logger =
             LoggerFactory.getLogger(VariableStoreDatabaseStorageHandler.class);
@@ -93,7 +94,6 @@ public class VariableStoreDatabaseStorageHandler implements VariableStoreStorage
      * @throws ParseException if a variable value cannot be deserialized from its stored JSON
      * representation.
      */
-    @Override
     @Transactional
     public VariableStore read(User user) throws ParseException {
         DBUser dbUser = getOrCreateUser(user.getId());
@@ -121,7 +121,6 @@ public class VariableStoreDatabaseStorageHandler implements VariableStoreStorage
      * @param variableStore the variable store to persist.
      * @throws IOException if a variable value cannot be serialized to JSON for storage.
      */
-    @Override
     @Transactional
     public void write(VariableStore variableStore) throws IOException {
         DBUser dbUser = getOrCreateUser(variableStore.getUser().getId());

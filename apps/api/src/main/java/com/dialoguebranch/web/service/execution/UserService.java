@@ -39,7 +39,7 @@ import com.dialoguebranch.web.service.repository.DBUserRepository;
 import com.dialoguebranch.web.service.storage.ExternalVariableServiceUpdater;
 import com.dialoguebranch.web.service.storage.LoggedDialogueStore;
 import com.dialoguebranch.web.service.storage.ServerLoggedDialogue;
-import com.dialoguebranch.web.service.storage.VariableStoreStorageHandler;
+import com.dialoguebranch.web.service.storage.VariableStoreDatabaseStorageHandler;
 import org.slf4j.LoggerFactory;
 import nl.rrd.utils.exception.DatabaseException;
 import nl.rrd.utils.exception.ParseException;
@@ -91,8 +91,8 @@ public class UserService {
 	 * @param dialogueBranchUser The {@link User} for which this {@link UserService} is handling the
 	 *                           interactions.
 	 * @param applicationManager the server's {@link ApplicationManager} instance.
-	 * @param storageHandler the {@link VariableStoreStorageHandler} used to read and persist
-	 *                       variables for this user.
+	 * @param storageHandler the {@link VariableStoreDatabaseStorageHandler} used to read and
+	 *                       persist variables for this user.
 	 * @param userRepository repository used to look up or create the {@link
 	 *                        com.dialoguebranch.web.service.storage.model.DBUser} that owns this
 	 *                       user's logged dialogues.
@@ -102,7 +102,7 @@ public class UserService {
 	 * @throws IOException if an error occurs initialising the logged dialogue store.
 	 */
 	public UserService(User dialogueBranchUser, ApplicationManager applicationManager,
-					   VariableStoreStorageHandler storageHandler,
+					   VariableStoreDatabaseStorageHandler storageHandler,
 					   DBUserRepository userRepository,
 					   DBLoggedDialogueRepository loggedDialogueRepository)
 			throws DatabaseException, IOException {

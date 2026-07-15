@@ -66,6 +66,14 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 - Both the "Balloon Style" and "Text Style" interaction testers show a message "Ephemeral Draft Test"
   - Session ID: X in the bottom of the panel to indicate that this mode is active.
 
+### Removed
+
+- Removed the unused JSON-file-based `VariableStoreJSONStorageHandler` and the
+  `VariableStoreStorageHandler` interface it existed alongside. The interface had only ever had
+  one real implementation (`VariableStoreDatabaseStorageHandler`, which the API wires up directly
+  by concrete type), so the JSON handler was never instantiated or reachable at runtime; consumers
+  now depend on `VariableStoreDatabaseStorageHandler` directly instead of the interface.
+
 ### Security
 
 - Fixed a missing authorization check in the API where any authenticated editor or admin could

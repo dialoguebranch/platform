@@ -41,7 +41,7 @@ import com.dialoguebranch.execution.parser.ProjectParserResult;
 import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.repository.DBLoggedDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBUserRepository;
-import com.dialoguebranch.web.service.storage.VariableStoreStorageHandler;
+import com.dialoguebranch.web.service.storage.VariableStoreDatabaseStorageHandler;
 import org.slf4j.LoggerFactory;
 import nl.rrd.utils.exception.DatabaseException;
 import nl.rrd.utils.exception.ParseException;
@@ -102,7 +102,7 @@ public class ApplicationManager {
 	 * @param loggedDialogueRepository repository used to read, create, and update logged dialogues.
 	 */
 	public ApplicationManager(DlbProperties dlbProperties,
-							  VariableStoreStorageHandler storageHandler,
+							  VariableStoreDatabaseStorageHandler storageHandler,
 							  DBUserRepository userRepository,
 							  DBLoggedDialogueRepository loggedDialogueRepository) {
 		this.dlbProperties = dlbProperties;

@@ -31,7 +31,7 @@ package com.dialoguebranch.web.service.execution;
 import com.dialoguebranch.execution.User;
 import com.dialoguebranch.web.service.repository.DBLoggedDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBUserRepository;
-import com.dialoguebranch.web.service.storage.VariableStoreStorageHandler;
+import com.dialoguebranch.web.service.storage.VariableStoreDatabaseStorageHandler;
 import nl.rrd.utils.exception.DatabaseException;
 
 import java.io.IOException;
@@ -49,7 +49,7 @@ public class UserServiceFactory {
 	private final ApplicationManager applicationManager;
 
 	/** The VariableStorageHandler that all created UserServices should use */
-	private final VariableStoreStorageHandler storageHandler;
+	private final VariableStoreDatabaseStorageHandler storageHandler;
 
 	/** Repository used by created UserServices to look up or create their DBUser row */
 	private final DBUserRepository userRepository;
@@ -63,14 +63,14 @@ public class UserServiceFactory {
 
 	/**
 	 * Creates an instance of a {@link UserServiceFactory} with a given {@link ApplicationManager}
-	 * acting as this factory's owner, and a {@link VariableStoreStorageHandler} that is used to
-	 * read and write Dialogue Branch variables to persistent storage.
+	 * acting as this factory's owner, and a {@link VariableStoreDatabaseStorageHandler} that is
+	 * used to read and write Dialogue Branch variables to persistent storage.
 	 *
 	 * @param applicationManager the {@link ApplicationManager} that is the 'owner' of this {@link
 	 *                           UserServiceFactory}.
-	 * @param storageHandler the {@link VariableStoreStorageHandler} that is passed on to the {@link
-	 *                       UserService} for reading and writing Dialogue Branch variables to
-	 *                       persistent storage.
+	 * @param storageHandler the {@link VariableStoreDatabaseStorageHandler} that is passed on to
+	 *                       the {@link UserService} for reading and writing Dialogue Branch
+	 *                       variables to persistent storage.
 	 * @param userRepository repository passed on to created {@link UserService}s for looking up or
 	 *                        creating their {@link
 	 *                       com.dialoguebranch.web.service.storage.model.DBUser} row.
@@ -78,7 +78,7 @@ public class UserServiceFactory {
 	 *                                 reading and writing logged dialogues.
 	 */
 	public UserServiceFactory(ApplicationManager applicationManager,
-							  VariableStoreStorageHandler storageHandler,
+							  VariableStoreDatabaseStorageHandler storageHandler,
 							  DBUserRepository userRepository,
 							  DBLoggedDialogueRepository loggedDialogueRepository) {
 		this.applicationManager = applicationManager;
