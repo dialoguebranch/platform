@@ -498,8 +498,9 @@ function editDialogue(name) {
 
 // Opens a dialogue from the Dialogue Browser according to whatever mode the workspace is currently
 // in, rather than always forcing one particular mode: if we're already in Edit mode, open the
-// node editor (same as editDialogue); otherwise start a running test — as an ephemeral draft test
-// if the dialogue has a draft, or a normal (logged) test if it's published-only.
+// node editor (same as editDialogue); otherwise start a running test. isDraft reflects the whole
+// project's publish state (see MainPage's onOpenDialogue), not just this dialogue, since a
+// dialogue can link to others that have unpublished changes of their own.
 function openDialogue(name, isDraft) {
     if (selectedMode.value === 'edit') {
         editDialogue(name);

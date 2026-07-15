@@ -184,9 +184,13 @@ function onResumeDialogue(dialogueName) {
     dialogueWorkspace.value.resumeDialogue(dialogueName);
 }
 
-function onOpenDialogue(dialogueName, isDraft) {
+function onOpenDialogue(dialogueName) {
     panels.value.selectMobileTab(1);
-    dialogueWorkspace.value.openDialogue(dialogueName, isDraft);
+    // Test against draft content whenever the project has any unpublished changes — dialogues can
+    // link to one another, so even an unchanged dialogue may reach unpublished content elsewhere
+    // in the project. Only once the whole project is fully published does testing use the
+    // published (logged) path.
+    dialogueWorkspace.value.openDialogue(dialogueName, hasUnpublishedChanges.value);
 }
 
 function onNewDialogueStep() {

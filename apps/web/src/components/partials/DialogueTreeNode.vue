@@ -22,7 +22,7 @@ const state = inject('state');
 const client = useClient();
 
 function openDialogue() {
-    emit('openDialogue', props.node._file, props.node._isDraft);
+    emit('openDialogue', props.node._file);
 }
 
 const isFile = computed(() => !!props.node._file);
@@ -136,7 +136,7 @@ function referenceDialogueCount(references) {
                 :openFolders="openFolders"
                 :depth="depth + 1"
                 @toggleFolder="$emit('toggleFolder', $event)"
-                @openDialogue="(name, isDraft) => $emit('openDialogue', name, isDraft)"
+                @openDialogue="(name) => $emit('openDialogue', name)"
                 @dialoguesChanged="$emit('dialoguesChanged')"
             />
         </template>

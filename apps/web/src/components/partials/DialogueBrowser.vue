@@ -35,7 +35,7 @@ const openFolders = ref({});
 const ongoingConfirm = ref(null); // { dialogueName, loggedDialogueId, secondsSinceLastEngagement, alreadyOpenTabId? }
 const cancelConfirm = ref(false);
 
-// entries: array of { name, isPublished, isDraft, isNew, isChanged, isDeleted }
+// entries: array of { name, isPublished, isNew, isChanged, isDeleted }
 function buildTree(entries) {
     const root = {};
     for (const entry of entries) {
@@ -49,7 +49,6 @@ function buildTree(entries) {
         node[leaf] = {
             _file: entry.name,
             _isPublished: entry.isPublished,
-            _isDraft: entry.isDraft,
             _isNew: entry.isNew,
             _isChanged: entry.isChanged,
             _isDeleted: entry.isDeleted,
@@ -86,7 +85,6 @@ function listDialogues() {
             return {
                 name,
                 isPublished: publishedNames.has(name),
-                isDraft: draftsByName.has(name),
                 isNew: draft?.isNew ?? false,
                 isChanged: draft?.isChanged ?? false,
                 isDeleted: draft?.isDeleted ?? false,
@@ -246,7 +244,7 @@ defineExpose({
                 :path="name"
                 :openFolders="openFolders"
                 @toggleFolder="toggleFolder"
-                @openDialogue="(name, isDraft) => $emit('openDialogue', name, isDraft)"
+                @openDialogue="(name) => $emit('openDialogue', name)"
                 @dialoguesChanged="listDialogues"
             />
         </MainPagePanelContainer>
