@@ -445,14 +445,14 @@ public class DraftDialogueService {
 			// since rewriteReplyTargets already replaces every matching link within it in one pass.
 			List<String> distinctReferencingNodes = new ArrayList<>();
 			for (NodeReference reference : references) {
-				String key = reference.getDialogueName() + " " + reference.getNodeTitle();
+				String key = reference.getDialogueName() + " " + reference.getNodeTitle();
 				if (!distinctReferencingNodes.contains(key)) {
 					distinctReferencingNodes.add(key);
 				}
 			}
 
 			for (String key : distinctReferencingNodes) {
-				String[] parts = key.split(" ", 2);
+				String[] parts = key.split(" ", 2);
 				DBDraftDialogue refDialogue = dialogueRepository
 						.findByProjectAndName(project, parts[0])
 						.orElseThrow(() -> new IllegalStateException(
@@ -480,12 +480,7 @@ public class DraftDialogueService {
 	}
 
 	/**
-	 * Renames a draft dialogue: updates its {@code name} column. If it has a published counterpart
-	 * (i.e. it isn't {@link DBDraftDialogue#getIsNew() new}) and hasn't already been renamed since
-	 * its last publish, its current name is remembered in {@link DBDraftDialogue#getRenamedFrom()}
-	 * — this is how the next publish knows which published entry to drop, and how a later rename in
-	 * the same unpublished chain (e.g. {@code A -> B -> C}) keeps remembering the original published
-	 * name ({@code A}) rather than the intermediate one.
+	 * Renames a draft dialogue: updates its {@code name} column.
 	 *
 	 * <p>If {@code updateReferences} is {@code true}, every reply link elsewhere in the project
 	 * that points into this dialogue (found via {@link #findDialogueReferences}) is rewritten in
@@ -551,9 +546,6 @@ public class DraftDialogueService {
 			}
 		}
 
-		if (!dialogue.getIsNew() && dialogue.getRenamedFrom() == null) {
-			dialogue.setRenamedFrom(oldName);
-		}
 		dialogue.setName(newName);
 		markChanged(dialogue);
 		DBDraftDialogue renamed = dialogueRepository.save(dialogue);

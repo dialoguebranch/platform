@@ -16,6 +16,10 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Fixed two literal NUL bytes accidentally embedded in `DraftDialogueService.java` (in place of
+  plain space characters used as a lookup-key delimiter during dialogue rename). They rendered as
+  ordinary spaces in editors and didn't affect runtime behavior, but caused the file to be
+  misdetected as binary by tools like `grep`, silently breaking plain-text search across it.
 - Fixed an issue in the Web Client where the delegate user selected via the admin's
   delegate-user picker was not sent to the API's `/draft/*` end-points, so testing a draft
   dialogue while impersonating another user silently ran against the admin's own account instead.
@@ -73,6 +77,12 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   one real implementation (`VariableStoreDatabaseStorageHandler`, which the API wires up directly
   by concrete type), so the JSON handler was never instantiated or reachable at runtime; consumers
   now depend on `VariableStoreDatabaseStorageHandler` directly instead of the interface.
+- Removed the unused `DBDraftDialogue.renamedFrom` field (and its `renamed_from` column, dropped
+  via `V9__drop_draft_dialogue_renamed_from.sql`). It was meant to let the next publish know which
+  published entry to drop after a rename, but that was never implemented — each publish already
+  writes a full, independent snapshot of the live drafts under their current names, so there was
+  never anything to look it up for. It was faithfully set on rename and cleared on publish, but
+  never read in between.
 
 ### Security
 

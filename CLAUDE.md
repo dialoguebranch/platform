@@ -123,13 +123,13 @@ API configuration flows: `application.yml` → overridable at runtime by environ
 
 Authoring (used by the web client's visual editor) operates on a separate, mutable **draft** copy of each dialogue, keeping published (runtime-served) content immutable until explicitly published:
 
-- **`DBDraftDialogue` / `DBDraftNode` / `DBDraftTranslation`** (`service/storage/model/`) — JPA entities holding the working copy of a dialogue's nodes and translations, one row set per project. `DBDraftDialogue` tracks `isNew`, `isChanged`, `isDeleted`, and `renamedFrom` flags that are maintained by every mutating operation (not computed on the fly) and reconciled on publish — see the Javadoc on those fields for the exact state machine.
+- **`DBDraftDialogue` / `DBDraftNode` / `DBDraftTranslation`** (`service/storage/model/`) — JPA entities holding the working copy of a dialogue's nodes and translations, one row set per project. `DBDraftDialogue` tracks `isNew`, `isChanged`, and `isDeleted` flags that are maintained by every mutating operation (not computed on the fly) and reconciled on publish — see the Javadoc on those fields for the exact state machine.
 - **`DraftDialogueService`** — CRUD for draft dialogues/nodes/translations: create, rename (with cross-reference detection via `find-*-references` endpoints), delete/restore (soft delete, reversible until publish), and translation updates.
-- **`PublishService`** — Reconciles drafts into the published `Dialogue`/`Script` model: drops soft-deleted drafts for real, clears `isNew`/`isChanged`/`renamedFrom` on success.
+- **`PublishService`** — Reconciles drafts into the published `Dialogue`/`Script` model: drops soft-deleted drafts for real, clears `isNew`/`isChanged` on success.
 - **`AuthoringController`** (`/v{version}/authoring`) — REST surface for the above: `list-dialogues`, `create-dialogue`, `delete-dialogue`, `restore-dialogue`, `rename-dialogue`, `find-dialogue-references`, `list-nodes`, `create-node`, `update-node`, `delete-node`, `rename-node`, `find-node-references`, `update-translation`, `delete-translation`.
 - **`DraftExecutionController` / `DraftExecutionService`** — Lets the web client run/test a dialogue against its unpublished draft content (an ephemeral "draft test" session), separate from normal runtime execution against published content.
 
-Migration `V6__add_draft_dialogue_status_flags.sql` added the `is_new`/`is_changed`/`is_deleted`/`renamed_from` columns backing this.
+Migration `V6__add_draft_dialogue_status_flags.sql` added the `is_new`/`is_changed`/`is_deleted` columns backing this (plus a since-dropped `renamed_from` column — see `V9__drop_draft_dialogue_renamed_from.sql`).
 
 ### Web client (`apps/web`)
 

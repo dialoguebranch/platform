@@ -101,16 +101,6 @@ public class DBDraftDialogue {
 	private boolean isDeleted;
 
 	/**
-	 * If this dialogue has been renamed since it was last published, the name its published
-	 * counterpart is still known by — used to find and optionally rewrite references to the old
-	 * name elsewhere in the project, and to know which published entry to drop on the next
-	 * publish. {@code null} if the dialogue hasn't been renamed since it was last in sync with its
-	 * published version (including if it's new and was never published under any name).
-	 */
-	@Column(name = "renamed_from")
-	private String renamedFrom;
-
-	/**
 	 * Creates an empty instance of {@link DBDraftDialogue}.
 	 */
 	public DBDraftDialogue() {
@@ -296,25 +286,6 @@ public class DBDraftDialogue {
 	 */
 	public void setIsDeleted(boolean isDeleted) {
 		this.isDeleted = isDeleted;
-	}
-
-	/**
-	 * Returns the published name this dialogue is still known by, if it has been renamed since it
-	 * was last published, or {@code null} otherwise.
-	 *
-	 * @return the prior published name, or {@code null}.
-	 */
-	public String getRenamedFrom() {
-		return renamedFrom;
-	}
-
-	/**
-	 * Sets the published name this dialogue is still known by.
-	 *
-	 * @param renamedFrom the prior published name, or {@code null}.
-	 */
-	public void setRenamedFrom(String renamedFrom) {
-		this.renamedFrom = renamedFrom;
 	}
 
 }

@@ -197,7 +197,6 @@ class DraftDialogueServiceTest {
                 draftDialogueService.renameDialogue(project, menu, "main-menu", true);
 
         assertEquals("main-menu", result.getDialogue().getName());
-        assertEquals("menu", result.getDialogue().getRenamedFrom());
         assertEquals(1, result.getReferencesUpdated());
 
         DBDraftNode reloadedStart = draftDialogueService.findNode(main, "Start").orElseThrow();
@@ -229,24 +228,6 @@ class DraftDialogueServiceTest {
                 draftDialogueService.renameDialogue(project, menu, "main", true));
         assertThrows(BadRequestException.class, () ->
                 draftDialogueService.renameDialogue(project, menu, "invalid name!", true));
-    }
-
-    @Test
-    void renameDialogueChainKeepsOriginalRenamedFromUntilPublished() throws Exception {
-        DBProject project = projectService.createProject("rename-dialogue-chain", "Rename Dialogue Test", "", "en", "English");
-        DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "a");
-        draftDialogueService.createNode(dialogue, "Start", "title: Start\nspeaker: Narrator", "");
-
-        PublishService.PublishResult publishResult = publishService.publish(project, null);
-        if (!publishResult.isSuccess()) {
-            throw new AssertionError("Publish failed: " + publishResult.getErrors());
-        }
-
-        draftDialogueService.renameDialogue(project, dialogue, "b", false);
-        assertEquals("a", dialogue.getRenamedFrom());
-
-        draftDialogueService.renameDialogue(project, dialogue, "c", false);
-        assertEquals("a", dialogue.getRenamedFrom());
     }
 
     @Test
