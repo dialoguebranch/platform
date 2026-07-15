@@ -22,9 +22,12 @@ const props = defineProps({
 
 // nodeChanged/nodeDeleted let DialogueWorkspace.vue track, per tab, whether its dialogue was
 // edited and which node was most recently touched — used to offer restarting a draft test from
-// that node instead of Start (deliberately not raised for position-only drags, which don't affect
-// what a test run does). dialogueSaved fires on every successful save, including drags — used to
-// tell the Dialogue Browser its "New"/"Draft"/"Deleted" labels and Publish-enablement may be stale.
+// that node instead of Start, and to force a "live" (published) test back to Draft mode. Raised
+// for every draft mutation, including position-only drags: even though a drag doesn't change what
+// a test run does, it does make the draft diverge from what's currently being tested/published,
+// which is the condition DialogueWorkspace's handleReturnFromEdit cares about. dialogueSaved fires
+// on every successful save, including drags — used to tell the Dialogue Browser its
+// "New"/"Draft"/"Deleted" labels and Publish-enablement may be stale.
 const emit = defineEmits(['nodeChanged', 'nodeDeleted', 'dialogueSaved']);
 
 const state = inject('state');
@@ -242,12 +245,8 @@ function onNodeDragStop({ node }) {
     client.updateDraftNode(state.value.selectedProject?.slug, props.dialogueName, node.id,
         newHeader, rawNode.body)
         .then((updated) => {
-            // Position-only changes don't count as content edits — they don't affect what a test
-            // run of this dialogue actually does — so no 'nodeChanged' here (see DialogueWorkspace's
-            // handleReturnFromEdit, which restarts/notifies based on that event). They do still
-            // change the draft's published-vs-current status, though (position is part of the
-            // reconstructed script), so 'dialogueSaved' still fires.
             rawNodesByTitle.value.set(node.id, updated);
+            emit('nodeChanged', node.id);
             emit('dialogueSaved');
         })
         .catch((error) => {
