@@ -126,13 +126,29 @@ public class ProjectLoaderService {
 
 	/**
 	 * Loads a single project from its latest published database version into the in-memory
-	 * {@link com.dialoguebranch.web.service.execution.ApplicationManager}.
+	 * {@link com.dialoguebranch.web.service.execution.ApplicationManager}, unless that exact
+	 * version is already loaded.
+	 *
+	 * <p>This idempotency check matters because this method has two independent callers that can
+	 * both fire for the same project on a fresh/empty database: {@link PublishService#publish}
+	 * calls it directly so a live publish takes effect immediately, and {@link #loadOnStartup()}
+	 * calls it for every project on every boot. When {@link ProjectSeedService} seeds a brand-new
+	 * project, it publishes it (triggering the first call) moments before {@link #loadOnStartup()}
+	 * — running right after it, via {@link Order} — sweeps all projects and would otherwise load
+	 * the same just-published version a second time.</p>
 	 *
 	 * @param project       the database project record.
 	 * @param latestVersion the published version to load.
 	 */
 	public void loadProject(DBProject project, DBProjectVersion latestVersion) {
 		String projectSlug = project.getSlug();
+
+		Integer loadedVersion = application.getApplicationManager().getProjectVersion(projectSlug);
+		if (loadedVersion != null && loadedVersion.equals(latestVersion.getVersionNumber())) {
+			logger.info("Project '{}' version {} is already loaded — skipping.", projectSlug,
+					latestVersion.getVersionNumber());
+			return;
+		}
 
 		String sourceLanguage = project.getSourceLanguageCode() != null
 				? project.getSourceLanguageCode() : "en";

@@ -83,10 +83,10 @@ Another way of making sure that Dialogue Branch has up-to-date values for Variab
 === Authentication
 As explained in the <<Dialogue Execution>> step, the first thing you need to do before working with the Web Service is to authenticate. See the xref:authentication.adoc[Authentication] page for a full explanation.
 
-In short: the Web Service is a pure OAuth2 resource server -- it validates Bearer tokens issued by https://www.keycloak.org/[Keycloak], but plays no role in issuing or refreshing them. Once authenticated, a user's Keycloak client roles (`client`, `editor`, `admin`, on the `dlb-web-service` Keycloak client) determine what they may do:
+In short: the Web Service is a pure OAuth2 resource server -- it validates Bearer tokens issued by https://www.keycloak.org/[Keycloak], but plays no role in issuing or refreshing them. Once authenticated, a user's Keycloak client roles (`participant`, `editor`, `admin`, on the `dlb-web-service` Keycloak client) determine what they may do:
 
-* `client` -- may execute dialogues and read/write their own variables.
-* `editor` -- everything `client` can do, plus authoring, publishing, and listing dialogues in a project.
+* `participant` -- may execute dialogues and read/write their own variables.
+* `editor` -- everything `participant` can do, plus authoring, publishing, and listing dialogues in a project.
 * `admin` -- everything `editor` can do, plus managing projects, and acting *on behalf of* another user via the optional `delegateUser` parameter present on most end-points.
 
 This `delegateUser` mechanism may be used e.g. in a scenario where "clients" don't directly interact with the Dialogue Branch Web Service, but instead connect through a trusted web component that manages a single connection (see Figure below).

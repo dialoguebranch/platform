@@ -75,7 +75,7 @@
         <mxCell id="tFiKD1fqqdK_nJ7ym5qI-4" value="Client .." style="rounded=0;whiteSpace=wrap;html=1;" parent="tFiKD1fqqdK_nJ7ym5qI-20" vertex="1">
           <mxGeometry y="80" width="120" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="tFiKD1fqqdK_nJ7ym5qI-18" value="Authenticate with a regular &quot;user&quot; for each Client" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2" parent="tFiKD1fqqdK_nJ7ym5qI-20" vertex="1">
+        <mxCell id="tFiKD1fqqdK_nJ7ym5qI-18" value="Authenticate with a regular &quot;participant&quot; for each Client" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontStyle=2" parent="tFiKD1fqqdK_nJ7ym5qI-20" vertex="1">
           <mxGeometry x="160" y="175" width="170" height="30" as="geometry" />
         </mxCell>
       </root>

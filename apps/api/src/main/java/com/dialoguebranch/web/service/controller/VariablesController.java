@@ -166,11 +166,11 @@ public class VariablesController {
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
 				(protocolVersion, authenticatedUser) -> doGetVariables(authenticatedUser, variableNameList, timeZone),
-				version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_CLIENT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
+				version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_PARTICIPANT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
 				(protocolVersion, authenticatedUser) -> doGetVariables(delegateUser, variableNameList, timeZone),
-				version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_CLIENT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
+				version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_PARTICIPANT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 		}
 	}
 
@@ -306,11 +306,11 @@ public class VariablesController {
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			QueryRunner.runQuery((protocolVersion, authenticatedUser) ->
 				doSetVariable(authenticatedUser, name, value, timeZone),
-				version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_CLIENT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
+				version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_PARTICIPANT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 		} else {
 			QueryRunner.runQuery((protocolVersion, authenticatedUser) ->
 				doSetVariable(delegateUser, name, value, timeZone),
-				version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_CLIENT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
+				version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_PARTICIPANT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 		}
 	}
 
@@ -426,11 +426,11 @@ public class VariablesController {
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			QueryRunner.runQuery((protocolVersion, authenticatedUser) ->
 							doSetVariables(authenticatedUser, variables, timeZone),
-				version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_CLIENT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
+				version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_PARTICIPANT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 		} else {
 			QueryRunner.runQuery((protocolVersion, authenticatedUser) ->
 							doSetVariables(delegateUser, variables, timeZone),
-				version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_CLIENT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
+				version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_PARTICIPANT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 		}
 	}
 

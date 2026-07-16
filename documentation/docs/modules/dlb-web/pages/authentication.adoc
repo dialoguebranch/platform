@@ -24,8 +24,8 @@ The Web Service validates this token by fetching Keycloak's JSON Web Key Set (JW
 == Roles
 Once a token is validated, the Web Service reads the caller's username from the JWT's `preferred_username` claim, and their roles from the JWT's `resource_access` → `dlb-web-service` → `roles` claim -- i.e. *client roles* configured on the `dlb-web-service` client in Keycloak (not Keycloak realm roles). Three roles are recognised:
 
-* `client` -- may execute dialogues (`/dialogue/*`) and read/write their own Dialogue Branch Variables (`/variables/*`).
-* `editor` -- everything `client` can do, plus authoring and publishing dialogue content (`/authoring/*`, `/publish/*`, `/draft/*`) and listing dialogues in a project (`/dialogue/list-dialogues`).
+* `participant` -- may execute dialogues (`/dialogue/*`) and read/write their own Dialogue Branch Variables (`/variables/*`).
+* `editor` -- everything `participant` can do, plus authoring and publishing dialogue content (`/authoring/*`, `/publish/*`, `/draft/*`) and listing dialogues in a project (`/dialogue/list-dialogues`).
 * `admin` -- everything `editor` can do, plus managing projects (`/project/*`), and acting *on behalf of* another user by passing the optional `delegateUser` parameter present on most end-points.
 
 Each end-point declares the minimum set of roles it accepts; calling with insufficient privileges results in a `401 Unauthorized` response with error code `INSUFFICIENT_PRIVILEGES`.
@@ -40,4 +40,4 @@ A small number of end-points do not require a token at all:
 Every other end-point requires a valid Bearer token.
 
 == Local Development
-When running the platform's local development stack (see the repository's top-level `infrastructure/docker/compose.yml`), Keycloak is available at `http://localhost:8081`. The bundled realm import does not seed any demo users -- after starting the stack, log in to the Keycloak admin console (default credentials `admin`/`admin`) and create a test user, assigning it one or more of the `client`/`editor`/`admin` client roles on the `dlb-web-service` client, before you can call any authenticated Web Service end-point.
+When running the platform's local development stack (see the repository's top-level `infrastructure/docker/compose.yml`), Keycloak is available at `http://localhost:8081`. The bundled realm import does not seed any demo users -- after starting the stack, log in to the Keycloak admin console (default credentials `admin`/`admin`) and create a test user, assigning it one or more of the `participant`/`editor`/`admin` client roles on the `dlb-web-service` client, before you can call any authenticated Web Service end-point.

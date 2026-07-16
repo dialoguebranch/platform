@@ -25,7 +25,7 @@ All API end-points (other than `/info/all` and a few infrastructure end-points) 
 * Log in with the test user you created while following the installation tutorial (e.g. `testuser`).
 * After a successful login, Swagger stores the resulting access token and automatically attaches it to every request you make from this point on -- click *Close* to return to the API list.
 
-NOTE: Which end-points you're allowed to call, and whether you can specify a `delegateUser` parameter to act on behalf of another user, depends on which of the `client`/`editor`/`admin` roles are assigned to your test user -- see xref:dlb-web:authentication.adoc[Authentication].
+NOTE: Which end-points you're allowed to call, and whether you can specify a `delegateUser` parameter to act on behalf of another user, depends on which of the `participant`/`editor`/`admin` roles are assigned to your test user -- see xref:dlb-web:authentication.adoc[Authentication].
 
 === Summary of API End-Points
 Before we can start building our own software client that can communicate with the Web Service, we will explore the functionalities of the API using the Swagger UI.

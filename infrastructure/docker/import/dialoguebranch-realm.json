@@ -307,8 +307,8 @@
         },
         {
           "id": "f2da1a1c-8792-4588-8a3a-68f0399db078",
-          "name": "client",
-          "description": "A user with the \"client\" role can execute dialogues through the Web Service.",
+          "name": "participant",
+          "description": "A user with the \"participant\" role can execute dialogues through the Web Service.",
           "composite": false,
           "clientRole": true,
           "containerId": "87183653-70f2-4b9d-9805-c837151764bc",

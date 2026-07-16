@@ -77,7 +77,7 @@ The web client starts on [http://localhost:5173](http://localhost:5173).
 2. Select the **dialoguebranch** realm at **Manage realms** (top-left).
 3. Go to **Users → Create new user**. Fill in username `testuser`, email `testuser@example.com`, first name `Test`, last name `User`, and click **Create**.
 4. Go to the **Credentials** tab, click **Set password**, enter `password`, disable **Temporary**, and click **Save**.
-5. Go to the **Role mapping** tab, click **Assign role**, switch the filter dropdown to **Filter by clients**, select `admin`, `client`, and `editor` (the `dlb-web-service` client roles), and click **Assign**. Without at least one of these roles, the API will reject requests from this user with a 403 (insufficient privileges) even with a valid token.
+5. Go to the **Role mapping** tab, click **Assign role**, switch the filter dropdown to **Filter by clients**, select `admin`, `participant`, and `editor` (the `dlb-web-service` client roles), and click **Assign**. Without at least one of these roles, the API will reject requests from this user with a 403 (insufficient privileges) even with a valid token.
 
 #### 2. Authenticate in Swagger UI
 

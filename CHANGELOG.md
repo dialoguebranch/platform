@@ -30,8 +30,35 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   it's now mutated concurrently by request threads and the scheduled sweep, not just by request
   threads racing each other.
 
+### Changed
+
+- **Breaking:** Renamed the `client` Keycloak role to `participant`, to avoid confusion with the
+  unrelated Keycloak concept of a *client* (an OAuth2 application registration, e.g. the
+  `dlb-web-service` client itself) — `client` was never meant to denote "a service acting as a
+  client," only "a basic user who can execute dialogues," which `participant` states unambiguously.
+  `AuthenticationInfo.USER_ROLE_CLIENT` is now `USER_ROLE_PARTICIPANT` (value `"participant"`), and
+  every end-point role check, the dev-stack's `dialoguebranch-realm.json`, and the docs
+  (`authentication.adoc`, `dlb-web/index.adoc`, both installation/exploring-the-API tutorials,
+  `README.md`) were updated to match. This is a clean break, not backwards compatible: any
+  already-provisioned Keycloak realm (local dev instances that already imported the old JSON,
+  staging, production, or any third-party self-hosted deployment) has this role under its old name,
+  `client`, and must be manually renamed in the Keycloak admin console — the dev-stack's
+  `--import-realm` only seeds a *fresh* realm, so this JSON change does not retroactively fix
+  already-provisioned Keycloak instances. Existing `client`-role users will get `401
+  INSUFFICIENT_PRIVILEGES` from every endpoint until their role is renamed.
+
 ### Fixed
 
+- Fixed a project being parsed and loaded into memory twice on a fresh/empty database boot, e.g.
+  `Loading Dialogue Branch project 'default-test' into memory.` / `Successfully loaded...` logged
+  twice in a row before the seed-completion message. `ProjectSeedService` seeds a new project by
+  publishing it via `PublishService.publish()`, which itself calls `ProjectLoaderService.loadProject`
+  so a live publish takes effect immediately — but `ProjectLoaderService.loadOnStartup()`
+  (`@Order(1)`, runs right after seeding's `@Order(0)`) then unconditionally reloads every project
+  in the database, redoing the exact same just-finished load. `loadProject` now skips reloading a
+  project whose exact version is already in `ApplicationManager`, logging `Project 'X' version N is
+  already loaded — skipping.` instead. Harmless before (the second load was a correct, idempotent
+  replace) but wasteful and confusing in the logs; only visible on a first-ever/empty-database boot.
 - Fixed the API's Swagger UI showing "1" (the latest API *protocol* version) as the document
   version instead of the actual software version (e.g. `2.0.1`). `OpenApiSwaggerConfig` now reads
   the version from `DlbProperties.getVersion()` instead of `ServiceContext.getCurrentVersion()`.

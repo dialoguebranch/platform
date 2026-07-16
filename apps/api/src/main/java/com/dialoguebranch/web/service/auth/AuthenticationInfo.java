@@ -39,8 +39,8 @@ import java.util.Date;
  */
 public class AuthenticationInfo {
 
-	/** Role name for a basic client user. */
-	public static final String USER_ROLE_CLIENT = "client";
+	/** Role name for a basic dialogue participant. */
+	public static final String USER_ROLE_PARTICIPANT = "participant";
 
 	/** Role name for a dialogue editor. */
 	public static final String USER_ROLE_EDITOR = "editor";
