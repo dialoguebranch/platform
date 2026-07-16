@@ -9,6 +9,14 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Added a small "x" icon to reply options in the Web Client's Speech Bubble and RPG Text test
+  modes (`BalloonDialogueComponent.vue`/`TextDialogueComponent.vue`) when selecting that reply
+  would end the dialogue, so a tester can see this before choosing it rather than being surprised
+  afterward ([#73](https://github.com/dialoguebranch/platform/issues/73)). This was a pure
+  front-end gap: the API already computed and sent this per-reply (`ReplyMessage.endsDialogue`,
+  set by `DialogueMessageFactory` whenever a reply points directly at the dialogue's `End` node),
+  and the client's `Reply`/`BasicReply`/`AutoForwardReply` models and `DialogueBranchClient`
+  already parsed it — it just was never rendered anywhere.
 - Added a dedicated Web Client layout for `participant`-only users (no `editor`/`admin`), so the
   `participant` role can actually be tested end-to-end. Previously `main.js`'s role gate excluded
   anyone without `editor`/`admin` entirely, logging them straight back out — and even if let in, a

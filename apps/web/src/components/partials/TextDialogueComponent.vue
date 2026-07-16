@@ -113,7 +113,7 @@ function getBasicReplyTextClasses(stepIndex, reply) {
                             :class="getBasicReplyTextClasses(stepIndex, reply)"
                             @click="onReplyClick(step, stepIndex, reply)"
                         >
-                            {{ reply.statement.fullStatement() }}
+                            <FontAwesomeIcon v-if="reply.endsDialogue" icon="fa-solid fa-xmark" class="mr-1 opacity-75" title="This reply ends the dialogue" />{{ reply.statement.fullStatement() }}
                         </span>
                     </div>
                 </div>
@@ -126,7 +126,7 @@ function getBasicReplyTextClasses(stepIndex, reply) {
                         :disabled="isReplySelectable(stepIndex) ? null : true"
                         @click="$emit('selectReply', step, reply)"
                     >
-                        Continue
+                        <FontAwesomeIcon v-if="reply.endsDialogue" icon="fa-solid fa-xmark" class="mr-2 opacity-75" title="This reply ends the dialogue" />Continue
                     </button>
                 </div>
             </template>

@@ -97,7 +97,7 @@ const currentStep = computed(() => {
                             :disabled="awaitingReply"
                             @click="$emit('selectReply', currentStep, reply)"
                         >
-                            {{ reply.statement.fullStatement() }}
+                            <FontAwesomeIcon v-if="reply.endsDialogue" icon="fa-solid fa-xmark" class="mr-2 opacity-75" title="This reply ends the dialogue" />{{ reply.statement.fullStatement() }}
                         </button>
                         <button
                             v-if="reply instanceof AutoForwardReply"
@@ -106,7 +106,7 @@ const currentStep = computed(() => {
                             :disabled="awaitingReply"
                             @click="$emit('selectReply', currentStep, reply)"
                         >
-                            Continue
+                            <FontAwesomeIcon v-if="reply.endsDialogue" icon="fa-solid fa-xmark" class="mr-2 opacity-75" title="This reply ends the dialogue" />Continue
                         </button>
                     </template>
                 </div>
