@@ -228,19 +228,6 @@ public class ApplicationManager {
 	// ------------------------------------------------------------- //
 
 	/**
-	 * Returns the {@link ResourcePointer}s of all dialogues available across all loaded projects.
-	 *
-	 * @return a list of all available dialogue descriptors.
-	 */
-	public List<ResourcePointer> getDialogueDescriptions() {
-		List<ResourcePointer> result = new ArrayList<>();
-		for (DialogueBranchProject project : projects.values()) {
-			result.addAll(project.getResourcePointers());
-		}
-		return result;
-	}
-
-	/**
 	 * Returns the {@link ResourcePointer}s of all dialogues available in the named project, or an
 	 * empty list if no project with that name is loaded.
 	 *
@@ -283,15 +270,6 @@ public class ApplicationManager {
 	}
 
 	/**
-	 * Returns all available dialogues across all loaded Dialogue Branch projects.
-	 *
-	 * @return a list of {@link ResourcePointer}s for all available dialogues.
-	 */
-	public List<ResourcePointer> getAvailableDialogues() {
-		return getDialogueDescriptions();
-	}
-
-	/**
 	 * Returns all available dialogues in the named project, or an empty list if no project with
 	 * that name is loaded.
 	 *
@@ -300,35 +278,6 @@ public class ApplicationManager {
 	 */
 	public List<ResourcePointer> getAvailableDialoguesForProject(String projectSlug) {
 		return getDialogueDescriptionsForProject(projectSlug);
-	}
-
-	/**
-	 * Returns the {@link Dialogue} identified by the given {@code dialogueDescription} and
-	 * {@code translationContext}, searching across all loaded Dialogue Branch projects.
-	 *
-	 * @param dialogueDescription the {@link ResourcePointer} identifying the requested dialogue.
-	 * @param translationContext  the translation context to apply, or {@code null} for the source.
-	 * @return the requested {@link Dialogue}.
-	 * @throws ExecutionException with type {@link ExecutionException.Type#DIALOGUE_NOT_FOUND} if no
-	 *                            matching dialogue is found in any loaded project.
-	 */
-	public Dialogue getDialogueDefinition(ResourcePointer dialogueDescription,
-                                          TranslationContext translationContext)
-			throws ExecutionException {
-		for (DialogueBranchProject project : projects.values()) {
-			if (!(project instanceof ExecutableProject execProject)) continue;
-			Dialogue dialogue;
-			if (translationContext == null) {
-				dialogue = execProject.getDialogues().get(dialogueDescription);
-			} else {
-				dialogue = execProject.getTranslatedDialogue(dialogueDescription, translationContext);
-			}
-			if (dialogue != null) return dialogue;
-		}
-		throw new ExecutionException(ExecutionException.Type.DIALOGUE_NOT_FOUND,
-				"Pre-loaded dialogue not found for dialogue '" +
-						dialogueDescription.getDialogueName() + "' in language '" +
-						dialogueDescription.getLanguage() + "'.");
 	}
 
 	/**

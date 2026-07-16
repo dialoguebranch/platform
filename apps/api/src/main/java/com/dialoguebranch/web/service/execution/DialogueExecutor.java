@@ -212,17 +212,19 @@ public class DialogueExecutor {
 			String dialogueId = externalNodePointer.getAbsoluteTargetDialogue();
 			String nodeId = externalNodePointer.getTargetNodeId();
 
+			String projectSlug = serverLoggedDialogue.getProjectName();
 			ResourcePointer dialogueDescription =
-					userService.getDialogueDescriptionFromId(dialogueId, language);
+					userService.getDialogueDescriptionFromProject(projectSlug, dialogueId, language);
 			if (dialogueDescription == null) {
 				throw new ExecutionException(ExecutionException.Type.DIALOGUE_NOT_FOUND,
 						"Dialogue not found: " + dialogueId);
 			}
-			Dialogue newDialogue = userService.getDialogueDefinition(dialogueDescription);
+			Dialogue newDialogue = userService.getDialogueDefinitionForProject(projectSlug,
+					dialogueDescription);
 
 			return this.startDialogue(dialogueDescription, newDialogue, nodeId,
 					serverLoggedDialogue.getSessionId(), serverLoggedDialogue.getSessionStartTime(),
-					serverLoggedDialogue.getProjectName());
+					projectSlug);
 		}
 	}
 

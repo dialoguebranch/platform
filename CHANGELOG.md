@@ -24,6 +24,19 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   doesn't apply the `war` plugin, so `src/main/webapp` was never packaged by the build or read at
   runtime; the root-path redirect to Swagger UI it once implied is already handled by
   `SwaggerController` and `static/index.html`.
+- Fixed `DialogueExecutor` resolving cross-dialogue reply links (`[[link|OtherDialogue.Node]]`) by
+  searching *all* loaded projects for a matching dialogue name/language, instead of scoping the
+  search to the originating dialogue's own project — even though `ExternalNodePointer` (the model
+  class backing these links) only ever resolves relative paths bounded at the project root, so a
+  cross-*project* reference was never a real possibility to begin with. If two projects happened to
+  declare a same-named dialogue in the same language, a link could silently resolve into the wrong
+  project's dialogue. `DialogueExecutor` now calls the project-scoped
+  `getDialogueDescriptionFromProject`/`getDialogueDefinitionForProject` (passing the originating
+  `serverLoggedDialogue`'s project slug) instead of the unscoped, all-projects variants. This also
+  let a whole cluster of now-unreachable code be deleted: `UserService`'s `getAvailableDialogues`/
+  `getDialogueDescriptionFromId`/`getDialogueDefinition(ResourcePointer)`, and
+  `ApplicationManager`'s `getDialogueDescriptions`/`getAvailableDialogues()`/
+  `getAvailableDialogues(String)`/`getDialogueDefinition(ResourcePointer, TranslationContext)`.
 
 ## [2.0.1] - 2026-07-16
 
