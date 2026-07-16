@@ -138,13 +138,13 @@ public class OpenApiSwaggerConfig {
 
 		openAPI.info(
 			new Info()
-				.title("DialogueBranch Web Service API")
-				.description("The DialogueBranch Web Service API gives authorized clients the " +
-						"ability to start-, and sequentially execute DialogueBranch dialogues as " +
-						"well to access DialogueBranch Variable data.")
-				.version(ServiceContext.getCurrentVersion())
+				.title("Dialogue Branch Web Service API")
+				.description("The Dialogue Branch Web Service API gives authorized clients the " +
+						"ability to start-, and sequentially execute Dialogue Branch dialogues as " +
+						"well to access Dialogue Branch Variable data.")
+				.version(dlbProperties.getVersion())
 				.contact(new Contact().email("info@dialoguebranch.com")
-						.name("DialogueBranch Platform Support"))
+						.name("Dialogue Branch Platform Support"))
 				.license(new License().name("MIT").url("https://opensource.org/licenses/MIT")));
 
 		return openAPI;

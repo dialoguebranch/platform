@@ -156,7 +156,7 @@ public class DialogueController {
 		@RequestParam(value="projectSlug")
 		String projectSlug,
 
-		@Parameter(description = "Name of the DialogueBranch Dialogue to start (excluding .dlb)")
+		@Parameter(description = "Name of the Dialogue Branch Dialogue to start (excluding .dlb)")
 		@RequestParam(value="dialogueName")
 		String dialogueName,
 
@@ -463,7 +463,7 @@ public class DialogueController {
 		@RequestParam(value="projectSlug")
 		String projectSlug,
 
-		@Parameter(description = "Name of the DialogueBranch Dialogue to continue (excluding .dlb)")
+		@Parameter(description = "Name of the Dialogue Branch Dialogue to continue (excluding .dlb)")
 		@RequestParam(value="dialogueName")
 		String dialogueName,
 

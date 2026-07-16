@@ -3,7 +3,7 @@
  *                Copyright (c) 2023-2024 Fruit Tree Labs (www.fruittreelabs.com)
  *
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *                                        as outlined below.
  *
  *                                            ----------
@@ -27,7 +27,7 @@
  */
 
 /**
- * A Variable models a DialogueBranch Variable object, including its name, value, lastUpdatedTime
+ * A Variable models a Dialogue Branch Variable object, including its name, value, lastUpdatedTime
  * and updatedTimeZone.
  *
  * @author Harm op den Akker (Fruit Tree Labs)

@@ -124,7 +124,7 @@ public class CommandLineRunner {
 		boolean rootDirectoryValid = false;
 
 		while(!rootDirectoryValid) {
-			System.out.println("Please provide the root directory of the DialogueBranch project:");
+			System.out.println("Please provide the root directory of the Dialogue Branch project:");
 			try {
 				rootDirectory = askUserInputDirectory();
 				rootDirectoryValid = true;
@@ -139,7 +139,7 @@ public class CommandLineRunner {
 			ProjectParser parser = new ProjectParser(scriptLoader);
 			readResult = parser.parse();
 		} catch (IOException ex) {
-			System.err.println("ERROR: Can't read DialogueBranch project from directory: " +
+			System.err.println("ERROR: Can't read Dialogue Branch project from directory: " +
 				rootDirectory.getAbsolutePath() + ": " + ex.getMessage());
 			System.exit(0);
 			return;
@@ -159,7 +159,7 @@ public class CommandLineRunner {
 		// Get a pointer to the projectMetadataFile (dlb-project.xml file)
 		while(!projectMetadataFileValid) {
 			System.out.println("Please provide the project metadata (.xml) file of the " +
-					"DialogueBranch project:");
+					"Dialogue Branch project:");
 			try {
 				projectMetadataFile = askUserInputXMLFile();
 				projectMetadataFileValid = true;
@@ -174,7 +174,7 @@ public class CommandLineRunner {
 			ProjectParser parser = new ProjectParser(scriptLoader);
 			readResult = parser.parse();
 		} catch (IOException ex) {
-			System.err.println("ERROR: Can't read DialogueBranch project from given project XML " +
+			System.err.println("ERROR: Can't read Dialogue Branch project from given project XML " +
 					"file: " + projectMetadataFile + ": " + ex.getMessage());
 			System.exit(0);
 			return;
@@ -233,7 +233,7 @@ public class CommandLineRunner {
 		// Get a pointer to the projectMetadataFile (dlb-project.xml file)
 		while(!projectMetadataFileValid) {
 			System.out.println("Please provide the project metadata (.xml) file of the " +
-					"DialogueBranch project:");
+					"Dialogue Branch project:");
 			try {
 				projectMetadataFile = askUserInputXMLFile();
 				projectMetadataFileValid = true;

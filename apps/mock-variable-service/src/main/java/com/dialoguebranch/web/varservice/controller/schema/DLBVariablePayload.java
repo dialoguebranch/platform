@@ -38,11 +38,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
  */
 public class DLBVariablePayload {
 
-	@Schema(description = "Name of the DialogueBranch Variable",
+	@Schema(description = "Name of the Dialogue Branch Variable",
 			example = "dialogueBranchVariableName")
 	private String name;
 
-	@Schema(description = "Value of the DialogueBranch Variable",
+	@Schema(description = "Value of the Dialogue Branch Variable",
 			example = "some value")
 	private Object value;
 

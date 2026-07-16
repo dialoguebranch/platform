@@ -255,7 +255,7 @@ public class ProjectMetaData {
 			throws DuplicateLanguageCodeException {
 		if(languageExists(code))
 			throw new DuplicateLanguageCodeException("A language with the given language " +
-					"code '"+code+"' is already defined in this DialogueBranch project.",code);
+					"code '"+code+"' is already defined in this Dialogue Branch project.",code);
 
 		languageMap.setSourceLanguage(new Language(name,code));
 	}
@@ -275,7 +275,7 @@ public class ProjectMetaData {
 			throws DuplicateLanguageCodeException {
 		if(languageExists(code))
 			throw new DuplicateLanguageCodeException("A language with the given language " +
-					"code '"+code+"' is already defined in this DialogueBranch project.",code);
+					"code '"+code+"' is already defined in this Dialogue Branch project.",code);
 
 		languageMap.addTranslationLanguage(new Language(name,code));
 	}
@@ -377,7 +377,7 @@ public class ProjectMetaData {
 	 */
 	public String toString() {
 		String result = "";
-		result += "DialogueBranch Project Metadata:\n";
+		result += "Dialogue Branch Project Metadata:\n";
 		result += "[name:"+name+"]\n";
 		result += "[basePath:"+basePath+"]\n";
 		result += "[description:"+description+"]\n";

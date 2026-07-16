@@ -3,7 +3,7 @@
  *                Copyright (c) 2023-2024 Fruit Tree Labs (www.fruittreelabs.com)
  *
  *
- *     This material is part of the DialogueBranch Platform, and is covered by the MIT License
+ *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
  *                                        as outlined below.
  *
  *                                            ----------
@@ -172,7 +172,7 @@ export class AbstractController {
     }
 
     // -------------------------------------------------------------------------------------------------
-    // ---------- 3. Variables: End-points for retrieving or setting DialogueBranch Variables. ----------
+    // ---------- 3. Variables: End-points for retrieving or setting Dialogue Branch Variables. ----------
     // --------------------------------------------------------------------------------------------------
 
     // -----------------------------------------------

@@ -67,18 +67,18 @@ Hello $playerName, how are you doing?
 [[I'm sad.|PlayerIsSad]]
 ----
 
-However, as in the example, it doesn't always make sense to set the values for Variables in the dialogue scripts themselves. Instead, these values might originate from another part of your client application. Imagine that your client application is a game that includes a user interface where players can insert their name. When a player does this, the value should be communicated to DialogueBranch, so that the $playerName variable may be used in dialogues.
+However, as in the example, it doesn't always make sense to set the values for Variables in the dialogue scripts themselves. Instead, these values might originate from another part of your client application. Imagine that your client application is a game that includes a user interface where players can insert their name. When a player does this, the value should be communicated to Dialogue Branch, so that the $playerName variable may be used in dialogues.
 
 The Web Service offers the following end-points for sending Variable-values to the service:
 
 * `/variables/set-single` -- allowing you to set the value for a single Variable by providing a `name` and a `value`.
 * `/variables/set` -- allowing you to set the value for a number of Variables simultaneously by including a JSON payload in the body.
 
-Using these, you can inform DialogueBranch about Variables whose values are generated through any part of your client application. The other way around, your client application can also ask the Web Service about Variable values, using the following end-point:
+Using these, you can inform Dialogue Branch about Variables whose values are generated through any part of your client application. The other way around, your client application can also ask the Web Service about Variable values, using the following end-point:
 
 * `/variables/get` -- allows you to ask for all known Variables for a user, or a space-separated list of specific Variables (via the `variableNames` parameter).
 
-Another way of making sure that DialogueBranch has up-to-date values for Variables, is by using an <<External Variable Service>>, as explained below.
+Another way of making sure that Dialogue Branch has up-to-date values for Variables, is by using an <<External Variable Service>>, as explained below.
 
 === Authentication
 As explained in the <<Dialogue Execution>> step, the first thing you need to do before working with the Web Service is to authenticate. See the xref:authentication.adoc[Authentication] page for a full explanation.

@@ -158,7 +158,7 @@ public class ProjectParserResult {
 	public String generateSummaryString() {
 		StringBuilder result = new StringBuilder();
 
-		result.append("===== Summary of Results for Parsing DialogueBranch Project =====\n");
+		result.append("===== Summary of Results for Parsing Dialogue Branch Project =====\n");
 
 		// Get a string description of the project location (depending on the file loader used)
 		String projectLocationDescription = "unknown";
@@ -172,7 +172,7 @@ public class ProjectParserResult {
 
 		// In case of parse errors, print them and then return
 		if(!this.getParseErrors().isEmpty()) {
-			result.append("DialogueBranch project at ")
+			result.append("Dialogue Branch project at ")
 					.append(projectLocationDescription)
 					.append(" contains ")
 					.append("the following errors.\n");
@@ -192,7 +192,7 @@ public class ProjectParserResult {
 
 		// In case there are no errors, first list all warnings
 		if(!this.getWarnings().isEmpty()) {
-			result.append("DialogueBranch project at ")
+			result.append("Dialogue Branch project at ")
 					.append(projectLocationDescription)
 					.append(" contains ")
 					.append("the following warnings.\n");

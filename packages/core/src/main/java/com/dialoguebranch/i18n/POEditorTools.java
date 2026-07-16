@@ -232,7 +232,7 @@ public class POEditorTools {
 		POEditorTools tools = new POEditorTools();
 
 		System.out.println("""
-                Welcome to the DialogueBranch POEditor Command Line Tool.
+                Welcome to the Dialogue Branch POEditor Command Line Tool.
 
                 This command line tool is used for a number of different scenarios for converting Dialogue Branch and POEditor file formats.
                 Since you haven't provided command line arguments, we will take you through an interactive menu to determine your desired scenario and parameters.""");
@@ -243,7 +243,7 @@ public class POEditorTools {
 		System.out.println("  2. Generate multiple POEditor Terms files from a .dlb script, " +
 				"including all linked scripts.");
 		System.out.println("  3. Convert a single POEditor Key-Value JSON export to one or " +
-				"many DialogueBranch Translation JSON files.");
+				"many Dialogue Branch Translation JSON files.");
 
 		Scanner userInputScanner = new Scanner(System.in);  // Create a Scanner object
 		System.out.print("\nChoose scenario: ");
@@ -259,7 +259,7 @@ public class POEditorTools {
 				System.out.println("Please provide the full file path to the starting " +
 						".dlb script.");
 
-				System.out.print("DialogueBranch Script File: ");
+				System.out.print("Dialogue Branch Script File: ");
 				dlbScriptFile = userInputScanner.nextLine();
 
 				try {
@@ -306,7 +306,7 @@ public class POEditorTools {
 				System.out.println("Please provide the full file path to the starting " +
 						".dlb script.");
 
-				System.out.print("DialogueBranch Script File: ");
+				System.out.print("Dialogue Branch Script File: ");
 				dlbScriptFile = userInputScanner.nextLine();
 
 				try {
@@ -346,7 +346,7 @@ public class POEditorTools {
 				try {
 					Map<String, TranslationFile> dlbTranslationFiles = tools.generateTranslationFilesFromPOEditorExport(poEditorKeyValueFile);
 					System.out.println("Successfully read translations for "+dlbTranslationFiles.keySet().size()+" files.");
-					System.out.println("Please choose a directory where you would like to store the DialogueBranch Translation files.");
+					System.out.println("Please choose a directory where you would like to store the Dialogue Branch Translation files.");
 					outputDirectory = tools.getOutputDirectoryInteractive();
 
 					// The output directory should exist at this point...

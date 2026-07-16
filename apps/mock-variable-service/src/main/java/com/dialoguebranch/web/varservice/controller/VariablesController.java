@@ -125,7 +125,7 @@ public class VariablesController {
 	@Operation(summary = "Retrieve updates for a given list of Dialogue Branch Variables",
 		description = "The use case for this end-point is as follows. Before executing a " +
 			"Dialogue Branch Dialogue, you (or e.g. the Dialogue Branch Web Service) may gather " +
-			"a list of all the DialogueBranch Variables used in its execution. Before starting " +
+			"a list of all the Dialogue Branch Variables used in its execution. Before starting " +
 			"the execution, you may call this end-point with the list of Dialogue Branch " +
 			"Variables in order to verify that you have the latest values for all variables. In " +
 			"return, you will receive a list - which is a subset of the list you provided - " +
@@ -160,11 +160,11 @@ public class VariablesController {
 		@RequestParam(value="userId")
 		String userId,
 
-		@Parameter(description = "The current time zone of the DialogueBranch user")
+		@Parameter(description = "The current time zone of the Dialogue Branch user")
 		@RequestParam(value="timeZone")
 		String timeZone,
 
-		@Parameter(description = "List of DialogueBranch Variables for which to check for updates.",
+		@Parameter(description = "List of Dialogue Branch Variables for which to check for updates.",
 				required = true,
 				content = @Content(
 					array = @ArraySchema(
@@ -247,7 +247,7 @@ public class VariablesController {
 						parameterToUpdate.getUpdatedTime(), readableTimeString,
 						parameterToUpdate.getUpdatedTimeZone());
 			} else {
-                logger.info("The DialogueBranch Variable '{}' with value '{}' for user '{}' " +
+                logger.info("The Dialogue Branch Variable '{}' with value '{}' for user '{}' " +
 						"was last updated at an unknown time.", parameterToUpdate.getName(),
 						parameterToUpdate.getValue(), userId);
 			}
@@ -319,9 +319,9 @@ public class VariablesController {
 	 * @return A status code of 200 (OK).
 	 * @throws Exception in case of a network or service error.
 	 */
-	@Operation(summary = "Inform that the given list of DialogueBranch Variables have been updated",
-		description = "With this end-point you can inform this DialogueBranch External Variable " +
-			"Service that a list of DialogueBranch Variables have been updated (e.g. during " +
+	@Operation(summary = "Inform that the given list of Dialogue Branch Variables have been updated",
+		description = "With this end-point you can inform this Dialogue Branch External Variable " +
+			"Service that a list of Dialogue Branch Variables have been updated (e.g. during " +
 			"dialogue execution) for a particular user." +
 			"<br/><br/>You must pass along the current timezone of the user (client) so that " +
 			"certain time sensitive variables may be correctly set according to the timezone of " +
@@ -340,16 +340,16 @@ public class VariablesController {
 		@PathVariable(value = "version")
 		String version,
 
-		@Parameter(description = "The userId of the DialogueBranch user")
+		@Parameter(description = "The userId of the Dialogue Branch user")
 		@RequestParam(value="userId")
 		String userId,
 
-		@Parameter(description = "The current time zone of the DialogueBranch user")
+		@Parameter(description = "The current time zone of the Dialogue Branch user")
 		@RequestParam(value="timeZone")
 		String timeZone,
 
 		@Parameter(
-			description = "List of DialogueBranch Variables for which to check for updates.",
+			description = "List of Dialogue Branch Variables for which to check for updates.",
 			required = true,
 			content = @Content(
 				array = @ArraySchema(
@@ -439,9 +439,9 @@ public class VariablesController {
 	 * @return A status code of 200 (OK).
 	 * @throws Exception in case of a network or service error.
 	 */
-	@Operation(summary = "Inform that the DialogueBranch Variable store has been completed cleared",
-		description = "With this end-point you can inform this DialogueBranch External Variable " +
-			"Service that a full clear of the DialogueBranch Variable Store has occurred for a " +
+	@Operation(summary = "Inform that the Dialogue Branch Variable store has been completed cleared",
+		description = "With this end-point you can inform this Dialogue Branch External Variable " +
+			"Service that a full clear of the Dialogue Branch Variable Store has occurred for a " +
 			"particular user." +
 			"<br/><br/>You must pass along the current timezone of the user (client) so that " +
 			"the clearing of the database event may be correctly time logged." +
@@ -458,11 +458,11 @@ public class VariablesController {
 		@PathVariable(value = "version")
 		String version,
 
-		@Parameter(description = "The userId of the DialogueBranch user")
+		@Parameter(description = "The userId of the Dialogue Branch user")
 		@RequestParam(value="userId")
 		String userId,
 
-		@Parameter(description = "The current time zone of the DialogueBranch user")
+		@Parameter(description = "The current time zone of the Dialogue Branch user")
 		@RequestParam(value="timeZone")
 		String timeZone
 	) throws Exception {

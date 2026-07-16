@@ -70,7 +70,7 @@ import java.util.*;
 @SecurityRequirement(name = "bearerAuth")
 @SecurityRequirement(name = "oauth2")
 @RequestMapping(value = {"/v{version}/variables", "/variables"})
-@Tag(name = "3. Variables", description = "End-points for retrieving or setting DialogueBranch " +
+@Tag(name = "3. Variables", description = "End-points for retrieving or setting Dialogue Branch " +
 		"Variables.")
 public class VariablesController {
 
@@ -135,7 +135,7 @@ public class VariablesController {
 		@RequestParam(value="variableNames", required=false)
 		String variableNames,
 
-		@Parameter(description = "The current time zone of the DialogueBranch user (as IANA, " +
+		@Parameter(description = "The current time zone of the Dialogue Branch user (as IANA, " +
 				"e.g. 'Europe/Lisbon')")
 		@RequestParam(value="timeZone")
 		String timeZone,
@@ -281,7 +281,7 @@ public class VariablesController {
 		@RequestParam(value="delegateUser",required=false,defaultValue="")
 		String delegateUser,
 
-		@Parameter(description = "The current time zone of the DialogueBranch user (as IANA, " +
+		@Parameter(description = "The current time zone of the Dialogue Branch user (as IANA, " +
 			"e.g. 'Europe/Lisbon')")
 		@RequestParam(value="timeZone")
 		String timeZone
@@ -384,7 +384,7 @@ public class VariablesController {
 	 */
 	@Operation(
 		summary = "Set the value of one or multiple Dialogue Branch Variables for a given user.",
-		description = "Use this end-point to get set one or many DialogueBranch Variables to " +
+		description = "Use this end-point to get set one or many Dialogue Branch Variables to " +
 			"their given values (or to remove the stored value by setting it to the empty string.")
 	@RequestMapping(value="/set", method=RequestMethod.POST)
 	public void setVariables(

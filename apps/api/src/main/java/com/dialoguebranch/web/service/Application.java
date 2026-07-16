@@ -138,7 +138,7 @@ public class Application implements ApplicationListener<ApplicationEvent> {
 	@Override
 	public void onApplicationEvent(ApplicationEvent event) {
 		if(event instanceof ContextClosedEvent) {
-			logger.info("Shutdown DialogueBranch Web Service.");
+			logger.info("Shutdown Dialogue Branch Web Service.");
 		}
 
 		if(event instanceof ContextRefreshedEvent) {

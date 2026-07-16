@@ -105,7 +105,7 @@ public class DialogueExecutor {
 		// external variable service (if enabled).
 		Set<String> variablesNeeded = dialogueDefinition.getVariablesNeeded();
 		logger.info("Dialogue '" + dialogue.getDialogueDefinition().getDialogueName() +
-				"' uses the following set of DialogueBranch Variables: "+variablesNeeded);
+				"' uses the following set of Dialogue Branch Variables: "+variablesNeeded);
 		if(!variablesNeeded.isEmpty())
 			userService.updateVariablesFromExternalService(variablesNeeded);
 

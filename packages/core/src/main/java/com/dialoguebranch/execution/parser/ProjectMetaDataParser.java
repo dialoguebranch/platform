@@ -86,11 +86,11 @@ public class ProjectMetaDataParser {
 
             if(rootLevel == 0) {
                 if(!name.equals("dlb-project")) {
-                    throw new ParseException("Expected element 'dlb-project' while parsing DialogueBranch project metadata, found '"+name+"'.");
+                    throw new ParseException("Expected element 'dlb-project' while parsing Dialogue Branch project metadata, found '"+name+"'.");
                 } else {
                     result = new ProjectMetaData();
                     if(attributes.getValue("name") == null) {
-                        throw new ParseException("Missing attribute 'name' in element 'dlb-project' while parsing DialogueBranch project metadata.");
+                        throw new ParseException("Missing attribute 'name' in element 'dlb-project' while parsing Dialogue Branch project metadata.");
                     } else {
                         result.setName(attributes.getValue("name"));
                     }
@@ -111,7 +111,7 @@ public class ProjectMetaDataParser {
                     if(languageMapHandler != null) {
                         languageMapHandler.startElement(name,attributes,parents);
                     } else {
-                        throw new ParseException("Unexpected element while parsing DialogueBranch project metadata: '"+name+"'");
+                        throw new ParseException("Unexpected element while parsing Dialogue Branch project metadata: '"+name+"'");
                     }
                 }
             }

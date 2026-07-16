@@ -110,11 +110,11 @@ public class Application implements ApplicationListener<ApplicationEvent> {
 	@Override
 	public void onApplicationEvent(ApplicationEvent event) {
 		if (event instanceof ContextClosedEvent) {
-			logger.info("Shutdown DialogueBranch External Variable Service Dummy.");
+			logger.info("Shutdown Dialogue Branch External Variable Service Dummy.");
 		}
 
 		if (event instanceof ContextRefreshedEvent) {
-			logger.info("========== DialogueBranch External Variable Service Dummy Startup Info ==========");
+			logger.info("========== Dialogue Branch External Variable Service Dummy Startup Info ==========");
 			logger.info("=== Version: {}", properties.getVersion());
 			logger.info("=== API Version: {}", ProtocolVersion.getLatestVersion().versionName());
 			logger.info("=== Build: {}", properties.getBuildTime());

@@ -7,6 +7,24 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed the API's Swagger UI showing "1" (the latest API *protocol* version) as the document
+  version instead of the actual software version (e.g. `2.0.1`). `OpenApiSwaggerConfig` now reads
+  the version from `DlbProperties.getVersion()` instead of `ServiceContext.getCurrentVersion()`.
+- Fixed inconsistent "DialogueBranch" branding (missing space) throughout the platform — Swagger
+  UI strings, CLI prompts and error messages (`ProjectTool`/`CommandLineRunner`, `POEditorTools`),
+  log messages, exception messages, source comments and license headers, `web.xml`, and
+  documentation prose — now consistently read "Dialogue Branch". Class/package/method names
+  (e.g. `DialogueBranchParser`, `com.dialoguebranch`) were intentionally left unchanged, as were a
+  couple of literal `"DialogueBranch"` strings in `examples/project-test` translation fixtures
+  that are test content tied to an example dialogue script, not branding.
+- Removed `apps/api/src/main/webapp/WEB-INF/web.xml`, a leftover Java EE deployment descriptor
+  from before the service was rebuilt on Spring Boot's embedded server. `apps/api/build.gradle`
+  doesn't apply the `war` plugin, so `src/main/webapp` was never packaged by the build or read at
+  runtime; the root-path redirect to Swagger UI it once implied is already handled by
+  `SwaggerController` and `static/index.html`.
+
 ## [2.0.1] - 2026-07-16
 
 ### Added

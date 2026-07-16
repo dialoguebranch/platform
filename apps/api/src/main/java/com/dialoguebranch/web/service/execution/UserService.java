@@ -388,7 +388,7 @@ public class UserService {
 			for (String variableName : variableNames) {
 				Variable variable = variableStore.getVariable(variableName);
 				if (variable != null) {
-                    logger.info("A DialogueBranch Variable '{}' exists for User '{}': {}",
+                    logger.info("A Dialogue Branch Variable '{}' exists for User '{}': {}",
 							variableName, dialogueBranchUser.getId(), variable);
 					varsToUpdate.add(variable);
 				} else {
