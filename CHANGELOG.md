@@ -86,6 +86,11 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Fixed the Web Client's `IconButton.vue` `disabled` prop only changing the button's cursor
+  styling instead of actually disabling it — the native `<button>` element was never bound to
+  `:disabled`, so a fast double-click could still fire `@click` on a "disabled-looking" button
+  (e.g. mid-request, on the "Refresh current dialogue step"/"Refresh dialogue list" buttons, or
+  the Dialogue Editor's "Cancel dialogue"/"Revert variables"/"Add Node" buttons).
 - Fixed the Web Client's Dialogue Browser collapsing every expanded folder on every refresh, even
   when the refreshed list is identical to what's already shown — the common case
   ([#71](https://github.com/dialoguebranch/platform/issues/71)). `listDialogues()` now snapshots
