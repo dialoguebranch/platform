@@ -160,6 +160,8 @@ Edits in this mode operate on the draft copy of the dialogue (see [Draft dialogu
 
 All version bumps go in `global.json` only. Both Gradle build scripts read from it with `new groovy.json.JsonSlurper().parse(new File(..., 'global.json')).version`. The web client syncs via `npm run sync-version`. After updating `global.json`, run `./gradlew updateConfig` in each Gradle project (`apps/api`, `apps/mock-variable-service`) if building outside Docker.
 
+Cut the actual GitHub release with `infrastructure/release/release-github.sh`. It prompts for a major/minor/patch release type and bumps `global.json` accordingly, splits `CHANGELOG.md`'s `[Unreleased]` section into a dated version section, commits both, tags `vX.Y.Z`, re-points the floating `latest` tag, pushes everything, and creates the GitHub release (via `gh`) using that changelog section as the release notes. Must be run from a clean `main` in sync with `origin/main`; it asks for confirmation before pushing anything.
+
 ## Required Config Files (not in version control)
 
 - `packages/core/gradle.properties` — GPG signing + Sonatype Portal credentials (required only for publishing to Maven Central)
