@@ -7,6 +7,29 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Added
+
+- Added an admin-only `GET /info/technical` end-point (`TechnicalInfoPayload`) returning technical
+  information about the running service — currently the number of active (in-memory)
+  `UserService` instances (`ApplicationManager.getActiveUserServiceCount()`). Unlike `/info/all`,
+  this is not in `SecurityConfig`'s `permitAll()` list, so it requires normal bearer-token auth
+  plus the `admin` role. In the Web Client, admins now see a small "i" icon after the connection
+  status line in the footer; clicking it opens a `TechnicalInfoModal` showing this information
+  (`DialogueBranchClient.getTechnicalInfo()`).
+- Added an idle-timeout eviction sweep for in-memory `UserService`s. A `UserService` was
+  otherwise only ever removed by an explicit `/auth/logout` call, so a client that disconnects
+  without logging out (closed tab, killed app, expired token, dropped connection) left its
+  `UserService` — and its `VariableStore`, `LoggedDialogueStore` — in memory for the remaining
+  lifetime of the server process; since `activeUserServices` only grows and never shrinks on its
+  own, a long-running server accumulates one per distinct user who has ever authenticated, not
+  per user currently active. `UserService` now records a `lastActivityTime`, refreshed on every
+  request that resolves an existing `UserService` (`ApplicationManager.getActiveUserService`); a
+  new `UserServiceExpirationService` (`@Scheduled`, every 5 minutes) evicts any `UserService` idle
+  longer than `dlb.session.idle-timeout-minutes` (`DLB_SESSION_IDLE_TIMEOUT_MINUTES`, default 60).
+  `ApplicationManager.activeUserServices` moved from `ArrayList` to `CopyOnWriteArrayList`, since
+  it's now mutated concurrently by request threads and the scheduled sweep, not just by request
+  threads racing each other.
+
 ### Fixed
 
 - Fixed the API's Swagger UI showing "1" (the latest API *protocol* version) as the document

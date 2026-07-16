@@ -53,6 +53,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * The Dialogue Branch Web Service maintains one instance of an {@link ApplicationManager}. This
@@ -82,7 +83,17 @@ public class ApplicationManager {
 	private final Map<String, Integer> projectVersions = new LinkedHashMap<>();
 
 	private final DlbProperties dlbProperties;
-	private final List<UserService> activeUserServices = new ArrayList<>();
+
+	/**
+	 * Active {@link UserService}s, keyed implicitly by {@code User.id} (see {@link
+	 * #getActiveUserService(String)}). A {@link CopyOnWriteArrayList} because, unlike {@link
+	 * #projects}/{@link #projectVersions} (written only from the rare publish/seed path), this list
+	 * is now mutated concurrently by both request-handling threads (add on creation, remove on
+	 * logout) and the scheduled {@link UserServiceExpirationService} eviction sweep — reads
+	 * (every request resolving an existing {@link UserService}) vastly outnumber writes, which is
+	 * exactly the access pattern {@link CopyOnWriteArrayList} is for.
+	 */
+	private final List<UserService> activeUserServices = new CopyOnWriteArrayList<>();
 	private final UserServiceFactory userServiceFactory;
 
 	// -------------------------------------------------------- //
@@ -173,7 +184,9 @@ public class ApplicationManager {
 
 	/**
 	 * Returns the {@link UserService} object for a user with the given {@code userId}, or
-	 * {@code null} if there is no currently active user service running.
+	 * {@code null} if there is no currently active user service running. Records activity on the
+	 * returned {@link UserService} (see {@link UserService#recordActivity()}), so any endpoint
+	 * resolving an existing {@link UserService} resets its idle-eviction timer.
 	 *
 	 * @param userId the identifier of the user for which to retrieve a {@link UserService}.
 	 * @return a {@link UserService} object, or {@code null} if none exists.
@@ -181,10 +194,20 @@ public class ApplicationManager {
 	public UserService getActiveUserService(String userId) {
 		for (UserService userService : activeUserServices) {
 			if (userService.getDialogueBranchUser().getId().equals(userId)) {
+				userService.recordActivity();
 				return userService;
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Returns the number of currently active (in-memory) {@link UserService} instances.
+	 *
+	 * @return the number of currently active {@link UserService} instances.
+	 */
+	public int getActiveUserServiceCount() {
+		return activeUserServices.size();
 	}
 
 	/**
@@ -221,6 +244,23 @@ public class ApplicationManager {
 	 */
 	public boolean removeUserService(UserService userService) {
 		return activeUserServices.remove(userService);
+	}
+
+	/**
+	 * Evicts every active {@link UserService} whose {@link UserService#getLastActivityTime()} is
+	 * older than {@code idleTimeoutMillis}. Called periodically by {@link
+	 * UserServiceExpirationService} to bound memory for clients that disconnect without an explicit
+	 * {@code /auth/logout} (closed tab, killed app, expired token, dropped connection).
+	 *
+	 * @param idleTimeoutMillis how long, in milliseconds, a {@link UserService} may sit idle before
+	 *                          being evicted.
+	 * @return the number of {@link UserService}s evicted.
+	 */
+	public int removeIdleUserServices(long idleTimeoutMillis) {
+		long cutoff = System.currentTimeMillis() - idleTimeoutMillis;
+		int sizeBefore = activeUserServices.size();
+		activeUserServices.removeIf(userService -> userService.getLastActivityTime() < cutoff);
+		return sizeBefore - activeUserServices.size();
 	}
 
 	// ------------------------------------------------------------- //

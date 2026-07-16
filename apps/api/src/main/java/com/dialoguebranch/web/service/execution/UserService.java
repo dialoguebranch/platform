@@ -77,6 +77,15 @@ public class UserService {
 
 	private TranslationContext translationContext = null;
 
+	/**
+	 * Epoch millis of the last time this {@link UserService} was resolved for an active request
+	 * (see {@link ApplicationManager#getActiveUserService(String)}). Used by {@link
+	 * UserServiceExpirationService} to evict {@link UserService}s that have been idle for longer
+	 * than the configured timeout. {@code volatile} since it's written by request-handling threads
+	 * and read by the scheduled eviction thread.
+	 */
+	private volatile long lastActivityTime;
+
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
@@ -127,6 +136,8 @@ public class UserService {
 
 		loggedDialogueStore = new LoggedDialogueStore(
 				dialogueBranchUser.getId(), this, userRepository, loggedDialogueRepository);
+
+		this.lastActivityTime = System.currentTimeMillis();
 	}
 
 
@@ -186,6 +197,25 @@ public class UserService {
 	 */
 	public LoggedDialogueStore getLoggedDialogueStore() {
 		return loggedDialogueStore;
+	}
+
+	/**
+	 * Returns the epoch millis of the last time this {@link UserService} was resolved for an
+	 * active request, i.e. how recently this user was active.
+	 *
+	 * @return the epoch millis of the last recorded activity.
+	 */
+	public long getLastActivityTime() {
+		return lastActivityTime;
+	}
+
+	/**
+	 * Records that this {@link UserService} was just used to handle a request, resetting its idle
+	 * timer. Called by {@link ApplicationManager#getActiveUserService(String)} on every successful
+	 * lookup, so any endpoint that resolves an existing {@link UserService} counts as activity.
+	 */
+	void recordActivity() {
+		this.lastActivityTime = System.currentTimeMillis();
 	}
 
 	// --------------------------------------------------------------------------- //

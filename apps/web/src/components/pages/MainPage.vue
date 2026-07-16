@@ -7,6 +7,7 @@ import DialogueBrowser from '../partials/DialogueBrowser.vue';
 import EditProjectMetadataModal from '../partials/EditProjectMetadataModal.vue';
 import PublishProjectWizardModal from '../partials/PublishProjectWizardModal.vue';
 import SetDelegateUserModal from '../partials/SetDelegateUserModal.vue';
+import TechnicalInfoModal from '../partials/TechnicalInfoModal.vue';
 import HeaderMenuItem from '../widgets/HeaderMenuItem.vue';
 import DialogueWorkspace from '../partials/DialogueWorkspace.vue';
 import ResizablePanels from '../widgets/ResizablePanels.vue';
@@ -31,6 +32,7 @@ const serviceUrl = new URL(config.baseUrl);
 const serviceHost = serviceUrl.hostname;
 const servicePort = serviceUrl.port;
 const connectionInfo = ref('Not connected.');
+const showTechnicalInfo = ref(false);
 
 onMounted(() => {
     document.addEventListener('click', onClickOutsideMenus);
@@ -477,6 +479,19 @@ function onWorkspaceModeChanged(mode) {
             <span>Dialogue Branch Web Client v{{ appVersion }}</span>
             <span class="text-grey-light">|</span>
             <span>{{ connectionInfo }}</span>
+            <button
+                v-if="isAdmin"
+                class="flex items-center text-gray-400 hover:text-orange-darker cursor-pointer"
+                title="Technical Information"
+                @click="showTechnicalInfo = true"
+            >
+                <FontAwesomeIcon icon="fa-solid fa-circle-info" />
+            </button>
         </footer>
+
+        <TechnicalInfoModal
+            v-if="showTechnicalInfo"
+            @close="showTechnicalInfo = false"
+        />
     </div>
 </template>

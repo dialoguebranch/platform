@@ -93,6 +93,9 @@ public class DlbProperties {
     @NestedConfigurationProperty
     private ExternalVariableService externalVariableService = new ExternalVariableService();
 
+    @NestedConfigurationProperty
+    private Session session = new Session();
+
     /**
      * Returns the CORS configuration.
      *
@@ -425,6 +428,48 @@ public class DlbProperties {
     }
 
     // --------------------------------------------------------- //
+    // -------------------- Nested: Session --------------------- //
+    // --------------------------------------------------------- //
+
+    /**
+     * Holds configuration for server-side user session lifecycle, i.e. how long an in-memory
+     * {@link com.dialoguebranch.web.service.execution.UserService} is kept around after a user
+     * stops being active.
+     *
+     * @author Harm op den Akker
+     */
+    public static class Session {
+
+        /** Creates a new {@link Session} configuration instance with default values. */
+        public Session() { }
+
+        /**
+         * How long (in minutes) a {@link com.dialoguebranch.web.service.execution.UserService}
+         * may sit idle before it is evicted. A {@code UserService} is otherwise only ever removed
+         * by an explicit {@code /auth/logout} call, so this bounds the server's memory footprint
+         * for clients that disconnect without logging out (closed tab, killed app, expired token,
+         * dropped connection).
+         */
+        private int idleTimeoutMinutes = 60;
+
+        /**
+         * Returns the idle timeout, in minutes.
+         *
+         * @return the idle timeout in minutes.
+         */
+        public int getIdleTimeoutMinutes() { return idleTimeoutMinutes; }
+
+        /**
+         * Sets the idle timeout, in minutes.
+         *
+         * @param idleTimeoutMinutes the idle timeout in minutes.
+         */
+        public void setIdleTimeoutMinutes(int idleTimeoutMinutes) {
+            this.idleTimeoutMinutes = idleTimeoutMinutes;
+        }
+    }
+
+    // --------------------------------------------------------- //
     // -------------------- Top-level getters/setters ---------- //
     // --------------------------------------------------------- //
 
@@ -527,4 +572,18 @@ public class DlbProperties {
     public void setExternalVariableService(ExternalVariableService s) {
         this.externalVariableService = s;
     }
+
+    /**
+     * Returns the session lifecycle configuration.
+     *
+     * @return the {@link Session} configuration.
+     */
+    public Session getSession() { return session; }
+
+    /**
+     * Sets the session lifecycle configuration.
+     *
+     * @param session the {@link Session} configuration.
+     */
+    public void setSession(Session session) { this.session = session; }
 }

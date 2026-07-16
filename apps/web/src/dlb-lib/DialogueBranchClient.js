@@ -73,6 +73,17 @@ export class DialogueBranchClient {
         .then((response) => this._handleResponse(response));
     }
 
+    getTechnicalInfo() {
+        return this._fetch(this._baseUrl + "/info/technical", {
+            method: "GET",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            },
+        })
+        .then((response) => this._handleResponse(response));
+    }
+
     listProjects() {
         const url = this._baseUrl + "/project/list-projects";
 

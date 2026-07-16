@@ -69,6 +69,7 @@ ENV DLB_MARIADB_USER=root
 ENV DLB_MARIADB_DATABASE=dialoguebranch
 ENV DLB_EXTERNAL_VARIABLE_SERVICE_ENABLED=false
 ENV DLB_EXTERNAL_VARIABLE_SERVICE_API_VERSION=1
+ENV DLB_SESSION_IDLE_TIMEOUT_MINUTES=60
 
 # -------------------------------------------------------------------------
 # Sensitive values — DO NOT set defaults here.

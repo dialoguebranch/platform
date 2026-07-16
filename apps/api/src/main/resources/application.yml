@@ -107,3 +107,10 @@ dlb:
     url: ""
     api-version: 1
     api-key: ""
+
+  # ---- Session ----
+  # How long an in-memory UserService may sit idle before it's evicted (see
+  # UserServiceExpirationService). A UserService is otherwise only removed by an explicit
+  # /auth/logout call, so this bounds memory for clients that disconnect without logging out.
+  session:
+    idle-timeout-minutes: 60

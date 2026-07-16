@@ -29,13 +29,20 @@
 package com.dialoguebranch.web.service.controller;
 
 import com.dialoguebranch.web.service.controller.schema.ServiceInfoPayload;
+import com.dialoguebranch.web.service.controller.schema.TechnicalInfoPayload;
 import org.slf4j.LoggerFactory;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.ProtocolVersion;
+import com.dialoguebranch.web.service.QueryRunner;
 import com.dialoguebranch.web.service.ServiceContext;
+import com.dialoguebranch.web.service.auth.AuthenticationInfo;
+import com.dialoguebranch.web.service.exception.HttpException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -129,6 +136,50 @@ public class InfoController {
 				ServiceContext.getCurrentVersion(),
 				application.getDlbProperties().getVersion(),
 				upTimeString);
+	}
+
+	// --------------------------------------------------------------------- //
+	// -------------------- END-POINT: "/info/technical" -------------------- //
+	// --------------------------------------------------------------------- //
+
+	/**
+	 * Retrieve admin-only technical information about the running service.
+	 *
+	 * <p>This end-point requires the {@code admin} role, and currently returns the number of
+	 * active (in-memory) {@link com.dialoguebranch.web.service.execution.UserService}
+	 * instances.</p>
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version The API version to use, e.g. '1'.
+	 * @return a {@link TechnicalInfoPayload} object containing technical information about the
+	 * running service.
+	 * @throws HttpException if the request is unauthenticated or the user lacks the admin role.
+	 */
+	@SecurityRequirement(name = "bearerAuth")
+	@SecurityRequirement(name = "oauth2")
+	@Operation(summary = "Retrieve admin-only technical information about the running service.",
+		description = "Requires the 'admin' role. Currently returns the number of active " +
+			"(in-memory) UserService instances.")
+	@Parameter(name = "version", hidden = true)
+	@GetMapping("/technical")
+	public TechnicalInfoPayload technical(
+			HttpServletRequest request,
+			HttpServletResponse response,
+
+			@Parameter(hidden = true, description = "API Version to use, e.g. '1'")
+			@PathVariable(value = "version")
+			String version
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("GET /v{}/info/technical [user: {}]", version, user);
+					return new TechnicalInfoPayload(
+							application.getApplicationManager().getActiveUserServiceCount());
+				},
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
+				AuthenticationInfo.USER_ROLE_ADMIN);
 	}
 
 }
