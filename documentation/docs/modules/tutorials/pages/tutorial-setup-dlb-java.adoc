@@ -1,0 +1,195 @@
+= Tutorial: Setting up WOOL for your Java project
+:toc: left
+:toc-title: Table of Contents
+:toclevels: 3
+:imagesdir: ../images
+:sectnums:
+Harm op den Akker <hopdenakker@innovationsprint.eu>
+:description: The document's description.
+
+This tutorial covers setting up your own Java program, including the WOOL Java library, and verifying that everything works correctly.
+
+_Note: This tutorial assumes a basic understanding of Java and will use the IntelliJ IDEA (version 2019.3.4), although you can use your IDE of choice._
+
+== Before you get started
+
+* This tutorial is using https://www.jetbrains.com/idea/[IntelliJ IDEA], which you can download from https://www.jetbrains.com/idea/[JetBrains].
+* All source code used in this tutorial is available from the https://github.com/woolplatform[WOOL GitHub] pages, specifically from the https://github.com/woolplatform/wool-java-tutorials[wool-java-tutorials] repository.
+
+
+== Setting up the tools
+*Step 1:* Create a new project in IntelliJ by selecting the “+ Create New Project” option from the start-up screen. Alternatively, select “File -> New -> Project…” from the IntelliJ menu bar.
+
+image::wool-java-tutorial-1.png[]
+
+*Step 2:* In the “New Project” dialogue box, Select “Gradle” on the left, and make sure to check the “Java” box from the “Additional Libraries and Frameworks” field. Then, hit “Next”.
+
+image::wool-java-tutorial-2.png[]
+
+*Step 3:* Choose a name for your project (e.g. “WOOLBasicTutorial”) and a location where you want to store your project files (e.g. under a GIT repository). Unfold the “Artifact Coordinates” option to reveal some additional options for your project setup. We’re going to leave them as is for now. Then, hit “Finish”.
+
+image::wool-java-tutorial-3.png[]
+
+*Step 4:* IntelliJ will perform some basic setup operations and download the necessary gradle libraries. When finished your new empty workspace will look something like the figure below.
+
+image::wool-java-tutorial-4.png[]
+
+
+== Importing the WOOL Java Library
+To finish our setup, we need to add the WOOL Java library as a project dependency, so that we can start using it in our project. To do this, open the +build.gradle+ script by double-clicking on it from the Project explorer.
+
+Then, add the following line to the dependencies part of the Gradle build script:
+
+```gradle
+compile 'eu.woolplatform:wool-core:2.0.0'
+```
+
+IntelliJ might warn you that “Gradle projects need to be imported” (in the bottom right corner). Go ahead and click “Import Changes” or “Enable Auto-Import” to always do this without notification in the future.
+
+image::wool-java-tutorial-5.png[]
+
+Afterwards, the build.gradle script should look like this:
+
+```gradle
+plugins {
+   id 'java'
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+   mavenCentral()
+}
+
+dependencies {
+   testCompile group: 'junit', name: 'junit', version: '4.12'
+   compile 'eu.woolplatform:wool-core:2.0.0'
+}
+```
+
+== Creating your own class and testing the setup
+*Step 1:* First let’s create our own Java class that we will call the +CommandLineRunner+. Find the +src\main\java+ folder, right-click and select "New -> Java Class". For the name we type +org.example.CommandLineRunner+. IntelliJ will initialize this simple class for us in the org.example package.
+
+*Step 2:* To test whether our project setup is working as expected, we will create a very simple constructor class and make a reference to a WOOL Library class, like so:
+
+```java
+package org.example;
+
+import eu.woolplatform.wool.model.WoolDialogue;
+
+public class CommandLineRunner {
+
+   public CommandLineRunner() {
+       WoolDialogue wd = null;
+   }
+}
+```
+
+IntelliJ should provide auto-completion options for the Wool classes and automatically suggest the import of +eu.woolplatform.wool.model.WoolDialogue+. So far so good, let’s do something interesting.
+
+== Command Line Runner Basics
+First, we are going to read in an existing +.wool+ script and see if we can show some information about this script on screen.
+
+For this, we are going to need a function that we will call +analyzeWoolScript+ that takes as input a fileName.
+
+```java
+private void analyzeWoolScript(String fileName) {
+   System.out.println("There should be a WOOL Script here: " + fileName);
+}
+```
+
+Next, we need to call that function with the actual location of a +.wool+ file, and since we are creating a “Command Line Runner”, let’s take that input from the command line. For that we will create a runnable function “main”, that will ask the user for input and pass it to our newly created analyzeWoolScript() function:
+
+```java
+public static void main (String[] args) {
+   // create a scanner so we can read the command-line input
+   Scanner scanner = new Scanner(System.in);
+
+   //  Ask for a .wool script
+   System.out.println("Path to WOOL Script: ");
+
+   // Get the input as a String
+   String woolScriptFile = scanner.next();
+
+   // Initialize the CommandLineRunner and call analyzeWoolScript()
+   CommandLineRunner clr = new CommandLineRunner();
+   clr.analyzeWoolScript(woolScriptFile);
+}
+```
+
+We now have a piece of software that we can run, so let’s give it a try. Right-click the “CommandLineRunner” class file, and select “Run ‘CommandLineRun…..main()’”. You will see the output of the program asking for the Path to the WOOL Script. Type something, and see the results!
+
+image::wool-java-tutorial-6.png[]
+
+== Reading and Parsing the WOOL Script
+For the next step, we first need an actual +.wool+ script. For this, we are going to use the example +.wool+ scripts that come with the WOOL repository on GitHub. If you haven’t already done so, go ahead and clone the wool repository to your local disk. Whatever your folder is in which you store your git projects, we’re going to call that $GIT_DIR.
+
+Now it’s time to do something WOOL-related in our analyzeWoolScript() method. We are going to initialize a WoolParser for the given file, read it in, and print out some basic information about the WOOL script. See the code snippet below:
+
+```java
+private void analyzeWoolScript(String fileName) {
+   System.out.println("There should be a WOOL Script here: " + fileName);
+
+   // First, create a File object from our fileName String
+   File file = new File(fileName);
+   if (!file.exists()) {
+       System.err.println("ERROR: File not found: " + fileName);
+       System.exit(1);
+       return;
+   }
+
+   // Initialize a ReadResult where the results of the parse will be stored
+  WoolParserResult parserResult;
+
+   try {
+       // Create a new WoolParser for the given file
+       WoolParser parser = new WoolParser(file);
+
+       // Parse the WOOL script and store the results in readResult
+       parserResult = parser.readDialogue();
+
+       // Retrieve the WoolDialogue representation from the readResult
+       WoolDialogue woolDialogue = parserResult.getDialogue();
+
+       // Output some basic information about the WOOL script
+       System.out.println(woolDialogue.toString());
+   } catch (IOException ex) {
+       System.err.println("ERROR: Can't read file: " +
+               file.getAbsolutePath() + ": " + ex.getMessage());
+       System.exit(1);
+       return;
+   }
+
+}
+```
+
+Now let’s try to run this, and see what happens. Run the application again, and when asked, point to the +basic.wool+ test dialogue that is located in the wool repository (see Figure below):
+
+```bash
+$GIT_DIR/wool/test-dialogues/basic.wool
+```
+
+_Note: remember to replace $GIT_DIR with wherever your git repository is located._
+
+image::wool-java-tutorial-7.png[]
+
+After pressing “RETURN”, the application should output the following:
+
+```bash
+There should be a WOOL Script here: $GIT_DIR/wool/test-dialogues/basic.wool
+Dialogue Name: basic
+Number of Nodes: 9
+
+Speakers present (1):
+  - Bob
+Dialogues referenced (0):
+Variables needed (0):
+Variables written (0):
+```
+
+image::wool-java-tutorial-8.png[]
+
+Et voila! You have successfully set up your Java environment to start using WOOL in your applications.

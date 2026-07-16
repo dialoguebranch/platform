@@ -1,0 +1,15 @@
+= Dialogue Branch Documentation Hub
+:imagesdir: ../images
+:sectnums:
+Harm op den Akker <hopdenakker@fruittreelabs.com>
+:description: Dialogue Branch Documentation Hub index page.
+
+Welcome to the Dialogue Branch Documentation Hub. On this site you will find documentation about the Dialogue Branch Platform, including the language and the various available tools.
+
+NOTE: Did you find an error? Or you didn't find what you were looking for? Please send your feedback to info@dialoguebranch.com
+
+The main content of this Documentation Hub can be accessed through the menu, and includes the following:
+
+ * xref:dlb-language:index.adoc[Dialogue Branch Language Definition]
+ * xref:dlb-core-java:index.adoc[Dialogue Branch Core Java Library Documentation]
+ * xref:dlb-web:index.adoc[Dialogue Branch Web Services]

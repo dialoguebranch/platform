@@ -1,0 +1,356 @@
+= Tutorial: Dialogue Branch Web Service - Exploring the API
+:toc: left
+:toc-title: Table of Contents
+:toclevels: 3
+:imagesdir: ../images
+:sectnums:
+Harm op den Akker <hopdenakker@fruittreelabs.com>
+:description: A tutorial for getting started with using the Dialogue Branch Web Service API.
+
+NOTE: This tutorial was last updated on *February 9th, 2024*.
+
+The Dialogue Branch Web Service is a https://spring.io/projects/spring-boot[JAVA Spring Boot Application] that can be deployed as a web service. It acts as a wrapper around the xref:dlb-core-java:index.adoc[Dialogue Branch Core Java Library], offering an API that allows you to create client-server dialogue applications.
+
+This tutorial assumes that you've successfully installed the Web Service, e.g. by following the xref:tutorial-webservice-installation.adoc[Tutorial: Dialogue Branch Web Service - Installation].
+
+== Exploring the API
+To get started, open a web browser and navigate to your local Web Service deployment (e.g. `http://localhost:8080/dlb-web-service`). You should see something like the image below:
+
+.If deployed correctly, this is what you should be seeing - the Swagger API Documentation of the Dialogue Branch Web Service.
+image::webservice-setup-tutorial-1-swagger.png[]
+
+=== Authenticating
+All API calls are secured and require a valid `X-Auth-Token` to be included in the header of each call. In order to obtain such a token, we must first perform a login.
+
+When installing the Web Service you have indicated the `dlb-configDataDir`, which is where all configuration and log files are stored. In this folder, you will find a file `users.xml` in which all valid username/password/role combinations are stored. For the purpose of this tutorial, let's add two test users to this file, like so:
+
+ <users>
+   <user username="user@example.com" password="p4ssw0rd" role="user" />
+   <user username="admin@example.com" password="super-secure-password-123" role="admin" />
+ </users>
+
+Note that you can edit this `users.xml` file while the Web Service is running, there is no need to re-launch or re-deploy the service.
+
+Next, open the Swagger page and follow these steps:
+
+* Click on *auth-controller* to unfold the set of API end-points related to authentication.
+* Click on the */auth/login* end-point to unfold its details.
+* Click on the "Try it out" button in the top right corner of this end-point view.
+* Under `loginParams` fill in the following information:
+
+ {
+   "password": "p4ssw0rd",
+   "tokenExpiration": null,
+   "user": "user@example.com"
+ }
+
+* Then, click on *Execute* in the bottom left of the view.
+* Under "Server response", you should see a Code of 200, and a response body that looks like this:
+
+ {
+   "user": "user@example.com",
+   "token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ0ZXN0IiwiaWF0IjoxNjM3MDY4MDk2fQ.62zcI64ZU12piR-73Sn-chbkjblbn9AqXHIic8UFh1SlSMa7p3Aeha_x51rWMllh6Ch_cYwaiXjv-8enmgX0ag"
+ }
+
+* The *token* value is our Authentication token that will never expire (because we set `tokenExpiration` to `null`). Copy this token to some text file for future use.
+* Scroll all the way to the top of the page and find in the top right corner the green button "Authorize".
+* Enter the authentication token here and click *Authorize* (and then *Close*).
+
+NOTE: We are now authenticated as a regular user (instead of an admin user) and can start exploring the rest of the API. If we were to authenticate as a user with the "admin" role, we would be able to specify an additional _delegateUser_ parameter for many of the API end-points that allows us to perform actions _on behalf of_ the delegate user. 
+
+=== Summary of API End-Points
+Before we can start building our own software client that can communicate with the Web Service, we will explore the functionalities of the API using the Swagger controller.
+
+* Unfold the `dialogue-controller` to reveal the following end-points:
+** */dialogue/get-ongoing* - For a given `dialogueName`, provides all relevant information on the current state of that ongoing dialogue.
+** */dialogue/start* - Starts the interaction between user and system for a specific dialogue.
+** */dialogue/progress* - Progresses the dialogue a step forward by providing a specific `replyId`.
+** */dialogue/continue* - This will "pick up the conversation" by providing a dialogue name, and resuming any ongoing dialogue where it was left off.
+** */dialogue/cancel* - This will cancel an ongoing dialogue, discarding its current state.
+** */dialogue/back* - This will cause the dialogue to go one step back.
+
+The execution of a Dialogue Branch dialogue between a client and the Web Service is thus a series of API calls, starting with *start*, followed by a series of *progress* (and optionally *back*) calls, that either ends with a call to *cancel* or by the dialogue naturally ending.
+
+== Running a basic dialogue
+We are going to walk through all the possible steps in a client-server Dialogue Branch application. As an example, we will be using the `basic.dlb` dialogue which is included in the default set of dialogues available to the Web Service. If you haven't configured the Web Service to serve a different set of dialogues, this should be available. The `basic.dlb` dialogue is a very simple dialogue with 9 nodes that demonstrates how dialogues start, progress and end. This dialogue script is also available in the https://github.com/dialoguebranch/dlb-examples[dlb-examples] repository on GitHub. 
+
+// The structure of the dialogue can be seen in the image below:
+// .The 'basic.dlb' dialogue as shown in the Dialogue Branch Editor.
+// image::webservice-gettingstarted-basicdialogue.png[]
+
+In the steps below, we're going to show the series of API calls a client might take to execute this dialogue step-by-step:
+
+=== The beginning (/dialogue/start)
+
+* Unfold the */dialogue/start* endpoint and click on "_Try it out_". There are five parameters that can be entered at this point:
+** `dialogueName` - The name of the dialogue that we want to start, this should be "*basic*", since we want to start the dialogue in `basic.dlb` (and the extension is not part of the dialogue name).
+** `language` - For now we choose "*en*", and we deal with translations later.
+** `timezone` - The current timezone as a location-based identifier from the tz database. For example _Europe/Lisbon_.
+** (optional) `delegateUser` - If authenticated as an "admin" user, use this to specify the "real" end-user for which to start the dialogue. Leave empty for now.
+** (optional) `sessionId` - An optional identifier that is attached to the dialogue logs, allowing this dialogue session to be cross-referenced with external logs. Leave empty for now.
+* When you've filled in "*basic*" as `dialogueName`, "*en*" as `language` and any valid `timeZone`, you can click "_Execute_", resulting in the following JSON Response:
+
+.Code Block: JSON Response #1.
+```json
+{
+  "dialogue": "basic",
+  "node": "Start",
+  "loggedDialogueId": "bf758d37cef84ff3a5ef818abce2f6c0",
+  "loggedInteractionIndex": 0,
+  "speaker": "Martin McOwl",
+  "statement": {
+    "segments": [
+      {
+        "segmentType": "TEXT",
+        "text": "Hi, my name is Martin McOwl, and this is the Default Dialogue Branch Test dialogue."
+      }
+    ]
+  },
+  "replies": [
+    {
+      "replyId": 1,
+      "statement": {
+        "segments": [
+          {
+            "segmentType": "TEXT",
+            "text": "Nice to meet you Martin McOwl."
+          }
+        ]
+      },
+      "actions": [],
+      "endsDialogue": false
+    },
+    {
+      "replyId": 2,
+      "statement": {
+        "segments": [
+          {
+            "segmentType": "TEXT",
+            "text": "Goodbye."
+          }
+        ]
+      },
+      "actions": [],
+      "endsDialogue": true
+    }
+  ]
+}
+```
+
+When you are building a Client application, you need to extract this JSON response and construct your user interface around it. For now, it suffices to understand that this JSON response contains the `speaker` ("Martin McOwl"), the `statement` ("_Hi, my name is Martin McOwl, and this is the default Dialogue Branch Test dialogue._") and two `reply` options: (1) "_Nice to meet you Martin McOwl._", or (2) "_Goodbye._". Furthermore, the JSON response contains some meta information that we will need to progress the dialogue: the `loggedDialogueId` (e.g. `bf758d37cef84ff3a5ef818abce2f6c0`) and the `loggedInteractionIndex` (`0`).
+
+=== Selecting a reply (/dialogue/progress)
+
+* Next, we want to advance the dialogue by sending the reply "_Nice to meet you Martin McOwl._". For this we will unfold the */dialogue/progress* end-point, and click on "_Try it out_". Besides the optional `delegateUser` variable explained earlier, there are three parameters for this call:
+** `loggedDialogueId` - This is the identifier of the current dialogue instance that you've obtained from the previous call to start-dialogue progress-dialogue or back-dialogue. We fill in the value obtained earlier: `bf758d37cef84ff3a5ef818abce2f6c0`.
+** `loggedInteractionIndex` - This is the index of the current interaction in the dialogue, as obtained in the previous call. We fill in: `0`.
+** `replyId` - The ID of the selected reply. Since we want to say "_Nice to meet you Martin McOwl._", we fill in `1` (note that the first `replyId` is "1" and not "0" as is common in listings).
+* When you've filled in everything you can click "_Execute_", resulting in the following JSON Response:
+
+.Code Block: JSON Response #2.
+```json
+{
+  "value": {
+    "dialogue": "basic",
+    "node": "Continue",
+    "loggedDialogueId": "bf758d37cef84ff3a5ef818abce2f6c0",
+    "loggedInteractionIndex": 2,
+    "speaker": "Martin McOwl",
+    "statement": {
+      "segments": [
+        {
+          "segmentType": "TEXT",
+          "text": "This dialogue is very basic, and shows only dialogue flow and ending."
+        }
+      ]
+    },
+    "replies": [
+      {
+        "replyId": 1,
+        "statement": null,
+        "actions": [],
+        "endsDialogue": false
+      }
+    ]
+  }
+}
+```
+This response is very similar to the previous one (JSON Response #1). The notable difference is that there is only 1 `reply` option, and its `statement` field is empty (`null`). This is what is called an "_Auto-forward Reply_" (see the xref:dlb-language:index.adoc[Dialogue Branch Language] doc page), and the idea is that the dialogue can "automatically move forward" after some time, or after the user pressed a button (e.g. "Continue").
+
+=== Auto-Forward (/dialogue/progress)
+
+* Make an additional call to the */dialogue/progress-dialogue* end-point with `loggedDialogueId: bf758d37cef84ff3a5ef818abce2f6c0`, `loggedInteractionIndex: 2`, and `replyId: 1`. We will get the following response:
+
+.Code Block: JSON Response #3.
+```json
+{
+  "value": {
+    "dialogue": "basic",
+    "node": "DialogueMenu",
+    "loggedDialogueId": "bf758d37cef84ff3a5ef818abce2f6c0",
+    "loggedInteractionIndex": 4,
+    "speaker": "Martin McOwl",
+    "statement": {
+      "segments": [
+        {
+          "segmentType": "TEXT",
+          "text": "We deal with statements, reply options, and ending dialogues."
+        }
+      ]
+    },
+    "replies": [
+      {
+        "replyId": 1,
+        "statement": {
+          "segments": [
+            {
+              "segmentType": "TEXT",
+              "text": "Tell me about statements."
+            }
+          ]
+        },
+        "actions": [],
+        "endsDialogue": false
+      },
+      {
+        "replyId": 2,
+        "statement": {
+          "segments": [
+            {
+              "segmentType": "TEXT",
+              "text": "Reply Options?"
+            }
+          ]
+        },
+        "actions": [],
+        "endsDialogue": false
+      },
+      {
+        "replyId": 3,
+        "statement": {
+          "segments": [
+            {
+              "segmentType": "TEXT",
+              "text": "How do you end a dialogue?"
+            }
+          ]
+        },
+        "actions": [],
+        "endsDialogue": false
+      }
+    ]
+  }
+}
+```
+=== Taking a step back (/dialogue/back)
+The structure of this response doesn't contain anything we haven't seen before. So, we take the opportunity to look at the */dialogue/back* end-point. Let's assume our previous "Auto-forward Reply" automatically advanced the dialogue, but it went a bit too quick for the liking of our end-user. In that case, a UI designer could offer a "Back" button, that, when pressed calls the */dialogue/back* end-point.
+
+* Unfold the */dialogue/back* end-point and click on "_Try it out_".
+* Fill in the `loggedDialogueId` as `bf758d37cef84ff3a5ef818abce2f6c0` and `loggedInteractionIndex` as `4` and press "_Execute_".
+
+The response that you will get, will be exactly the same as in the previous step (JSON Response #2). Essentially, the Web Service looks up the previously returned result and will return it again. If there is no previous step, it would just return the current step.
+
+=== Fast-forward...
+From here, we will fast forward to a point in the conversation dealing with _ending dialogues_.
+
+* Make a call to the */dialogue/progress* end-point with `loggedDialogueId: bf758d37cef84ff3a5ef818abce2f6c0`, `loggedInteractionIndex: 2`, and `replyId: 1`.
+* Make another call to the */dialogue/progress* end-point with `loggedDialogueId: bf758d37cef84ff3a5ef818abce2f6c0`, `loggedInteractionIndex: 6`, and `replyId: 3`.
+* Make another call to the */dialogue/progress* end-point with `loggedDialogueId: bf758d37cef84ff3a5ef818abce2f6c0`, `loggedInteractionIndex: 8`, and `replyId: 1`.
+
+You will get the following JSON Response:
+
+.Code Block: JSON Response #4.
+```json
+{
+  "value": {
+    "dialogue": "basic",
+    "node": "DialogueEnding2",
+    "loggedDialogueId": "bf758d37cef84ff3a5ef818abce2f6c0",
+    "loggedInteractionIndex": 10,
+    "speaker": "Martin McOwl",
+    "statement": {
+      "segments": [
+        {
+          "segmentType": "TEXT",
+          "text": "Alternatively, a reply option can point to the reserved node name \"End\". When the dialogue reaches this node, the dialogue is also over."
+        }
+      ]
+    },
+    "replies": [
+      {
+        "replyId": 1,
+        "statement": {
+          "segments": [
+            {
+              "segmentType": "TEXT",
+              "text": "This reply option points to the \"End\" node."
+            }
+          ]
+        },
+        "actions": [],
+        "endsDialogue": true
+      },
+      {
+        "replyId": 2,
+        "statement": {
+          "segments": [
+            {
+              "segmentType": "TEXT",
+              "text": "This one points to a node without replies."
+            }
+          ]
+        },
+        "actions": [],
+        "endsDialogue": false
+      }
+    ]
+  }
+}
+```
+Note that from the 2 `reply` options, the first one ("_This reply option points to the \"End\" node._") has the additional parameter `endsDialogue` set to `true`. When building a User Interface, you use this information in two ways. First, when the user selects this option, you don't have to wait for a response from the server (as we will see soon). Second, you might wish to indicate to the user that selecting this reply option will end the conversation, for example by adding an "Exit Icon" to the reply button.
+
+=== Picking up the Conversation (/dialogue/continue)
+But before we continue the conversation, we take a look at the */dialogue/continue* end-point. If for whatever reason, you have lost the current "state" of your user interface (e.g. the user logged out, the browser was closed, or your application has crashed - it happens!), you can use this end-point to retrieve the latest state of _a given dialogue_. So, if you know that your user was interacting with the *basic.dlb* dialogue, but you've lost track of where you were, you can call the following:
+
+* */dialogue/continue* with `dialogueName` as `basic` and `timeZone` as any valid input.
+
+This call will return exactly the current state of the conversation, which is the same output as JSON Response #4 above.
+
+=== Where was I? (/dialogue/get-ongoing)
+In the unfortunate event that you (or your client) has forgotten whether or not there was an ongoing conversation, there is another method to recover: the `/dialogue/get-ongoing` end-point. This end-point can be called without any parameters (besides the optional `delegateUser` if you are acting on behalf of another user) and will provide information on the question "What was the latest ongoing dialogue?". An "ongoing" dialogue is any dialogue that has not been specifically cancelled (by a call to `/dialogue/cancel`) and hasn't ended naturally. Making this call through Swagger now will return something like this: 
+
+.Code Block: JSON Response #5.
+```json
+{
+  "value": {
+    "dialogueName": "basic",
+    "secondsSinceLastEngagement": 11
+  }
+}
+```
+
+Based on the value of `secondsSinceLastEngagement` you may decide to continue this conversation through the `/dialogue/continue` end-point.
+
+=== Ending the dialogue (/dialogue/progress)
+Now it's time for our final move; we want to end our dialogue by selecting the `Reply` "_This reply option points to the End node._". To do this, we make the following call:
+
+* */dialogue/progress* with `loggedDialogueId: bf758d37cef84ff3a5ef818abce2f6c0`, `loggedInteractionIndex: 10`, and `replyId: 1`.
+
+As this is the end of the dialogue, the response will not contain anything useful. To be exact, this is what you can expect the Dialogue Branch Web Service to return:
+
+.Code Block: JSON Response #6.
+```json
+{
+  "value": null
+}
+```
+
+=== Cancelling dialogues (/dialogue/cancel)
+Finally, if you (or your client app) wants to stop engaging in a certain dialogue (and not being able to pick it up later), you can choose to use the `/dialogue/cancel` end-point. This end-point simply requires the `loggedDialogueId` (e.g. `bf758d37cef84ff3a5ef818abce2f6c0`) and will set that dialogue's state to `cancelled`.
+
+== What's next?
+So now you have a running Dialogue Branch Web Service, and you understand how you can use its API to start, progress, continue and end dialogues. The next step is to move away from Swagger, and start with a proper client application.
+
+The next tutorial in this series is currently being written...
+
+NOTE: If you found errors or have questions about this tutorial, please let us know by sending an email to info@dialoguebranch.com.

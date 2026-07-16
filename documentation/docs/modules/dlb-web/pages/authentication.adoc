@@ -1,0 +1,17 @@
+= Dialogue Branch Web Services: Authentication
+Harm op den Akker <hopdenakker@fruittreelabs.com>
+:toc: left
+:toc-title: Table of Contents
+:toclevels: 3
+:imagesdir: ../images
+:description: Authentication in the Dialogue Branch Web Services
+
+== Release Notes
+NOTE: Development of all Dialogue Branch Web Service components occurs on the `https://github.com/dialoguebranch/dlb-web/tree/main[main]` branch. For stable software versions, check out the https://github.com/dialoguebranch/dlb-web/releases[release tags].
+
+== Native vs Keycloak
+The Dialogue Branch Web Service supports two ways in which Authorization is handled: Native or Keycloak.
+
+The Native Authentication Service is a simple built-in user management system that allows you to quickly get started with using the Dialogue Branch Web Service, but is not recommended for production environments.
+
+The Keycloak Authentication Service uses `https://www.keycloak.org/[Keycloak]`, an Open Source Identity and Access Management platform, to handle user management and the generation of access tokens.

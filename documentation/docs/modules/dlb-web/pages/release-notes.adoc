@@ -1,0 +1,61 @@
+= Dialogue Branch Web Services: Release Notes
+Harm op den Akker <hopdenakker@fruittreelabs.com>
+:toc: left
+:toc-title: Table of Contents
+:toclevels: 3
+:imagesdir: ../images
+:description: Release Notes for the Dialogue Branch Web Services
+
+== Release Notes
+NOTE: Development of all Dialogue Branch Web Service components occurs on the `https://github.com/dialoguebranch/dlb-web/tree/main[main]` branch. For stable software versions, check out the https://github.com/dialoguebranch/dlb-web/releases[release tags].
+
+=== v1.2.0
+[cols="1,3"]
+|===
+|Release Date
+|Feb 1, 2024
+
+|Source Code Tag
+|https://github.com/dialoguebranch/dlb-web/releases/tag/v1.2.0[v1.2.0]
+
+|Release Notes
+a|
+* Minor refactorings have been done in DLB Web Service to align with dlb-core-java v1.2.0.
+
+* A new `/admin/list-dialogues` end-point was added to DLB Web Service that allows admin users to retrieve a list of available dialogues supported by the service.
+
+* A new `/auth/validate` end-point was added to DLB Web Service that allows to verify an authentication token (e.g. one that was stored in a client's cookie), before attempting to use it on real end-points.
+
+* There is now a `dlb-web-client` implementation, which is a HTML/CSS/Javascript web application that connects to a running Web Service and allows you to test the execution of dialogues. This is a first, stable, but not feature-complete, version that allows you to login, retrieve a set of dialogues, execute a dialogue that uses Basic or AutoForward replies, see and delete variables that are set during dialogue execution, and logout again.
+|===
+
+=== v1.1.0
+[cols="1,3"]
+|===
+|Release Date
+|Nov 10, 2023
+
+|Source Code Tag
+|https://github.com/dialoguebranch/dlb-web/releases/tag/v1.1.0[v1.1.0]
+
+|Release Notes
+a|
+* This `v1.1.0` release does not contain major feature updates. The primary changes are to align with the refactoring and changes that occured in the `dlb-core-java` `v1.1.0` release.
+
+* Updated Gradle version from `8.0.1` to `8.2.1`.
+
+* Fixed an issue with the example `gradle.sample.properties` file by disabling Azure Data Lake integration by default.
+|===
+
+=== v1.0.0
+[cols="1,3"]
+|===
+|Release Date
+|May 12, 2023
+
+|Source Code Tag
+|https://github.com/dialoguebranch/dlb-web/releases/tag/v1.0.0[v1.0.0]
+
+|Release Notes
+|The v1.0.0 Release marks the launch release of the Dialogue Branch Web Services code repository. This include stable versions of the Dialogue Branch Web Service and the Dialogue Branch External Variable Service.
+|===

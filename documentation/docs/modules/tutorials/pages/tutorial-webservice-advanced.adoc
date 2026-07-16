@@ -1,0 +1,32 @@
+== Adding dialogues
+
+Where users are added in the +woolconfigDataDir+ folder, new dialogue scripts can be added to the +{woolplatform}\wool\java\WoolWebService\src\main\resources\dialogues\en+ subfolder (assuming you have an English dialogue).
+
+Once you have added new dialogues, you need to run the +.\gradlew updateConfig+ and +.\gradlew build cargoRedeployRemote+ gradle commands in the +{GITDIR}\wool\java\WoolWebService+ folder.
+
+The dialogues in this folder are available for all defined users.
+
+== Pre-setting or changing variable values
+
+To pre-set variables for a user, you need to add variable names and values to a JSON-file for that user. There are two ways to do this, which we will both discuss below.
+
+=== Change a user's +varstore+ file.
+
+The JSON-files are located in the +varstore+ subfolder in the +{woolconfigDataDir}+ folder (the directory you defined in the +gradle.properties+ file). If that folder does not exist, you can create it (next to the +log+ folder and the +users.xml+ file).
+In that folder, the variables for each user are stored in a JSON-file that has the user’s email address as its name. For example:
+
+image::webservice-setup-tutorial-2.png[]
+
+Each JSON-file that is in that folder (or that you change or newly add) should contain a JSON with combinations of variable names and values. For example:
+
+image::webservice-setup-tutorial-3.png[]
+
+If you add/remove variables for a user or change variable values in this manner, the WOOL Web Service needs to be restarted (this can be done through the Tomcat manager panel).
+
+=== Add or change variables using the Web Service’s endpoints
+
+Alternatively, you can use the +/setVariable+ or +/setVariables+ endpoint to add/change variable values for a user. The first will take a single name and value, while the second will take a JSON with name and value pairs.
+
+Note that with the +/setVariable+ endpoint you cannot set a variable to +null+, since it will become a String. However, variables can be set to +null+ with the +setVariables+ endpoint.
+
+That concludes this tutorial. Have fun!

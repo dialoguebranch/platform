@@ -1,0 +1,15 @@
+= Dialogue Branch Core Java Library
+Harm op den Akker <hopdenakker@fruittreelabs.com>
+:toc: left
+:toc-title: Table of Contents
+:toclevels: 3
+:imagesdir: ../images
+:description: Main page for the Dialogue Branch Core Java Library Documentation.
+
+== Introduction
+The "Core" of the Dialogue Branch software is a library that can read and execute Dialogue Branch (.dlb) scripts. This core library is written in Java, and can be found on the GitHub repository under https://github.com/dialoguebranch/dlb-core-java[dlb-core-java].
+
+== Documentation
+An overview and more detailed documentation of the Core Java Library will be added later. For now, we provide a link to the hosted Javadoc here:
+
+https://www.dialoguebranch.com/javadoc/dlb-core-java/v1.0.0/

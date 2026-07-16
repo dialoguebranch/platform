@@ -1,0 +1,28 @@
+= Contributing to DialogueBranch
+Harm op den Akker <hopdenakker@fruittreelabs.com>
+:toc: left
+:toc-title: Table of Contents
+:toclevels: 3
+:imagesdir: ../images
+:description: Index page for the documentation on how to contribute to DialogueBranch.
+
+== Introduction
+
+== Code Style
+
+* Code wrapped at 100 characters.
+
+// --------------------------------------------------------
+// -------------------- Constructor(s) --------------------
+// --------------------------------------------------------
+
+	// -----------------------------------------------------------
+	// -------------------- Getters & Setters --------------------
+	// -----------------------------------------------------------
+
+    Get, Set, Get, Set, Get, Set, ....
+
+
+    // -------------------------------------------------------
+	// -------------------- Other Methods --------------------
+	// -------------------------------------------------------

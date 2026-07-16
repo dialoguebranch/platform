@@ -1,0 +1,62 @@
+= Dialogue Branch Core Java Library: Release Notes
+Harm op den Akker <hopdenakker@fruittreelabs.com>
+:toc: left
+:toc-title: Table of Contents
+:toclevels: 3
+:imagesdir: ../images
+:description: Release Notes for the Dialogue Branch Core Java Library
+
+== Release Notes
+NOTE: Development of Dialogue Branch Core Java Library (and all other software components) occurs on the `https://github.com/dialoguebranch/dlb-core-java/tree/main[main]` branch. For stable software versions, check out the https://github.com/dialoguebranch/dlb-core-java/releases[release tags].
+
+=== v1.2.0
+[cols="1,3"]
+|===
+|Release Date
+|Feb 1, 2024
+
+|Source Code Tag
+|https://github.com/dialoguebranch/dlb-core-java/releases/tag/v1.2.0[v1.2.0]
+
+|Release Notes
+|This is a minor update to the dlb-core-java library with minor class name refactorings, javadoc and code style fixes. Versioning is updated to stay in sync with the other Dialogue Branch components.
+|===
+
+=== v1.1.0
+
+[cols="1,3"]
+|===
+|Release Date
+|Nov 8, 2023
+
+|Source Code Tag
+|https://github.com/dialoguebranch/dlb-core-java/releases/tag/v1.1.0[v1.1.0]
+
+|Release Notes
+a|
+* In this release of the DialogueBranch Core Java Library almost all the library's class names have been refactored. In order to improve code readability, all class names that were prefixed with DLB* now have that prefix removed. Upgrading from v1.0.0 to v1.1.0 should be as simple as renaming references to e.g. "DLBParser" to "Parser" and "DLBProjectFileLoader" to "ProjectFileLoader".
+
+* Removed the `com.dialoguebranch.parser.DLBFileDescription` and replaced with the almost identical (old) `com.dialoguebranch.model.DLBDialogueDescription` (which is now called FileDescriptor). These two objects where almost identical and the parser was doing quite confusing and useless conversions between the two. The new "FileDescriptor" class also contains a "FileType" parameter that indicates whether this is a Script or a Translation file.
+
+* This release introduces the `com.dialoguebranch.cli` package and the `CommandLineRunner` class. In time, this will be the single runnable entry point into the core Java library. For now, it can be used to parse dialogue branch projects and obtain some metadata about the loaded project.
+
+* Initial updates have been made to better support "DialogueBranch Projects" as defined through metadata.xml files. Although not yet fully supported, metadata.xml files can be read by the CommandLineRunner (through the new ProjectFileLoader class).
+
+* Simplifications and updates to the Gradle build files have been made.
+
+* Various Javadoc updates have been added to classes throughout the library in an ongoing effort to generate complete Javadoc for the library.
+|===
+
+=== v1.0.0
+
+[cols="1,3"]
+|===
+|Release Date 
+|May 12, 2023 
+
+|Source Code Tag
+|https://github.com/dialoguebranch/dlb-core-java/releases/tag/v1.0.0[v1.0.0]
+
+|Release Notes
+|Version 1.0.0 marks the initial release of the Dialogue Branch Core Java Library
+|===
