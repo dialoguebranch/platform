@@ -21,7 +21,9 @@ async function bootstrap() {
     await initKeycloak();
 
     const roles = keycloak.tokenParsed?.resource_access?.[config.keycloak.clientId]?.roles ?? [];
-    const hasAccess = roles.includes('admin') || roles.includes('editor');
+    // 'participant' is let in too — App.vue routes participant-only users (no editor/admin) to
+    // ParticipantPage.vue instead of the full authoring/testing app.
+    const hasAccess = roles.includes('admin') || roles.includes('editor') || roles.includes('participant');
     if (hasAccess) {
         stateRef.value.user = new User(
             keycloak.tokenParsed.preferred_username,

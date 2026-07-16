@@ -9,6 +9,20 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Added a dedicated Web Client layout for `participant`-only users (no `editor`/`admin`), so the
+  `participant` role can actually be tested end-to-end. Previously `main.js`'s role gate excluded
+  anyone without `editor`/`admin` entirely, logging them straight back out — and even if let in, a
+  participant can't call `listProjects`/`getProject`/`listDialogues` (all editor/admin-only), so
+  `ProjectSelectorPage`/`MainPage` would just fail to load. `App.vue` now routes a participant-only
+  user (checked ahead of the normal routing, so an editor/admin who also carries `participant`
+  still gets the full app) to a new `ParticipantPage.vue`, which auto-starts the configured
+  project/dialogue (`config.participant.projectSlug`/`dialogueName`, defaulting to `default-test`/
+  `menu`; override via `VITE_DLB_PARTICIPANT_PROJECT_SLUG`/`VITE_DLB_PARTICIPANT_DIALOGUE_NAME`)
+  through the existing `BalloonDialogueComponent`, using only endpoints a plain `participant` can
+  actually call (`/dialogue/start`, `/dialogue/progress`). If the project or dialogue doesn't
+  exist, the resulting 404 is shown inline (via `BalloonDialogueComponent`'s existing
+  `startError`/"Try Again" state) rather than as a toast, since there's nothing else on this
+  single-purpose page for the toast to sit alongside.
 - Added an admin-only `GET /info/technical` end-point (`TechnicalInfoPayload`) returning technical
   information about the running service — currently the number of active (in-memory)
   `UserService` instances (`ApplicationManager.getActiveUserServiceCount()`). Unlike `/info/all`,
