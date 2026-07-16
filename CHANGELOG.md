@@ -9,6 +9,22 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Added support for cross-dialogue reply links (`[[Reply Text.|otherDialogue.NodeId]]`) in draft
+  test sessions (`/draft/*`) — selecting such a reply used to fail with "This reply points to
+  another dialogue, which isn't supported in draft test mode."
+  ([#74](https://github.com/dialoguebranch/platform/issues/74)). `DraftExecutionService
+  .startSession` already parsed the *whole* project (every draft dialogue, not just the one under
+  test) precisely so sibling references would resolve, but that parsed `ExecutableProject` was a
+  local variable, discarded once the session started, leaving `progressSession` with no way to
+  actually follow a link when one turned up. `DraftTestSession` now keeps the parsed project (and
+  the project's source language, needed to resolve languages the same way published dialogues do
+  — not reliably available from the parsed project's own metadata, since these dialogues are
+  parsed from in-memory content maps, not an actual `dlb-project.xml`) for the life of the
+  session; `progressSession` resolves the target dialogue against it and switches the session over
+  via a new `DraftTestSession.switchToDialogue`, mirroring how `DialogueExecutor` already handles
+  the same case for published dialogues. No Web Client changes were needed — `DialogueWorkspace
+  .vue` already updates a tab's displayed dialogue name from whatever the server's response says
+  on every progress step.
 - Added an optional `startNodeId` parameter to the API's `POST /dialogue/start` end-point, to
   start a live (published) dialogue session at a specific node instead of always the default
   "Start" node — mirroring what `/draft/start` already supported for draft testing.

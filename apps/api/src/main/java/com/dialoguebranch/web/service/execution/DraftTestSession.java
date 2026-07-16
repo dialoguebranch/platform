@@ -31,6 +31,7 @@ package com.dialoguebranch.web.service.execution;
 import com.dialoguebranch.execution.ActiveDialogue;
 import com.dialoguebranch.execution.Variable;
 import com.dialoguebranch.model.execute.Dialogue;
+import com.dialoguebranch.model.execute.ExecutableProject;
 
 import java.util.UUID;
 
@@ -46,8 +47,25 @@ public class DraftTestSession {
 
 	private final String id;
 	private final String userId;
-	private final ActiveDialogue activeDialogue;
-	private final Dialogue dialogueDefinition;
+	private volatile ActiveDialogue activeDialogue;
+	private volatile Dialogue dialogueDefinition;
+
+	/**
+	 * The whole project's parsed content (every draft dialogue, not just the one under test),
+	 * kept for the lifetime of the session so that {@link DraftExecutionService#progressSession}
+	 * can resolve a reply that links to a sibling dialogue — see
+	 * {@link #switchToDialogue(ActiveDialogue, Dialogue)} — without needing to re-parse.
+	 */
+	private final ExecutableProject executableProject;
+
+	/**
+	 * The project's source language code, resolved once from the authoritative {@code DBProject}
+	 * record when this session started (see {@code DraftExecutionService#startSession}) and kept
+	 * for the lifetime of the session, since {@code executableProject.getMetaData()} isn't a
+	 * reliable source for it — these dialogues are parsed from in-memory content maps via {@code
+	 * DatabasePublishedScriptLoader}, not an actual {@code dlb-project.xml}.
+	 */
+	private final String sourceLanguage;
 
 	/**
 	 * The full contents of the user's {@link com.dialoguebranch.execution.VariableStore} at the
@@ -64,14 +82,21 @@ public class DraftTestSession {
 	 * @param activeDialogue     the {@link ActiveDialogue} driving execution for this session.
 	 * @param dialogueDefinition the parsed {@link Dialogue} being tested.
 	 * @param variableSnapshot   the variable store snapshot taken when this session started.
+	 * @param executableProject  the whole project's parsed content, kept so a later reply that
+	 *                           links to a sibling dialogue can be resolved without re-parsing.
+	 * @param sourceLanguage     the project's source language code, resolved from the
+	 *                           authoritative {@code DBProject} record.
 	 */
 	public DraftTestSession(String userId, ActiveDialogue activeDialogue,
-							Dialogue dialogueDefinition, Variable[] variableSnapshot) {
+							Dialogue dialogueDefinition, Variable[] variableSnapshot,
+							ExecutableProject executableProject, String sourceLanguage) {
 		this.id = UUID.randomUUID().toString().toLowerCase().replaceAll("-", "");
 		this.userId = userId;
 		this.activeDialogue = activeDialogue;
 		this.dialogueDefinition = dialogueDefinition;
 		this.variableSnapshot = variableSnapshot;
+		this.sourceLanguage = sourceLanguage;
+		this.executableProject = executableProject;
 	}
 
 	/**
@@ -108,6 +133,41 @@ public class DraftTestSession {
 	 */
 	public Dialogue getDialogueDefinition() {
 		return dialogueDefinition;
+	}
+
+	/**
+	 * Returns the whole project's parsed content (every draft dialogue), used to resolve a reply
+	 * that links to a sibling dialogue.
+	 *
+	 * @return the parsed project.
+	 */
+	public ExecutableProject getExecutableProject() {
+		return executableProject;
+	}
+
+	/**
+	 * Returns the project's source language code, used to resolve a reply that links to a
+	 * sibling dialogue with no content in the currently active dialogue's language.
+	 *
+	 * @return the source language code.
+	 */
+	public String getSourceLanguage() {
+		return sourceLanguage;
+	}
+
+	/**
+	 * Switches this session to a different dialogue — called by {@link
+	 * DraftExecutionService#progressSession} when a reply points to a sibling dialogue rather
+	 * than a node within the one currently being tested. Updates {@link #getActiveDialogue()} and
+	 * {@link #getDialogueDefinition()} together, atomically from the caller's perspective, so a
+	 * concurrent reader never observes one updated without the other.
+	 *
+	 * @param activeDialogue     the new {@link ActiveDialogue}, already started at the target node.
+	 * @param dialogueDefinition the new dialogue's parsed {@link Dialogue}.
+	 */
+	void switchToDialogue(ActiveDialogue activeDialogue, Dialogue dialogueDefinition) {
+		this.activeDialogue = activeDialogue;
+		this.dialogueDefinition = dialogueDefinition;
 	}
 
 	/**

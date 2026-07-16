@@ -42,6 +42,7 @@ import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.ExecutableProject;
 import com.dialoguebranch.model.execute.Node;
 import com.dialoguebranch.model.execute.ResourcePointer;
+import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import com.dialoguebranch.web.service.exception.BadRequestException;
@@ -195,31 +196,14 @@ public class DraftExecutionService {
 		}
 
 		ExecutableProject executableProject = (ExecutableProject) parserResult.getProject();
-		// `language` may be the project's source language (the dialogue's own script, stored under
-		// ResourceType.SCRIPT) or one of its translation languages (stored separately under
-		// ResourceType.TRANSLATION, per ProjectParser.createTranslatedDialogues) — try both, since
-		// the caller doesn't distinguish which kind of language it asked for.
-		ResourcePointer pointer =
-				new ResourcePointer(language, dialogue.getName(), ResourceType.SCRIPT);
-		Dialogue dialogueDefinition = executableProject.getDialogues().get(pointer);
-		if (dialogueDefinition == null) {
-			pointer = new ResourcePointer(language, dialogue.getName(), ResourceType.TRANSLATION);
-			dialogueDefinition = executableProject.getDialogues().get(pointer);
-		}
-		if (dialogueDefinition == null) {
-			// No content in the requested language (an undeclared code, or a declared translation
-			// language this dialogue doesn't have content for yet) — fall back to the source
-			// language, matching how the published-dialogue path
-			// (UserService.findExactLanguageMatch) behaves, rather than failing the request.
-			pointer = new ResourcePointer(sourceLanguage, dialogue.getName(), ResourceType.SCRIPT);
-			dialogueDefinition = executableProject.getDialogues().get(pointer);
-		}
-		if (dialogueDefinition == null) {
+		ResolvedDialogue resolved = resolveDialogue(executableProject, dialogue.getName(), language,
+				sourceLanguage);
+		if (resolved == null) {
 			throw new BadRequestException("Draft dialogue '" + dialogue.getName() +
 					"' could not be parsed into a runnable dialogue.");
 		}
 
-		ActiveDialogue activeDialogue = new ActiveDialogue(pointer, dialogueDefinition);
+		ActiveDialogue activeDialogue = new ActiveDialogue(resolved.pointer(), resolved.definition());
 		VariableStore variableStore = userService.getVariableStore();
 		activeDialogue.setVariableStore(variableStore);
 
@@ -237,16 +221,78 @@ public class DraftExecutionService {
 		}
 
 		DraftTestSession session = new DraftTestSession(
-				userService.getDialogueBranchUser().getId(), activeDialogue, dialogueDefinition,
-				snapshot);
+				userService.getDialogueBranchUser().getId(), activeDialogue, resolved.definition(),
+				snapshot, executableProject, sourceLanguage);
 		sessions.put(session.getId(), session);
 
-		ExecuteNodeResult result = new ExecuteNodeResult(dialogueDefinition, startNode, null, 0);
+		ExecuteNodeResult result = new ExecuteNodeResult(resolved.definition(), startNode, null, 0);
 		return new StartResult(session.getId(), result);
 	}
 
 	/**
-	 * Progresses the given draft test session after the user selected the specified reply.
+	 * The result of resolving a dialogue name and preferred language against a project's already
+	 * parsed content — see {@link #resolveDialogue(ExecutableProject, String, String, String)}.
+	 *
+	 * @param pointer    the {@link ResourcePointer} actually matched (which may name the source
+	 *                   language rather than the originally requested one, if this dialogue has
+	 *                   no content in exactly that language).
+	 * @param definition the resolved {@link Dialogue}.
+	 */
+	private record ResolvedDialogue(ResourcePointer pointer, Dialogue definition) {
+	}
+
+	/**
+	 * Resolves {@code dialogueName} to a {@link Dialogue} within the given already-parsed {@code
+	 * executableProject}, preferring {@code language} but falling back to {@code sourceLanguage}
+	 * if this dialogue has no content in exactly that language — matching {@code
+	 * UserService.findExactLanguageMatch}'s behavior for published dialogues. {@code language}
+	 * may itself be the project's source language (the dialogue's own script, stored under
+	 * {@link ResourceType#SCRIPT}) or one of its translation languages (stored separately under
+	 * {@link ResourceType#TRANSLATION}, per {@code ProjectParser.createTranslatedDialogues}) —
+	 * both are tried, since the caller doesn't distinguish which kind of language it asked for.
+	 *
+	 * <p>{@code sourceLanguage} must be passed in by the caller (resolved from the authoritative
+	 * {@code DBProject} record) rather than read from {@code executableProject.getMetaData()} —
+	 * these dialogues are parsed from in-memory content maps via {@code
+	 * DatabasePublishedScriptLoader}, not an actual {@code dlb-project.xml}, so the parsed
+	 * project's own metadata is not a reliable source for it.</p>
+	 *
+	 * @param executableProject the already-parsed project to resolve against.
+	 * @param dialogueName      the dialogue to resolve.
+	 * @param language          the preferred language code.
+	 * @param sourceLanguage    the project's source language code, to fall back to.
+	 * @return the resolved pointer and dialogue, or {@code null} if {@code dialogueName} has no
+	 * content in {@code language} or {@code sourceLanguage}.
+	 */
+	private ResolvedDialogue resolveDialogue(ExecutableProject executableProject,
+			String dialogueName, String language, String sourceLanguage) {
+		ResourcePointer pointer = new ResourcePointer(language, dialogueName, ResourceType.SCRIPT);
+		Dialogue definition = executableProject.getDialogues().get(pointer);
+		if (definition == null) {
+			pointer = new ResourcePointer(language, dialogueName, ResourceType.TRANSLATION);
+			definition = executableProject.getDialogues().get(pointer);
+		}
+		if (definition == null) {
+			// No content in the requested language (an undeclared code, or a declared translation
+			// language this dialogue doesn't have content for yet) — fall back to the source
+			// language, rather than failing the request.
+			pointer = new ResourcePointer(sourceLanguage, dialogueName, ResourceType.SCRIPT);
+			definition = executableProject.getDialogues().get(pointer);
+		}
+		if (definition == null) return null;
+		return new ResolvedDialogue(pointer, definition);
+	}
+
+	/**
+	 * Progresses the given draft test session after the user selected the specified reply. If the
+	 * reply points to a sibling dialogue rather than a node within the one currently being
+	 * tested, switches the session to that dialogue and starts it at the linked node — see
+	 * {@link DraftTestSession#switchToDialogue}. The sibling is resolved against the project
+	 * content already parsed when this session started (see {@link
+	 * #resolveDialogue(ExecutableProject, String, String, String)}), preferring whatever language the
+	 * dialogue currently being tested actually resolved to (which may itself already be a
+	 * source-language fallback), not necessarily what was originally requested when the session
+	 * started.
 	 *
 	 * @param session   the draft test session to progress.
 	 * @param replyId   the reply ID.
@@ -255,13 +301,14 @@ public class DraftExecutionService {
 	 * @param eventTime the timestamp of this progress event, in the user's time zone.
 	 * @return the {@link ExecuteNodeResult} for the next node, or {@code null} if the dialogue has
 	 *         completed.
-	 * @throws BadRequestException if the reply points to another dialogue — following
-	 *                             cross-dialogue links is not supported in draft test mode.
-	 * @throws ExecutionException  if the reply cannot be processed.
+	 * @throws NotFoundException  if the reply's target dialogue has no content in this project's
+	 *                            draft dialogues (e.g. it was renamed or deleted since this
+	 *                            session started).
+	 * @throws ExecutionException if the reply cannot be processed.
 	 */
 	public ExecuteNodeResult progressSession(DraftTestSession session, int replyId,
 											 Map<String, ?> variables, ZonedDateTime eventTime)
-			throws BadRequestException, ExecutionException {
+			throws NotFoundException, ExecutionException {
 		ActiveDialogue activeDialogue = session.getActiveDialogue();
 
 		if (variables != null && !variables.isEmpty()) {
@@ -276,11 +323,34 @@ public class DraftExecutionService {
 			throw new RuntimeException("Expression evaluation error: " + e.getMessage(), e);
 		}
 
-		if (!(nodePointer instanceof InternalNodePointer internalNodePointer)) {
-			throw new BadRequestException("This reply points to another dialogue, which isn't " +
-					"supported in draft test mode.");
+		if (nodePointer instanceof ExternalNodePointer externalNodePointer) {
+			String targetDialogueName = externalNodePointer.getAbsoluteTargetDialogue();
+			String targetNodeId = externalNodePointer.getTargetNodeId();
+			String language = activeDialogue.getDialogueFileDescription().getLanguage();
+
+			ResolvedDialogue resolved = resolveDialogue(session.getExecutableProject(),
+					targetDialogueName, language, session.getSourceLanguage());
+			if (resolved == null) {
+				throw new NotFoundException("Dialogue '" + targetDialogueName + "' not found " +
+						"in this project's draft content.");
+			}
+
+			ActiveDialogue newActiveDialogue =
+					new ActiveDialogue(resolved.pointer(), resolved.definition());
+			newActiveDialogue.setVariableStore(activeDialogue.getVariableStore());
+
+			Node startNode;
+			try {
+				startNode = newActiveDialogue.startDialogue(targetNodeId, eventTime);
+			} catch (EvaluationException e) {
+				throw new RuntimeException("Expression evaluation error: " + e.getMessage(), e);
+			}
+
+			session.switchToDialogue(newActiveDialogue, resolved.definition());
+			return new ExecuteNodeResult(resolved.definition(), startNode, null, 0);
 		}
 
+		InternalNodePointer internalNodePointer = (InternalNodePointer) nodePointer;
 		Node nextNode;
 		try {
 			nextNode = activeDialogue.progressDialogue(internalNodePointer, eventTime);
