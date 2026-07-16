@@ -86,6 +86,16 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Fixed the Web Client's Dialogue Browser collapsing every expanded folder on every refresh, even
+  when the refreshed list is identical to what's already shown — the common case
+  ([#71](https://github.com/dialoguebranch/platform/issues/71)). `listDialogues()` now snapshots
+  the displayed entries (name, `isPublished`/`isNew`/`isChanged`/`isDeleted`, order-independent)
+  and only resets `openFolders` when a refresh's result actually differs from that snapshot —
+  triggered by manual refresh, publish, and creating/renaming/deleting a draft dialogue, not just
+  the initial load. Since a no-op refresh no longer has any visible effect on its own, the
+  "Refresh dialogue list" button now spins while the request is in flight (with the same
+  minimum-visible-duration treatment as the "Refresh current dialogue step" button), so clicking
+  it still gives feedback that it did something.
 - Fixed the Web Client's "restart dialogue" button (shown once a live/published dialogue test has
   finished) opening a new tab instead of restarting in the current one
   ([#70](https://github.com/dialoguebranch/platform/issues/70)). `DialogueWorkspace.vue`'s

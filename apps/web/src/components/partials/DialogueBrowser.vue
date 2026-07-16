@@ -37,6 +37,7 @@ const tree = ref([]);
 const openFolders = ref({});
 const ongoingConfirm = ref(null); // { dialogueName, loggedDialogueId, secondsSinceLastEngagement, alreadyOpenTabId? }
 const cancelConfirm = ref(false);
+const reloading = ref(false);
 
 // entries: array of { name, isPublished, isNew, isChanged, isDeleted }
 function buildTree(entries) {
@@ -65,9 +66,24 @@ function buildTree(entries) {
 // they were sent — only the response matching the most recently issued request may update state.
 const { next: nextListRequest, isCurrent: isCurrentListRequest } = useLatestRequest();
 
+// A snapshot of the last-displayed entries (order-independent), so a refresh that returns the
+// exact same list — the common case — can leave openFolders alone instead of collapsing
+// everything. Only a genuine change to the list (a dialogue added/removed/renamed, or its
+// published/new/changed/deleted status flipping) resets it.
+let previousEntriesKey = null;
+
+function entriesKey(entries) {
+    return JSON.stringify(
+        [...entries]
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map((e) => [e.name, e.isPublished, e.isNew, e.isChanged, e.isDeleted])
+    );
+}
+
 function listDialogues() {
     const projectSlug = state.value.selectedProject?.slug;
     dismissError();
+    reloading.value = true;
     const requestId = nextListRequest();
     // The Dialogue Browser only ever shows one source at a time — published dialogues in Live
     // Mode, draft dialogues in Draft Mode — never a merge of both, so there's nothing to reconcile
@@ -101,6 +117,10 @@ function listDialogues() {
                 isDeleted: false,
             }));
         }
+        const newKey = entriesKey(entries);
+        const listUnchanged = newKey === previousEntriesKey;
+        previousEntriesKey = newKey;
+
         const root = buildTree(entries);
         tree.value = Object.entries(root).sort(([, a], [, b]) => {
             const aIsFolder = !a._file;
@@ -108,11 +128,19 @@ function listDialogues() {
             if (aIsFolder !== bIsFolder) return aIsFolder ? -1 : 1;
             return 0;
         });
-        openFolders.value = {};
+        if (!listUnchanged) openFolders.value = {};
     })
     .catch((error) => {
         if (!isCurrentListRequest(requestId)) return;
         showError(describeError(error));
+    })
+    .finally(() => {
+        if (!isCurrentListRequest(requestId)) return;
+        // Same minimum-visible-spin treatment as DialogueWorkspace's "Refresh current dialogue
+        // step" button — a fast response would otherwise just flicker, giving no indication
+        // anything happened (the whole point of this animation, now that an unchanged list no
+        // longer collapses the folder tree as a side effect).
+        setTimeout(() => { reloading.value = false; }, 1000);
     });
 }
 
@@ -226,7 +254,13 @@ defineExpose({
             <template #buttons>
                 <IconButton v-if="!isDraftMode" icon="fa-solid fa-rotate-left" title="Retrieve most recent ongoing (server-side) dialogue" :disabled="hasActiveDialogue" @click="checkOngoingDialogue" />
                 <IconButton v-if="isDraftMode" icon="fa-solid fa-plus" title="New Dialogue" @click="onNewDialogueClick" />
-                <IconButton icon="fa-solid fa-arrows-rotate" title="Refresh dialogue list" @click="listDialogues" />
+                <IconButton
+                    icon="fa-solid fa-arrows-rotate"
+                    :class="{ 'animate-spin': reloading }"
+                    title="Refresh dialogue list"
+                    :disabled="reloading"
+                    @click="listDialogues"
+                />
             </template>
         </MainPagePanelHeader>
         <MainPagePanelContainer class="p-1 gap-1 flex flex-col sm:ml-1">
