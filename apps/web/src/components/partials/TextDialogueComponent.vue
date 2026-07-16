@@ -119,7 +119,7 @@ function getBasicReplyTextClasses(stepIndex, reply) {
                 </div>
                 <div v-if="reply instanceof AutoForwardReply">
                     <button
-                        class="block m-auto rounded-xl text-white uppercase p-3 min-w-[160px] bg-orange-dark hover:bg-orange-darker disabled:bg-icon-button-disabled"
+                        class="block m-auto rounded-xl border border-grey-light text-grey-dark hover:bg-grey-lighter hover:border-orange-medium hover:text-orange-darker uppercase p-3 min-w-[160px] disabled:opacity-50"
                         :class="{
                             'cursor-pointer': isReplySelectable(stepIndex),
                         }"

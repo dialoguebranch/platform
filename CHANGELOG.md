@@ -54,6 +54,12 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- Gave the Web Client's auto-generated "Continue" reply buttons (`AutoForwardReply` — an
+  autoforward with no `[[Reply Text.|NextNode]]` of its own) a distinct, secondary/outline style
+  in both the Speech Bubble and RPG Text test modes, instead of the same solid orange button used
+  for real, author-defined reply options (`BasicReply`) ([#68](https://github.com/dialoguebranch/platform/issues/68)).
+  A tester can now tell at a glance which buttons represent an actual choice versus a mechanical
+  "just move on."
 - **Breaking:** Renamed the `client` Keycloak role to `participant`, to avoid confusion with the
   unrelated Keycloak concept of a *client* (an OAuth2 application registration, e.g. the
   `dlb-web-service` client itself) — `client` was never meant to denote "a service acting as a

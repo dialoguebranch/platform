@@ -101,7 +101,7 @@ const currentStep = computed(() => {
                         </button>
                         <button
                             v-if="reply instanceof AutoForwardReply"
-                            class="block rounded-xl bg-orange-dark hover:bg-orange-medium text-white uppercase p-3 min-w-[160px] disabled:bg-icon-button-disabled disabled:cursor-not-allowed"
+                            class="block rounded-xl border border-grey-light text-grey-dark hover:bg-grey-lighter hover:border-orange-medium hover:text-orange-darker uppercase p-3 min-w-[160px] disabled:opacity-50 disabled:cursor-not-allowed"
                             :class="{ 'cursor-pointer': !awaitingReply }"
                             :disabled="awaitingReply"
                             @click="$emit('selectReply', currentStep, reply)"
