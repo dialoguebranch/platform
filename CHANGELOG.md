@@ -9,6 +9,15 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Added an optional `startNodeId` parameter to the API's `POST /dialogue/start` end-point, to
+  start a live (published) dialogue session at a specific node instead of always the default
+  "Start" node — mirroring what `/draft/start` already supported for draft testing.
+  `UserService.startDialogueSession` already accepted this; only the controller's `@RequestParam`
+  plumbing was missing. Used by the Web Client: switching the "Test dialogues in:" language
+  selector while a dialogue is actively running in the current tab now restarts that tab's test at
+  its current node, in the newly selected language, instead of silently leaving it running in
+  whichever language it happened to be started in
+  ([#69](https://github.com/dialoguebranch/platform/issues/69)).
 - Added a small "x" icon to reply options in the Web Client's Speech Bubble and RPG Text test
   modes (`BalloonDialogueComponent.vue`/`TextDialogueComponent.vue`) when selecting that reply
   would end the dialogue, so a tester can see this before choosing it rather than being surprised

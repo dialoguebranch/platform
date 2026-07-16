@@ -270,7 +270,10 @@ const scrollTextToBottom = () => {
 
 // Pass `tab` to restart a specific, already-open tab in place (e.g. from restartActiveTab)
 // rather than the default of finding/creating an empty one — mirrors loadDraftDialogue.
-const loadDialogue = (name, { tab: givenTab, language } = {}) => {
+// `startNodeId` starts the test from a particular node instead of the dialogue's default "Start"
+// node (e.g. to resume at the same point after switching the test language — see the
+// selectedLanguage watcher below).
+const loadDialogue = (name, { tab: givenTab, startNodeId, language } = {}) => {
     if (!givenTab) ensureTestMode();
     const tab = givenTab ?? getOrCreateEmptyTab();
     activeTabId.value = tab.id;
@@ -288,7 +291,7 @@ const loadDialogue = (name, { tab: givenTab, language } = {}) => {
     scrollActiveTabIntoView();
     dismissError();
     logEvent('dialogue', 'Dialogue started: $1', name);
-    client.startDialogue(state.value.selectedProject?.slug, name, tab.language)
+    client.startDialogue(state.value.selectedProject?.slug, name, tab.language, startNodeId)
     .then((dialogueStep) => {
         tab.dialogueName = dialogueStep.dialogueName;
         tab.loggedDialogueId = dialogueStep.loggedDialogueId;
@@ -361,6 +364,24 @@ function restartActiveTab() {
         loadDialogue(tab.dialogueName, { tab, language: tab.language });
     }
 }
+
+// Switching the "Test dialogues in:" selector while a dialogue is actually running restarts the
+// active tab's test at its current node, in the newly selected language, instead of silently
+// leaving it running in whatever language it happened to be started in. Ignores tabs that
+// haven't started a test yet (selectedLanguage.value's initial assignment in
+// loadAvailableLanguages() would otherwise also trigger this).
+watch(selectedLanguage, (newLanguage, oldLanguage) => {
+    if (!oldLanguage) return;
+    const tab = activeTab.value;
+    if (!tab.dialogueName || tab.dialogueSteps.length === 0 || tab.openedForEditOnly) return;
+    if (tab.language === newLanguage) return;
+    const currentNode = tab.dialogueSteps[tab.dialogueSteps.length - 1].node;
+    if (tab.isDraftTest) {
+        loadDraftDialogue(tab.dialogueName, { tab, startNodeId: currentNode, language: newLanguage });
+    } else {
+        loadDialogue(tab.dialogueName, { tab, startNodeId: currentNode, language: newLanguage });
+    }
+});
 
 // A tab opened via editDialogue()/openDialogueForTranslation() has a dialogueName but was never
 // run (see its comment above). As soon as such a tab is visible in Balloon/Text mode — by

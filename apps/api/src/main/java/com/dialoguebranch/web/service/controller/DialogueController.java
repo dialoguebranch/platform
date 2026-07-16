@@ -132,6 +132,9 @@ public class DialogueController {
 	 *                     the currently authenticated user)
 	 * @param sessionId An optional identifier that is attached to the dialogue logs, allowing this
 	 *                  dialogue session to be cross-referenced with external logs
+	 * @param startNodeId An optional node title to start the dialogue at, instead of the default
+	 *                     "Start" node (e.g. to resume testing at the same point after switching
+	 *                     the test language).
 	 * @return a {@link DialogueMessage} object containing the first step of the dialogue.
 	 * @throws HttpException In case of a bad request, unauthorized user, or other service error.
 	 */
@@ -178,7 +181,12 @@ public class DialogueController {
 		@Parameter(description = "An optional identifier that is attached to the dialogue logs, " +
 				"allowing this dialogue session to be cross-referenced with external logs")
 		@RequestParam(value="sessionId", required = false)
-		String sessionId
+		String sessionId,
+
+		@Parameter(description = "An optional node title to start the dialogue at, instead of " +
+				"the default \"Start\" node")
+		@RequestParam(value="startNodeId", required = false)
+		String startNodeId
 	) throws HttpException {
 
 		// If no versionName is provided, or versionName is empty, assume the latest version
@@ -192,6 +200,7 @@ public class DialogueController {
 		if(delegateUser != null && !delegateUser.isEmpty())
 			logInfo += "&delegateUser=" + delegateUser;
 		if(sessionId != null && !sessionId.isEmpty()) logInfo += "&sessionId=" + sessionId;
+		if(startNodeId != null && !startNodeId.isEmpty()) logInfo += "&startNodeId=" + startNodeId;
 		logger.info(logInfo);
 
 		// Extract the access token, and throw an exception if it is not provided correctly
@@ -200,12 +209,12 @@ public class DialogueController {
 		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
 					(protocolVersion, authenticatedUser) -> doStartDialogue(authenticatedUser,
-							projectSlug, dialogueName, language, timeZone, sessionId),
+							projectSlug, dialogueName, language, timeZone, sessionId, startNodeId),
 					version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_PARTICIPANT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 		} else {
 			return QueryRunner.runQuery(
 					(protocolVersion, authenticatedUser) -> doStartDialogue(delegateUser,
-							projectSlug, dialogueName, language, timeZone, sessionId),
+							projectSlug, dialogueName, language, timeZone, sessionId, startNodeId),
 					version, accessToken, response, delegateUser, application, AuthenticationInfo.USER_ROLE_PARTICIPANT, AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
 		}
 	}
@@ -220,13 +229,15 @@ public class DialogueController {
 	 *                 (IANA Codes)
 	 * @param sessionId the (optional) identifier that should be added to the logging of dialogues
 	 *                  for this started dialogue session (which may be {@code null}).
+	 * @param startNodeId an optional node title to start the dialogue at, instead of the default
+	 *                     "Start" node (which may be {@code null}).
 	 * @return the {@link DialogueMessage} that represents the start node of the dialogue.
 	 * @throws HttpException in case of an error in the dialogue execution.
 	 * @throws DatabaseException in case of an error in retrieving the current active user.
 	 * @throws IOException in case of any network error.
 	 */
 	private DialogueMessage doStartDialogue(String userId, String projectSlug, String dialogueName,
-			String language, String timeZone, String sessionId)
+			String language, String timeZone, String sessionId, String startNodeId)
 			throws HttpException, IOException, DatabaseException {
 
 		// Get or create a UserService for the user in the given time zone
@@ -252,7 +263,7 @@ public class DialogueController {
 
 		try {
 			ExecuteNodeResult node = userService.startDialogueSession(
-					projectSlug, dialogueName, null, language, sessionId, System.currentTimeMillis());
+					projectSlug, dialogueName, startNodeId, language, sessionId, System.currentTimeMillis());
 			return DialogueMessageFactory.generateDialogueMessage(node);
 		} catch (ExecutionException e) {
 			throw ControllerFunctions.createHttpException(e);

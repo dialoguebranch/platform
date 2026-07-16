@@ -212,13 +212,14 @@ export class DialogueBranchClient {
         .then((response) => this._handleResponse(response));
     }
 
-    startDialogue(projectSlug, dialogueName, language) {
+    startDialogue(projectSlug, dialogueName, language, startNodeId) {
         var url = this._baseUrl + "/dialogue/start";
 
         url += "?projectSlug="+encodeURIComponent(projectSlug);
         url += "&dialogueName="+dialogueName;
         url += "&language="+language;
         url += "&timeZone="+this._timeZone;
+        if (startNodeId) url += "&startNodeId=" + encodeURIComponent(startNodeId);
         url += this._delegateParam;
 
         return this._fetch(url, {
