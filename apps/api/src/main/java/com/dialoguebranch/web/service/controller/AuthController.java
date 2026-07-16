@@ -156,8 +156,8 @@ public class AuthController {
 	@SecurityRequirement(name = "bearerAuth")
 	@SecurityRequirement(name = "oauth2")
 	@Operation(summary = "Validate a given authentication token.",
-		description = "If your client application has a stored authentication token you may use" +
-			"this method to check whether or not that is a valid token. This method will either" +
+		description = "If your client application has a stored authentication token you may use " +
+			"this method to check whether or not that is a valid token. This method will either " +
 			"return 'true', or throw an Authentication error.")
 	@RequestMapping(value="/validate", method= RequestMethod.POST)
 	public boolean validate(
