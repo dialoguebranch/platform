@@ -77,6 +77,14 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Fixed the Web Client's "restart dialogue" button (shown once a live/published dialogue test has
+  finished) opening a new tab instead of restarting in the current one
+  ([#70](https://github.com/dialoguebranch/platform/issues/70)). `DialogueWorkspace.vue`'s
+  `loadDraftDialogue` already accepted an existing `tab` to restart in place — used by
+  `restartActiveTab` for draft tests — but `loadDialogue` (the live-dialogue path) had no
+  equivalent parameter, so `getOrCreateEmptyTab()` always ran, and since the just-finished tab
+  still has a `dialogueName` set, it never counted as "empty" and a new tab was created every
+  time. `loadDialogue` now accepts the same `{ tab, language }` option `loadDraftDialogue` does.
 - Fixed a project being parsed and loaded into memory twice on a fresh/empty database boot, e.g.
   `Loading Dialogue Branch project 'default-test' into memory.` / `Successfully loaded...` logged
   twice in a row before the seed-completion message. `ProjectSeedService` seeds a new project by

@@ -268,9 +268,11 @@ const scrollTextToBottom = () => {
     if (textComponent.value) textComponent.value.scrollToBottom();
 };
 
-const loadDialogue = (name, language) => {
-    ensureTestMode();
-    const tab = getOrCreateEmptyTab();
+// Pass `tab` to restart a specific, already-open tab in place (e.g. from restartActiveTab)
+// rather than the default of finding/creating an empty one — mirrors loadDraftDialogue.
+const loadDialogue = (name, { tab: givenTab, language } = {}) => {
+    if (!givenTab) ensureTestMode();
+    const tab = givenTab ?? getOrCreateEmptyTab();
     activeTabId.value = tab.id;
     tab.dialogueName = name;
     tab.language = language ?? selectedLanguage.value;
@@ -356,7 +358,7 @@ function restartActiveTab() {
     if (tab.isDraftTest) {
         loadDraftDialogue(tab.dialogueName, { tab, language: tab.language });
     } else {
-        loadDialogue(tab.dialogueName, tab.language);
+        loadDialogue(tab.dialogueName, { tab, language: tab.language });
     }
 }
 
