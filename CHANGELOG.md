@@ -110,6 +110,14 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   "Draft" no longer distinguished it from the rest of the list.
 - Renamed the Dialogue Workspace's "Balloon style" and "Text style" mode button tooltips to
   "Test in Speech Bubble Style" and "Test in RPG Text Style", respectively.
+- Squashed the API's ten Flyway migrations (`V1__create_schema.sql` through
+  `V10__add_draft_dialogue_previous_published_name.sql`) into a single `V1__create_schema.sql`
+  reflecting the current end-state schema. Since the API has not yet been deployed anywhere with
+  data worth preserving, there was no reason to keep the intermediate steps (e.g. a table added
+  and later dropped, a column renamed and then renamed again) around as migration history. Any
+  existing local MariaDB volume must be reset (`docker compose down -v`) before starting the API
+  against this new baseline, since Flyway will otherwise detect a checksum mismatch against the
+  old migration chain.
 
 ### Removed
 
