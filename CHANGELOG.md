@@ -86,6 +86,15 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Fixed the Web Client's Dialogue Browser not alphabetically ordering dialogues in Authoring Mode
+  ([#72](https://github.com/dialoguebranch/platform/issues/72)). Both sort comparators
+  (`DialogueBrowser.vue`'s top-level tree and `DialogueTreeNode.vue`'s recursive children) only
+  ever partitioned folders before files — same-category entries always compared as `0` (equal),
+  so any apparent alphabetical order was purely incidental, preserved from whatever order the
+  underlying API happened to return. That's a coincidence Live Mode's `/dialogue/list-dialogues`
+  response order usually matched, but Draft/Authoring Mode's `/authoring/list-dialogues` doesn't.
+  Both comparators now break ties with `localeCompare` on the folder/file name, so ordering no
+  longer depends on the API's response order at all.
 - Fixed the Web Client's `IconButton.vue` `disabled` prop only changing the button's cursor
   styling instead of actually disabling it — the native `<button>` element was never bound to
   `:disabled`, so a fast double-click could still fire `@click` on a "disabled-looking" button

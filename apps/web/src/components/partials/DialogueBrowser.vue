@@ -122,11 +122,11 @@ function listDialogues() {
         previousEntriesKey = newKey;
 
         const root = buildTree(entries);
-        tree.value = Object.entries(root).sort(([, a], [, b]) => {
+        tree.value = Object.entries(root).sort(([nameA, a], [nameB, b]) => {
             const aIsFolder = !a._file;
             const bIsFolder = !b._file;
             if (aIsFolder !== bIsFolder) return aIsFolder ? -1 : 1;
-            return 0;
+            return nameA.localeCompare(nameB);
         });
         if (!listUnchanged) openFolders.value = {};
     })

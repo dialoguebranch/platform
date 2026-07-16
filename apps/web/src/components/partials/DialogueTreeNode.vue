@@ -32,11 +32,11 @@ const isFile = computed(() => !!props.node._file);
 const isOpen = computed(() => !!props.openFolders[props.path]);
 const children = computed(() => {
     if (isFile.value) return [];
-    return Object.entries(props.node._children).sort(([, a], [, b]) => {
+    return Object.entries(props.node._children).sort(([nameA, a], [nameB, b]) => {
         const aIsFolder = !a._file;
         const bIsFolder = !b._file;
         if (aIsFolder !== bIsFolder) return aIsFolder ? -1 : 1;
-        return 0;
+        return nameA.localeCompare(nameB);
     });
 });
 
