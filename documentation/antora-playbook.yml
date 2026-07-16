@@ -4,9 +4,9 @@ site:
   start_page: dialogue-branch::index.adoc
 content:
   sources:
-  - url: ./
+  - url: ../
     branches: HEAD
-    start_path: docs
+    start_path: documentation/docs
 ui:
   bundle:
     url: ./dlb-ui-bundle-latest.zip

@@ -6,6 +6,8 @@ Harm op den Akker <hopdenakker@fruittreelabs.com>
 
 Welcome to the Dialogue Branch Documentation Hub. On this site you will find documentation about the Dialogue Branch Platform, including the language and the various available tools.
 
+The Dialogue Branch Platform (https://github.com/dialoguebranch/platform[`dialoguebranch/platform`] on GitHub) is a monorepo consisting of three components that work together: the xref:dlb-core-java:index.adoc[Core Java Library] for parsing and executing `.dlb` scripts, the xref:dlb-web:index.adoc[Web Service] that wraps the core library in a REST API (and includes a Vue-based Web Client Test Application for trying it out and authoring dialogues), and the xref:dlb-language:index.adoc[Dialogue Branch Language] that the `.dlb` scripts themselves are written in.
+
 NOTE: Did you find an error? Or you didn't find what you were looking for? Please send your feedback to info@dialoguebranch.com
 
 The main content of this Documentation Hub can be accessed through the menu, and includes the following:
@@ -13,3 +15,4 @@ The main content of this Documentation Hub can be accessed through the menu, and
  * xref:dlb-language:index.adoc[Dialogue Branch Language Definition]
  * xref:dlb-core-java:index.adoc[Dialogue Branch Core Java Library Documentation]
  * xref:dlb-web:index.adoc[Dialogue Branch Web Services]
+ * xref:tutorials:index.adoc[Tutorials]

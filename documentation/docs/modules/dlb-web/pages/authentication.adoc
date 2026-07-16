@@ -6,12 +6,38 @@ Harm op den Akker <hopdenakker@fruittreelabs.com>
 :imagesdir: ../images
 :description: Authentication in the Dialogue Branch Web Services
 
-== Release Notes
-NOTE: Development of all Dialogue Branch Web Service components occurs on the `https://github.com/dialoguebranch/dlb-web/tree/main[main]` branch. For stable software versions, check out the https://github.com/dialoguebranch/dlb-web/releases[release tags].
+== Overview
+NOTE: Development of the Dialogue Branch Platform (including the Web Service) occurs on the `https://github.com/dialoguebranch/platform/tree/main[main]` branch of the monorepo. For stable software versions, check out the https://github.com/dialoguebranch/platform/releases[release tags].
 
-== Native vs Keycloak
-The Dialogue Branch Web Service supports two ways in which Authorization is handled: Native or Keycloak.
+The Dialogue Branch Web Service is a pure https://oauth.net/2/[OAuth2] *resource server*: it validates Bearer tokens issued by https://www.keycloak.org/[Keycloak], an open source Identity and Access Management platform, but plays no role in issuing, refreshing, or otherwise managing tokens itself. There is no `/auth/login` end-point, and no built-in username/password store -- all user management happens in Keycloak.
 
-The Native Authentication Service is a simple built-in user management system that allows you to quickly get started with using the Dialogue Branch Web Service, but is not recommended for production environments.
+== Obtaining a Token
+A client application authenticates a user directly with Keycloak, using the https://datatracker.ietf.org/doc/html/rfc7636[Authorization Code + PKCE] flow, against the realm and client configured on the Web Service deployment (by default, realm `dialoguebranch`, client id `dlb-web-service`, a public client). Once Keycloak returns an access token, the client includes it on every call to the Web Service:
 
-The Keycloak Authentication Service uses `https://www.keycloak.org/[Keycloak]`, an Open Source Identity and Access Management platform, to handle user management and the generation of access tokens.
+[source,text]
+----
+Authorization: Bearer <access-token>
+----
+
+The Web Service validates this token by fetching Keycloak's JSON Web Key Set (JWKS) at `\{keycloak.baseUrl}realms/{keycloak.realm}/protocol/openid-connect/certs` and verifying the token's signature -- it never contacts Keycloak's token end-point itself. The Swagger UI bundled with the Web Service is itself configured as an OAuth2 client (with PKCE) against the same Keycloak realm, so you can authenticate directly from the "Authorize" button on the Swagger page without writing any client code -- see xref:tutorials:tutorial-webservice-exploringapi.adoc[Tutorial: Web Service - Exploring the API].
+
+== Roles
+Once a token is validated, the Web Service reads the caller's username from the JWT's `preferred_username` claim, and their roles from the JWT's `resource_access` → `dlb-web-service` → `roles` claim -- i.e. *client roles* configured on the `dlb-web-service` client in Keycloak (not Keycloak realm roles). Three roles are recognised:
+
+* `client` -- may execute dialogues (`/dialogue/*`) and read/write their own Dialogue Branch Variables (`/variables/*`).
+* `editor` -- everything `client` can do, plus authoring and publishing dialogue content (`/authoring/*`, `/publish/*`, `/draft/*`) and listing dialogues in a project (`/dialogue/list-dialogues`).
+* `admin` -- everything `editor` can do, plus managing projects (`/project/*`), and acting *on behalf of* another user by passing the optional `delegateUser` parameter present on most end-points.
+
+Each end-point declares the minimum set of roles it accepts; calling with insufficient privileges results in a `401 Unauthorized` response with error code `INSUFFICIENT_PRIVILEGES`.
+
+== Public End-Points
+A small number of end-points do not require a token at all:
+
+* `/info/all` -- basic service information (build time, protocol version, service version, uptime).
+* `/swagger-ui/**`, `/v3/api-docs/**` -- the Swagger UI and its OpenAPI document.
+* `/actuator/health`, `/actuator/info` -- Spring Boot Actuator health/info endpoints.
+
+Every other end-point requires a valid Bearer token.
+
+== Local Development
+When running the platform's local development stack (see the repository's top-level `infrastructure/docker/compose.yml`), Keycloak is available at `http://localhost:8081`. The bundled realm import does not seed any demo users -- after starting the stack, log in to the Keycloak admin console (default credentials `admin`/`admin`) and create a test user, assigning it one or more of the `client`/`editor`/`admin` client roles on the `dlb-web-service` client, before you can call any authenticated Web Service end-point.

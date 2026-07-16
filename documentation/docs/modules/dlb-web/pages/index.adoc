@@ -14,36 +14,45 @@ image::dlb-web-architecture.png[]
 
 The components described in the Architecture above are described as follows (from left to right):
 
-* *Dialogue Branch Client* - Your client application that connects to the web service in order to render remotely executed Dialogue Branch dialogues.
-* *Dialogue Branch Web Service* - the Java Spring Boot Application that can be deployed in a web server. It provides simple user management, and a REST API.
-** *REST API* - a set of REST end-points for Authentication, Executing DLB dialogues, and managing DLB Variables.
-** *Dialogue Branch Core* - the "core" Java Library that contains the software for parsing and executing .dlb scripts. This is a collection of POJO's (Plain Old Java Objects) that can be embedded into any Java or Android application.
-* *External Variable Service* - Your (optional) web service that may be used to provide just-in-time updates to DLB Variables.
+* *Dialogue Branch Client* -- Your client application that connects to the web service in order to render remotely executed Dialogue Branch dialogues. This could be your own application, or the bundled Vue-based "Web Client Test Application" described below.
+* *Dialogue Branch Web Service* -- the Java Spring Boot Application that can be deployed in a web server. It is a pure https://oauth.net/2/[OAuth2] resource server (user authentication itself is handled entirely by Keycloak, see <<Authentication>>) and offers a REST API.
+** *REST API* -- a set of REST end-points for executing DLB dialogues, managing DLB Variables, authoring and publishing dialogue content, and retrieving service info and logs.
+** *Dialogue Branch Core* -- the "core" Java Library that contains the software for parsing and executing .dlb scripts. This is a collection of POJO's (Plain Old Java Objects) that can be embedded into any Java or Android application.
+* *External Variable Service* -- Your (optional) web service that may be used to provide just-in-time updates to DLB Variables.
 
-Given the architecture above, a typical scenario for using Dialogue Branch in a client-server deployment is as follows. You deploy a DLB Web Service that has a collection of .dlb scripts embedded. You then write a client application that connects to the DLB Web Service, allowing users to login, start-, and progress dialogues. If your .dlb dialogues include Variables that need to be updated from an external source, implement and deploy your own External Variable Service and connect this to your web service deployment.
+Given the architecture above, a typical scenario for using Dialogue Branch in a client-server deployment is as follows. You deploy a DLB Web Service that has one or more xref:dlb-language:dlb-project.adoc[Dialogue Branch Projects] loaded (initially seeded from disk, then managed in a database -- see <<Dialogue Branch Web Service Component>>). You then write a client application that connects to the DLB Web Service, allowing users to authenticate through Keycloak and start-, and progress dialogues. If your .dlb dialogues include Variables that need to be updated from an external source, implement and deploy your own <<External Variable Service>> and connect this to your web service deployment.
 
 == Dialogue Branch Web Service Component
-The Dialogue Branch Web Service source code is part of the "dlb-web" repository at https://github.com/dialoguebranch/dlb-web[github.com/dialoguebranch/dlb-web]. Specifically, it may be found in the https://github.com/dialoguebranch/dlb-web/tree/main/dlb-web-service[/dlb-web-service/] folder of the repository.
+The Dialogue Branch Web Service source code is part of this monorepo, in the https://github.com/dialoguebranch/platform/tree/main/apps/api[`apps/api`] folder. A Vue 3 front-end that consumes this API -- the "Web Client Test Application" (WCTA) -- lives alongside it in https://github.com/dialoguebranch/platform/tree/main/apps/web[`apps/web`].
 
-The provided `build.gradle` file may be used to build and deploy the Web Service to a running https://tomcat.apache.org/download-10.cgi[Tomcat 10] instance. A detailed installation tutorial is provided here: xref:tutorials:tutorial-webservice-installation.adoc[Dialogue Branch Web Service - Installation].
+The Gradle wrapper (`./gradlew`) in `apps/api` is used to build the service, which is packaged as a WAR file for deployment on https://tomcat.apache.org/download-10.cgi[Tomcat 10], or built as a Docker image using the provided `Dockerfile` (built from the repository root, since the Docker build context spans both `apps/api/` and `packages/core/`). A detailed installation tutorial is provided here: xref:tutorials:tutorial-webservice-installation.adoc[Dialogue Branch Web Service - Installation].
+
+Beyond executing published dialogues, the Web Service also hosts the API used by the visual dialogue editor in the web client:
+
+* *Projects* (`/project/*`) -- create, update, delete Dialogue Branch Projects and manage their translation languages.
+* *Authoring* (`/authoring/*`) -- CRUD operations on a project's editable *draft* dialogues, nodes and translations. Draft content is kept separate from published content, so authors can make in-progress changes without affecting what's currently live.
+* *Publishing* (`/publish/*`) -- validate and publish a project's current draft content as a new, immutable published version, available to the execution engine.
+* *Draft execution* (`/draft/*`) -- lets an author test-run a dialogue against its unpublished draft content, separate from the normal `/dialogue/*` execution path against published content.
 
 After having successfully deployed the web service, you can start exploring its functionalities through the provided https://swagger.io/[Swagger] pages (see image below).
 
-.Screenshot of the provided Swagger pages for the Dialogue Branch Web Service (v1.0.0).
+.Screenshot of the provided Swagger pages for the Dialogue Branch Web Service.
 image::dlb-web-swagger.png[]
 
 === Dialogue Execution
 A typical workflow for a client application interacting with the Web Service is a follows:
 
-. Call the `/auth/login` end-point, providing a username and password to authenticate a user and obtain a https://jwt.io/[JSON Web Token] (JWT).
-. Store the JWT, and include in the header (`name`: `X-Auth-Token`, `value`: `<your-jwt>`) for all subsequent calls.
-. Start the execution of a dialogue, by calling the `/dialogue/start` end-point, providing `dialogueName`, `language` and `timeZone`.
-. Render the resulting JSON object as a dialogue user interface to the user, and store the `loggedDialogueId` and `loggedInteractionIndex`.
+. Authenticate the user directly with Keycloak (Authorization Code + PKCE flow) to obtain an access token -- see <<Authentication>>.
+. Include the access token in the header (`name`: `Authorization`, `value`: `Bearer <your-access-token>`) for all subsequent calls to the Web Service.
+. Start the execution of a dialogue, by calling the `/dialogue/start` end-point, providing `projectSlug`, `dialogueName`, `language` and `timeZone`.
+. Render the resulting JSON object (a `DialogueMessage`) as a dialogue user interface to the user, and store the `loggedDialogueId` and `loggedInteractionIndex`.
 . When the user selects a reply, call the `/dialogue/progress` end-point, providing the previously memorized `loggedDialogueId` and `loggedInteractionIndex`, as well as the selected `replyId`.
 . The result is a JSON object with the same structure as received in step 4, which can again be rendered, repeating the process.
 
 .Sequence diagram for a typical User to Client to Server scenario of authenticating and executing dialogues with the Dialogue Branch Web Service
 image::dlb-web-api-sequence.png[]
+
+The `/dialogue/*` end-points also support resuming an interrupted session (`/dialogue/continue`, `/dialogue/get-ongoing`), reverting to a previous step (`/dialogue/back`), explicitly ending a session (`/dialogue/cancel`), and (for users with the `editor` or `admin` role) listing all dialogues available in a project (`/dialogue/list-dialogues`). See the Swagger UI for the full set of parameters for each end-point.
 
 === Working with Variables
 Variables are used in .dlb scripts to create dynamic dialogue flow, and include flavourful personalisations. These Variables can be set and used inside the dialogue scripts themselves, as in the example below:
@@ -60,31 +69,33 @@ Hello $playerName, how are you doing?
 
 However, as in the example, it doesn't always make sense to set the values for Variables in the dialogue scripts themselves. Instead, these values might originate from another part of your client application. Imagine that your client application is a game that includes a user interface where players can insert their name. When a player does this, the value should be communicated to DialogueBranch, so that the $playerName variable may be used in dialogues.
 
-The Web Service offers the following 2 end-points for sending Variable-values to the service:
+The Web Service offers the following end-points for sending Variable-values to the service:
 
-* `/variables/set-variable` - allowing you to set the value for a single Variable by providing a `name' and a `value'.
-* `/variables/set-variables` - allowing you to set the value for a number of Variables simultaneously by including a JSON payload in the body.
+* `/variables/set-single` -- allowing you to set the value for a single Variable by providing a `name` and a `value`.
+* `/variables/set` -- allowing you to set the value for a number of Variables simultaneously by including a JSON payload in the body.
 
 Using these, you can inform DialogueBranch about Variables whose values are generated through any part of your client application. The other way around, your client application can also ask the Web Service about Variable values, using the following end-point:
 
-* `/variables/get-variables` - allows you to ask for all known Variables for a user, or a list of specific Variables (by providing a comma-separated list of variable names).
+* `/variables/get` -- allows you to ask for all known Variables for a user, or a space-separated list of specific Variables (via the `variableNames` parameter).
 
 Another way of making sure that DialogueBranch has up-to-date values for Variables, is by using an <<External Variable Service>>, as explained below.
 
 === Authentication
-As explained in the <<Dialogue Execution>> step, the first thing you need to do before working with the Web Service is to authenticate. 
+As explained in the <<Dialogue Execution>> step, the first thing you need to do before working with the Web Service is to authenticate. See the xref:authentication.adoc[Authentication] page for a full explanation.
 
-The Web Service supports two different "modes" of authenticating. Users that are defined in the users.xml configuration file can  be given a _role_ which can either be "user" or "admin" (if you don't specify, the role "user" will be assumed).
+In short: the Web Service is a pure OAuth2 resource server -- it validates Bearer tokens issued by https://www.keycloak.org/[Keycloak], but plays no role in issuing or refreshing them. Once authenticated, a user's Keycloak client roles (`client`, `editor`, `admin`, on the `dlb-web-service` Keycloak client) determine what they may do:
 
-When you authenticate with the Web Service (using the */auth/login* end-point) as a regular "user", you can perform actions (start dialogues, set variables, etc) on behalf of that authenticated user. However, when you authenticate as a user that has the "admin" role, you can control dialogues (start, progress, cancel, etc) and data (set and retrieve variables) for any "dlb user" you specify using the optional `delegateUser` parameters that are a part of all API end-points.
+* `client` -- may execute dialogues and read/write their own variables.
+* `editor` -- everything `client` can do, plus authoring, publishing, and listing dialogues in a project.
+* `admin` -- everything `editor` can do, plus managing projects, and acting *on behalf of* another user via the optional `delegateUser` parameter present on most end-points.
 
-This method of authentication may be used e.g. in a scenario where "clients" don't directly interact with the Dialogue Branch Web Service, but instead connect through a trusted web component that manages a single connection (see Figure below).
+This `delegateUser` mechanism may be used e.g. in a scenario where "clients" don't directly interact with the Dialogue Branch Web Service, but instead connect through a trusted web component that manages a single connection (see Figure below).
 
 .The two modes of authentication. Left: multiple clients authenticate directly "as themselves" with the Web Service. Right: a trusted server component authenticates as an "admin" user, on behalf of multiple "delegateUsers".
 image::dlb-web-user-vs-admin-authentication.png[]
 
 == External Variable Service
-An External Variable Service is a web service that may be used by a Dialogue Branch Web Service deployment to act as an external source of information for Variable data. The Web Service itself keeps track of all Variables that are set for every individual user. For example, if a Variable is set in a dialogue using [.pink]#`\<<set $variableName = "value">>`# that value is stored. If your .dlb scripts only uses Variables that are set within the dialogue itself, the Web Service alone will handle everything. 
+An External Variable Service is a web service that may be used by a Dialogue Branch Web Service deployment to act as an external source of information for Variable data. The Web Service itself keeps track of all Variables that are set for every individual user. For example, if a Variable is set in a dialogue using [.pink]#`\<<set $variableName = "value">>`# that value is stored. If your .dlb scripts only uses Variables that are set within the dialogue itself, the Web Service alone will handle everything.
 
 However, if your dialogue contains a statement such as _The temperature outside is `$temperatureAtUserLocation` degrees._, the value for `$temperatureAtUserLocation` is something that would likely need to be fetched from an external component - that is where the External Variable Service comes in.
 
@@ -95,12 +106,13 @@ This flow is outlined in the sequence diagram below:
 .Sequence diagram for the flow of operations between a Client, the Dialogue Branch Web Service, an External Variable Service, and a 3rd Party API
 image::dlb-web-ext-var-service-sequence.png[]
 
+The External Variable Service integration is enabled through the following `dlb.external-variable-service.*` configuration properties (see `apps/api/src/main/resources/application.yml`, overridable via `DLB_EXTERNAL_VARIABLE_SERVICE_*` environment variables):
+
+* `dlb.external-variable-service.enabled` -- set to `true` to enable the integration; `false` (the default) disables it entirely.
+* `dlb.external-variable-service.url` -- the base URL where the external variable service can be reached.
+* `dlb.external-variable-service.api-version` -- the API version to use when calling the external variable service.
+* `dlb.external-variable-service.api-key` -- an API key used to authenticate the Web Service's calls to the external variable service.
+
 NOTE: It is worthwhile to make sure that the External Variable Service answers the request for variable updates quickly, because any delay will delay the starting of dialogue execution in the Dialogue Branch Web Service - which will negatively impact your end-user's experience. Apply caching, and make use of the provided `updatedTime` parameter that is passed along with each Variable, to make quick judgements whether a variable needs to be updated at all.
 
-// == Tutorials
-// If you are ready to start experimenting with your own Dialogue Branch Web Service, make sure to check out the relevant Tutorials:
-
-// * xref:tutorials:tutorial-webservice-installation.adoc[Tutorial: Web Service - Installation].
-// * xref:tutorials:tutorial-webservice-gettingstarted.adoc[Tutorial: Web Service - Getting Started].
-
-NOTE: If you found errors or have questions about this page, please consider reporting an issue at https://github.com/dialoguebranch/dlb-documentation or sending an email to info@dialoguebranch.com.
+NOTE: If you found errors or have questions about this page, please consider reporting an issue at https://github.com/dialoguebranch/platform or sending an email to info@dialoguebranch.com.

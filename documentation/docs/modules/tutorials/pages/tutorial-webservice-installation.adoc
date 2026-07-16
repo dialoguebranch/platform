@@ -7,162 +7,84 @@
 Harm op den Akker <hopdenakker@fruittreelabs.com>
 :description: A tutorial for installing the Dialogue Branch Web Service.
 
-NOTE: This tutorial was last updated on *February 8, 2024*.
-
 The Dialogue Branch Web Service is a https://spring.io/projects/spring-boot[JAVA Spring Boot Application] that can be deployed as a web service. It acts as a wrapper around the xref:dlb-core-java:index.adoc[Dialogue Branch Core Java Library], offering an API that allows you to create client-server dialogue applications.
 
-In this tutorial you will learn how to set up the Web Service on a local machine, allowing you to authenticate with your own user account and serving your own set of dialogues.
-
-This tutorial is based on the https://github.com/dialoguebranch/dlb-web/releases/tag/v1.2.3[v1.2.3] release of the Dialogue Branch Web Services repository.
+In this tutorial you will learn how to run the Web Service on a local machine, using the platform's bundled local development stack (a MariaDB database and a Keycloak instance for authentication, both run through Docker Compose), so you can authenticate with your own user account and try out the default set of dialogues.
 
 == Prerequisites
 Before you get started, make sure you have the following tools installed:
 
- * Java (e.g. OpenJDK 17+)
- * Apache Tomcat 10
+* https://git-scm.com/[Git]
+* https://www.docker.com/[Docker] (with Docker Compose)
+* Java (OpenJDK 17 or newer) -- only needed if you want to build/run the Web Service outside of Docker (e.g. via `./gradlew bootRun`, see <<Starting the Local Development Stack>> below).
 
-Below we explain how to set up Java and Tomcat. If you're already have these tools, you can <<Download and Configure,skip ahead to the "Download and Configure" step>>.
+== Clone the repository
+The Web Service's source is part of the Dialogue Branch Platform monorepo:
 
-=== Java
-The Dialogue Branch Web Service, and other Java software is built using Java 17. Any JDK that supports Java 17 should work. For this tutorial, we assume to use https://jdk.java.net/archive/[OpenJDK 19].
+[source,bash]
+----
+git clone https://github.com/dialoguebranch/platform.git
+cd platform
+----
 
-==== Windows
-* Download the ZIP file of the latest version of the Java OpenJDK from the https://jdk.java.net/archive/[Archived OpenJDK General-Availability Releases] page.
-* Extract the .zip archive and move it to somewhere easy to locate, e.g.: `+C:\apps\jdk-19.0.1+`
-* Set an Environment Variable JAVA_HOME to this directory (e.g. `+C:\apps\jdk-19.0.1+`).
-* Add the bin directory to your path (e.g. `+C:\apps\jdk-19.0.1\bin+`).
+We will refer to this folder as `<PLATFORM>`. The Web Service itself lives under `<PLATFORM>/apps/api/`, and the Docker Compose file for the local development stack lives at `<PLATFORM>/infrastructure/docker/compose.yml`.
 
-You should now be able to run Java from the command prompt. Check to see if the version matches the one you installed, e.g.:
+== Starting the Local Development Stack
+The platform's Docker Compose file defines a MariaDB database and a Keycloak instance, and can optionally also build and run the Web Service itself (behind the `api` Docker Compose profile).
 
- > java -version
+The simplest way to get a fully working local deployment, without needing a local Java installation at all, is:
 
-NOTE: If you need help setting Environment Variables in Windows, see e.g. https://www.java.com/en/download/help/path.html[the official Java help pages].
+[source,bash]
+----
+docker compose -f infrastructure/docker/compose.yml --profile api up
+----
 
-==== MacOS
-Install OpenJDK using homebrew with the following command:
+This starts, in order: MariaDB, Keycloak (pre-configured with a `dialoguebranch` realm and a public `dlb-web-service` client), and the Web Service itself (built from the `apps/api`/`packages/core` sources using the repository-root `Dockerfile`).
 
- brew install openjdk
+Alternatively, if you'd rather run the Web Service directly from source (e.g. while developing), start only the dependencies and run the Web Service yourself:
 
-NOTE: If you don't have homebrew or need help setting it up, please visit https://brew.sh/[the official homebrew site].
+[source,bash]
+----
+docker compose -f infrastructure/docker/compose.yml up   <1>
+cd apps/api
+./gradlew bootRun                                        <2>
+----
+<1> Starts MariaDB and Keycloak only (the `api` profile is not enabled, so the containerized Web Service does not start).
+<2> Builds and runs the Web Service against those dependencies, using the defaults already configured in `apps/api/src/main/resources/application.yml` (which point at `localhost:3306` for MariaDB and `localhost:8081` for Keycloak).
 
-=== TOMCAT
-The Dialogue Branch Web Service requires Tomcat 10 to run.
+Either way, once started, the Web Service is available at:
 
-==== Windows
-* Visit the https://tomcat.apache.org/download-10.cgi[Apache Tomcat Downloads page] and download the latest version of Tomcat 10. Choose the 32-bit/64-bit Windows Service Installer.
-* Run the installer (e.g. `+apache-tomcat-10.1.5.exe+`), pay attention to the following:
-** When asked to "Choose Components", make sure to include the following:
-*** Check the box next to Tomcat > *Service Startup* so Tomcat is started automatically when the computer is started.
-*** Check the box next to *Host Manager*. This is needed to deploy web applications from the Gradle build file.
-** On the next screen, we should configure some items:
-*** At Tomcat Administrator Login fill in a user name (for example "admin") and a secure password.
-*** Set "Roles" to: `+admin-gui,manager-gui,admin-script,manager-script+`. The additional _script_ roles are needed to support automatic deployment of web services through a Gradle script.
-** On the next screen, provide the directory where your Java JDK is installed (e.g. `+C:\apps\jdk-19.0.1+`).
-** Finally, choose an installation folder for Tomcat, e.g. `+C:\apps\Tomcat 10.1.5+`.
+ http://localhost:8089/dlb-web-service
 
-Next, we do some final configuration of the JDK location, Java options and Memory Size:
+and Keycloak's admin console is available at:
 
-* From the Windows start menu, open Monitor Tomcat. If you get a permission error, you may need to open the Tomcat folder in Windows Explorer first, e.g. `+C:\apps\Tomcat 10.1.5+`. The Tomcat monitor opens in the notification area of the task bar.
-* Open the Tomcat monitor from the task bar.
-* Open the tab Java.
-* Make sure the *Initial memory pool* and *Maximum memory pool* are set to some reasonable amount (e.g. 512 and 2048). If this is too low, the Java process may run out of memory while executing the Web Service. Click *Apply* and close the configurator.
+ http://localhost:8081
 
-.The Tomcat Monitor - Java settings tab on Windows.
-image::webservice-setup-tutorial-0-tomcatproperties.png[]
+== Loading Dialogue Content
+On first startup, the Web Service automatically seeds a default project from `apps/api/src/main/resources/projects-seed/` into the database -- you don't need to configure anything to have some dialogues available to try out. The seeded project's slug is `default-test`, and includes a simple `basic.dlb` dialogue we'll use in the next tutorial.
 
-In the final step of the installation, when asked, start the Tomcat service.
+Beyond the seed project, dialogue content is managed through the API itself (`/project/*`, `/authoring/*`, `/publish/*` end-points -- see xref:dlb-web:index.adoc[Dialogue Branch Web Services]) or through the Vue-based Web Client's visual editor, rather than by dropping files onto disk.
 
-Verify the installation by opening a Web Browser and visiting `+http://localhost:8080/+`. You should see a webpage that says "If you're seeing this, you've successfully installed Tomcat. Congratulations!". Now, click on *Host Manager* and login using the admin credentials set earlier. You should be able to login and see the _Tomcat Virtual Host Manager_.
+== Creating a Test User
+The bundled Keycloak realm import does not create any users by default, so before you can call any authenticated end-point, you need to create one yourself:
 
-==== MacOS
-* Type `brew install tomcat` to install the latest version of Tomcat 10 on your device.
-* Locate the tomcat configuration files (by default in `/usr/local/etc/tomcat` or `/opt/homebrew/etc/tomcat` on Apple Silicon).
-* Edit the `tomcat-users.xml` file and define an admin user, e.g.
+. Open the Keycloak admin console at `http://localhost:8081` and log in with the default admin credentials, `admin` / `admin`.
+. Make sure the `dialoguebranch` realm is selected (top-left realm switcher).
+. Under *Users*, click *Add user*, give it a username (e.g. `testuser`), and save.
+. On the new user's *Credentials* tab, set a password (turn *Temporary* off, so you're not forced to change it on first login).
+. On the *Role mapping* tab, click *Assign role*, switch the filter to *Filter by clients*, and assign one or more of the `dlb-web-service` client roles: `client`, `editor`, `admin` (see xref:dlb-web:authentication.adoc[Authentication] for what each role permits -- for exploring the full API, assign `admin`).
 
- <user username="admin" password="<must-be-changed>" roles="admin-gui,manager-gui,admin-script,manager-script"/>
+== Verifying the Installation
+Open a web browser and navigate to the Web Service's Swagger UI:
 
-* Restart tomcat using the `brew services restart tomcat` command.
+ http://localhost:8089/dlb-web-service/swagger-ui/index.html
 
-Verify the installation by opening a Web Browser and visiting `+http://localhost:8080/+`. You should see a webpage that says "If you're seeing this, you've successfully installed Tomcat. Congratulations!". Now, click on *Host Manager* and login using the admin credentials set earlier. You should be able to login and see the _Tomcat Virtual Host Manager_.
-
-== Download and Configure
-Once you have Java and Tomcat installed, we can proceed to downloading, and configuring the Dialogue Branch Web Service.
-
-* To use the latest software version: Clone the https://github.com/dialoguebranch/dlb-web[dlb-web] repository (branch: 'main') to your local machine, e.g.: `+<GITDIR>\dialoguebranch\dlb-web\+`
-* To use the latest release version, visit the https://github.com/dialoguebranch/dlb-web/releases[releases] page, download the Source code of the latest release (zip) and extract to your local machine, e.g.: `+<CODEDIR>\dlb-web-x.y.z\+`
-
-We will refer to this folder as `+<DLB-WEB>+`, and we will find all the relevant Dialogue Branch Web Service files in the `\dlb-web-service\` sub-folder. The web service is configured with the following file that needs to be created:
-
- <DLB-WEB>\dlb-web-service\gradle.properties
-
-The folder contains a sample properties file, which you can rename to "gradle.properties", and edit it:
-
- <DLB-WEB>\dlb-web-service\gradle.sample.properties
-
-First, set the `dlb-configBaseUrl` to reflect our local deployment, e.g.:
-
- dlb-configBaseUrl=http://localhost:8080/dlb-web-service
-
-In order to set an appropriate value for the `+dlb-configJwtSecretKey+` you can use an online Base64 String generator, such as https://generate.plus/en/base64 (choose 128 for the length in bytes and click "Generate"). The output should be something like this:
-
- dlb-configJwtSecretKey=Gz/QP51QcE694/ehuppfV4vSt3L9OfXtcl6WHy/8agce44DyzUoqoOJSI+gGEPusfYsMMK6TJTsL8z1/ADK232Jh9QE9tSVp1aDMduo3v8j1vrAgYTHq+whSJkl6uQfYIQF92FqgyJk9CMUC6SAw1h7EvdDaaRx9dmMXpsIRToo=
-
-Next, define the `dlb-configDataDir`, which is a directory where certain configuration files for the Web Service should be placed, and where log data is stored, e.g.
-
- dlb-configDataDir=/users/username/dlb-web-service/data
-
-Only authenticated users can access the Web Service API. The usernames and passwords are loaded from an XML file that should be placed in this configured data dir (`<DATADIR>\users.xml`).
-
-An example users.xml file can be found in `<DLB-WEB>\dlb-web-service\config\users.xml`. Change the default user and password, or add any additional users as you see fit.
-
-== Configuring an external variable service.
-
-The Dialogue Branch Web Service can be configured to automatically update all Variables that are used in dialogues through an external API. This is called an "External Variable Service". A dummy implementation of an External Variable Service is provided in the https://github.com/dialoguebranch/dlb-web/[dlb-web] git repository under `/dlb-external-var-service/`. 
-
-If you wish to use this service, set the following variables. For the remainder of this tutorial, we assume to *not* use an external variable service.
-
-* `dlb-configExternalVariableServiceEnabled` can be set to `true` or `false`, if set to `false` no External Variable Service will be used.
-* `dlb-configExternalVariableServiceUrl` should point to where the external variable service can be called (e.g., `https://localhost:8080/dlb-external-var-service`).
-* `dlb-configExternalVariableServiceAPIVersion` should be set to the API version for the external variable service (e.g., `1`).
-* `dlb-configExternalVariableServiceUsername` should be set to a username that is configured in the External Variable Service.
-* `dlb-configExternalVariableServicePassword` should be set to the corresponding password as set in the External Variable Service.
-
-== Deploying the Web Service
-NOTE: Make sure that Tomcat is running before proceeding with this step.
-
-=== Gradle Configuration
-The web service is deployed with Gradle task `cargoRedeployRemote`. This Gradle task allows you to deploy the Dialogue Branch Web Service to a (local or remote) Tomcat server that has the Host Manager feature enabled. For now we will deploy to our locally running Tomcat server, which requires us to set the following parameters in `gradle.properties`:
-
-* `tomcatDeployPath=dlb-web-service` - The path where the web service will run, make sure this matches the setting for `dlb-configBaseUrl`.
-* `remoteTomcatHost=localhost` - The tomcat host address, for now we will deploy to our local machine, so you can keep it as is. If you have an external server where you want to deploy to, you can change this host address.
-* `remoteTomcatPort=8080` - Choose the port as configured during the Tomcat installation. If you followed this tutorial, you can leave this as is.
-* `remoteTomcatUser=admin` - The administrator username for Tomcat Host as configured during the Tomcat installation.
-* `remoteTomcatPassword=SECRET` - The administrator password for Tomcat Host.
-
-=== Deploying
-After completing this configuration, open a Terminal/Command Prompt in `<DLB-WEB>\dlb-web-service\` and enter this command:
-
- > .\gradlew build cargoRedeployRemote
-
-If you want to make a clean build and deploy, then enter:
-
- > .\gradlew clean build cargoRedeployRemote
-
-Logging is done using Logback (http://logback.qos.ch/). This is configured in `<DLB-WEB>\dlb-web-service\src\main\resources\logback.xml`. With this configuration, log files are written to the directory that you set in dlb-configDataDir in gradle.properties.
-
-After deploying you can access the Swagger interface at: `http://localhost:8080/dlb-web-service/`, which should look something like this:
+You should see something like the image below -- the interactive API documentation of the Dialogue Branch Web Service.
 
 .If deployed correctly, this is what you should be seeing - the Swagger API Documentation of the Dialogue Branch Web Service.
 image::webservice-setup-tutorial-1-swagger.png[]
 
-=== Troubleshooting
-If you cannot access the Swagger interface or the deployment showed errors, perform the following checks:
-
-* If the deployment did not show any errors:
-** Make sure your `dlb-configBaseUrl` is set to `http://localhost:8080/dlb-web-service` and the `tomcatDeployPath` is set to `dlb-web-service`.
-* If the deployment did show errors:
-** Is your Tomcat running? If it is, going to `http://localhost:8080/manager/html` should result in a request for a username and password.
-** Are your Tomcat username and password correct? You can verify this by logging into the manager window at the URL in the previous step.
+As a first sanity check, unfold the *1. Info* section and try the `/info/all` end-point -- it requires no authentication and should return basic information about the running service (build time, protocol version, service version, uptime).
 
 == What's next?
 Now that you have the Dialogue Branch Web Service running, it's time to start using it. As a next step we recommend checking the xref:tutorial-webservice-exploringapi.adoc[Tutorial: Dialogue Branch Web Service - Exploring the API].

@@ -1,28 +1,29 @@
-= Contributing to DialogueBranch
+= Contributing to Dialogue Branch
 Harm op den Akker <hopdenakker@fruittreelabs.com>
 :toc: left
 :toc-title: Table of Contents
 :toclevels: 3
 :imagesdir: ../images
-:description: Index page for the documentation on how to contribute to DialogueBranch.
+:description: Index page for the documentation on how to contribute to Dialogue Branch.
 
 == Introduction
+The Dialogue Branch Platform is developed in the open at https://github.com/dialoguebranch/platform[`dialoguebranch/platform`], a monorepo containing the xref:dlb-core-java:index.adoc[Core Java Library] (`packages/core`), the xref:dlb-web:index.adoc[Web Service] (`apps/api`), and its Vue-based Web Client Test Application (`apps/web`). Bug reports, feature requests and pull requests are all welcome there.
+
+The version for the entire monorepo is declared once, in `global.json` at the repository root -- see the top-level `CHANGELOG.md` for what's changed recently, or unreleased.
 
 == Code Style
+Java source in this repository favours grouping a class's members into clearly labelled sections using a horizontal comment separator, e.g.:
 
-* Code wrapped at 100 characters.
+[source,java]
+----
+// -------------------------------------------------------- //
+// -------------------- Constructor(s) -------------------- //
+// -------------------------------------------------------- //
+----
 
-// --------------------------------------------------------
-// -------------------- Constructor(s) --------------------
-// --------------------------------------------------------
+The top and bottom separator lines are made up of dashes matching the total width of the label line (label centered between two runs of exactly 20 dashes). The same pattern is used to mark out individual end-point handlers within a REST controller, e.g. `// -------------------- END-POINT: "/dialogue/start" -------------------- //` in `DialogueController`.
 
-	// -----------------------------------------------------------
-	// -------------------- Getters & Setters --------------------
-	// -----------------------------------------------------------
+== Building and Testing
+See the top-level `CLAUDE.md` file (and each component's own `README`, where present) for the exact Gradle/npm commands used to build and test each component -- `./gradlew build`/`./gradlew test` for `packages/core` and `apps/api`, `npm run dev`/`npm run build` for `apps/web`.
 
-    Get, Set, Get, Set, Get, Set, ....
-
-
-    // -------------------------------------------------------
-	// -------------------- Other Methods --------------------
-	// -------------------------------------------------------
+NOTE: If you found errors on this page, or have suggestions for what else should be covered here, please open an issue at https://github.com/dialoguebranch/platform or send an email to info@dialoguebranch.com.

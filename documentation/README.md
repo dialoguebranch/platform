@@ -15,8 +15,8 @@ See https://docs.antora.org/antora/2.3/ for detailed documentation on using Anto
 In short, if you want to generate the Dialogue Branch Documentation Hub:
 
  - Install Antora Command Line Interface (CLI): https://docs.antora.org/antora/2.3/install/install-antora/
- - Clone this repository to `{$GIT_FOLDER}/dlb-documentation/`
- - Open a terminal in `{$GIT_FOLDER}/dlb-documentation/`
+ - Clone the `platform` monorepo (this documentation now lives at `platform/documentation/`)
+ - Open a terminal in `{$GIT_FOLDER}/platform/documentation/`
  - Run `antora --fetch antora-playbook.yml`
  - This will generate the `/build/` folder by compiling the local sources
  - You can find the output in `/build/site/index.html` which is the entry-point for the documentation

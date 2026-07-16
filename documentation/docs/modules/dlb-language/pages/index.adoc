@@ -27,13 +27,17 @@ A _Node_ consists of two parts, a +header+, and a +body+.
 === Header
 The header consists of a series of lines, each with a +\{key: value\}+-pair. The two required key-value pairs are:
 
-* +title+ -- a String that uniquely identifies this _Node_ within this dialogue.
-* +speaker+ -- a String that defines the name of the _Agent_ speaking in this _Node_.
+* +title+ -- a String matching `[A-Za-z0-9_-]+` that uniquely identifies this _Node_ within this dialogue (matching is case-insensitive).
+* +speaker+ -- a String that defines the name of the _Agent_ speaking in this _Node_. Required for every node, *except* a node titled xref:_ending_a_dialogue[`End`], whose speaker is ignored even if present.
 
-You are free to define other key-value pairs that might serve as meta-data in your application. The DialogueBranch Toolkit uses the following additional ones:
+You are free to define other key-value pairs that might serve as meta-data in your application. The visual editor in the web client (see xref:dlb-web:index.adoc[Dialogue Branch Web Services]) additionally recognises the following reserved tags:
 
-* +colorID+ -- a number between 0 and 9 specifying a colour. This is also used by the editor's run feature to allow multiple backgrounds, one for each colorID.
-* +position+ -- a pair of x,y-coordinates used to position the nodes in the editor.
+* +colorId+ -- a number specifying a colour used by the node-graph editor to visually group or distinguish nodes.
+* +position+ -- a pair of `x,y` coordinates (comma-separated integers) used to position the node on the editor's canvas. Malformed values silently default to `0,0`.
+
+NOTE: The reserved tag is spelled +colorId+ (lowercase `d`). Some older example content in this repository still uses the legacy spelling +colorID+ -- the parser accepts either (any header key you write is stored as-is), but only +colorId+ is recognised by the visual editor.
+
+You may also see an empty +tags:+ line in existing `.dlb` files. This key is not currently interpreted by the parser or the editor; it is reserved for future use.
 
 Below is an example of what this looks like in a .dlb file:
 
@@ -41,7 +45,7 @@ Below is an example of what this looks like in a .dlb file:
 ----
 title: Start
 speaker: Robin
-colorID: 3
+colorId: 3
 position: -416,112
 ----
 
@@ -68,7 +72,7 @@ A `.dlb` file consists of a list of concatenated Nodes separated by `===` marker
 title: Start
 speaker: Robin
 position: -416,112
-color: cyan
+colorId: 3
 ---
 Hello, my name is Robin!
 
@@ -78,7 +82,7 @@ Hello, my name is Robin!
 title: NodeRobin2
 speaker: Robin
 position: -216,112
-color: red
+colorId: 4
 ---
 Nice to meet you too, how are you doing?
 
@@ -88,11 +92,16 @@ Nice to meet you too, how are you doing?
 ...
 ----
 
+A `.dlb` file does not need to be registered anywhere -- any file with a `.dlb` extension found anywhere inside a language folder of a xref:dlb-project.adoc[Dialogue Branch Project] is automatically picked up and parsed.
+
 === Comments
-If you want to document your Dialogue Branch scripts with comments, Dialogue Branch Supports line-comments. Everything after a double-slash `//` is considered a comment:
+If you want to document your Dialogue Branch scripts with comments, Dialogue Branch supports line-comments. Everything after a double-slash `//` is considered a comment -- this works both in the header and in the body of a Node:
 
 [source,text]
 ----
+title: Start // this is our entry point
+speaker: Robin
+---
 Thank you very much. // Thank the user for the gift.
 
 // If it was a nice gift...
@@ -111,8 +120,8 @@ Please visit https:\//www.dialoguebranch.com for more information! // Comment go
 == Dialogues
 A series of Dialogue Branch *Nodes* is called a Dialogue. The following rules apply to Dialogues:
 
-* All *Node* title's must be unique within a Dialogue.
-* There must be one *Node* with the title "__Start__" (this is the default starting point of the dialogue).
+* All *Node* title's must be unique within a Dialogue (case-insensitive).
+* There must be one *Node* with the title "__Start__" (matched case-insensitively, so `start`, `Start` or `START` all satisfy this requirement).
 * Dialogue Branch script files may contain letters, numbers, dashes and underscores, and end with `.dlb`, valid examples include:
 ** mydialogue.dlb
 ** my-dialogue.dlb
@@ -127,7 +136,7 @@ Every Dialogue Branch script must include a Node with title "__Start__". Applica
 title: Start
 speaker: Robin
 position: -416,112
-color: cyan
+colorId: 3
 ---
 Hello, my name is Robin!
 
@@ -140,7 +149,7 @@ Hello, my name is Robin!
 There are two ways a Dialogue Branch dialogue can end:
 
  * The user doesn't have any *Reply* options in the *Node* (the *Agent* has the last say).
- * The user chooses a *Reply* option that leads to a *Node* with title "__End__" (user has the last say).</li>
+ * The user chooses a *Reply* option that leads to a *Node* with title "__End__" (matched case-insensitively) (user has the last say).
 
 Example 1:
 
@@ -160,7 +169,7 @@ Do you have any other questions?
 
 Unlike the "__Start__" *Node*, the "__End__" *Node* is not mandatory to include in your Dialogue Branch script, as there are other ways to end the conversation. There is also nothing stopping you from creating a dialogue that can only loop indefinitely. When creating DLB-based applications, you can also choose to provide a User Interface element that can "cancel" a dialogue at any time.
 
-NOTE: The node with the Title "End" is thus treated as a special case. When other nodes refer to it, this Node should be created in the dialogue as usual, however its contents must be empty. When the "End" node is reached in a Dialogue, the application should simply "close" the conversation.
+NOTE: The node with the title "End" is a special case: it must be entirely empty (no statement, no replies) -- the parser rejects an "End" node that contains a body. When other nodes refer to it, this Node should still be created in the dialogue as usual (header only), and when the "End" node is reached in a Dialogue, the application should simply "close" the conversation.
 
 == Statements
 Ultimately, every Dialogue Branch *Node* should output some text to display to the user, but DLB *Statements* allow for a lot of flexibility in structuring and personalizing your dialogue.
@@ -174,12 +183,13 @@ Hello, how are you?
 ----
 
 === Basic Statements with Variables
-You can use variables within your *Statements*. Variables start with a `$`-sign, followed by one of `A-Z a-z` and then any number of `a-z A-Z 0-9` or `_` (underscores).
+You can use variables within your *Statements*. Variable names must match `[A-Za-z_][A-Za-z0-9_]*` -- i.e. they start with a `$`-sign, followed by a letter or underscore, then any number of letters, digits or underscores.
 
-In short: variables names start with a letter, then contain letters, numbers or underscores, for example:
+In short: variables names start with a `$`, then a letter or underscore, then letters, numbers or underscores, for example:
 
  * `$variableName`
  * `$variable_name`
+ * `$_privateVar`
  * `$var123`
 
 These variables can be used within *Statements* to inject their values into a sentence, like so:
@@ -278,6 +288,35 @@ If in your application you cannot be sure whether or not boolean variables have 
 <<endif>>
 ----
 
+=== Control Statements: Random Variation
+Dialogue Branch supports offering weighted random variation of a piece of dialogue through the `\<<random>>` statement. Unlike `\<<if>>`, this isn't a decision based on a condition, but a way to make a node's output vary from one execution to the next, without the client or the dialogue author having to decide up front which variant is shown.
+
+[source,text]
+----
+<<random>>
+Hey there!
+<<or>>
+Hi, good to see you!
+<<or>>
+Hello again!
+<<endrandom>>
+----
+
+Each `\<<random>>` clause and each `\<<or>>` clause may specify an optional `weight` (a positive number, default `1`) to bias the random selection:
+
+[source,text]
+----
+<<random weight="2">>
+This is shown roughly twice as often as the other options.
+<<or weight="1">>
+This is shown about half as often as the first option.
+<<or>>
+This clause has the default weight of 1, same as the previous one.
+<<endrandom>>
+----
+
+At runtime, exactly one of the clauses is chosen at random (proportional to its weight) and only that clause's content is executed -- the others are skipped entirely. A `\<<random>>` block may appear anywhere a `\<<set>>` or `\<<if>>` statement may appear, and each clause may itself contain nested `\<<if>>`, `\<<set>>` or further `\<<random>>` statements. It is not valid inside the command section of a *Reply* (see <<Replies>> below).
+
 === Control Statements: User Interface Actions
 Sometimes you might want to couple some event or action to a statement uttered by a speaker. Dialogue Branch supports Actions of type `link`, `image`, `video`, or `generic`, all of which are shown below.
 
@@ -367,7 +406,9 @@ Would you like me to sign you up?
 In the example above, you could for example give the user some time to choose between the "__Yes, please do so!__" and "__No, let's not.__" options, and after some time, automatically progress the dialogue to the `UserInDoubt` *Node*.
 
 === Input Replies
-You can ask a user to provide various types of input using Input Reply options. The easiest way is to request some text input:
+You can ask a user to provide various types of input as part of a reply's statement text, using an `\<<input>>` command. Dialogue Branch supports six input types: `text`, `longtext`, `email`, `numeric`, `time`, and `set`.
+
+The easiest way is to request some text input:
 
 [source,text]
 ----
@@ -377,7 +418,7 @@ What is your first name?
 [[My name is <<input type="text" value="$userFirstName" min="2" max="30">>, why do you ask?|RobinInputGiven]]
 ----
 
-The general format of this statement is: (optional) `beforeText`, `inputStatement`, (optional) `afterText`. (optional) `min`, (optional) `max`.
+The general format of this statement is: (optional) `beforeText`, `inputStatement`, (optional) `afterText`.
 
 So, the minimum valid example is as follows:
 
@@ -391,17 +432,35 @@ What is your first name?
 
 When a user chooses the Input Reply, the provided text is assigned to the value of the `$userFirstName` variable.
 
-Very similar is numeric input:
+Every input type accepts an optional `description` parameter (e.g. as a hint or accessibility label for a client's UI), in addition to the type-specific parameters described below.
 
+==== `text` and `longtext`
+Free-form text input (`longtext` is intended for multi-line input; both share the same parameters).
+
+* `value` -- (required) the variable to assign the input to.
+* `min`, `max` -- (optional) minimum/maximum input length.
+* `allowNumbers`, `allowSpecialCharacters`, `allowSpaces` -- (optional, `true`/`false`) restrict which characters are allowed.
+* `capCharacters`, `capWords`, `capSentences` -- (optional, `true`/`false`) hint to the client UI to auto-capitalize characters/words/sentences as the user types.
+* `forceCapCharacters`, `forceCapWords`, `forceCapSentences` -- (optional, `true`/`false`) enforce that capitalisation server-side.
+
+==== `email`
+[source,text]
+----
+[[My email address is <<input type="email" value="$userEmail">>.|RobinInputGiven]]
+----
+
+* `value` -- (required) the variable to assign the input to.
+
+==== `numeric`
 [source,text]
 ----
 [[I am <<input type="numeric" value="$userAge" min="0" max="120">> years old.|RobinInputGiven]]
 ----
 
-In both cases the `min` and `max` parameters are optional (you can have none, either, or both).
+* `value` -- (required) the variable to assign the input to.
+* `min`, `max` -- (optional) minimum/maximum numeric value.
 
-Furthermore, Dialogue Branch supports time input in hours and minutes:</p>
-
+==== `time`
 [source,text]
 ----
 [[I ate my breakfast at <<input type="time" value="$breakfastTime" granularityMinutes="15" startTime="09:00" minTime="06:00" maxTime="12:00">> this morning.|BreakfastTimeGiven]]
@@ -413,6 +472,17 @@ This results in the variable `$breakfastTime` being set to the provided input (e
  * `startTime` -- The time that the input widget should show initially. For example "09:00", but you can also write "now", or even a variable: "`$breakfastTimeYesterday`". If you leave it out, then the input widget will start empty.
  * `minTime` -- The minimum time that the user can enter. The default is "00:00".
  * `maxTime` -- The maximum time that the user can enter. The default is "23:59".
+
+==== `set`
+Presents the user with a set of labelled boolean options (e.g. checkboxes), each toggling its own variable, using numbered `valueN`/`optionN` pairs:
+
+[source,text]
+----
+Which toppings would you like?
+<<input type="set" value1="$wantsCheese" option1="Cheese" value2="$wantsOlives" option2="Olives" value3="$wantsHam" option3="Ham">>
+----
+
+Each `valueN` is a `$variable` that will be set to `true`/`false` depending on whether the user selected `optionN`'s label.
 
 === Replies with Setting Variables
 Instead of setting a variable in a single set-*Statement*, you can also set a variable as part of a *Reply* option, like in the following example:
@@ -433,6 +503,8 @@ Just like you are able to link a set-*Statement* to a *Reply*, you can also add 
 [[Please show me the recipes.|RecipesStart|<<action type="generic" value="OPEN_RECIPE_BOOK">>]]
 ----
 
+NOTE: The optional third section of a *Reply* (after the second `|`) may only contain `\<<set>>` and/or `\<<action>>` statements -- `\<<if>>` and `\<<random>>` are not valid there. If you need conditional logic around a reply, express it in the *Node*'s body instead (e.g. by using `\<<if>>` to decide which replies to show).
+
 === Replies linking to other dialogues
 There's only so much you want to put into one Dialogue Branch dialogue definition before you start losing track (and/or sanity), so Dialogue Branch allows you to link between different dialogue definitions, like so:
 
@@ -444,4 +516,16 @@ What should we talk about now?
 [[What about fishing?|FishingDialogue.Start]]
 ----
 
-In this example, the first *Reply* option would take the user to the *Node* labeled "__Start__" of the Dialogue labeled "__CarsDialogue__". So, in this case, there should be a file named "__CarsDialogue.dlb__" in the same folder as the current .dlb script. Note that you don't __have to__ link to the "Start" *Node* of a dialogue script, and you can choose any valid *Node* name.
+In this example, the first *Reply* option would take the user to the *Node* labeled "__Start__" of the Dialogue labeled "__CarsDialogue__". So, in this case, there should be a file named "__CarsDialogue.dlb__" in the same folder as the current .dlb script.
+
+The path to the target dialogue is resolved relative to the current dialogue's location inside the project's language folder, and supports filesystem-like path segments, similar to a relative file path:
+
+[source,text]
+----
+[[Same folder|basic.Start]]
+[[Absolute path from the language root|/bg1/bg1-candlekeep-imoen.Start]]
+[[Parent folder|../menu.Start]]
+[[Explicit current folder|./basic.Start]]
+----
+
+Note that you don't __have to__ link to the "Start" *Node* of a dialogue script, and you can choose any valid *Node* name.
