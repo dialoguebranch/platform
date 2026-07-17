@@ -7,6 +7,24 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Added
+
+- Replaced the Antora/AsciiDoc-based Documentation Hub with a new VitePress-based site
+  (`documentation/vitepress/`), now live at https://www.dialoguebranch.com/docs/. The vendored
+  `antora-ui-default` fork (`documentation/dlb-ui/`) had drifted from the rest of the platform's
+  look (pinned to Node 10, a separate gulp/browserify toolchain to maintain) and contributed 48
+  open Dependabot alerts, all in its own `package-lock.json`, none reachable from the shipped
+  product. The new site reuses the Web Client Test Application's brand palette and self-hosted
+  "Roboto Slab" font, and is fronted by a header mirroring the rest of www.dialoguebranch.com
+  (Home / Documentation / About / News & Updates) so the docs, marketing site, and web client read
+  as one product. All content was ported over 1:1.
+
+### Removed
+
+- Removed the old Antora/AsciiDoc documentation project (`documentation/antora/`, including the
+  vendored `dlb-ui` UI fork) from the repo now that the VitePress site above has fully replaced it
+  in production.
+
 ## [2.0.2] - 2026-07-17
 
 ### Added

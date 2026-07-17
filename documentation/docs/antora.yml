@@ -1,9 +1,0 @@
-name: dialogue-branch
-title: Dialogue Branch Documentation Hub
-version: dev
-nav:
-- modules/dlb-language/nav.adoc
-- modules/dlb-web/nav.adoc
-- modules/dlb-core-java/nav.adoc
-- modules/tutorials/nav.adoc
-- modules/contribution/nav.adoc

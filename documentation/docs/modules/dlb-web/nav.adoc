@@ -1,3 +1,0 @@
-* xref:index.adoc[Web Services]
-** xref:release-notes.adoc[Release Notes]
-** xref:authentication.adoc[Authentication]

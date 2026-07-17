@@ -1,2 +1,0 @@
-* xref:index.adoc[Language Definition]
-** xref:dlb-project.adoc[Dialogue Branch Projects]

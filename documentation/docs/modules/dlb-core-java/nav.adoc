@@ -1,2 +1,0 @@
-* xref:index.adoc[Core Java Library]
-** xref:release-notes.adoc[Release Notes]

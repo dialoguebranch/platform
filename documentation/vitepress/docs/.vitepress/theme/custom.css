@@ -1,0 +1,96 @@
+/*
+ * Self-hosted "Roboto Slab", matching apps/web/src/assets/css/fonts.css so the
+ * documentation site and the Web Client Test Application render with the same
+ * typeface.
+ */
+@font-face {
+  font-family: 'Roboto Slab';
+  src: url('/fonts/RobotoSlab-Regular.woff2') format('woff2'),
+       url('/fonts/RobotoSlab-Regular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Roboto Slab';
+  src: url('/fonts/RobotoSlab-Medium.woff2') format('woff2'),
+       url('/fonts/RobotoSlab-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Roboto Slab';
+  src: url('/fonts/RobotoSlab-SemiBold.woff2') format('woff2'),
+       url('/fonts/RobotoSlab-SemiBold.woff') format('woff');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Roboto Slab';
+  src: url('/fonts/RobotoSlab-Bold.woff2') format('woff2'),
+       url('/fonts/RobotoSlab-Bold.woff') format('woff');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Roboto Slab';
+  src: url('/fonts/RobotoSlab-ExtraBold.woff2') format('woff2'),
+       url('/fonts/RobotoSlab-ExtraBold.woff') format('woff');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/*
+ * Brand palette, matching apps/web/src/assets/css/theme.css's
+ * --color-orange-* tokens (the accent color family used throughout the Web
+ * Client for emphasis, links and highlighted lines).
+ */
+:root {
+  --vp-font-family-base: 'Roboto Slab', ui-sans-serif, system-ui, sans-serif;
+
+  /* Height of the global <SiteNavbar> injected via the "layout-top" slot
+     (theme/index.ts) — the default theme reads this to push its own nav,
+     sidebar and content down below it instead of rendering underneath. */
+  --vp-layout-top-height: 80px;
+
+  --vp-c-brand-1: rgb(153, 102, 0);   /* --color-orange-dark */
+  --vp-c-brand-2: rgb(119, 81, 24);   /* --color-orange-darker */
+  --vp-c-brand-3: rgb(94, 64, 19);
+  --vp-c-brand-soft: rgba(179, 141, 83, 0.16); /* --color-orange-medium, translucent */
+
+  --vp-c-tip-1: var(--vp-c-brand-1);
+  --vp-c-tip-2: var(--vp-c-brand-2);
+  --vp-c-tip-3: var(--vp-c-brand-3);
+  --vp-c-tip-soft: var(--vp-c-brand-soft);
+}
+
+.dark {
+  /* Lighter oranges in dark mode keep contrast against the dark background
+     instead of the too-dark --color-orange-darker used for light-mode text. */
+  --vp-c-brand-1: rgb(246, 203, 139);  /* --color-orange-light */
+  --vp-c-brand-2: rgb(179, 141, 83);   /* --color-orange-medium */
+  --vp-c-brand-3: rgb(153, 102, 0);    /* --color-orange-dark */
+}
+
+.VPHero .name,
+.VPHero .text {
+  font-family: 'Roboto Slab', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* "Dialogue Branch Documentation Hub" is long enough that VitePress's own
+   nav-bar title doesn't shrink to fit next to the search/hamburger controls
+   at narrow widths, causing horizontal overflow — drop the text and keep
+   just the logo mark below the breakpoint where that starts to happen. */
+@media (max-width: 767px) {
+  .VPNavBarTitle .title span {
+    display: none;
+  }
+}
