@@ -7,6 +7,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-07-17
+
 ### Added
 
 - Added support for cross-dialogue reply links (`[[Reply Text.|otherDialogue.NodeId]]`) in draft
