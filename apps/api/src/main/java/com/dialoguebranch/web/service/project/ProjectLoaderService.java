@@ -174,7 +174,8 @@ public class ProjectLoaderService {
 			String dialogueName = dialogueNamesById.get(t.getPublishedDialogue().getId());
 			if (dialogueName == null) continue;
 			translationContents
-					.computeIfAbsent(t.getLanguage(), k -> new LinkedHashMap<>())
+					.computeIfAbsent(t.getTranslationLanguage().getTranslationLanguageCode(),
+							k -> new LinkedHashMap<>())
 					.put(dialogueName, t.getContent());
 		}
 

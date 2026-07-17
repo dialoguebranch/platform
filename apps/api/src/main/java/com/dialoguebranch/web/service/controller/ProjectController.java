@@ -36,9 +36,11 @@ import com.dialoguebranch.web.service.exception.BadRequestException;
 import com.dialoguebranch.web.service.exception.ConflictException;
 import com.dialoguebranch.web.service.exception.HttpException;
 import com.dialoguebranch.web.service.exception.NotFoundException;
+import com.dialoguebranch.web.service.project.DraftDialogueService;
+import com.dialoguebranch.web.service.project.DraftProjectService;
 import com.dialoguebranch.web.service.project.ProjectService;
+import com.dialoguebranch.web.service.storage.model.DBDraftTranslationLanguage;
 import com.dialoguebranch.web.service.storage.model.DBProject;
-import com.dialoguebranch.web.service.storage.model.DBTranslationLanguage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -78,17 +80,27 @@ public class ProjectController {
 	Application application;
 
 	private final ProjectService projectService;
+	private final DraftProjectService draftProjectService;
+	private final DraftDialogueService draftDialogueService;
 
 	private static final Logger logger = LoggerFactory.getLogger(ProjectController.class);
 
 	/**
 	 * Instances of this class are constructed through Spring.
 	 *
-	 * @param projectService service used to look up, create, update, and delete
-	 *                       {@link DBProject}s and their translation languages.
+	 * @param projectService       service used to look up, create, and delete {@link DBProject}s.
+	 * @param draftProjectService  service used to read and edit a project's draft metadata
+	 *                             (display name, description) and draft translation languages —
+	 *                             the working copy edited in Authoring Mode, only taking effect
+	 *                             once published (see {@link PublishController}).
+	 * @param draftDialogueService service used to check which draft dialogues currently have
+	 *                             content in a translation language, before it's removed.
 	 */
-	public ProjectController(ProjectService projectService) {
+	public ProjectController(ProjectService projectService, DraftProjectService draftProjectService,
+			DraftDialogueService draftDialogueService) {
 		this.projectService = projectService;
+		this.draftProjectService = draftProjectService;
+		this.draftDialogueService = draftDialogueService;
 	}
 
 	// ---------------------------------------------------------------- //
@@ -197,18 +209,20 @@ public class ProjectController {
 	}
 
 	/**
-	 * Updates a project's display name and description.
+	 * Updates a project's draft display name and description. This is the working copy edited in
+	 * Authoring Mode — it does not affect the project's published display name/description until
+	 * the project is next published (see {@link PublishController}).
 	 *
 	 * @param request the HTTP request (to retrieve authentication headers).
 	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
 	 *                 Unauthorized error).
 	 * @param version the API version to use, e.g. '1'.
 	 * @param projectSlug the unique slug of the project to update.
-	 * @param payload the new display name and description for the project.
+	 * @param payload the new draft display name and description for the project.
 	 * @return the updated project.
 	 * @throws HttpException if the project does not exist or the user is not authorized.
 	 */
-	@Operation(summary = "Update a project's display name and description.")
+	@Operation(summary = "Update a project's draft display name and description.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/update-project")
 	public DBProject updateProject(
@@ -224,8 +238,8 @@ public class ProjectController {
 					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectSlug));
-					return projectService.updateProject(project, payload.getDisplayName(),
-							payload.getDescription());
+					return draftProjectService.updateDraftMetadata(project,
+							payload.getDisplayName(), payload.getDescription());
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				AuthenticationInfo.USER_ROLE_ADMIN);
@@ -271,7 +285,9 @@ public class ProjectController {
 	// ------------------------------------------------------------------------ //
 
 	/**
-	 * Adds an additional translation language to a project, on top of its fixed source language.
+	 * Adds an additional draft translation language to a project, on top of its fixed source
+	 * language. This does not affect the project's published translation languages until the
+	 * project is next published (see {@link PublishController}).
 	 *
 	 * @param request the HTTP request (to retrieve authentication headers).
 	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
@@ -279,14 +295,15 @@ public class ProjectController {
 	 * @param version the API version to use, e.g. '1'.
 	 * @param projectSlug the unique slug of the project to add the language to.
 	 * @param payload the display name and language code of the translation language to add.
-	 * @return the newly added translation language.
-	 * @throws HttpException if the project does not exist or the user is not authorized.
+	 * @return the newly added draft translation language.
+	 * @throws HttpException if the project does not exist, a (non-deleted) translation language
+	 * with the same code already exists, or the user is not authorized.
 	 */
-	@Operation(summary = "Add a translation language to a project.")
+	@Operation(summary = "Add a draft translation language to a project.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/add-translation-language")
 	@ResponseStatus(HttpStatus.CREATED)
-	public DBTranslationLanguage addTranslationLanguage(
+	public DBDraftTranslationLanguage addTranslationLanguage(
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
@@ -300,7 +317,7 @@ public class ProjectController {
 					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectSlug));
-					return projectService.addTranslationLanguage(project,
+					return draftProjectService.addDraftLanguage(project,
 							payload.getTranslationLanguageName(), payload.getTranslationLanguageCode());
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
@@ -308,17 +325,21 @@ public class ProjectController {
 	}
 
 	/**
-	 * Removes a translation language from a project.
+	 * Removes a draft translation language from a project. A soft delete — reversible until the
+	 * project is next published, at which point the language (and any draft content still in it)
+	 * is actually removed. Use {@code /find-language-references} first to warn about draft
+	 * dialogues that currently have content in this language.
 	 *
 	 * @param request the HTTP request (to retrieve authentication headers).
 	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
 	 *                 Unauthorized error).
 	 * @param version the API version to use, e.g. '1'.
 	 * @param projectSlug the unique slug of the project to remove the language from.
-	 * @param translationLanguageId the id of the translation language to remove.
-	 * @throws HttpException if the project does not exist or the user is not authorized.
+	 * @param translationLanguageId the id of the draft translation language to remove.
+	 * @throws HttpException if the project or translation language does not exist, or the user is
+	 * not authorized.
 	 */
-	@Operation(summary = "Remove a translation language from a project.")
+	@Operation(summary = "Remove a draft translation language from a project.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/remove-translation-language")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
@@ -336,8 +357,56 @@ public class ProjectController {
 					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectSlug));
-					projectService.removeTranslationLanguage(project, translationLanguageId);
+					DBDraftTranslationLanguage language = draftProjectService
+							.findById(translationLanguageId)
+							.filter(l -> l.getProject().getId().equals(project.getId()))
+							.orElseThrow(() -> new NotFoundException(
+									"Translation language not found: " + translationLanguageId));
+					draftProjectService.removeDraftLanguage(language);
 					return null;
+				},
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
+				AuthenticationInfo.USER_ROLE_ADMIN);
+	}
+
+	/**
+	 * Returns the names of every draft dialogue that currently has content in the given draft
+	 * translation language — informational only, used to warn an author what removing the
+	 * language would affect before they confirm it.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project the language belongs to.
+	 * @param translationLanguageId the id of the draft translation language to check.
+	 * @return the sorted, distinct list of dialogue names with content in this language.
+	 * @throws HttpException if the project or translation language does not exist, or the user is
+	 * not authorized.
+	 */
+	@Operation(summary = "Find draft dialogues with content in a given draft translation language.")
+	@Parameter(name = "version", hidden = true)
+	@GetMapping("/find-language-references")
+	public List<String> findLanguageReferences(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug,
+			@RequestParam(value = "translationLanguageId") UUID translationLanguageId
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("GET /v{}/project/find-language-references [user: {}]", version,
+							user);
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					DBDraftTranslationLanguage language = draftProjectService
+							.findById(translationLanguageId)
+							.filter(l -> l.getProject().getId().equals(project.getId()))
+							.orElseThrow(() -> new NotFoundException(
+									"Translation language not found: " + translationLanguageId));
+					return draftDialogueService.findDialoguesUsingLanguage(language);
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				AuthenticationInfo.USER_ROLE_ADMIN);

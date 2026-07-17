@@ -9,6 +9,15 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Moved project metadata (display name, description, translation languages) into the same
+  draft → publish cycle as dialogue content ([#75](https://github.com/dialoguebranch/platform/issues/75)).
+  Editing a project's metadata used to write directly to the live/published record with no review
+  step; it now edits a draft copy that only takes effect on the next publish, and the web client's
+  "Edit Metadata" (now "Configure Project") is only available in Authoring Mode. Translation
+  languages themselves also moved onto a real foreign-key relationship — `DBDraftTranslation`/
+  `DBPublishedTranslation` now reference their language via a proper FK into a draft/published
+  language registry (previously a loose, unconstrained string column) — and removing a language
+  now warns which draft dialogues have content in it before it's removed.
 - Replaced the Antora/AsciiDoc-based Documentation Hub with a new VitePress-based site
   (`documentation/vitepress/`), now live at https://www.dialoguebranch.com/docs/. The vendored
   `antora-ui-default` fork (`documentation/dlb-ui/`) had drifted from the rest of the platform's

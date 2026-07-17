@@ -47,7 +47,7 @@ import java.util.UUID;
 	uniqueConstraints = {
 		@UniqueConstraint(
 			name = "uq_draft_translations",
-			columnNames = { "draft_dialogue_id", "language" }
+			columnNames = { "draft_dialogue_id", "draft_translation_language_id" }
 		)
 	}
 )
@@ -62,8 +62,15 @@ public class DBDraftTranslation {
 	@JsonIgnore
 	private DBDraftDialogue draftDialogue;
 
-	@Column(nullable = false, length = 16)
-	private String language;
+	// EAGER, unlike draftDialogue above: this project runs with open-in-view disabled, and
+	// callers routinely read getLanguage() outside an open Hibernate session/transaction (e.g.
+	// DraftExecutionService.startSession, PublishService.verify) — LAZY would throw
+	// LazyInitializationException there. DBDraftTranslationLanguage is a small lookup row, so
+	// Hibernate resolves this as a plain SQL join rather than a real N+1 cost.
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "draft_translation_language_id", nullable = false)
+	@JsonIgnore
+	private DBDraftTranslationLanguage language;
 
 	@Column(columnDefinition = "TEXT")
 	private String content;
@@ -117,20 +124,20 @@ public class DBDraftTranslation {
 	}
 
 	/**
-	 * Returns the target language code of this translation (e.g. {@code "nl"}).
+	 * Returns the {@link DBDraftTranslationLanguage} this translation targets.
 	 *
-	 * @return the language code.
+	 * @return the target language.
 	 */
-	public String getLanguage() {
+	public DBDraftTranslationLanguage getLanguage() {
 		return language;
 	}
 
 	/**
-	 * Sets the target language code of this translation.
+	 * Sets the {@link DBDraftTranslationLanguage} this translation targets.
 	 *
-	 * @param language the language code.
+	 * @param language the target language.
 	 */
-	public void setLanguage(String language) {
+	public void setLanguage(DBDraftTranslationLanguage language) {
 		this.language = language;
 	}
 

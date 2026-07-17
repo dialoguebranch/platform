@@ -138,7 +138,9 @@ function submitPublish() {
                             <strong>{{ projectDisplayName }}</strong> and creates a new, immutable
                             project version from it. That version immediately becomes what runs live
                             &mdash; replacing what's currently published &mdash; and this cannot be
-                            undone.
+                            undone. Any pending changes to the project's settings &mdash; its
+                            display name, description, and translation languages, from the
+                            Configure Project window &mdash; are published at the same time.
                         </p>
                         <p class="text-sm text-grey-dark">
                             Next, this wizard will verify that all dialogues are free of errors, and

@@ -33,6 +33,7 @@ import com.dialoguebranch.web.service.storage.model.DBTranslationLanguage;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -44,11 +45,34 @@ public interface DBTranslationLanguageRepository
 		extends JpaRepository<DBTranslationLanguage, UUID> {
 
 	/**
-	 * Finds all additional translation languages configured for the given project.
+	 * Finds all translation languages ever registered for the given project, including removed
+	 * ones. Used only when tearing down a whole project ({@code ProjectService.deleteProject}) —
+	 * everywhere else, {@link #findByProjectAndIsRemovedFalse} is the right call.
 	 *
 	 * @param project the project whose translation languages should be retrieved.
 	 * @return the list of translation languages belonging to {@code project}.
 	 */
 	List<DBTranslationLanguage> findByProject(DBProject project);
+
+	/**
+	 * Finds all currently active (non-removed) translation languages configured for the given
+	 * project.
+	 *
+	 * @param project the project whose active translation languages should be retrieved.
+	 * @return the list of active translation languages belonging to {@code project}.
+	 */
+	List<DBTranslationLanguage> findByProjectAndIsRemovedFalse(DBProject project);
+
+	/**
+	 * Finds the (possibly removed) translation language with the given code for the given
+	 * project. Used by publish reconciliation to find-or-create/un-remove a published language
+	 * row matching a draft language.
+	 *
+	 * @param project the project the language belongs to.
+	 * @param translationLanguageCode the language code to look up.
+	 * @return an {@link Optional} containing the matching {@link DBTranslationLanguage}, or empty.
+	 */
+	Optional<DBTranslationLanguage> findByProjectAndTranslationLanguageCode(
+			DBProject project, String translationLanguageCode);
 
 }

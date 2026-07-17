@@ -38,10 +38,12 @@ import com.dialoguebranch.web.service.repository.DBPublishedDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBPublishedTranslationRepository;
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslation;
+import com.dialoguebranch.web.service.storage.model.DBDraftTranslationLanguage;
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import com.dialoguebranch.web.service.storage.model.DBProjectVersion;
 import com.dialoguebranch.web.service.storage.model.DBPublishedDialogue;
 import com.dialoguebranch.web.service.storage.model.DBPublishedTranslation;
+import com.dialoguebranch.web.service.storage.model.DBTranslationLanguage;
 import com.dialoguebranch.web.service.storage.model.DBUser;
 import nl.rrd.utils.exception.ParseException;
 import org.springframework.stereotype.Service;
@@ -52,6 +54,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Service that validates a project's full draft and, if valid, creates a new published
@@ -64,6 +67,8 @@ import java.util.Map;
 public class PublishService {
 
 	private final DraftDialogueService draftDialogueService;
+	private final DraftProjectService draftProjectService;
+	private final ProjectService projectService;
 	private final DBProjectVersionRepository versionRepository;
 	private final DBPublishedDialogueRepository publishedDialogueRepository;
 	private final DBPublishedTranslationRepository publishedTranslationRepository;
@@ -75,6 +80,10 @@ public class PublishService {
 	 *
 	 * @param draftDialogueService            service used to read draft dialogues/translations and
 	 *                                        reconcile their status flags once published.
+	 * @param draftProjectService             service used to read a project's draft translation
+	 *                                        language registry and reconcile it once published.
+	 * @param projectService                  service used to write a project's published display
+	 *                                        name/description and translation language registry.
 	 * @param versionRepository               repository used to read and persist project versions.
 	 * @param publishedDialogueRepository     repository used to persist published dialogues.
 	 * @param publishedTranslationRepository  repository used to persist published translations.
@@ -84,12 +93,16 @@ public class PublishService {
 	 *                                        version into the running execution engine.
 	 */
 	public PublishService(DraftDialogueService draftDialogueService,
+						  DraftProjectService draftProjectService,
+						  ProjectService projectService,
 						  DBProjectVersionRepository versionRepository,
 						  DBPublishedDialogueRepository publishedDialogueRepository,
 						  DBPublishedTranslationRepository publishedTranslationRepository,
 						  DBProjectRepository projectRepository,
 						  ProjectLoaderService projectLoaderService) {
 		this.draftDialogueService = draftDialogueService;
+		this.draftProjectService = draftProjectService;
+		this.projectService = projectService;
 		this.versionRepository = versionRepository;
 		this.publishedDialogueRepository = publishedDialogueRepository;
 		this.publishedTranslationRepository = publishedTranslationRepository;
@@ -168,6 +181,14 @@ public class PublishService {
 	 */
 	@Transactional
 	public PublishResult publish(DBProject project, DBUser publishedBy) throws IOException {
+		// Reconcile draft project metadata and the draft translation-language registry into their
+		// published counterparts first. Language removal must happen before validateDrafts below,
+		// since it strips the removed language's draft translation content — script reconstruction
+		// and validation must never see content in a language that's being dropped from this
+		// version.
+		reconcilePublishedMetadata(project);
+		reconcilePublishedTranslationLanguages(project);
+
 		// Every dialogue in the project always has a draft — seeded projects create drafts first
 		// and publish from them (see ProjectSeedService), and any dialogue added since is created
 		// as a draft too. Dialogues pending deletion are excluded from what gets published, but
@@ -207,9 +228,17 @@ public class PublishService {
 
 			for (Map.Entry<String, String> entry :
 					translationsByDialogue.get(draft.getName()).entrySet()) {
+				// Guaranteed to resolve: reconcilePublishedTranslationLanguages (called above,
+				// before validateDrafts) has already created/un-removed a published language row
+				// for every language code that can appear here.
+				DBTranslationLanguage translationLanguage = projectService
+						.findPublishedLanguage(project, entry.getKey())
+						.orElseThrow(() -> new IllegalStateException(
+								"Published translation language disappeared during publish: " +
+										entry.getKey()));
 				DBPublishedTranslation translation = new DBPublishedTranslation();
 				translation.setPublishedDialogue(published);
-				translation.setLanguage(entry.getKey());
+				translation.setTranslationLanguage(translationLanguage);
 				translation.setContent(entry.getValue());
 				publishedTranslationRepository.save(translation);
 			}
@@ -240,6 +269,57 @@ public class PublishService {
 		return PublishResult.success(version);
 	}
 
+	// --------------------------------------------------------------------- //
+	// -------------------- Metadata & Language Reconciliation -------------- //
+	// --------------------------------------------------------------------- //
+
+	/**
+	 * If the project's draft display name/description differ from its currently published values,
+	 * writes the draft values into the published fields via {@link
+	 * ProjectService#applyPublishedMetadata}. A no-op otherwise.
+	 *
+	 * @param project the project to reconcile.
+	 */
+	private void reconcilePublishedMetadata(DBProject project) {
+		if (!Objects.equals(project.getDisplayName(), project.getDraftDisplayName())
+				|| !Objects.equals(project.getDescription(), project.getDraftDescription())) {
+			projectService.applyPublishedMetadata(project, project.getDraftDisplayName(),
+					project.getDraftDescription());
+		}
+	}
+
+	/**
+	 * Reconciles every {@link DBDraftTranslationLanguage} of the given project into the published
+	 * translation-language registry:
+	 * <ul>
+	 *     <li>Non-deleted languages are created (or un-removed, if a matching published row was
+	 *     previously marked removed) via {@link ProjectService#applyPublishedTranslationLanguage},
+	 *     and their draft row's {@code isNew} flag is cleared.</li>
+	 *     <li>Languages pending deletion have their draft translation content stripped from every
+	 *     draft dialogue first (so script reconstruction never sees it), their matching published
+	 *     row (if any) marked removed, and their draft row hard-deleted for real.</li>
+	 * </ul>
+	 *
+	 * @param project the project to reconcile.
+	 */
+	private void reconcilePublishedTranslationLanguages(DBProject project) {
+		for (DBDraftTranslationLanguage language : draftProjectService.listDraftLanguages(project)) {
+			if (language.getIsDeleted()) {
+				draftDialogueService.deleteAllTranslationsInLanguage(language);
+				projectService.markPublishedTranslationLanguageRemoved(project,
+						language.getTranslationLanguageCode());
+				draftProjectService.hardDeleteDraftLanguage(language);
+			} else {
+				projectService.applyPublishedTranslationLanguage(project,
+						language.getTranslationLanguageName(), language.getTranslationLanguageCode());
+				if (language.getIsNew()) {
+					language.setIsNew(false);
+					draftProjectService.save(language);
+				}
+			}
+		}
+	}
+
 	// ------------------------------------------------------------- //
 	// -------------------- Shared Draft Validation ------------------ //
 	// ------------------------------------------------------------- //
@@ -268,7 +348,12 @@ public class PublishService {
 
 			Map<String, String> translations = new LinkedHashMap<>();
 			for (DBDraftTranslation t : draftDialogueService.listTranslations(draft)) {
-				translations.put(t.getLanguage(), t.getContent());
+				// A language pending deletion must never be validated/published, even if this is
+				// called from verify() (side-effect free, so the language's rows are still here)
+				// rather than publish() (which has already stripped them by this point — see
+				// reconcilePublishedTranslationLanguages).
+				if (t.getLanguage().getIsDeleted()) continue;
+				translations.put(t.getLanguage().getTranslationLanguageCode(), t.getContent());
 			}
 			translationsByDialogue.put(draft.getName(), translations);
 		}

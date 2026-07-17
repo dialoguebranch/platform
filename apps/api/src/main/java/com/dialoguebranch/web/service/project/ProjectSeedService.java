@@ -35,7 +35,9 @@ import com.dialoguebranch.model.common.ProjectMetaData;
 import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.model.execute.Language;
 import com.dialoguebranch.model.execute.ResourcePointer;
+import com.dialoguebranch.web.service.exception.ConflictException;
 import com.dialoguebranch.web.service.execution.SpringResourceScriptLoader;
+import com.dialoguebranch.web.service.storage.model.DBDraftTranslationLanguage;
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import nl.rrd.utils.exception.ParseException;
 import org.slf4j.Logger;
@@ -52,6 +54,7 @@ import java.io.*;
 import java.net.URI;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Seeds the database with projects from the {@code projects-seed/} classpath directory on first
@@ -73,6 +76,7 @@ public class ProjectSeedService {
 
 	private final ProjectService projectService;
 	private final DraftDialogueService draftDialogueService;
+	private final DraftProjectService draftProjectService;
 	private final PublishService publishService;
 
 	/**
@@ -81,14 +85,18 @@ public class ProjectSeedService {
 	 * @param projectService       service used to check for and create seed project records.
 	 * @param draftDialogueService service used to create the seeded draft dialogues and their
 	 *                             translations from the seed source files.
+	 * @param draftProjectService  service used to seed the project's draft translation language
+	 *                             registry from the seed source's {@code dlb-project.xml}.
 	 * @param publishService       service used to publish the seeded drafts as the project's
 	 *                             version 1.
 	 */
 	public ProjectSeedService(ProjectService projectService,
 							  DraftDialogueService draftDialogueService,
+							  DraftProjectService draftProjectService,
 							  PublishService publishService) {
 		this.projectService = projectService;
 		this.draftDialogueService = draftDialogueService;
+		this.draftProjectService = draftProjectService;
 		this.publishService = publishService;
 	}
 
@@ -198,9 +206,17 @@ public class ProjectSeedService {
 		DBProject project = projectService.createProject(projectFolderName, metaData.getName(),
 				metaData.getDescription(), source.getCode(), source.getName());
 
-		// -- Step 4: Store translation languages --
-		for (Language translation : metaData.getLanguageMap().getTranslationLanguages()) {
-			projectService.addTranslationLanguage(project, translation.getName(), translation.getCode());
+		// -- Step 4: Store translation languages (as drafts — reconciled into the published
+		// registry alongside everything else when this project is published in step 7) --
+		try {
+			for (Language translation : metaData.getLanguageMap().getTranslationLanguages()) {
+				draftProjectService.addDraftLanguage(project, translation.getName(),
+						translation.getCode());
+			}
+		} catch (ConflictException e) {
+			logger.error("Seed project '{}': duplicate translation language in {}: {}",
+					projectFolderName, PROJECT_MARKER_FILE, e.getMessage());
+			return;
 		}
 
 		// -- Step 5: List the seed source files --
@@ -226,9 +242,16 @@ public class ProjectSeedService {
 			if (pointer.getResourceType() != ResourceType.TRANSLATION) continue;
 			String content = readContent(scriptLoader, pointer);
 			if (content == null) continue;
+			Optional<DBDraftTranslationLanguage> language =
+					draftProjectService.findDraftLanguage(project, pointer.getLanguage());
+			if (language.isEmpty()) {
+				logger.warn("Seed project '{}': translation file for unregistered language '{}' " +
+						"— skipping.", projectFolderName, pointer.getLanguage());
+				continue;
+			}
 			draftDialogueService.findDialogue(project, pointer.getDialogueName())
 					.ifPresent(dialogue -> draftDialogueService.createOrUpdateTranslation(
-							dialogue, pointer.getLanguage(), content));
+							dialogue, language.get(), content));
 		}
 
 		// -- Step 7: Publish the drafts as version 1 — the same path as any later publish --

@@ -30,6 +30,7 @@ package com.dialoguebranch.web.service.storage.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.Instant;
 import java.util.HashSet;
@@ -63,6 +64,12 @@ public class DBProject {
 
 	private String description;
 
+	@Column(name = "draft_display_name")
+	private String draftDisplayName;
+
+	@Column(name = "draft_description")
+	private String draftDescription;
+
 	@OneToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "latest_version_id")
 	private DBProjectVersion latestVersion;
@@ -73,8 +80,14 @@ public class DBProject {
 	@Column(name = "source_language_name", nullable = false, length = 64)
 	private String sourceLanguageName;
 
+	// Excludes removed languages (DBTranslationLanguage.isRemoved) — this collection represents
+	// the project's currently-active published languages, not every language ever registered.
 	@OneToMany(mappedBy = "project", fetch = FetchType.EAGER)
+	@SQLRestriction("is_removed = false")
 	private Set<DBTranslationLanguage> translationLanguages = new HashSet<>();
+
+	@OneToMany(mappedBy = "project", fetch = FetchType.EAGER)
+	private Set<DBDraftTranslationLanguage> draftTranslationLanguages = new HashSet<>();
 
 	@OneToMany(mappedBy = "project")
 	@JsonIgnore
@@ -169,6 +182,44 @@ public class DBProject {
 	}
 
 	/**
+	 * Returns the draft (working-copy) display name of this project, edited independently of
+	 * {@link #getDisplayName()} until the project is next published.
+	 *
+	 * @return the draft display name.
+	 */
+	public String getDraftDisplayName() {
+		return draftDisplayName;
+	}
+
+	/**
+	 * Sets the draft display name of this project.
+	 *
+	 * @param draftDisplayName the draft display name.
+	 */
+	public void setDraftDisplayName(String draftDisplayName) {
+		this.draftDisplayName = draftDisplayName;
+	}
+
+	/**
+	 * Returns the draft (working-copy) description of this project, edited independently of
+	 * {@link #getDescription()} until the project is next published.
+	 *
+	 * @return the draft description.
+	 */
+	public String getDraftDescription() {
+		return draftDescription;
+	}
+
+	/**
+	 * Sets the draft description of this project.
+	 *
+	 * @param draftDescription the draft description.
+	 */
+	public void setDraftDescription(String draftDescription) {
+		this.draftDescription = draftDescription;
+	}
+
+	/**
 	 * Returns the latest published {@link DBProjectVersion} for this project, or {@code null} if
 	 * this project has never been published.
 	 *
@@ -225,10 +276,11 @@ public class DBProject {
 	}
 
 	/**
-	 * Returns the set of {@link DBTranslationLanguage}s for this project — the additional
-	 * languages (beyond its source language) its dialogues have translations for.
+	 * Returns the set of currently-active (non-removed) {@link DBTranslationLanguage}s for this
+	 * project — the additional languages (beyond its source language) its dialogues have
+	 * translations for.
 	 *
-	 * @return the set of translation languages.
+	 * @return the set of active translation languages.
 	 */
 	public Set<DBTranslationLanguage> getTranslationLanguages() {
 		return translationLanguages;
@@ -241,6 +293,26 @@ public class DBProject {
 	 */
 	public void setTranslationLanguages(Set<DBTranslationLanguage> translationLanguages) {
 		this.translationLanguages = translationLanguages;
+	}
+
+	/**
+	 * Returns the set of {@link DBDraftTranslationLanguage}s for this project — the draft
+	 * (working-copy) registry of translation languages, edited independently of
+	 * {@link #getTranslationLanguages()} until the project is next published.
+	 *
+	 * @return the set of draft translation languages.
+	 */
+	public Set<DBDraftTranslationLanguage> getDraftTranslationLanguages() {
+		return draftTranslationLanguages;
+	}
+
+	/**
+	 * Sets the set of {@link DBDraftTranslationLanguage}s for this project.
+	 *
+	 * @param draftTranslationLanguages the set of draft translation languages.
+	 */
+	public void setDraftTranslationLanguages(Set<DBDraftTranslationLanguage> draftTranslationLanguages) {
+		this.draftTranslationLanguages = draftTranslationLanguages;
 	}
 
 	/**

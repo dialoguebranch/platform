@@ -37,6 +37,7 @@ import com.dialoguebranch.web.service.exception.ConflictException;
 import com.dialoguebranch.web.service.exception.HttpException;
 import com.dialoguebranch.web.service.exception.NotFoundException;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
+import com.dialoguebranch.web.service.project.DraftProjectService;
 import com.dialoguebranch.web.service.project.ProjectService;
 import com.dialoguebranch.web.service.storage.model.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -81,6 +82,7 @@ public class AuthoringController {
 
 	private final ProjectService projectService;
 	private final DraftDialogueService draftDialogueService;
+	private final DraftProjectService draftProjectService;
 
 	private static final Logger logger = LoggerFactory.getLogger(AuthoringController.class);
 
@@ -91,11 +93,15 @@ public class AuthoringController {
 	 *                       node, or translation belongs to.
 	 * @param draftDialogueService service that performs the actual CRUD operations on draft
 	 *                             dialogues, nodes, and translations.
+	 * @param draftProjectService service used to resolve a language code into the project's
+	 *                            registered draft translation language a translation targets.
 	 */
 	public AuthoringController(ProjectService projectService,
-							   DraftDialogueService draftDialogueService) {
+							   DraftDialogueService draftDialogueService,
+							   DraftProjectService draftProjectService) {
 		this.projectService = projectService;
 		this.draftDialogueService = draftDialogueService;
+		this.draftProjectService = draftProjectService;
 	}
 
 	/**
@@ -697,8 +703,13 @@ public class AuthoringController {
 							.orElseThrow(() -> new NotFoundException(
 									"Dialogue not found: " + dialogueName));
 					checkNotDeleted(dialogue);
-					return draftDialogueService.createOrUpdateTranslation(dialogue, language,
-							payload.getContent());
+					DBDraftTranslationLanguage translationLanguage = draftProjectService
+							.findDraftLanguage(project, language)
+							.orElseThrow(() -> new NotFoundException(
+									"Translation language not registered for this project: " +
+											language));
+					return draftDialogueService.createOrUpdateTranslation(dialogue,
+							translationLanguage, payload.getContent());
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
@@ -741,8 +752,13 @@ public class AuthoringController {
 							.orElseThrow(() -> new NotFoundException(
 									"Dialogue not found: " + dialogueName));
 					checkNotDeleted(dialogue);
+					DBDraftTranslationLanguage translationLanguage = draftProjectService
+							.findDraftLanguage(project, language)
+							.orElseThrow(() -> new NotFoundException(
+									"Translation language not registered for this project: " +
+											language));
 					DBDraftTranslation translation = draftDialogueService
-							.findTranslation(dialogue, language)
+							.findTranslation(dialogue, translationLanguage)
 							.orElseThrow(() -> new NotFoundException(
 									"Translation not found for language: " + language));
 					draftDialogueService.deleteTranslation(dialogue, translation);
@@ -788,7 +804,13 @@ public class AuthoringController {
 							.findDialogue(project, dialogueName)
 							.orElseThrow(() -> new NotFoundException(
 									"Dialogue not found: " + dialogueName));
-					return draftDialogueService.findTranslation(dialogue, language).orElse(null);
+					DBDraftTranslationLanguage translationLanguage = draftProjectService
+							.findDraftLanguage(project, language)
+							.orElseThrow(() -> new NotFoundException(
+									"Translation language not registered for this project: " +
+											language));
+					return draftDialogueService.findTranslation(dialogue, translationLanguage)
+							.orElse(null);
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);

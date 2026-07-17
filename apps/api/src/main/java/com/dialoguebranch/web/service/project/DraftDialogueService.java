@@ -47,6 +47,7 @@ import com.dialoguebranch.web.service.repository.DBDraftTranslationRepository;
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
 import com.dialoguebranch.web.service.storage.model.DBDraftNode;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslation;
+import com.dialoguebranch.web.service.storage.model.DBDraftTranslationLanguage;
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import com.dialoguebranch.web.service.storage.model.DBPublishedDialogue;
 import nl.rrd.utils.exception.ParseException;
@@ -912,10 +913,11 @@ public class DraftDialogueService {
 	 * {@link Optional#empty()} if not found.
 	 *
 	 * @param dialogue the owning draft dialogue.
-	 * @param language the target language code.
+	 * @param language the target language.
 	 * @return the matching draft translation, or empty.
 	 */
-	public Optional<DBDraftTranslation> findTranslation(DBDraftDialogue dialogue, String language) {
+	public Optional<DBDraftTranslation> findTranslation(DBDraftDialogue dialogue,
+			DBDraftTranslationLanguage language) {
 		return translationRepository.findByDraftDialogueAndLanguage(dialogue, language);
 	}
 
@@ -925,12 +927,12 @@ public class DraftDialogueService {
 	 * record is created.
 	 *
 	 * @param dialogue the owning draft dialogue.
-	 * @param language the target language code.
+	 * @param language the target language.
 	 * @param content  the raw JSON translation content.
 	 * @return the created or updated {@link DBDraftTranslation}.
 	 */
-	public DBDraftTranslation createOrUpdateTranslation(DBDraftDialogue dialogue, String language,
-														String content) {
+	public DBDraftTranslation createOrUpdateTranslation(DBDraftDialogue dialogue,
+			DBDraftTranslationLanguage language, String content) {
 		Instant now = Instant.now();
 		DBDraftTranslation translation = translationRepository
 				.findByDraftDialogueAndLanguage(dialogue, language)
@@ -959,6 +961,49 @@ public class DraftDialogueService {
 	public void deleteTranslation(DBDraftDialogue dialogue, DBDraftTranslation translation) {
 		translationRepository.delete(translation);
 		markChanged(dialogue);
+	}
+
+	/**
+	 * Returns the distinct names of every draft dialogue that currently has content in the given
+	 * language, ordered alphabetically. Used to warn an author what a language removal would
+	 * affect before they confirm it (see {@code find-language-references}) — informational only,
+	 * this does not itself prevent or perform anything.
+	 *
+	 * <p>{@code @Transactional}: unlike {@code language} on {@link DBDraftTranslation} (made
+	 * {@code EAGER} — see its Javadoc), {@code draftDialogue} stays {@code LAZY}, since most reads
+	 * of it happen inside an already-{@code @Transactional} caller; this is the one read-only path
+	 * that doesn't, so it needs its own open session to resolve {@code t.getDraftDialogue()}.</p>
+	 *
+	 * @param language the language to look up usage for.
+	 * @return the sorted, distinct list of dialogue names with content in {@code language}.
+	 */
+	@Transactional(readOnly = true)
+	public List<String> findDialoguesUsingLanguage(DBDraftTranslationLanguage language) {
+		return translationRepository.findByLanguage(language).stream()
+				.map(t -> t.getDraftDialogue().getName())
+				.distinct()
+				.sorted()
+				.toList();
+	}
+
+	/**
+	 * Permanently deletes every draft translation in the given language, across every draft
+	 * dialogue in its project. Used by {@link PublishService#publish} when a language is removed,
+	 * to strip its content before reconstructing the project's published scripts.
+	 *
+	 * @param language the language whose translations should be deleted.
+	 */
+	@Transactional
+	public void deleteAllTranslationsInLanguage(DBDraftTranslationLanguage language) {
+		List<DBDraftTranslation> translations = translationRepository.findByLanguage(language);
+		Set<DBDraftDialogue> affectedDialogues = new LinkedHashSet<>();
+		for (DBDraftTranslation translation : translations) {
+			affectedDialogues.add(translation.getDraftDialogue());
+		}
+		translationRepository.deleteAll(translations);
+		for (DBDraftDialogue dialogue : affectedDialogues) {
+			markChanged(dialogue);
+		}
 	}
 
 	/**

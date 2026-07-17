@@ -31,30 +31,28 @@ package com.dialoguebranch.web.service.storage.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
+import java.time.Instant;
 import java.util.UUID;
 
 /**
- * JPA entity representing a single, published translation language of a project in the
- * {@code project_translation_languages} table. A project's source language is a fixed property of
- * {@link DBProject} itself ({@link DBProject#getSourceLanguageCode()}); this entity only records
- * the zero-or-more additional languages that project's dialogues have (or will have) {@code .json}
- * translation files for. This is the *published* registry, reconciled from the editable
- * {@link DBDraftTranslationLanguage} registry whenever the project is published — see
- * {@link #getIsRemoved()}.
+ * JPA entity representing a translation language in the editable draft registry of a project, in
+ * the {@code draft_translation_languages} table. This is the working copy of a project's
+ * translation languages — edited freely through the authoring API — that gets reconciled into the
+ * immutable published registry ({@link DBTranslationLanguage}) whenever the project is published.
  *
  * @author Harm op den Akker
  */
 @Entity
 @Table(
-	name = "project_translation_languages",
+	name = "draft_translation_languages",
 	uniqueConstraints = {
 		@UniqueConstraint(
-			name = "uq_project_translation_languages",
+			name = "uq_draft_translation_languages",
 			columnNames = { "project_id", "translation_language_code" }
 		)
 	}
 )
-public class DBTranslationLanguage {
+public class DBDraftTranslationLanguage {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.UUID)
@@ -71,23 +69,33 @@ public class DBTranslationLanguage {
 	@Column(name = "translation_language_code", nullable = false, length = 16)
 	private String translationLanguageCode;
 
-	/**
-	 * Whether this language has been removed from the project. Never hard-deleted: past, immutable
-	 * {@link DBProjectVersion} snapshots may still hold {@link DBPublishedTranslation} rows that
-	 * reference this row, so it is only ever soft-deleted by flipping this flag to {@code true}
-	 * when a publish reconciles a corresponding {@link DBDraftTranslationLanguage} deletion.
-	 */
-	@Column(name = "is_removed", nullable = false)
-	private boolean isRemoved;
+	@Column(name = "created_at", nullable = false)
+	private Instant createdAt;
+
+	@Column(name = "updated_at", nullable = false)
+	private Instant updatedAt;
+
+	/** Whether this language has no published counterpart yet. */
+	@Column(name = "is_new", nullable = false)
+	private boolean isNew;
 
 	/**
-	 * Creates an empty instance of {@link DBTranslationLanguage}.
+	 * Whether this language is pending deletion. A soft-delete: the row (and any draft
+	 * translations in this language) are kept, and the deletion is revertible, until the project
+	 * is next published, at which point its published counterpart (if any) is marked removed and
+	 * this draft row is hard-deleted for real.
 	 */
-	public DBTranslationLanguage() {
+	@Column(name = "is_deleted", nullable = false)
+	private boolean isDeleted;
+
+	/**
+	 * Creates an empty instance of {@link DBDraftTranslationLanguage}.
+	 */
+	public DBDraftTranslationLanguage() {
 	}
 
 	/**
-	 * Returns the unique UUID identifier of this translation language.
+	 * Returns the unique UUID identifier of this draft translation language.
 	 *
 	 * @return the UUID identifier.
 	 */
@@ -96,7 +104,7 @@ public class DBTranslationLanguage {
 	}
 
 	/**
-	 * Sets the unique UUID identifier of this translation language.
+	 * Sets the unique UUID identifier of this draft translation language.
 	 *
 	 * @param id the UUID identifier.
 	 */
@@ -105,7 +113,7 @@ public class DBTranslationLanguage {
 	}
 
 	/**
-	 * Returns the {@link DBProject} this translation language belongs to.
+	 * Returns the {@link DBProject} this draft translation language belongs to.
 	 *
 	 * @return the owning project.
 	 */
@@ -114,7 +122,7 @@ public class DBTranslationLanguage {
 	}
 
 	/**
-	 * Sets the {@link DBProject} this translation language belongs to.
+	 * Sets the {@link DBProject} this draft translation language belongs to.
 	 *
 	 * @param project the owning project.
 	 */
@@ -159,21 +167,75 @@ public class DBTranslationLanguage {
 	}
 
 	/**
-	 * Returns whether this language has been removed from the project.
+	 * Returns the timestamp at which this draft translation language was created.
 	 *
-	 * @return whether this language is removed.
+	 * @return the creation timestamp.
 	 */
-	public boolean getIsRemoved() {
-		return isRemoved;
+	public Instant getCreatedAt() {
+		return createdAt;
 	}
 
 	/**
-	 * Sets whether this language has been removed from the project.
+	 * Sets the timestamp at which this draft translation language was created.
 	 *
-	 * @param isRemoved whether this language is removed.
+	 * @param createdAt the creation timestamp.
 	 */
-	public void setIsRemoved(boolean isRemoved) {
-		this.isRemoved = isRemoved;
+	public void setCreatedAt(Instant createdAt) {
+		this.createdAt = createdAt;
+	}
+
+	/**
+	 * Returns the timestamp at which this draft translation language was last updated.
+	 *
+	 * @return the last-updated timestamp.
+	 */
+	public Instant getUpdatedAt() {
+		return updatedAt;
+	}
+
+	/**
+	 * Sets the timestamp at which this draft translation language was last updated.
+	 *
+	 * @param updatedAt the last-updated timestamp.
+	 */
+	public void setUpdatedAt(Instant updatedAt) {
+		this.updatedAt = updatedAt;
+	}
+
+	/**
+	 * Returns whether this language has no published counterpart yet.
+	 *
+	 * @return whether this language is new.
+	 */
+	public boolean getIsNew() {
+		return isNew;
+	}
+
+	/**
+	 * Sets whether this language has no published counterpart yet.
+	 *
+	 * @param isNew whether this language is new.
+	 */
+	public void setIsNew(boolean isNew) {
+		this.isNew = isNew;
+	}
+
+	/**
+	 * Returns whether this language is pending deletion.
+	 *
+	 * @return whether this language is pending deletion.
+	 */
+	public boolean getIsDeleted() {
+		return isDeleted;
+	}
+
+	/**
+	 * Sets whether this language is pending deletion.
+	 *
+	 * @param isDeleted whether this language is pending deletion.
+	 */
+	public void setIsDeleted(boolean isDeleted) {
+		this.isDeleted = isDeleted;
 	}
 
 }

@@ -165,7 +165,11 @@ public class DraftExecutionService {
 					draftDialogueService.reconstructScript(projectDialogue));
 			for (DBDraftTranslation translation :
 					draftDialogueService.listTranslations(projectDialogue)) {
-				translationContents.computeIfAbsent(translation.getLanguage(),
+				// A language pending deletion is being removed from the project — don't offer it
+				// for draft testing either, even though it isn't gone from the database yet.
+				if (translation.getLanguage().getIsDeleted()) continue;
+				translationContents.computeIfAbsent(
+								translation.getLanguage().getTranslationLanguageCode(),
 								(k) -> new LinkedHashMap<>())
 						.put(projectDialogue.getName(), translation.getContent());
 			}
