@@ -48,7 +48,13 @@ fi
 
 echo "Current version: ${CURRENT_VERSION}"
 while true; do
-	read -r -p "Release type — major, minor, or patch? " BUMP_TYPE
+	# `read` exits non-zero on EOF (e.g. stdin closed/piped dry, not just an interactive
+	# Ctrl+D) — under `set -e` that would otherwise kill the script right here, skipping
+	# the message below. Nothing has touched disk yet at this point, so a plain exit is safe.
+	if ! read -r -p "Release type — major, minor, or patch? " BUMP_TYPE; then
+		echo "No input received; aborting." >&2
+		exit 1
+	fi
 	BUMP_TYPE="$(echo "$BUMP_TYPE" | tr '[:upper:]' '[:lower:]')"
 	case "$BUMP_TYPE" in
 		major|minor|patch) break ;;
@@ -114,7 +120,11 @@ echo "Release notes (from CHANGELOG.md):"
 echo "--------------------------------"
 cat "$NOTES_FILE"
 echo "--------------------------------"
-read -r -p "Commit, tag, push, and publish this release? [y/N] " CONFIRM
+# `read` exits non-zero on EOF — under `set -e` that would otherwise kill the script right
+# here, skipping the abort-and-revert below and leaving global.json/CHANGELOG.md modified on
+# disk with nothing committed. Treat EOF the same as an explicit non-'y' answer: CONFIRM stays
+# empty, so the check below reverts cleanly instead.
+read -r -p "Commit, tag, push, and publish this release? [y/N] " CONFIRM || CONFIRM=""
 if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
 	echo "Aborted; reverting $GLOBAL_JSON and $CHANGELOG."
 	git checkout -- "$GLOBAL_JSON" "$CHANGELOG"
