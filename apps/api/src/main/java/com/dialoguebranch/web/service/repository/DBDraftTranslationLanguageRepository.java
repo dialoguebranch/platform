@@ -28,9 +28,8 @@
 
 package com.dialoguebranch.web.service.repository;
 
-import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
-import com.dialoguebranch.web.service.storage.model.DBDraftTranslation;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslationLanguage;
+import com.dialoguebranch.web.service.storage.model.DBProject;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -38,39 +37,31 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Spring Data JPA repository for {@link DBDraftTranslation} entities.
+ * Spring Data JPA repository for {@link DBDraftTranslationLanguage} entities.
  *
  * @author Harm op den Akker
  */
-public interface DBDraftTranslationRepository extends JpaRepository<DBDraftTranslation, UUID> {
+public interface DBDraftTranslationLanguageRepository
+		extends JpaRepository<DBDraftTranslationLanguage, UUID> {
 
 	/**
-	 * Finds all translations belonging to the given draft dialogue.
+	 * Finds all draft translation languages belonging to the given project, including ones
+	 * pending deletion.
 	 *
-	 * @param draftDialogue the draft dialogue whose translations should be retrieved.
-	 * @return the list of translations belonging to {@code draftDialogue}.
+	 * @param project the project whose draft translation languages should be retrieved.
+	 * @return the list of draft translation languages belonging to {@code project}.
 	 */
-	List<DBDraftTranslation> findByDraftDialogue(DBDraftDialogue draftDialogue);
+	List<DBDraftTranslationLanguage> findByProject(DBProject project);
 
 	/**
-	 * Finds the translation for the given language within the given draft dialogue.
+	 * Finds the draft translation language with the given code within the given project.
 	 *
-	 * @param draftDialogue the draft dialogue the translation belongs to.
-	 * @param language the target language of the translation.
-	 * @return an {@link Optional} containing the matching {@link DBDraftTranslation}, or empty
-	 * if no translation for the given language exists for the draft dialogue.
+	 * @param project the project the language belongs to.
+	 * @param translationLanguageCode the language code to look up.
+	 * @return an {@link Optional} containing the matching {@link DBDraftTranslationLanguage}, or
+	 * empty if no draft translation language with the given code exists in the project.
 	 */
-	Optional<DBDraftTranslation> findByDraftDialogueAndLanguage(DBDraftDialogue draftDialogue,
-			DBDraftTranslationLanguage language);
-
-	/**
-	 * Finds all translations across every draft dialogue that target the given language. Used to
-	 * cascade-delete a language's content when it is removed from a project at publish time, and
-	 * to report which dialogues currently have content in a language before it's removed.
-	 *
-	 * @param language the target language.
-	 * @return the list of translations targeting {@code language}.
-	 */
-	List<DBDraftTranslation> findByLanguage(DBDraftTranslationLanguage language);
+	Optional<DBDraftTranslationLanguage> findByProjectAndTranslationLanguageCode(
+			DBProject project, String translationLanguageCode);
 
 }

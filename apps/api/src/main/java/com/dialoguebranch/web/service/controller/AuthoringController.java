@@ -37,6 +37,7 @@ import com.dialoguebranch.web.service.exception.ConflictException;
 import com.dialoguebranch.web.service.exception.HttpException;
 import com.dialoguebranch.web.service.exception.NotFoundException;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
+import com.dialoguebranch.web.service.project.DraftProjectService;
 import com.dialoguebranch.web.service.project.ProjectService;
 import com.dialoguebranch.web.service.storage.model.*;
 import io.swagger.v3.oas.annotations.Operation;
@@ -81,6 +82,7 @@ public class AuthoringController {
 
 	private final ProjectService projectService;
 	private final DraftDialogueService draftDialogueService;
+	private final DraftProjectService draftProjectService;
 
 	private static final Logger logger = LoggerFactory.getLogger(AuthoringController.class);
 
@@ -91,11 +93,15 @@ public class AuthoringController {
 	 *                       node, or translation belongs to.
 	 * @param draftDialogueService service that performs the actual CRUD operations on draft
 	 *                             dialogues, nodes, and translations.
+	 * @param draftProjectService service used to resolve a language code into the project's
+	 *                            registered draft translation language a translation targets.
 	 */
 	public AuthoringController(ProjectService projectService,
-							   DraftDialogueService draftDialogueService) {
+							   DraftDialogueService draftDialogueService,
+							   DraftProjectService draftProjectService) {
 		this.projectService = projectService;
 		this.draftDialogueService = draftDialogueService;
+		this.draftProjectService = draftProjectService;
 	}
 
 	/**
@@ -111,6 +117,45 @@ public class AuthoringController {
 			throw new ConflictException("Dialogue '" + dialogue.getName() + "' is pending " +
 					"deletion — restore it first.");
 		}
+	}
+
+	/**
+	 * Rejects writing new translation content in a translation language that is currently pending
+	 * deletion, until that deletion is reverted via {@code /project/restore-translation-language}.
+	 * Without this, content saved here would be silently discarded the next time the project is
+	 * published (see {@code PublishService#reconcilePublishedTranslationLanguages}, which strips
+	 * all draft translation content for a language pending deletion), with no warning to the
+	 * author at either save or publish time.
+	 *
+	 * @param translationLanguage the translation language to check.
+	 * @throws ConflictException if {@code translationLanguage} is pending deletion.
+	 */
+	static void checkNotDeleted(DBDraftTranslationLanguage translationLanguage)
+			throws ConflictException {
+		if (translationLanguage.getIsDeleted()) {
+			throw new ConflictException("Translation language '" +
+					translationLanguage.getTranslationLanguageCode() + "' is pending deletion — " +
+					"restore it first.");
+		}
+	}
+
+	/**
+	 * Resolves the given language code to this project's registered {@link
+	 * DBDraftTranslationLanguage}, or throws {@link NotFoundException} if it isn't (or is no
+	 * longer) registered. Used by endpoints that write or delete translation content, where an
+	 * unrecognised language code is a genuine client error — unlike {@code getTranslation}, which
+	 * treats a missing/unregistered language the same as "no translation yet" rather than an error.
+	 *
+	 * @param project the project the language must belong to.
+	 * @param languageCode the language code to resolve.
+	 * @return the matching draft translation language.
+	 * @throws NotFoundException if no such translation language is registered for this project.
+	 */
+	private DBDraftTranslationLanguage resolveTranslationLanguage(DBProject project,
+			String languageCode) throws NotFoundException {
+		return draftProjectService.findDraftLanguage(project, languageCode)
+				.orElseThrow(() -> new NotFoundException(
+						"Translation language not registered for this project: " + languageCode));
 	}
 
 	// ------------------------------------------------------------------ //
@@ -697,8 +742,11 @@ public class AuthoringController {
 							.orElseThrow(() -> new NotFoundException(
 									"Dialogue not found: " + dialogueName));
 					checkNotDeleted(dialogue);
-					return draftDialogueService.createOrUpdateTranslation(dialogue, language,
-							payload.getContent());
+					DBDraftTranslationLanguage translationLanguage =
+							resolveTranslationLanguage(project, language);
+					checkNotDeleted(translationLanguage);
+					return draftDialogueService.createOrUpdateTranslation(dialogue,
+							translationLanguage, payload.getContent());
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);
@@ -741,8 +789,10 @@ public class AuthoringController {
 							.orElseThrow(() -> new NotFoundException(
 									"Dialogue not found: " + dialogueName));
 					checkNotDeleted(dialogue);
+					DBDraftTranslationLanguage translationLanguage =
+							resolveTranslationLanguage(project, language);
 					DBDraftTranslation translation = draftDialogueService
-							.findTranslation(dialogue, language)
+							.findTranslation(dialogue, translationLanguage)
 							.orElseThrow(() -> new NotFoundException(
 									"Translation not found for language: " + language));
 					draftDialogueService.deleteTranslation(dialogue, translation);
@@ -788,7 +838,15 @@ public class AuthoringController {
 							.findDialogue(project, dialogueName)
 							.orElseThrow(() -> new NotFoundException(
 									"Dialogue not found: " + dialogueName));
-					return draftDialogueService.findTranslation(dialogue, language).orElse(null);
+					// A language code that isn't (or is no longer, e.g. after a rename) registered
+					// for this project is treated the same as "no translation yet" rather than an
+					// error — see this method's Javadoc. Unlike updateTranslation/deleteTranslation,
+					// an unrecognised code here isn't a client mistake worth rejecting; it's exactly
+					// the same "nothing to show" case as a missing translation row.
+					return draftProjectService.findDraftLanguage(project, language)
+							.flatMap(translationLanguage ->
+									draftDialogueService.findTranslation(dialogue, translationLanguage))
+							.orElse(null);
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				AuthenticationInfo.USER_ROLE_EDITOR, AuthenticationInfo.USER_ROLE_ADMIN);

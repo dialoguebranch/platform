@@ -101,17 +101,33 @@ const availableLanguages = ref([]); // [{ code, name }]
 const selectedLanguage = ref('');
 
 function loadAvailableLanguages() {
+    // The translation editor's own column-language dropdowns need the same refresh trigger —
+    // it always reads the draft language registry itself (see TranslationEditor.vue), so no
+    // further mode-branching is needed here.
+    translationEditor.value?.reload();
+
     const slug = state.value.selectedProject?.slug;
     if (!slug) return;
     client.getProject(slug)
         .then((project) => {
+            // Tests run against draft content in Authoring Mode and published content in Live
+            // Mode (see loadDialogue/loadDraftDialogue below) — the offered languages must match
+            // whichever registry is actually being tested, so a language just added/removed via
+            // Configure Project shows up here immediately rather than only after a publish.
+            const translationLanguages = state.value.mode === DLB_APP_MODE_DRAFT
+                ? (project.draftTranslationLanguages ?? []).filter((t) => !t.isDeleted)
+                : (project.latestVersion?.publishedTranslationLanguages ?? []);
             availableLanguages.value = [
                 { code: project.sourceLanguageCode, name: project.sourceLanguageName },
-                ...(project.translationLanguages ?? []).map((t) => ({
+                ...translationLanguages.map((t) => ({
                     code: t.translationLanguageCode, name: t.translationLanguageName,
                 })),
             ];
-            selectedLanguage.value = project.sourceLanguageCode ?? 'en';
+            // Keep the current selection if it's still valid (e.g. after a Configure Project
+            // save), instead of always resetting to the source language.
+            if (!availableLanguages.value.some((l) => l.code === selectedLanguage.value)) {
+                selectedLanguage.value = project.sourceLanguageCode ?? 'en';
+            }
         })
         .catch(() => {
             // Language selection is a convenience — fall back to a single English option so
@@ -241,6 +257,7 @@ const client = useClient();
 const balloons = useTemplateRef('balloons');
 const textComponent = useTemplateRef('text-component');
 const dialogueEditor = useTemplateRef('dialogue-editor');
+const translationEditor = useTemplateRef('translation-editor');
 
 watch(selectedMode, (mode, oldMode) => {
     emit('modeChanged', mode);
@@ -588,6 +605,7 @@ defineExpose({
     activateTab,
     editDialogue,
     openDialogue,
+    loadAvailableLanguages,
 });
 
 // ---- Tab bar scroll ----
@@ -942,7 +960,7 @@ function onSelectReply(dialogueStep, reply) {
                 />
             </MainPagePanelContainer>
             <MainPagePanelContainer v-else-if="selectedMode === 'translate'" class="-mt-px !overflow-hidden relative">
-                <TranslationEditor :dialogueName="activeTab.dialogueName" />
+                <TranslationEditor ref="translation-editor" :dialogueName="activeTab.dialogueName" @dialogueSaved="$emit('dialogueSaved')" />
             </MainPagePanelContainer>
             <div v-if="activeTab.isDraftTest && selectedMode !== 'edit' && selectedMode !== 'translate'" class="absolute bottom-3 left-3 font-mono text-[10px] text-gray-400 pointer-events-none">
                 <span class="font-semibold">Ephemeral Draft Test</span><template v-if="activeTab.draftSessionId"> — Session ID: {{ activeTab.draftSessionId }}</template>

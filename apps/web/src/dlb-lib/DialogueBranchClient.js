@@ -120,6 +120,7 @@ export class DialogueBranchClient {
         }).then((response) => this._handleResponse(response));
     }
 
+    // Updates the project's *draft* display name/description — takes effect on the next publish.
     updateProject(projectSlug, displayName, description) {
         const url = this._baseUrl + "/project/update-project?projectSlug=" + encodeURIComponent(projectSlug);
 
@@ -127,6 +128,22 @@ export class DialogueBranchClient {
             method: "POST",
             headers: { 'Authorization': 'Bearer ' + this._accessToken, "Content-Type": "application/json" },
             body: JSON.stringify({ displayName, description }),
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // Applies a whole "Save Draft" batch (display name/description, translation languages to
+    // remove/add/rename) in one atomic request — either all of it lands, or (if the server finds
+    // any problem with the batch) none of it does. Returns the updated project. `removeLanguageIds`
+    // is an array of ids; `addLanguages` is an array of { translationLanguageName,
+    // translationLanguageCode }; `updateLanguages` is an array of { id, translationLanguageName,
+    // translationLanguageCode }.
+    updateProjectDraft(projectSlug, { displayName, description, removeLanguageIds, addLanguages, updateLanguages }) {
+        const url = this._baseUrl + "/project/update-draft?projectSlug=" + encodeURIComponent(projectSlug);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { 'Authorization': 'Bearer ' + this._accessToken, "Content-Type": "application/json" },
+            body: JSON.stringify({ displayName, description, removeLanguageIds, addLanguages, updateLanguages }),
         }).then((response) => this._handleResponse(response));
     }
 
@@ -139,6 +156,7 @@ export class DialogueBranchClient {
         }).then((response) => this._handleResponse(response));
     }
 
+    // Adds a *draft* translation language — takes effect on the next publish.
     addTranslationLanguage(projectSlug, translationLanguageName, translationLanguageCode) {
         const url = this._baseUrl + "/project/add-translation-language?projectSlug=" + encodeURIComponent(projectSlug);
 
@@ -149,12 +167,40 @@ export class DialogueBranchClient {
         }).then((response) => this._handleResponse(response));
     }
 
+    // Soft-deletes a *draft* translation language — reversible until the next publish, at which
+    // point the language (and any draft content still in it) is actually removed.
     removeTranslationLanguage(projectSlug, translationLanguageId) {
         const url = this._baseUrl + "/project/remove-translation-language?projectSlug=" + encodeURIComponent(projectSlug) + "&translationLanguageId=" + encodeURIComponent(translationLanguageId);
 
         return this._fetch(url, {
             method: "POST",
             headers: { 'Authorization': 'Bearer ' + this._accessToken },
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // Reverts a pending deletion previously made via removeTranslationLanguage above. No effect
+    // once the project has been published since the removal (the draft row is gone for good).
+    restoreTranslationLanguage(projectSlug, translationLanguageId) {
+        const url = this._baseUrl + "/project/restore-translation-language?projectSlug=" + encodeURIComponent(projectSlug) + "&translationLanguageId=" + encodeURIComponent(translationLanguageId);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { 'Authorization': 'Bearer ' + this._accessToken },
+        }).then((response) => this._handleResponse(response));
+    }
+
+    // Lists the draft dialogues that currently have content in the given draft translation
+    // language — used to warn before removing it (see removeTranslationLanguage above).
+    findLanguageReferences(projectSlug, translationLanguageId) {
+        const url = this._baseUrl + "/project/find-language-references?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&translationLanguageId=" + encodeURIComponent(translationLanguageId);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: {
+                'Authorization': 'Bearer ' + this._accessToken,
+                "Content-Type": "application/json",
+            },
         }).then((response) => this._handleResponse(response));
     }
 

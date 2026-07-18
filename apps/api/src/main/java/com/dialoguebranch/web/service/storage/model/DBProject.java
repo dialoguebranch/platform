@@ -58,10 +58,11 @@ public class DBProject {
 
 	private String slug;
 
-	@Column(name = "display_name")
-	private String displayName;
+	@Column(name = "draft_display_name")
+	private String draftDisplayName;
 
-	private String description;
+	@Column(name = "draft_description")
+	private String draftDescription;
 
 	@OneToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "latest_version_id")
@@ -74,7 +75,7 @@ public class DBProject {
 	private String sourceLanguageName;
 
 	@OneToMany(mappedBy = "project", fetch = FetchType.EAGER)
-	private Set<DBTranslationLanguage> translationLanguages = new HashSet<>();
+	private Set<DBDraftTranslationLanguage> draftTranslationLanguages = new HashSet<>();
 
 	@OneToMany(mappedBy = "project")
 	@JsonIgnore
@@ -133,39 +134,43 @@ public class DBProject {
 	}
 
 	/**
-	 * Returns the human-readable display name of this project.
+	 * Returns the draft (working-copy) display name of this project, edited independently of the
+	 * published display name (see {@link DBProjectVersion#getDisplayName()}) until the project is
+	 * next published.
 	 *
-	 * @return the display name.
+	 * @return the draft display name.
 	 */
-	public String getDisplayName() {
-		return displayName;
+	public String getDraftDisplayName() {
+		return draftDisplayName;
 	}
 
 	/**
-	 * Sets the human-readable display name of this project.
+	 * Sets the draft display name of this project.
 	 *
-	 * @param displayName the display name.
+	 * @param draftDisplayName the draft display name.
 	 */
-	public void setDisplayName(String displayName) {
-		this.displayName = displayName;
+	public void setDraftDisplayName(String draftDisplayName) {
+		this.draftDisplayName = draftDisplayName;
 	}
 
 	/**
-	 * Returns the description of this project.
+	 * Returns the draft (working-copy) description of this project, edited independently of the
+	 * published description (see {@link DBProjectVersion#getDescription()}) until the project is
+	 * next published.
 	 *
-	 * @return the description.
+	 * @return the draft description.
 	 */
-	public String getDescription() {
-		return description;
+	public String getDraftDescription() {
+		return draftDescription;
 	}
 
 	/**
-	 * Sets the description of this project.
+	 * Sets the draft description of this project.
 	 *
-	 * @param description the description.
+	 * @param draftDescription the draft description.
 	 */
-	public void setDescription(String description) {
-		this.description = description;
+	public void setDraftDescription(String draftDescription) {
+		this.draftDescription = draftDescription;
 	}
 
 	/**
@@ -225,22 +230,25 @@ public class DBProject {
 	}
 
 	/**
-	 * Returns the set of {@link DBTranslationLanguage}s for this project — the additional
-	 * languages (beyond its source language) its dialogues have translations for.
+	 * Returns the set of {@link DBDraftTranslationLanguage}s for this project — the draft
+	 * (working-copy) registry of translation languages, edited independently of the currently
+	 * published version's language snapshot (see
+	 * {@link DBProjectVersion#getPublishedTranslationLanguages()}) until the project is next
+	 * published.
 	 *
-	 * @return the set of translation languages.
+	 * @return the set of draft translation languages.
 	 */
-	public Set<DBTranslationLanguage> getTranslationLanguages() {
-		return translationLanguages;
+	public Set<DBDraftTranslationLanguage> getDraftTranslationLanguages() {
+		return draftTranslationLanguages;
 	}
 
 	/**
-	 * Sets the set of {@link DBTranslationLanguage}s for this project.
+	 * Sets the set of {@link DBDraftTranslationLanguage}s for this project.
 	 *
-	 * @param translationLanguages the set of translation languages.
+	 * @param draftTranslationLanguages the set of draft translation languages.
 	 */
-	public void setTranslationLanguages(Set<DBTranslationLanguage> translationLanguages) {
-		this.translationLanguages = translationLanguages;
+	public void setDraftTranslationLanguages(Set<DBDraftTranslationLanguage> draftTranslationLanguages) {
+		this.draftTranslationLanguages = draftTranslationLanguages;
 	}
 
 	/**

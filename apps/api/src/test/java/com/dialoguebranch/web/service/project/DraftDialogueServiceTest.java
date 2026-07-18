@@ -5,6 +5,7 @@ import com.dialoguebranch.web.service.exception.ConflictException;
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
 import com.dialoguebranch.web.service.storage.model.DBDraftNode;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslation;
+import com.dialoguebranch.web.service.storage.model.DBDraftTranslationLanguage;
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,9 @@ class DraftDialogueServiceTest {
 
     @Autowired
     private DraftDialogueService draftDialogueService;
+
+    @Autowired
+    private DraftProjectService draftProjectService;
 
     @Autowired
     private PublishService publishService;
@@ -333,8 +337,10 @@ class DraftDialogueServiceTest {
         }
         assertFalse(draftDialogueService.findDialogue(project, "basic").orElseThrow().getIsChanged());
 
+        DBDraftTranslationLanguage language =
+                draftProjectService.addDraftLanguage(project, "Dutch", "nl-NL");
         DBDraftTranslation translation =
-                draftDialogueService.createOrUpdateTranslation(dialogue, "nl-NL", "{}");
+                draftDialogueService.createOrUpdateTranslation(dialogue, language, "{}");
         assertTrue(draftDialogueService.findDialogue(project, "basic").orElseThrow().getIsChanged());
 
         // Reset by publishing again, then confirm deleting a translation also marks it changed.
@@ -432,8 +438,10 @@ class DraftDialogueServiceTest {
                 .orElseThrow();
 
         assertFalse(draftDialogueService.listNodes(dialogue).isEmpty());
+        DBDraftTranslationLanguage language =
+                draftProjectService.findDraftLanguage(project, "nl-NL").orElseThrow();
         DBDraftTranslation translation = draftDialogueService
-                .findTranslation(dialogue, "nl-NL")
+                .findTranslation(dialogue, language)
                 .orElseThrow();
         assertFalse(translation.getContent().isBlank());
     }

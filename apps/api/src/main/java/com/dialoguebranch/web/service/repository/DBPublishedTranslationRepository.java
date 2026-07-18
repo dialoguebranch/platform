@@ -30,6 +30,7 @@ package com.dialoguebranch.web.service.repository;
 
 import com.dialoguebranch.web.service.storage.model.DBPublishedDialogue;
 import com.dialoguebranch.web.service.storage.model.DBPublishedTranslation;
+import com.dialoguebranch.web.service.storage.model.DBPublishedTranslationLanguage;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -65,11 +66,11 @@ public interface DBPublishedTranslationRepository
 	 * Finds the translation for the given language within the given published dialogue.
 	 *
 	 * @param publishedDialogue the published dialogue the translation belongs to.
-	 * @param language the language code of the translation.
+	 * @param translationLanguage the target language of the translation.
 	 * @return an {@link Optional} containing the matching {@link DBPublishedTranslation}, or
 	 * empty if no translation for the given language exists for the published dialogue.
 	 */
-	Optional<DBPublishedTranslation> findByPublishedDialogueAndLanguage(
-			DBPublishedDialogue publishedDialogue, String language);
+	Optional<DBPublishedTranslation> findByPublishedDialogueAndTranslationLanguage(
+			DBPublishedDialogue publishedDialogue, DBPublishedTranslationLanguage translationLanguage);
 
 }

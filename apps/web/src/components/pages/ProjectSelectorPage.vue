@@ -98,7 +98,7 @@ function loadProjects() {
 }
 
 function selectProject(project) {
-    state.value.selectedProject = { slug: project.slug, displayName: project.displayName ?? project.slug, latestVersion: project.latestVersion ?? null };
+    state.value.selectedProject = { slug: project.slug, displayName: project.latestVersion?.displayName ?? project.draftDisplayName ?? project.slug, latestVersion: project.latestVersion ?? null };
 }
 
 function onLogoutClick() {
@@ -120,7 +120,7 @@ const deleting = ref(false);
 const deleteError = ref('');
 
 function openDeleteConfirm(project) {
-    deleteConfirm.value = { slug: project.slug, displayName: project.displayName ?? project.slug };
+    deleteConfirm.value = { slug: project.slug, displayName: project.latestVersion?.displayName ?? project.draftDisplayName ?? project.slug };
     deleteConfirmInput.value = '';
     deleteError.value = '';
 }
@@ -225,17 +225,17 @@ function confirmDelete() {
                     <div class="flex items-start justify-between gap-2">
                         <div class="min-w-0">
                             <div class="font-title font-semibold text-sm group-hover:text-orange-darker transition-colors truncate">
-                                {{ project.displayName ?? project.slug }}
+                                {{ project.latestVersion?.displayName ?? project.draftDisplayName ?? project.slug }}
                             </div>
                             <div class="font-mono text-xs text-grey-dark mt-0.5 truncate">{{ project.slug }}</div>
                         </div>
                         <FontAwesomeIcon icon="fa-solid fa-circle-arrow-right" class="text-orange-medium group-hover:text-orange-darker transition-colors shrink-0 mt-0.5" />
                     </div>
-                    <div v-if="project.description" class="mt-2">
+                    <div v-if="project.latestVersion?.description ?? project.draftDescription" class="mt-2">
                         <p
                             :ref="(el) => setDescriptionRef(project.slug, el)"
                             :class="['text-xs text-grey-dark', descriptionClampClass(project.slug)]"
-                        >{{ project.description }}</p>
+                        >{{ project.latestVersion?.description ?? project.draftDescription }}</p>
                         <span
                             v-if="isDescriptionTruncated(project.slug)"
                             class="text-xs text-orange-darker hover:underline cursor-pointer font-title font-semibold"

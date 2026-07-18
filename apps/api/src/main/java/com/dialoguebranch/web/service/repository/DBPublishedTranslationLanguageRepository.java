@@ -28,27 +28,28 @@
 
 package com.dialoguebranch.web.service.repository;
 
-import com.dialoguebranch.web.service.storage.model.DBProject;
-import com.dialoguebranch.web.service.storage.model.DBTranslationLanguage;
+import com.dialoguebranch.web.service.storage.model.DBProjectVersion;
+import com.dialoguebranch.web.service.storage.model.DBPublishedTranslationLanguage;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 import java.util.UUID;
 
 /**
- * Spring Data JPA repository for {@link DBTranslationLanguage} entities.
+ * Spring Data JPA repository for {@link DBPublishedTranslationLanguage} entities.
  *
  * @author Harm op den Akker
  */
-public interface DBTranslationLanguageRepository
-		extends JpaRepository<DBTranslationLanguage, UUID> {
+public interface DBPublishedTranslationLanguageRepository
+		extends JpaRepository<DBPublishedTranslationLanguage, UUID> {
 
 	/**
-	 * Finds all additional translation languages configured for the given project.
+	 * Finds all published translation languages belonging to the given project version.
 	 *
-	 * @param project the project whose translation languages should be retrieved.
-	 * @return the list of translation languages belonging to {@code project}.
+	 * @param version the project version whose published translation languages should be
+	 *                retrieved.
+	 * @return the list of published translation languages belonging to {@code version}.
 	 */
-	List<DBTranslationLanguage> findByProject(DBProject project);
+	List<DBPublishedTranslationLanguage> findByVersion(DBProjectVersion version);
 
 }

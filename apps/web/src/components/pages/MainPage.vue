@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useClient } from '../../composables/client.js';
 import { useStateManagement } from '../../composables/state-management.js';
 import DialogueBrowser from '../partials/DialogueBrowser.vue';
-import EditProjectMetadataModal from '../partials/EditProjectMetadataModal.vue';
+import ConfigureProjectModal from '../partials/ConfigureProjectModal.vue';
 import PublishProjectWizardModal from '../partials/PublishProjectWizardModal.vue';
 import SetDelegateUserModal from '../partials/SetDelegateUserModal.vue';
 import TechnicalInfoModal from '../partials/TechnicalInfoModal.vue';
@@ -45,13 +45,16 @@ onMounted(() => {
             connectionInfo.value = `Could not connect to ${serviceHost} on port ${servicePort}.`;
         });
 
-    // Only the slug is persisted in the state.selectedProject cookie, so a project restored
-    // from a page reload starts out without a displayName — backfill it.
-    if (state.value.selectedProject && !state.value.selectedProject.displayName) {
+    // MainPage only ever mounts once a project is selected (see App.vue), so this always runs
+    // exactly once per project — fetch it both to backfill the displayName (only the slug is
+    // persisted in the state.selectedProject cookie, so a project restored from a page reload
+    // starts out without one) and to seed the unpublished-metadata-changes indicator.
+    if (state.value.selectedProject) {
         const slug = state.value.selectedProject.slug;
         client.getProject(slug)
             .then((project) => {
-                state.value.selectedProject = { slug: project.slug, displayName: project.displayName ?? project.slug, latestVersion: project.latestVersion ?? null };
+                state.value.selectedProject = { slug: project.slug, displayName: project.latestVersion?.displayName ?? project.draftDisplayName ?? project.slug, latestVersion: project.latestVersion ?? null };
+                refreshProjectMetadataChanged(project);
             })
             .catch(() => { /* keep the slug-only project; header just shows the slug */ });
     }
@@ -136,6 +139,10 @@ function selectMode(mode) {
     state.value.mode = mode;
     dialogueWorkspace.value?.clearAllTabs();
     dialogueBrowser.value?.listDialogues();
+    // The "Test dialogues in:" selector offers draft languages in Authoring Mode and published
+    // languages in Live Mode — refresh it so switching modes doesn't leave it showing the other
+    // mode's list.
+    dialogueWorkspace.value?.loadAvailableLanguages();
 }
 
 function onSwitchProjectClick() {
@@ -144,23 +151,53 @@ function onSwitchProjectClick() {
     state.value.selectedProject = null;
 }
 
-const showEditMetadata = ref(false);
+const showConfigureProject = ref(false);
+const isAdmin = computed(() => !!state.value.user?.roles?.includes('admin'));
 
-function onEditMetadataClick() {
+const canConfigureProject = computed(() =>
+    isAdmin.value && state.value.mode === DLB_APP_MODE_DRAFT);
+const configureProjectDisabledReason = computed(() => {
+    if (!isAdmin.value) return 'Only administrators can configure projects.';
+    if (state.value.mode !== DLB_APP_MODE_DRAFT) return 'Switch to Authoring Mode to configure the project.';
+    return '';
+});
+
+function onConfigureProjectClick() {
+    if (!canConfigureProject.value) return;
     closeProjectMenu();
-    showEditMetadata.value = true;
+    showConfigureProject.value = true;
 }
 
-function onMetadataSaved(updated) {
-    showEditMetadata.value = false;
-    state.value.selectedProject = { ...state.value.selectedProject, slug: updated.slug, displayName: updated.displayName };
+function onProjectConfigured(updated) {
+    showConfigureProject.value = false;
+    state.value.selectedProject = { ...state.value.selectedProject, slug: updated.slug, displayName: updated.latestVersion?.displayName ?? updated.draftDisplayName ?? updated.slug };
+    // The modal only reports the fields it itself changed — re-fetch to also pick up any
+    // translation-language additions/removals when recomputing the unpublished-changes state.
+    client.getProject(updated.slug)
+        .then((project) => refreshProjectMetadataChanged(project))
+        .catch(() => { /* leave the previous unpublished-changes state as-is */ });
+    // Configure Project may have added/removed a translation language — refresh the "Test
+    // dialogues in:" selector so it reflects the latest list without needing a page reload.
+    dialogueWorkspace.value?.loadAvailableLanguages();
+}
+
+// Whether the currently selected project's draft metadata (display name, description, or
+// translation-language registry) differs from what's currently published — seeded on mount (see
+// onMounted above) and refreshed after every Configure Project save.
+const projectMetadataChanged = ref(false);
+
+function refreshProjectMetadataChanged(project) {
+    projectMetadataChanged.value = project.draftDisplayName !== (project.latestVersion?.displayName ?? null)
+        || project.draftDescription !== (project.latestVersion?.description ?? null)
+        || (project.draftTranslationLanguages ?? []).some((l) => l.isNew || l.isDeleted);
 }
 
 // Whether the currently selected project has any dialogue that's new, changed, or pending
 // deletion — reported by DialogueBrowser (which already fetches this list) whenever it
 // (re)loads its tree.
-const hasUnpublishedChanges = ref(false);
-const isAdmin = computed(() => !!state.value.user?.roles?.includes('admin'));
+const hasUnpublishedDialogueChanges = ref(false);
+const hasUnpublishedChanges = computed(() =>
+    hasUnpublishedDialogueChanges.value || projectMetadataChanged.value);
 const canPublish = computed(() =>
     isAdmin.value && hasUnpublishedChanges.value && state.value.mode === DLB_APP_MODE_DRAFT);
 const publishDisabledReason = computed(() => {
@@ -183,6 +220,8 @@ function onProjectPublished(version) {
     if (state.value.selectedProject) {
         state.value.selectedProject = { ...state.value.selectedProject, latestVersion: version ?? state.value.selectedProject.latestVersion };
     }
+    // A successful publish reconciles metadata/language changes too — not just dialogue content.
+    projectMetadataChanged.value = false;
     // Refresh the tree so newly-published dialogues show their "Published" badge.
     dialogueBrowser.value?.listDialogues();
 }
@@ -335,13 +374,13 @@ function onWorkspaceModeChanged(mode) {
                 >
                     <button
                         type="button"
-                        :class="['flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm transition-colors', state.user?.roles?.includes('admin') ? 'text-orange-darker hover:bg-grey-lighter cursor-pointer' : 'text-grey-light cursor-not-allowed']"
-                        :disabled="!state.user?.roles?.includes('admin')"
-                        :title="state.user?.roles?.includes('admin') ? '' : 'Only administrators can edit project metadata'"
-                        @click="onEditMetadataClick"
+                        :class="['flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm transition-colors', canConfigureProject ? 'text-orange-darker hover:bg-grey-lighter cursor-pointer' : 'text-grey-light cursor-not-allowed']"
+                        :disabled="!canConfigureProject"
+                        :title="configureProjectDisabledReason"
+                        @click="onConfigureProjectClick"
                     >
-                        <FontAwesomeIcon icon="fa-solid fa-pen" class="w-4" :class="state.user?.roles?.includes('admin') ? 'text-orange-medium' : 'text-grey-light'" />
-                        Edit Metadata
+                        <FontAwesomeIcon icon="fa-solid fa-sliders" class="w-4" :class="canConfigureProject ? 'text-orange-medium' : 'text-grey-light'" />
+                        Configure Project
                     </button>
                     <button
                         type="button"
@@ -446,7 +485,7 @@ function onWorkspaceModeChanged(mode) {
                     :openTabs="dialogueWorkspace?.tabs ?? []"
                     @resumeDialogue="onResumeDialogue"
                     @activateTab="onActivateTab"
-                    @hasUnpublishedChanges="hasUnpublishedChanges = $event"
+                    @hasUnpublishedChanges="hasUnpublishedDialogueChanges = $event"
                     @openDialogue="onOpenDialogue"
                 />
             </template>
@@ -458,11 +497,11 @@ function onWorkspaceModeChanged(mode) {
             </template>
         </ResizablePanels>
 
-        <EditProjectMetadataModal
-            v-if="showEditMetadata"
+        <ConfigureProjectModal
+            v-if="showConfigureProject"
             :projectSlug="state.selectedProject?.slug"
-            @close="showEditMetadata = false"
-            @saved="onMetadataSaved"
+            @close="showConfigureProject = false"
+            @saved="onProjectConfigured"
         />
 
         <SetDelegateUserModal

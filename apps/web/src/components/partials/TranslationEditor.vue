@@ -12,6 +12,8 @@ const props = defineProps({
     dialogueName: { type: String, default: null },
 });
 
+const emit = defineEmits(['dialogueSaved']);
+
 const state = inject('state');
 const client = useClient();
 
@@ -78,6 +80,11 @@ function submitCell(speaker, term, language) {
         const nextDirty = new Set(dirtyCells.value);
         nextDirty.delete(key);
         dirtyCells.value = nextDirty;
+        // Marks the owning draft dialogue as changed server-side (see
+        // DraftDialogueService#createOrUpdateTranslation) — without this, DialogueBrowser's
+        // dialogue list (the only thing that recomputes "has unpublished changes") never refetches
+        // after a pure translation edit, leaving the Publish Project button disabled.
+        emit('dialogueSaved');
     })
     .catch((error) => {
         showError(describeError(error));
@@ -126,10 +133,16 @@ function loadTranslations() {
     ])
     .then(([project, extractedTerms]) => {
         if (!isCurrentLoadRequest(requestId)) return;
-        const languages = (project.translationLanguages ?? []).map((t) => ({
-            code: t.translationLanguageCode,
-            name: t.translationLanguageName,
-        }));
+        // This editor is only ever reachable in Authoring Mode (see DialogueWorkspace.vue's
+        // availableModes) and always edits draft translation content — it must offer the draft
+        // language registry, not the published one, so a language just added/removed via
+        // Configure Project shows up here immediately rather than only after a publish.
+        const languages = (project.draftTranslationLanguages ?? [])
+            .filter((t) => !t.isDeleted)
+            .map((t) => ({
+                code: t.translationLanguageCode,
+                name: t.translationLanguageName,
+            }));
         translationLanguages.value = languages;
         groups.value = groupedTerms(extractedTerms);
 
@@ -213,7 +226,7 @@ defineExpose({
             Loading translations…
         </div>
         <div v-else-if="translationLanguages.length === 0" class="flex items-center justify-center h-full text-grey-dark font-title text-sm text-center px-8">
-            This project has no translation languages configured yet — add one from the project menu's "Edit Metadata".
+            This project has no translation languages configured yet — add one from the project menu's "Configure Project".
         </div>
         <div v-else class="flex flex-col">
             <!-- Sits flush against the scroll container's own edges (no padding on that container,
