@@ -119,6 +119,45 @@ public class AuthoringController {
 		}
 	}
 
+	/**
+	 * Rejects writing new translation content in a translation language that is currently pending
+	 * deletion, until that deletion is reverted via {@code /project/restore-translation-language}.
+	 * Without this, content saved here would be silently discarded the next time the project is
+	 * published (see {@code PublishService#reconcilePublishedTranslationLanguages}, which strips
+	 * all draft translation content for a language pending deletion), with no warning to the
+	 * author at either save or publish time.
+	 *
+	 * @param translationLanguage the translation language to check.
+	 * @throws ConflictException if {@code translationLanguage} is pending deletion.
+	 */
+	static void checkNotDeleted(DBDraftTranslationLanguage translationLanguage)
+			throws ConflictException {
+		if (translationLanguage.getIsDeleted()) {
+			throw new ConflictException("Translation language '" +
+					translationLanguage.getTranslationLanguageCode() + "' is pending deletion — " +
+					"restore it first.");
+		}
+	}
+
+	/**
+	 * Resolves the given language code to this project's registered {@link
+	 * DBDraftTranslationLanguage}, or throws {@link NotFoundException} if it isn't (or is no
+	 * longer) registered. Used by endpoints that write or delete translation content, where an
+	 * unrecognised language code is a genuine client error — unlike {@code getTranslation}, which
+	 * treats a missing/unregistered language the same as "no translation yet" rather than an error.
+	 *
+	 * @param project the project the language must belong to.
+	 * @param languageCode the language code to resolve.
+	 * @return the matching draft translation language.
+	 * @throws NotFoundException if no such translation language is registered for this project.
+	 */
+	private DBDraftTranslationLanguage resolveTranslationLanguage(DBProject project,
+			String languageCode) throws NotFoundException {
+		return draftProjectService.findDraftLanguage(project, languageCode)
+				.orElseThrow(() -> new NotFoundException(
+						"Translation language not registered for this project: " + languageCode));
+	}
+
 	// ------------------------------------------------------------------ //
 	// -------------------- Dialogue Management -------------------- //
 	// ------------------------------------------------------------------ //
@@ -703,11 +742,9 @@ public class AuthoringController {
 							.orElseThrow(() -> new NotFoundException(
 									"Dialogue not found: " + dialogueName));
 					checkNotDeleted(dialogue);
-					DBDraftTranslationLanguage translationLanguage = draftProjectService
-							.findDraftLanguage(project, language)
-							.orElseThrow(() -> new NotFoundException(
-									"Translation language not registered for this project: " +
-											language));
+					DBDraftTranslationLanguage translationLanguage =
+							resolveTranslationLanguage(project, language);
+					checkNotDeleted(translationLanguage);
 					return draftDialogueService.createOrUpdateTranslation(dialogue,
 							translationLanguage, payload.getContent());
 				},
@@ -752,11 +789,8 @@ public class AuthoringController {
 							.orElseThrow(() -> new NotFoundException(
 									"Dialogue not found: " + dialogueName));
 					checkNotDeleted(dialogue);
-					DBDraftTranslationLanguage translationLanguage = draftProjectService
-							.findDraftLanguage(project, language)
-							.orElseThrow(() -> new NotFoundException(
-									"Translation language not registered for this project: " +
-											language));
+					DBDraftTranslationLanguage translationLanguage =
+							resolveTranslationLanguage(project, language);
 					DBDraftTranslation translation = draftDialogueService
 							.findTranslation(dialogue, translationLanguage)
 							.orElseThrow(() -> new NotFoundException(
@@ -804,12 +838,14 @@ public class AuthoringController {
 							.findDialogue(project, dialogueName)
 							.orElseThrow(() -> new NotFoundException(
 									"Dialogue not found: " + dialogueName));
-					DBDraftTranslationLanguage translationLanguage = draftProjectService
-							.findDraftLanguage(project, language)
-							.orElseThrow(() -> new NotFoundException(
-									"Translation language not registered for this project: " +
-											language));
-					return draftDialogueService.findTranslation(dialogue, translationLanguage)
+					// A language code that isn't (or is no longer, e.g. after a rename) registered
+					// for this project is treated the same as "no translation yet" rather than an
+					// error — see this method's Javadoc. Unlike updateTranslation/deleteTranslation,
+					// an unrecognised code here isn't a client mistake worth rejecting; it's exactly
+					// the same "nothing to show" case as a missing translation row.
+					return draftProjectService.findDraftLanguage(project, language)
+							.flatMap(translationLanguage ->
+									draftDialogueService.findTranslation(dialogue, translationLanguage))
 							.orElse(null);
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,

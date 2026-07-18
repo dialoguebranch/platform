@@ -334,6 +334,13 @@ public class PublishService {
 				published.setTranslationLanguageCode(language.getTranslationLanguageCode());
 				published = publishedTranslationLanguageRepository.save(published);
 				languagesByCode.put(published.getTranslationLanguageCode(), published);
+				// `version` is a freshly-constructed object, never reloaded from the DB after this
+				// point — Hibernate does not auto-sync a @OneToMany inverse-side collection just
+				// because a child row was persisted with the owning FK set via a separate repository
+				// call. Without this, PublishController's response (which serializes `version`
+				// directly, in the same request) would report an empty publishedTranslationLanguages
+				// list even though the row above was correctly persisted.
+				version.getPublishedTranslationLanguages().add(published);
 
 				language.setIsNew(false);
 				draftProjectService.save(language);

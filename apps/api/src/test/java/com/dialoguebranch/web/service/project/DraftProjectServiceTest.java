@@ -79,6 +79,25 @@ class DraftProjectServiceTest {
     }
 
     @Test
+    void removeDraftLanguageHardDeletesNeverPublishedLanguageWithTranslationContentCleanly()
+            throws Exception {
+        DBProject project = projectService.createProject("draft-lang-hard-delete-test",
+                "Draft Language Hard Delete Test", "", "en", "English");
+        DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "basic");
+        draftDialogueService.createNode(dialogue, "Start", "title: Start\nspeaker: Narrator", "");
+        DBDraftTranslationLanguage language = draftProjectService.addDraftLanguage(project, "Dutch", "nl-NL");
+
+        // Never published, so removeDraftLanguage hard-deletes it — this must not violate the
+        // NOT NULL, non-cascading draft_translations -> draft_translation_languages foreign key.
+        draftDialogueService.createOrUpdateTranslation(dialogue, language, "{}");
+
+        draftProjectService.removeDraftLanguage(language);
+
+        assertTrue(draftProjectService.findDraftLanguage(project, "nl-NL").isEmpty());
+        assertTrue(draftDialogueService.findTranslation(dialogue, language).isEmpty());
+    }
+
+    @Test
     void restoreDraftLanguageRevertsAPendingDeletion() throws Exception {
         DBProject project = projectService.createProject("draft-lang-restore-test",
                 "Draft Language Restore Test", "", "en", "English");
@@ -151,6 +170,65 @@ class DraftProjectServiceTest {
         assertNotEquals("Should Not Be Saved",
                 projectService.findBySlug("update-draft-atomic-test").orElseThrow().getDraftDisplayName());
         assertTrue(draftProjectService.findDraftLanguage(project, "nl").isEmpty());
+    }
+
+    @Test
+    void updateDraftAllowsSwappingCodesBetweenTwoLanguagesInOneBatch() throws Exception {
+        DBProject project = projectService.createProject("update-draft-swap-test",
+                "Update Draft Swap Test", "", "en", "English");
+        DBDraftTranslationLanguage languageA = draftProjectService.addDraftLanguage(project, "Dutch", "nl");
+        DBDraftTranslationLanguage languageB = draftProjectService.addDraftLanguage(project, "German", "de");
+
+        // Neither rename's target code is free on its own mid-batch (each is still held by the
+        // other language) — only the batch's FINAL state has no conflict. A sequential,
+        // mutate-and-check validation would incorrectly reject this.
+        draftProjectService.updateDraft(project, project.getDraftDisplayName(),
+                project.getDraftDescription(), List.of(), List.of(),
+                List.of(updatePayload(languageA, "Dutch", "de"), updatePayload(languageB, "German", "nl")));
+
+        assertEquals("de",
+                draftProjectService.findById(languageA.getId()).orElseThrow().getTranslationLanguageCode());
+        assertEquals("nl",
+                draftProjectService.findById(languageB.getId()).orElseThrow().getTranslationLanguageCode());
+    }
+
+    @Test
+    void updateDraftRejectsALanguageThatIsBothRenamedAndRemovedInTheSameBatch() throws Exception {
+        DBProject project = projectService.createProject("update-draft-remove-and-rename-test",
+                "Update Draft Remove And Rename Test", "", "en", "English");
+        DBDraftTranslationLanguage language = draftProjectService.addDraftLanguage(project, "Dutch", "nl");
+
+        // Contradictory: the same language id is both being removed and renamed. Must be rejected
+        // outright rather than guessed at — whether "removed" or "renamed" wins depends on
+        // publish history the caller has no reason to reconstruct, so a clean error is safer than
+        // either silently dropping the rename or crashing on a remove-then-merge conflict.
+        assertThrows(BadRequestException.class, () -> draftProjectService.updateDraft(project,
+                project.getDraftDisplayName(), project.getDraftDescription(),
+                List.of(language.getId()), List.of(),
+                List.of(updatePayload(language, "Dutch (Netherlands)", "nl-NL"))));
+
+        // Nothing applied: the language is untouched, neither removed nor renamed.
+        DBDraftTranslationLanguage unchanged = draftProjectService.findById(language.getId()).orElseThrow();
+        assertFalse(unchanged.getIsDeleted());
+        assertEquals("nl", unchanged.getTranslationLanguageCode());
+    }
+
+    @Test
+    void publishResponseImmediatelyReflectsPublishedTranslationLanguages() throws Exception {
+        DBProject project = projectService.createProject("publish-response-languages-test",
+                "Publish Response Languages Test", "", "en", "English");
+        draftProjectService.addDraftLanguage(project, "Dutch", "nl");
+
+        PublishService.PublishResult publishResult = publishService.publish(project, null);
+        if (!publishResult.isSuccess()) {
+            throw new AssertionError("Publish failed: " + publishResult.getErrors());
+        }
+
+        // No entityManager.flush()/clear() here — this asserts directly against the same in-memory
+        // DBProjectVersion object publish() returns, exactly as PublishController serializes it in
+        // the HTTP response within that same request.
+        assertTrue(publishResult.getVersion().getPublishedTranslationLanguages().stream()
+                .anyMatch(l -> l.getTranslationLanguageCode().equals("nl")));
     }
 
     @Test

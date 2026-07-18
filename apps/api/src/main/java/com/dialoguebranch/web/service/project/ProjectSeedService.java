@@ -43,6 +43,7 @@ import nl.rrd.utils.exception.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.io.Resource;
@@ -78,6 +79,7 @@ public class ProjectSeedService {
 	private final DraftDialogueService draftDialogueService;
 	private final DraftProjectService draftProjectService;
 	private final PublishService publishService;
+	private final ProjectSeedService self;
 
 	/**
 	 * Creates a new {@link ProjectSeedService}.
@@ -89,15 +91,24 @@ public class ProjectSeedService {
 	 *                             registry from the seed source's {@code dlb-project.xml}.
 	 * @param publishService       service used to publish the seeded drafts as the project's
 	 *                             version 1.
+	 * @param self                 a {@code @Lazy} self-reference resolving to this same bean's
+	 *                             Spring proxy. Plain {@code this.seedProject(...)}
+	 *                             self-invocation bypasses Spring's proxy-based AOP entirely, so
+	 *                             {@code @Transactional} on {@link #seedProject} would silently
+	 *                             never apply — calling through {@code self} instead is the
+	 *                             standard way to make a bean's own transactional methods actually
+	 *                             transactional when called from within the same bean.
 	 */
 	public ProjectSeedService(ProjectService projectService,
 							  DraftDialogueService draftDialogueService,
 							  DraftProjectService draftProjectService,
-							  PublishService publishService) {
+							  PublishService publishService,
+							  @Lazy ProjectSeedService self) {
 		this.projectService = projectService;
 		this.draftDialogueService = draftDialogueService;
 		this.draftProjectService = draftProjectService;
 		this.publishService = publishService;
+		this.self = self;
 	}
 
 	// ------------------------------------------------------------------ //
@@ -136,7 +147,18 @@ public class ProjectSeedService {
 						markerResource);
 				continue;
 			}
-			seedProject(projectFolderName, markerResource);
+			try {
+				// Through `self`, not a plain `seedProject(...)` self-call — see the constructor's
+				// Javadoc for why that matters here.
+				self.seedProject(projectFolderName, markerResource);
+			} catch (RuntimeException e) {
+				// A single broken/invalid seed project (e.g. a duplicate translation language in
+				// its dlb-project.xml) must not abort seeding of every other project in this loop.
+				// Now that seedProject's @Transactional actually applies (see above), everything it
+				// persisted before throwing has already been rolled back at this point.
+				logger.error("Seed project '{}': failed to seed — rolled back: {}",
+						projectFolderName, e.getMessage());
+			}
 		}
 	}
 
@@ -145,13 +167,23 @@ public class ProjectSeedService {
 	// --------------------------------------------------------------------- //
 
 	/**
-	 * Seeds a single project if it does not yet exist in the database.
+	 * Seeds a single project if it does not yet exist in the database. Public so that {@link
+	 * #seedOnStartup} can call it through {@code self} (see the constructor's Javadoc) rather than
+	 * a plain self-invocation, which would silently bypass {@code @Transactional} below —
+	 * everything this method persists (the project row, its draft translation languages, draft
+	 * dialogues) is rolled back if it throws, since a failure partway through (e.g. a duplicate
+	 * translation language in {@code dlb-project.xml}) must never leave a half-seeded project stuck
+	 * in the database forever (the existence check at the top of this method would otherwise skip
+	 * it on every future startup, with no way to retry).
 	 *
 	 * @param projectFolderName the folder name of the seed project (used as the project slug).
 	 * @param markerResource    the Spring {@link Resource} pointing to its {@code dlb-project.xml}.
+	 * @throws RuntimeException if seeding fails after the project row has already been persisted —
+	 * callers must catch this (see {@link #seedOnStartup}) so one broken seed project doesn't
+	 * abort seeding of the rest.
 	 */
 	@Transactional
-	private void seedProject(String projectFolderName, Resource markerResource) {
+	public void seedProject(String projectFolderName, Resource markerResource) {
 		if (projectService.findBySlug(projectFolderName).isPresent()) {
 			logger.info("Seed project '{}' already exists in database — skipping.",
 					projectFolderName);
@@ -214,9 +246,12 @@ public class ProjectSeedService {
 						translation.getCode());
 			}
 		} catch (ConflictException e) {
-			logger.error("Seed project '{}': duplicate translation language in {}: {}",
-					projectFolderName, PROJECT_MARKER_FILE, e.getMessage());
-			return;
+			// Must throw, not just log-and-return: the project row (and any languages already
+			// added this loop) are already persisted at this point, and only an exception
+			// propagating out of this method actually rolls them back.
+			throw new IllegalStateException("Seed project '" + projectFolderName +
+					"': duplicate translation language in " + PROJECT_MARKER_FILE + ": " +
+					e.getMessage(), e);
 		}
 
 		// -- Step 5: List the seed source files --
@@ -224,9 +259,10 @@ public class ProjectSeedService {
 		try {
 			files = scriptLoader.listDialogueBranchFiles();
 		} catch (IOException e) {
-			logger.error("Seed project '{}': failed to list dialogue files: {}", projectFolderName,
-					e.getMessage());
-			return;
+			// Same reasoning as step 4 above — must throw to roll back the project/languages
+			// already persisted.
+			throw new UncheckedIOException("Seed project '" + projectFolderName +
+					"': failed to list dialogue files: " + e.getMessage(), e);
 		}
 
 		// -- Step 6: Create draft dialogues (scripts first, then translations, since a

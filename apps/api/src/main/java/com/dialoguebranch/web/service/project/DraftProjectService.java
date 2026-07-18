@@ -42,8 +42,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -64,6 +66,7 @@ public class DraftProjectService {
 
 	private final DBProjectRepository projectRepository;
 	private final DBDraftTranslationLanguageRepository draftTranslationLanguageRepository;
+	private final DraftDialogueService draftDialogueService;
 
 	/**
 	 * Creates a new {@link DraftProjectService}.
@@ -72,11 +75,16 @@ public class DraftProjectService {
 	 *                                             metadata fields.
 	 * @param draftTranslationLanguageRepository   repository used to read and persist draft
 	 *                                             translation languages.
+	 * @param draftDialogueService                 service used to strip a language's draft
+	 *                                             translation content before that language is
+	 *                                             hard-deleted.
 	 */
 	public DraftProjectService(DBProjectRepository projectRepository,
-			DBDraftTranslationLanguageRepository draftTranslationLanguageRepository) {
+			DBDraftTranslationLanguageRepository draftTranslationLanguageRepository,
+			DraftDialogueService draftDialogueService) {
 		this.projectRepository = projectRepository;
 		this.draftTranslationLanguageRepository = draftTranslationLanguageRepository;
+		this.draftDialogueService = draftDialogueService;
 	}
 
 	// ------------------------------------------------------------------ //
@@ -196,13 +204,17 @@ public class DraftProjectService {
 	 * <p>Exception: if the language {@link DBDraftTranslationLanguage#getIsNew() has no published
 	 * counterpart yet}, there is nothing to reconcile at publish time, so it is hard-deleted
 	 * immediately instead — avoiding a pointless "new AND deleted" row lingering until the next
-	 * publish.</p>
+	 * publish. Its draft translation content (if any) is stripped first, the same way {@link
+	 * PublishService#publish} already does for a language hard-deleted at publish time — the
+	 * {@code draft_translation_language_id} foreign key on {@code draft_translations} is {@code
+	 * NOT NULL} with no cascade, so deleting the language row first would otherwise violate it.</p>
 	 *
 	 * @param language the draft translation language to remove.
 	 */
 	@Transactional
 	public void removeDraftLanguage(DBDraftTranslationLanguage language) {
 		if (language.getIsNew()) {
+			draftDialogueService.deleteAllTranslationsInLanguage(language);
 			hardDeleteDraftLanguage(language);
 			return;
 		}
@@ -268,6 +280,12 @@ public class DraftProjectService {
 	 * just the first), and either all of it is applied or, if any problems were found, none of it
 	 * is.
 	 *
+	 * <p>Every language code conflict is checked against the batch's <em>final</em> resulting
+	 * state in one read-only pass, rather than by mutating a shared "occupied codes" set one
+	 * change at a time — the latter would incorrectly reject a valid swap (or rotation) of codes
+	 * between two or more languages, since it would see a transient, not-yet-fully-applied
+	 * conflict partway through even though the actual end state has none.</p>
+	 *
 	 * @param project           the project to update.
 	 * @param displayName       the new draft display name.
 	 * @param description       the new draft description.
@@ -277,8 +295,11 @@ public class DraftProjectService {
 	 * @param updateLanguages   existing draft translation languages to rename (name and/or code).
 	 * @return the updated project.
 	 * @throws BadRequestException if any translation language id doesn't resolve to one owned by
-	 * this project, a name/code is missing, or — after applying every requested change — any two
-	 * translation languages would end up sharing the same code.
+	 * this project, a name/code is missing, the same language id appears in both {@code
+	 * removeLanguageIds} and {@code updateLanguages} (a contradictory instruction — rejected
+	 * outright rather than guessed at, since which one was "intended" genuinely depends on
+	 * whether that language has a published counterpart), or — in the batch's final resulting
+	 * state — any two translation languages would end up sharing the same code.
 	 */
 	@Transactional
 	public DBProject updateDraft(DBProject project, String displayName, String description,
@@ -294,43 +315,40 @@ public class DraftProjectService {
 						"Project disappeared during draft update: " + projectId));
 
 		List<HttpFieldError> errors = new ArrayList<>();
-
-		// Every code currently occupying a unique-constraint slot for this project, including
-		// soft-deleted rows (which still occupy their code — see addDraftLanguage's Javadoc). The
-		// starting point for simulating the whole batch's outcome before touching anything.
-		Set<String> occupiedCodes = new HashSet<>();
-		for (DBDraftTranslationLanguage existing :
-				draftTranslationLanguageRepository.findByProject(project)) {
-			occupiedCodes.add(existing.getTranslationLanguageCode());
+		List<DBDraftTranslationLanguage> existingLanguages =
+				draftTranslationLanguageRepository.findByProject(project);
+		// Resolve every id against this already-fetched, already-project-scoped list instead of
+		// issuing a separate findById query per id in removeLanguageIds/updateLanguages below —
+		// this single query already covers every id that could possibly be valid for this batch.
+		Map<UUID, DBDraftTranslationLanguage> languageById = new HashMap<>();
+		for (DBDraftTranslationLanguage existing : existingLanguages) {
+			languageById.put(existing.getId(), existing);
 		}
 
 		List<DBDraftTranslationLanguage> resolvedRemovals = new ArrayList<>();
+		Set<UUID> removalIds = new HashSet<>();
 		for (UUID id : removeLanguageIds == null ? List.<UUID>of() : removeLanguageIds) {
-			Optional<DBDraftTranslationLanguage> found = draftTranslationLanguageRepository
-					.findById(id)
-					.filter(l -> l.getProject().getId().equals(projectId));
-			if (found.isEmpty()) {
+			removalIds.add(id);
+			DBDraftTranslationLanguage language = languageById.get(id);
+			if (language == null) {
 				errors.add(new HttpFieldError("removeLanguageIds",
 						"Translation language not found: " + id));
 				continue;
 			}
-			DBDraftTranslationLanguage language = found.get();
 			resolvedRemovals.add(language);
-			// A never-published language is hard-deleted immediately (see removeDraftLanguage),
-			// which genuinely frees its code; a soft-deleted one keeps occupying it until publish.
-			if (language.getIsNew()) {
-				occupiedCodes.remove(language.getTranslationLanguageCode());
-			}
 		}
 
 		record ResolvedUpdate(DBDraftTranslationLanguage language, String name, String code) { }
 		List<ResolvedUpdate> resolvedUpdates = new ArrayList<>();
 		for (UpdateDraftLanguagePayload entry :
 				updateLanguages == null ? List.<UpdateDraftLanguagePayload>of() : updateLanguages) {
-			Optional<DBDraftTranslationLanguage> found = draftTranslationLanguageRepository
-					.findById(entry.getId())
-					.filter(l -> l.getProject().getId().equals(projectId));
-			if (found.isEmpty()) {
+			if (removalIds.contains(entry.getId())) {
+				errors.add(new HttpFieldError("updateLanguages[" + entry.getId() + "]",
+						"This translation language is also being removed in the same batch."));
+				continue;
+			}
+			DBDraftTranslationLanguage language = languageById.get(entry.getId());
+			if (language == null) {
 				errors.add(new HttpFieldError("updateLanguages",
 						"Translation language not found: " + entry.getId()));
 				continue;
@@ -343,21 +361,8 @@ public class DraftProjectService {
 						"Both a name and a code are required."));
 				continue;
 			}
-			DBDraftTranslationLanguage language = found.get();
-			String newCode = entry.getTranslationLanguageCode();
-			if (!newCode.equals(language.getTranslationLanguageCode())) {
-				occupiedCodes.remove(language.getTranslationLanguageCode());
-				if (occupiedCodes.contains(newCode)) {
-					errors.add(new HttpFieldError("updateLanguages[" + entry.getId() + "]",
-							"A translation language with code '" + newCode + "' already exists."));
-					// This rename didn't happen — the old code is still occupied by `language`.
-					occupiedCodes.add(language.getTranslationLanguageCode());
-					continue;
-				}
-				occupiedCodes.add(newCode);
-			}
 			resolvedUpdates.add(new ResolvedUpdate(language, entry.getTranslationLanguageName(),
-					newCode));
+					entry.getTranslationLanguageCode()));
 		}
 
 		List<AddTranslationLanguagePayload> resolvedAdditions = new ArrayList<>();
@@ -370,13 +375,43 @@ public class DraftProjectService {
 						"Both a name and a code are required."));
 				continue;
 			}
-			if (occupiedCodes.contains(code)) {
-				errors.add(new HttpFieldError("addLanguages[" + code + "]",
-						"A translation language with code '" + code + "' already exists."));
-				continue;
-			}
-			occupiedCodes.add(code);
 			resolvedAdditions.add(entry);
+		}
+
+		// Compute the code every surviving/new language would end up with in the batch's final
+		// state, and count how many languages would share each one — a code is only a genuine
+		// conflict if two or more languages would end up with it, regardless of who held it
+		// (or wanted it) along the way.
+		Map<UUID, String> updatedCodeById = new HashMap<>();
+		for (ResolvedUpdate update : resolvedUpdates) {
+			updatedCodeById.put(update.language().getId(), update.code());
+		}
+		Map<String, Integer> finalCodeCounts = new HashMap<>();
+		for (DBDraftTranslationLanguage existing : existingLanguages) {
+			// A never-published removal genuinely frees its code immediately (see
+			// removeDraftLanguage); a soft-deleted one keeps occupying it until the next publish
+			// reconciles it away (see addDraftLanguage's Javadoc), so it still counts here.
+			if (removalIds.contains(existing.getId()) && existing.getIsNew()) continue;
+			String finalCode = updatedCodeById.getOrDefault(existing.getId(),
+					existing.getTranslationLanguageCode());
+			finalCodeCounts.merge(finalCode, 1, Integer::sum);
+		}
+		for (AddTranslationLanguagePayload addition : resolvedAdditions) {
+			finalCodeCounts.merge(addition.getTranslationLanguageCode(), 1, Integer::sum);
+		}
+		for (ResolvedUpdate update : resolvedUpdates) {
+			if (finalCodeCounts.getOrDefault(update.code(), 0) > 1) {
+				errors.add(new HttpFieldError("updateLanguages[" + update.language().getId() + "]",
+						"A translation language with code '" + update.code() + "' already exists."));
+			}
+		}
+		for (AddTranslationLanguagePayload addition : resolvedAdditions) {
+			if (finalCodeCounts.getOrDefault(addition.getTranslationLanguageCode(), 0) > 1) {
+				errors.add(new HttpFieldError(
+						"addLanguages[" + addition.getTranslationLanguageCode() + "]",
+						"A translation language with code '" + addition.getTranslationLanguageCode()
+								+ "' already exists."));
+			}
 		}
 
 		if (!errors.isEmpty()) {

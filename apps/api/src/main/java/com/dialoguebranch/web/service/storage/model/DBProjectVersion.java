@@ -30,6 +30,8 @@ package com.dialoguebranch.web.service.storage.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 import java.time.Instant;
 import java.util.HashSet;
@@ -91,9 +93,13 @@ public class DBProjectVersion {
 	// DBProject.translationLanguages. EAGER, for the same reason as
 	// DBPublishedTranslation.translationLanguage: this project runs with open-in-view disabled, and
 	// project JSON responses (get-project/list-projects) are serialized outside any open Hibernate
-	// session/transaction — LAZY would throw LazyInitializationException there. A project's
-	// language list is small, so this resolves as a plain SQL join rather than a real N+1 cost.
+	// session/transaction — LAZY would throw LazyInitializationException there. @Fetch(JOIN)
+	// matters here, not just EAGER alone: Hibernate's default fetch mode for an EAGER @OneToMany is
+	// still a separate SELECT per owning row (a real per-project N+1, since DBProject.latestVersion
+	// is itself EAGER, hit on every list-projects/get-project call) — only an explicit JOIN fetch
+	// mode actually resolves this as a single SQL join alongside the owning row.
 	@OneToMany(mappedBy = "version", fetch = FetchType.EAGER)
+	@Fetch(FetchMode.JOIN)
 	private Set<DBPublishedTranslationLanguage> publishedTranslationLanguages = new HashSet<>();
 
 	/**
