@@ -28,49 +28,28 @@
 
 package com.dialoguebranch.web.service.repository;
 
-import com.dialoguebranch.web.service.storage.model.DBPublishedDialogue;
-import com.dialoguebranch.web.service.storage.model.DBPublishedTranslation;
+import com.dialoguebranch.web.service.storage.model.DBProjectVersion;
 import com.dialoguebranch.web.service.storage.model.DBPublishedTranslationLanguage;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Spring Data JPA repository for {@link DBPublishedTranslation} entities.
+ * Spring Data JPA repository for {@link DBPublishedTranslationLanguage} entities.
  *
  * @author Harm op den Akker
  */
-public interface DBPublishedTranslationRepository
-		extends JpaRepository<DBPublishedTranslation, UUID> {
+public interface DBPublishedTranslationLanguageRepository
+		extends JpaRepository<DBPublishedTranslationLanguage, UUID> {
 
 	/**
-	 * Finds all translations belonging to the given published dialogue.
+	 * Finds all published translation languages belonging to the given project version.
 	 *
-	 * @param publishedDialogue the published dialogue whose translations should be retrieved.
-	 * @return the list of translations belonging to {@code publishedDialogue}.
+	 * @param version the project version whose published translation languages should be
+	 *                retrieved.
+	 * @return the list of published translation languages belonging to {@code version}.
 	 */
-	List<DBPublishedTranslation> findByPublishedDialogue(DBPublishedDialogue publishedDialogue);
-
-	/**
-	 * Finds all translations belonging to any of the given published dialogues.
-	 *
-	 * @param dialogues the published dialogues whose translations should be retrieved.
-	 * @return the combined list of translations belonging to {@code dialogues}.
-	 */
-	List<DBPublishedTranslation> findByPublishedDialogueIn(
-			List<DBPublishedDialogue> dialogues);
-
-	/**
-	 * Finds the translation for the given language within the given published dialogue.
-	 *
-	 * @param publishedDialogue the published dialogue the translation belongs to.
-	 * @param translationLanguage the target language of the translation.
-	 * @return an {@link Optional} containing the matching {@link DBPublishedTranslation}, or
-	 * empty if no translation for the given language exists for the published dialogue.
-	 */
-	Optional<DBPublishedTranslation> findByPublishedDialogueAndTranslationLanguage(
-			DBPublishedDialogue publishedDialogue, DBPublishedTranslationLanguage translationLanguage);
+	List<DBPublishedTranslationLanguage> findByVersion(DBProjectVersion version);
 
 }

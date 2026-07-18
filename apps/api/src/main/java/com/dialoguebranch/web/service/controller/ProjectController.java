@@ -246,6 +246,49 @@ public class ProjectController {
 	}
 
 	/**
+	 * Applies a whole "Save Draft" batch from the Configure Project window in one atomic request:
+	 * the project's draft display name/description, translation languages to remove, translation
+	 * languages to add, and existing translation languages to rename (name and/or code). The
+	 * entire batch is validated up front; if any part of it is invalid, none of it is applied (see
+	 * {@link DraftProjectService#updateDraft}).
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project to update.
+	 * @param payload the batch of draft changes to apply.
+	 * @return the updated project.
+	 * @throws HttpException if the project does not exist, the batch is invalid (a translation
+	 * language id doesn't resolve to one owned by this project, a name/code is missing, or two
+	 * languages would end up sharing a code), or the user is not authorized.
+	 */
+	@Operation(summary = "Apply a batch of draft changes (metadata and/or translation languages) "
+			+ "to a project in one atomic request.")
+	@Parameter(name = "version", hidden = true)
+	@PostMapping("/update-draft")
+	public DBProject updateDraft(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug,
+			@RequestBody UpdateProjectDraftPayload payload
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("POST /v{}/project/update-draft [user: {}]", version, user);
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					return draftProjectService.updateDraft(project, payload.getDisplayName(),
+							payload.getDescription(), payload.getRemoveLanguageIds(),
+							payload.getAddLanguages(), payload.getUpdateLanguages());
+				},
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
+				AuthenticationInfo.USER_ROLE_ADMIN);
+	}
+
+	/**
 	 * Deletes a project and all its data (draft and published dialogues, translations, and
 	 * language mappings). This is a permanent, unrecoverable delete of the project entity
 	 * itself — unlike dialogue deletion within a project, there is no restore path.
@@ -283,6 +326,24 @@ public class ProjectController {
 	// ------------------------------------------------------------------------ //
 	// -------------------- Translation Language Management -------------------- //
 	// ------------------------------------------------------------------------ //
+
+	/**
+	 * Resolves the draft translation language with the given {@code id}, checking that it belongs
+	 * to {@code project}.
+	 *
+	 * @param project               the project the translation language must belong to.
+	 * @param translationLanguageId the id of the draft translation language to resolve.
+	 * @return the matching draft translation language.
+	 * @throws NotFoundException if no such translation language exists, or it belongs to a
+	 * different project.
+	 */
+	private DBDraftTranslationLanguage resolveOwnedDraftLanguage(DBProject project,
+			UUID translationLanguageId) throws NotFoundException {
+		return draftProjectService.findById(translationLanguageId)
+				.filter(l -> l.getProject().getId().equals(project.getId()))
+				.orElseThrow(() -> new NotFoundException(
+						"Translation language not found: " + translationLanguageId));
+	}
 
 	/**
 	 * Adds an additional draft translation language to a project, on top of its fixed source
@@ -357,12 +418,50 @@ public class ProjectController {
 					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectSlug));
-					DBDraftTranslationLanguage language = draftProjectService
-							.findById(translationLanguageId)
-							.filter(l -> l.getProject().getId().equals(project.getId()))
-							.orElseThrow(() -> new NotFoundException(
-									"Translation language not found: " + translationLanguageId));
+					DBDraftTranslationLanguage language =
+							resolveOwnedDraftLanguage(project, translationLanguageId);
 					draftProjectService.removeDraftLanguage(language);
+					return null;
+				},
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
+				AuthenticationInfo.USER_ROLE_ADMIN);
+	}
+
+	/**
+	 * Reverts a pending deletion previously made via {@code /remove-translation-language}, marking
+	 * the language as no longer pending deletion. Has no effect once the project has been
+	 * published since the removal (at which point the draft row is gone for good).
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project to restore the language for.
+	 * @param translationLanguageId the id of the draft translation language to restore.
+	 * @throws HttpException if the project or translation language does not exist, or the user is
+	 * not authorized.
+	 */
+	@Operation(summary = "Restore a draft translation language pending deletion.")
+	@Parameter(name = "version", hidden = true)
+	@PostMapping("/restore-translation-language")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void restoreTranslationLanguage(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug,
+			@RequestParam(value = "translationLanguageId") UUID translationLanguageId
+	) throws HttpException {
+		QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("POST /v{}/project/restore-translation-language [user: {}]",
+							version, user);
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					DBDraftTranslationLanguage language =
+							resolveOwnedDraftLanguage(project, translationLanguageId);
+					draftProjectService.restoreDraftLanguage(language);
 					return null;
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
@@ -401,11 +500,8 @@ public class ProjectController {
 					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectSlug));
-					DBDraftTranslationLanguage language = draftProjectService
-							.findById(translationLanguageId)
-							.filter(l -> l.getProject().getId().equals(project.getId()))
-							.orElseThrow(() -> new NotFoundException(
-									"Translation language not found: " + translationLanguageId));
+					DBDraftTranslationLanguage language =
+							resolveOwnedDraftLanguage(project, translationLanguageId);
 					return draftDialogueService.findDialoguesUsingLanguage(language);
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,

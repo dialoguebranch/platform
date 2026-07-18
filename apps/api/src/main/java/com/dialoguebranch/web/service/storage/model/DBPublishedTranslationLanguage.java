@@ -34,36 +34,35 @@ import jakarta.persistence.*;
 import java.util.UUID;
 
 /**
- * JPA entity representing a single, published translation language of a project in the
- * {@code project_translation_languages} table. A project's source language is a fixed property of
- * {@link DBProject} itself ({@link DBProject#getSourceLanguageCode()}); this entity only records
- * the zero-or-more additional languages that project's dialogues have (or will have) {@code .json}
- * translation files for. This is the *published* registry, reconciled from the editable
- * {@link DBDraftTranslationLanguage} registry whenever the project is published — see
- * {@link #getIsRemoved()}.
+ * JPA entity representing a translation language as it existed within a single, immutable
+ * {@link DBProjectVersion}, stored in the {@code published_translation_languages} table. Unlike
+ * the draft translation-language registry ({@link DBDraftTranslationLanguage}), this is not a
+ * single current-state table shared across every published version — each publish creates a fresh
+ * row here for every currently-active draft language, exactly as {@link DBPublishedDialogue} does
+ * for dialogues, giving every version an accurate historical snapshot of its own language list.
  *
  * @author Harm op den Akker
  */
 @Entity
 @Table(
-	name = "project_translation_languages",
+	name = "published_translation_languages",
 	uniqueConstraints = {
 		@UniqueConstraint(
-			name = "uq_project_translation_languages",
-			columnNames = { "project_id", "translation_language_code" }
+			name = "uq_published_translation_languages",
+			columnNames = { "version_id", "translation_language_code" }
 		)
 	}
 )
-public class DBTranslationLanguage {
+public class DBPublishedTranslationLanguage {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.UUID)
 	private UUID id;
 
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "project_id", nullable = false)
+	@JoinColumn(name = "version_id", nullable = false)
 	@JsonIgnore
-	private DBProject project;
+	private DBProjectVersion version;
 
 	@Column(name = "translation_language_name", nullable = false, length = 64)
 	private String translationLanguageName;
@@ -72,22 +71,13 @@ public class DBTranslationLanguage {
 	private String translationLanguageCode;
 
 	/**
-	 * Whether this language has been removed from the project. Never hard-deleted: past, immutable
-	 * {@link DBProjectVersion} snapshots may still hold {@link DBPublishedTranslation} rows that
-	 * reference this row, so it is only ever soft-deleted by flipping this flag to {@code true}
-	 * when a publish reconciles a corresponding {@link DBDraftTranslationLanguage} deletion.
+	 * Creates an empty instance of {@link DBPublishedTranslationLanguage}.
 	 */
-	@Column(name = "is_removed", nullable = false)
-	private boolean isRemoved;
-
-	/**
-	 * Creates an empty instance of {@link DBTranslationLanguage}.
-	 */
-	public DBTranslationLanguage() {
+	public DBPublishedTranslationLanguage() {
 	}
 
 	/**
-	 * Returns the unique UUID identifier of this translation language.
+	 * Returns the unique UUID identifier of this published translation language.
 	 *
 	 * @return the UUID identifier.
 	 */
@@ -96,7 +86,7 @@ public class DBTranslationLanguage {
 	}
 
 	/**
-	 * Sets the unique UUID identifier of this translation language.
+	 * Sets the unique UUID identifier of this published translation language.
 	 *
 	 * @param id the UUID identifier.
 	 */
@@ -105,21 +95,21 @@ public class DBTranslationLanguage {
 	}
 
 	/**
-	 * Returns the {@link DBProject} this translation language belongs to.
+	 * Returns the {@link DBProjectVersion} this published translation language belongs to.
 	 *
-	 * @return the owning project.
+	 * @return the owning project version.
 	 */
-	public DBProject getProject() {
-		return project;
+	public DBProjectVersion getVersion() {
+		return version;
 	}
 
 	/**
-	 * Sets the {@link DBProject} this translation language belongs to.
+	 * Sets the {@link DBProjectVersion} this published translation language belongs to.
 	 *
-	 * @param project the owning project.
+	 * @param version the owning project version.
 	 */
-	public void setProject(DBProject project) {
-		this.project = project;
+	public void setVersion(DBProjectVersion version) {
+		this.version = version;
 	}
 
 	/**
@@ -156,24 +146,6 @@ public class DBTranslationLanguage {
 	 */
 	public void setTranslationLanguageCode(String translationLanguageCode) {
 		this.translationLanguageCode = translationLanguageCode;
-	}
-
-	/**
-	 * Returns whether this language has been removed from the project.
-	 *
-	 * @return whether this language is removed.
-	 */
-	public boolean getIsRemoved() {
-		return isRemoved;
-	}
-
-	/**
-	 * Sets whether this language has been removed from the project.
-	 *
-	 * @param isRemoved whether this language is removed.
-	 */
-	public void setIsRemoved(boolean isRemoved) {
-		this.isRemoved = isRemoved;
 	}
 
 }

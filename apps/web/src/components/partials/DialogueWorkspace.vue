@@ -116,7 +116,7 @@ function loadAvailableLanguages() {
             // Configure Project shows up here immediately rather than only after a publish.
             const translationLanguages = state.value.mode === DLB_APP_MODE_DRAFT
                 ? (project.draftTranslationLanguages ?? []).filter((t) => !t.isDeleted)
-                : (project.translationLanguages ?? []);
+                : (project.latestVersion?.publishedTranslationLanguages ?? []);
             availableLanguages.value = [
                 { code: project.sourceLanguageCode, name: project.sourceLanguageName },
                 ...translationLanguages.map((t) => ({

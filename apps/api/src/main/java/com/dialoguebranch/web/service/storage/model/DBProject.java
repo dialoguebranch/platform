@@ -30,7 +30,6 @@ package com.dialoguebranch.web.service.storage.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import org.hibernate.annotations.SQLRestriction;
 
 import java.time.Instant;
 import java.util.HashSet;
@@ -59,11 +58,6 @@ public class DBProject {
 
 	private String slug;
 
-	@Column(name = "display_name")
-	private String displayName;
-
-	private String description;
-
 	@Column(name = "draft_display_name")
 	private String draftDisplayName;
 
@@ -79,12 +73,6 @@ public class DBProject {
 
 	@Column(name = "source_language_name", nullable = false, length = 64)
 	private String sourceLanguageName;
-
-	// Excludes removed languages (DBTranslationLanguage.isRemoved) — this collection represents
-	// the project's currently-active published languages, not every language ever registered.
-	@OneToMany(mappedBy = "project", fetch = FetchType.EAGER)
-	@SQLRestriction("is_removed = false")
-	private Set<DBTranslationLanguage> translationLanguages = new HashSet<>();
 
 	@OneToMany(mappedBy = "project", fetch = FetchType.EAGER)
 	private Set<DBDraftTranslationLanguage> draftTranslationLanguages = new HashSet<>();
@@ -146,44 +134,9 @@ public class DBProject {
 	}
 
 	/**
-	 * Returns the human-readable display name of this project.
-	 *
-	 * @return the display name.
-	 */
-	public String getDisplayName() {
-		return displayName;
-	}
-
-	/**
-	 * Sets the human-readable display name of this project.
-	 *
-	 * @param displayName the display name.
-	 */
-	public void setDisplayName(String displayName) {
-		this.displayName = displayName;
-	}
-
-	/**
-	 * Returns the description of this project.
-	 *
-	 * @return the description.
-	 */
-	public String getDescription() {
-		return description;
-	}
-
-	/**
-	 * Sets the description of this project.
-	 *
-	 * @param description the description.
-	 */
-	public void setDescription(String description) {
-		this.description = description;
-	}
-
-	/**
-	 * Returns the draft (working-copy) display name of this project, edited independently of
-	 * {@link #getDisplayName()} until the project is next published.
+	 * Returns the draft (working-copy) display name of this project, edited independently of the
+	 * published display name (see {@link DBProjectVersion#getDisplayName()}) until the project is
+	 * next published.
 	 *
 	 * @return the draft display name.
 	 */
@@ -201,8 +154,9 @@ public class DBProject {
 	}
 
 	/**
-	 * Returns the draft (working-copy) description of this project, edited independently of
-	 * {@link #getDescription()} until the project is next published.
+	 * Returns the draft (working-copy) description of this project, edited independently of the
+	 * published description (see {@link DBProjectVersion#getDescription()}) until the project is
+	 * next published.
 	 *
 	 * @return the draft description.
 	 */
@@ -276,29 +230,11 @@ public class DBProject {
 	}
 
 	/**
-	 * Returns the set of currently-active (non-removed) {@link DBTranslationLanguage}s for this
-	 * project — the additional languages (beyond its source language) its dialogues have
-	 * translations for.
-	 *
-	 * @return the set of active translation languages.
-	 */
-	public Set<DBTranslationLanguage> getTranslationLanguages() {
-		return translationLanguages;
-	}
-
-	/**
-	 * Sets the set of {@link DBTranslationLanguage}s for this project.
-	 *
-	 * @param translationLanguages the set of translation languages.
-	 */
-	public void setTranslationLanguages(Set<DBTranslationLanguage> translationLanguages) {
-		this.translationLanguages = translationLanguages;
-	}
-
-	/**
 	 * Returns the set of {@link DBDraftTranslationLanguage}s for this project — the draft
-	 * (working-copy) registry of translation languages, edited independently of
-	 * {@link #getTranslationLanguages()} until the project is next published.
+	 * (working-copy) registry of translation languages, edited independently of the currently
+	 * published version's language snapshot (see
+	 * {@link DBProjectVersion#getPublishedTranslationLanguages()}) until the project is next
+	 * published.
 	 *
 	 * @return the set of draft translation languages.
 	 */

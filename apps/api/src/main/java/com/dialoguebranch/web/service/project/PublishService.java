@@ -36,6 +36,7 @@ import com.dialoguebranch.web.service.repository.DBProjectRepository;
 import com.dialoguebranch.web.service.repository.DBProjectVersionRepository;
 import com.dialoguebranch.web.service.repository.DBPublishedDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBPublishedTranslationRepository;
+import com.dialoguebranch.web.service.repository.DBPublishedTranslationLanguageRepository;
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslation;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslationLanguage;
@@ -43,7 +44,7 @@ import com.dialoguebranch.web.service.storage.model.DBProject;
 import com.dialoguebranch.web.service.storage.model.DBProjectVersion;
 import com.dialoguebranch.web.service.storage.model.DBPublishedDialogue;
 import com.dialoguebranch.web.service.storage.model.DBPublishedTranslation;
-import com.dialoguebranch.web.service.storage.model.DBTranslationLanguage;
+import com.dialoguebranch.web.service.storage.model.DBPublishedTranslationLanguage;
 import com.dialoguebranch.web.service.storage.model.DBUser;
 import nl.rrd.utils.exception.ParseException;
 import org.springframework.stereotype.Service;
@@ -54,7 +55,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.UUID;
 
 /**
  * Service that validates a project's full draft and, if valid, creates a new published
@@ -68,10 +69,10 @@ public class PublishService {
 
 	private final DraftDialogueService draftDialogueService;
 	private final DraftProjectService draftProjectService;
-	private final ProjectService projectService;
 	private final DBProjectVersionRepository versionRepository;
 	private final DBPublishedDialogueRepository publishedDialogueRepository;
 	private final DBPublishedTranslationRepository publishedTranslationRepository;
+	private final DBPublishedTranslationLanguageRepository publishedTranslationLanguageRepository;
 	private final DBProjectRepository projectRepository;
 	private final ProjectLoaderService projectLoaderService;
 
@@ -82,11 +83,11 @@ public class PublishService {
 	 *                                        reconcile their status flags once published.
 	 * @param draftProjectService             service used to read a project's draft translation
 	 *                                        language registry and reconcile it once published.
-	 * @param projectService                  service used to write a project's published display
-	 *                                        name/description and translation language registry.
 	 * @param versionRepository               repository used to read and persist project versions.
 	 * @param publishedDialogueRepository     repository used to persist published dialogues.
 	 * @param publishedTranslationRepository  repository used to persist published translations.
+	 * @param publishedTranslationLanguageRepository repository used to persist a new version's
+	 *                                        published translation-language snapshot.
 	 * @param projectRepository               repository used to persist a project's updated
 	 *                                        {@code latestVersion} pointer.
 	 * @param projectLoaderService            service used to reload a project's newly published
@@ -94,18 +95,18 @@ public class PublishService {
 	 */
 	public PublishService(DraftDialogueService draftDialogueService,
 						  DraftProjectService draftProjectService,
-						  ProjectService projectService,
 						  DBProjectVersionRepository versionRepository,
 						  DBPublishedDialogueRepository publishedDialogueRepository,
 						  DBPublishedTranslationRepository publishedTranslationRepository,
+						  DBPublishedTranslationLanguageRepository publishedTranslationLanguageRepository,
 						  DBProjectRepository projectRepository,
 						  ProjectLoaderService projectLoaderService) {
 		this.draftDialogueService = draftDialogueService;
 		this.draftProjectService = draftProjectService;
-		this.projectService = projectService;
 		this.versionRepository = versionRepository;
 		this.publishedDialogueRepository = publishedDialogueRepository;
 		this.publishedTranslationRepository = publishedTranslationRepository;
+		this.publishedTranslationLanguageRepository = publishedTranslationLanguageRepository;
 		this.projectRepository = projectRepository;
 		this.projectLoaderService = projectLoaderService;
 	}
@@ -169,8 +170,10 @@ public class PublishService {
 	/**
 	 * Attempts to publish the given project. All draft dialogues are reconstructed into
 	 * {@code .dlb} script content and validated by {@link ProjectParser}. If validation passes,
-	 * a new {@link DBProjectVersion} is created, the draft content is copied into
-	 * {@code published_dialogues} and {@code published_translations}, and
+	 * a new {@link DBProjectVersion} is created as a full snapshot of the project's current draft
+	 * state — display name/description, translation languages, and dialogue content are all copied
+	 * into {@code project_versions}, {@code published_translation_languages},
+	 * {@code published_dialogues}, and {@code published_translations} — and
 	 * {@link DBProject#getLatestVersion()} is updated.
 	 *
 	 * @param project     the project to publish.
@@ -181,13 +184,19 @@ public class PublishService {
 	 */
 	@Transactional
 	public PublishResult publish(DBProject project, DBUser publishedBy) throws IOException {
-		// Reconcile draft project metadata and the draft translation-language registry into their
-		// published counterparts first. Language removal must happen before validateDrafts below,
-		// since it strips the removed language's draft translation content — script reconstruction
-		// and validation must never see content in a language that's being dropped from this
-		// version.
-		reconcilePublishedMetadata(project);
-		reconcilePublishedTranslationLanguages(project);
+		// The caller (PublishController) loads `project` via its own, already-completed query, so
+		// it arrives here detached — with a stale, eagerly-fetched snapshot of its collections
+		// (e.g. draftTranslationLanguages) frozen at that earlier point in time. Re-fetching it as
+		// a managed entity for this transaction matters because the final save(project) below (the
+		// latestVersion update) would otherwise merge that detached, stale collection — and
+		// Hibernate's merge re-resolves every element in it by id, which throws
+		// EntityNotFoundException for any draft language this same publish goes on to hard-delete
+		// (see reconcilePublishedTranslationLanguages). Once managed, later save() calls on this
+		// same instance are cheap no-ops instead of full merges.
+		UUID projectId = project.getId();
+		project = projectRepository.findById(projectId)
+				.orElseThrow(() -> new IllegalStateException(
+						"Project disappeared during publish: " + projectId));
 
 		// Every dialogue in the project always has a draft — seeded projects create drafts first
 		// and publish from them (see ProjectSeedService), and any dialogue added since is created
@@ -198,6 +207,10 @@ public class PublishService {
 				.filter(draft -> !draft.getIsDeleted())
 				.toList();
 
+		// Validate before mutating anything. A failed publish must be a true no-op — validateDrafts
+		// already excludes a pending-deletion language's content by itself (via each translation's
+		// language.getIsDeleted(), the same check verify() relies on), so nothing below needs to run
+		// first for that exclusion to hold.
 		DraftValidation validation = validateDrafts(project, drafts);
 		if (!validation.result().getParseErrors().isEmpty()) {
 			return PublishResult.failure(validation.result().getParseErrors());
@@ -208,13 +221,24 @@ public class PublishService {
 		// Determine next version number
 		int nextVersion = getNextVersionNumber(project);
 
-		// Create the project version record
+		// Create the project version record — a full metadata snapshot, written unconditionally
+		// (exactly like every dialogue below gets a fresh DBPublishedDialogue row regardless of
+		// whether it actually changed), giving every version an accurate historical record instead
+		// of relying on a single, project-wide "current" display name/description.
 		DBProjectVersion version = new DBProjectVersion();
 		version.setProject(project);
 		version.setVersionNumber(nextVersion);
 		version.setPublishedAt(Instant.now());
 		version.setPublishedBy(publishedBy);
+		version.setDisplayName(project.getDraftDisplayName());
+		version.setDescription(project.getDraftDescription());
 		version = versionRepository.save(version);
+
+		// Snapshot the draft translation-language registry onto this new version. Must run before
+		// the dialogue/translation-writing loop below, which resolves each translation's published
+		// language via the map this returns.
+		Map<String, DBPublishedTranslationLanguage> languagesByCode =
+				reconcilePublishedTranslationLanguages(project, version);
 
 		// Copy draft content into published tables, and reconcile each dialogue's draft status —
 		// it's no longer new, no longer changed, and no longer remembers a prior name, since this
@@ -228,14 +252,15 @@ public class PublishService {
 
 			for (Map.Entry<String, String> entry :
 					translationsByDialogue.get(draft.getName()).entrySet()) {
-				// Guaranteed to resolve: reconcilePublishedTranslationLanguages (called above,
-				// before validateDrafts) has already created/un-removed a published language row
-				// for every language code that can appear here.
-				DBTranslationLanguage translationLanguage = projectService
-						.findPublishedLanguage(project, entry.getKey())
-						.orElseThrow(() -> new IllegalStateException(
-								"Published translation language disappeared during publish: " +
-										entry.getKey()));
+				// Guaranteed to resolve: reconcilePublishedTranslationLanguages (called above, once
+				// validation passed) has already created a published language row on this same
+				// version for every language code that can appear here.
+				DBPublishedTranslationLanguage translationLanguage = languagesByCode.get(entry.getKey());
+				if (translationLanguage == null) {
+					throw new IllegalStateException(
+							"Published translation language disappeared during publish: " +
+									entry.getKey());
+				}
 				DBPublishedTranslation translation = new DBPublishedTranslation();
 				translation.setPublishedDialogue(published);
 				translation.setTranslationLanguage(translationLanguage);
@@ -270,54 +295,51 @@ public class PublishService {
 	}
 
 	// --------------------------------------------------------------------- //
-	// -------------------- Metadata & Language Reconciliation -------------- //
+	// -------------------- Language Snapshot Reconciliation ---------------- //
 	// --------------------------------------------------------------------- //
 
 	/**
-	 * If the project's draft display name/description differ from its currently published values,
-	 * writes the draft values into the published fields via {@link
-	 * ProjectService#applyPublishedMetadata}. A no-op otherwise.
+	 * Snapshots every non-deleted {@link DBDraftTranslationLanguage} of the given project onto the
+	 * given (already-persisted) {@link DBProjectVersion} as a fresh {@link
+	 * DBPublishedTranslationLanguage} row — exactly like {@link DBPublishedDialogue} is a fresh
+	 * copy per version, this table is never upserted into or shared across versions, so a code or
+	 * name rename simply changes what the next publish snapshots; nothing needs to be "retired".
+	 * Languages pending deletion have their draft translation content stripped from every draft
+	 * dialogue first (so script reconstruction never sees it), and their draft row hard-deleted for
+	 * real — they are excluded from this version's snapshot entirely.
 	 *
 	 * @param project the project to reconcile.
+	 * @param version the newly created, already-persisted version to snapshot languages onto.
+	 * @return the newly created published translation languages, keyed by their code.
 	 */
-	private void reconcilePublishedMetadata(DBProject project) {
-		if (!Objects.equals(project.getDisplayName(), project.getDraftDisplayName())
-				|| !Objects.equals(project.getDescription(), project.getDraftDescription())) {
-			projectService.applyPublishedMetadata(project, project.getDraftDisplayName(),
-					project.getDraftDescription());
-		}
-	}
-
-	/**
-	 * Reconciles every {@link DBDraftTranslationLanguage} of the given project into the published
-	 * translation-language registry:
-	 * <ul>
-	 *     <li>Non-deleted languages are created (or un-removed, if a matching published row was
-	 *     previously marked removed) via {@link ProjectService#applyPublishedTranslationLanguage},
-	 *     and their draft row's {@code isNew} flag is cleared.</li>
-	 *     <li>Languages pending deletion have their draft translation content stripped from every
-	 *     draft dialogue first (so script reconstruction never sees it), their matching published
-	 *     row (if any) marked removed, and their draft row hard-deleted for real.</li>
-	 * </ul>
-	 *
-	 * @param project the project to reconcile.
-	 */
-	private void reconcilePublishedTranslationLanguages(DBProject project) {
+	private Map<String, DBPublishedTranslationLanguage> reconcilePublishedTranslationLanguages(
+			DBProject project, DBProjectVersion version) {
+		Map<String, DBPublishedTranslationLanguage> languagesByCode = new LinkedHashMap<>();
 		for (DBDraftTranslationLanguage language : draftProjectService.listDraftLanguages(project)) {
 			if (language.getIsDeleted()) {
 				draftDialogueService.deleteAllTranslationsInLanguage(language);
-				projectService.markPublishedTranslationLanguageRemoved(project,
-						language.getTranslationLanguageCode());
 				draftProjectService.hardDeleteDraftLanguage(language);
+				// project.draftTranslationLanguages was eagerly loaded once, at the top of
+				// publish() — Hibernate doesn't prune an already-loaded collection just because
+				// one of its rows was deleted via this separate repository call, so without this,
+				// the collection still holds a dangling reference to `language`. Any later
+				// save(project) below re-validates every element in this collection (even for an
+				// already-managed entity — Hibernate's merge always copies/replaces collection
+				// values) and throws EntityNotFoundException trying to re-resolve it.
+				project.getDraftTranslationLanguages().remove(language);
 			} else {
-				projectService.applyPublishedTranslationLanguage(project,
-						language.getTranslationLanguageName(), language.getTranslationLanguageCode());
-				if (language.getIsNew()) {
-					language.setIsNew(false);
-					draftProjectService.save(language);
-				}
+				DBPublishedTranslationLanguage published = new DBPublishedTranslationLanguage();
+				published.setVersion(version);
+				published.setTranslationLanguageName(language.getTranslationLanguageName());
+				published.setTranslationLanguageCode(language.getTranslationLanguageCode());
+				published = publishedTranslationLanguageRepository.save(published);
+				languagesByCode.put(published.getTranslationLanguageCode(), published);
+
+				language.setIsNew(false);
+				draftProjectService.save(language);
 			}
 		}
+		return languagesByCode;
 	}
 
 	// ------------------------------------------------------------- //

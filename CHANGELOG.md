@@ -12,12 +12,23 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 - Moved project metadata (display name, description, translation languages) into the same
   draft → publish cycle as dialogue content ([#75](https://github.com/dialoguebranch/platform/issues/75)).
   Editing a project's metadata used to write directly to the live/published record with no review
-  step; it now edits a draft copy that only takes effect on the next publish, and the web client's
-  "Edit Metadata" (now "Configure Project") is only available in Authoring Mode. Translation
-  languages themselves also moved onto a real foreign-key relationship — `DBDraftTranslation`/
-  `DBPublishedTranslation` now reference their language via a proper FK into a draft/published
-  language registry (previously a loose, unconstrained string column) — and removing a language
-  now warns which draft dialogues have content in it before it's removed.
+  step; a new "Configure Project" window (renamed from "Edit Metadata", and now only available in
+  Authoring Mode) edits a draft copy instead, with a General tab (display name, description,
+  read-only project slug, and the latest published version's info) and a Languages tab (the
+  source language shown read-only, plus add/rename/remove for translation languages). Nothing is
+  sent to the server until "Save Draft" is pressed, and the whole batch of pending changes —
+  metadata plus any language removals, additions, and renames — is applied atomically through a
+  new `POST /project/update-draft` end-point: either all of it succeeds, or none of it does, with
+  structured per-field errors reported back for whichever change conflicted (e.g. two languages
+  ending up with the same code). Removing a translation language warns which draft dialogues
+  currently have content in it before it's removed, and — like dialogue deletion — is reversible
+  (with an undo) until the project is next published. Draft and published translation content also
+  gained real referential integrity: `DBDraftTranslation`/`DBPublishedTranslation` now reference
+  their language via a foreign key into a language registry, rather than an unconstrained string
+  column. Finally, publishing now snapshots a project's display name, description, and
+  translation-language list onto the new, immutable published version — exactly like dialogue
+  content already is — so a past published version retains its own historical metadata and
+  language list instead of sharing one project-wide, mutable "current" record.
 - Replaced the Antora/AsciiDoc-based Documentation Hub with a new VitePress-based site
   (`documentation/vitepress/`), now live at https://www.dialoguebranch.com/docs/. The vendored
   `antora-ui-default` fork (`documentation/dlb-ui/`) had drifted from the rest of the platform's

@@ -33,13 +33,12 @@ import com.dialoguebranch.web.service.repository.DBDraftTranslationLanguageRepos
 import com.dialoguebranch.web.service.repository.DBProjectRepository;
 import com.dialoguebranch.web.service.repository.DBProjectVersionRepository;
 import com.dialoguebranch.web.service.repository.DBPublishedDialogueRepository;
+import com.dialoguebranch.web.service.repository.DBPublishedTranslationLanguageRepository;
 import com.dialoguebranch.web.service.repository.DBPublishedTranslationRepository;
-import com.dialoguebranch.web.service.repository.DBTranslationLanguageRepository;
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import com.dialoguebranch.web.service.storage.model.DBProjectVersion;
 import com.dialoguebranch.web.service.storage.model.DBPublishedDialogue;
-import com.dialoguebranch.web.service.storage.model.DBTranslationLanguage;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,9 +49,10 @@ import java.util.UUID;
 
 /**
  * Service for managing {@link DBProject} records — creation, retrieval, update and deletion of
- * projects, and management of their translation languages. A project always has exactly one
- * source language (set at creation time, stored directly on {@link DBProject}) and zero or more
- * translation languages ({@link DBTranslationLanguage} rows).
+ * projects. A project always has exactly one source language (set at creation time, stored
+ * directly on {@link DBProject}); its display name/description and translation languages are
+ * draft → publish cycled — see {@link DraftProjectService} for the editable draft copy and
+ * {@link PublishService} for how a publish snapshots it onto a new {@link DBProjectVersion}.
  *
  * @author Harm op den Akker
  */
@@ -65,19 +65,17 @@ public class ProjectService {
 	private static final String DEFAULT_NODE_BODY = "Start your dialogue here...";
 
 	private final DBProjectRepository projectRepository;
-	private final DBTranslationLanguageRepository translationLanguageRepository;
 	private final DBDraftTranslationLanguageRepository draftTranslationLanguageRepository;
 	private final DBProjectVersionRepository projectVersionRepository;
 	private final DBPublishedDialogueRepository publishedDialogueRepository;
 	private final DBPublishedTranslationRepository publishedTranslationRepository;
+	private final DBPublishedTranslationLanguageRepository publishedTranslationLanguageRepository;
 	private final DraftDialogueService draftDialogueService;
 
 	/**
 	 * Creates a new {@link ProjectService}.
 	 *
 	 * @param projectRepository                repository used to read and persist project records.
-	 * @param translationLanguageRepository    repository used to read and persist a project's
-	 *                                         published translation languages.
 	 * @param draftTranslationLanguageRepository repository used to delete a project's draft
 	 *                                         translation languages when the project itself is
 	 *                                         deleted.
@@ -87,23 +85,25 @@ public class ProjectService {
 	 *                                         version's published dialogues.
 	 * @param publishedTranslationRepository   repository used to read and delete a published
 	 *                                         dialogue's translations.
+	 * @param publishedTranslationLanguageRepository repository used to read and delete a project
+	 *                                         version's published translation languages.
 	 * @param draftDialogueService             service used to create a project's starter draft
 	 *                                         dialogue and to delete all of a project's draft
 	 *                                         dialogues when the project itself is deleted.
 	 */
 	public ProjectService(DBProjectRepository projectRepository,
-						  DBTranslationLanguageRepository translationLanguageRepository,
 						  DBDraftTranslationLanguageRepository draftTranslationLanguageRepository,
 						  DBProjectVersionRepository projectVersionRepository,
 						  DBPublishedDialogueRepository publishedDialogueRepository,
 						  DBPublishedTranslationRepository publishedTranslationRepository,
+						  DBPublishedTranslationLanguageRepository publishedTranslationLanguageRepository,
 						  DraftDialogueService draftDialogueService) {
 		this.projectRepository = projectRepository;
-		this.translationLanguageRepository = translationLanguageRepository;
 		this.draftTranslationLanguageRepository = draftTranslationLanguageRepository;
 		this.projectVersionRepository = projectVersionRepository;
 		this.publishedDialogueRepository = publishedDialogueRepository;
 		this.publishedTranslationRepository = publishedTranslationRepository;
+		this.publishedTranslationLanguageRepository = publishedTranslationLanguageRepository;
 		this.draftDialogueService = draftDialogueService;
 	}
 
@@ -157,10 +157,8 @@ public class ProjectService {
 		Instant now = Instant.now();
 		DBProject project = new DBProject();
 		project.setSlug(slug);
-		project.setDisplayName(displayName);
-		project.setDescription(description);
-		// The draft copy starts out identical to the published values, so a freshly created
-		// project shows no phantom unpublished metadata change until it's actually edited.
+		// The project has no published snapshot yet until its first publish — only the draft copy
+		// is seeded here, with the values provided at creation.
 		project.setDraftDisplayName(displayName);
 		project.setDraftDescription(description);
 		project.setSourceLanguageCode(sourceLanguageCode);
@@ -198,24 +196,6 @@ public class ProjectService {
 	}
 
 	/**
-	 * Updates the published display name and description of the given project to match its draft
-	 * values. Called only by {@link PublishService#publish} — authoring edits go through {@link
-	 * DraftProjectService#updateDraftMetadata} instead, and only take effect here once published.
-	 *
-	 * @param project     the project to update.
-	 * @param displayName the new published display name.
-	 * @param description the new published description.
-	 * @return the updated {@link DBProject}.
-	 */
-	public DBProject applyPublishedMetadata(DBProject project, String displayName,
-			String description) {
-		project.setDisplayName(displayName);
-		project.setDescription(description);
-		project.setUpdatedAt(Instant.now());
-		return projectRepository.save(project);
-	}
-
-	/**
 	 * Saves the given project, persisting any changes made to it.
 	 *
 	 * @param project the project to save.
@@ -226,9 +206,9 @@ public class ProjectService {
 	}
 
 	/**
-	 * Deletes the given project and all its associated data: translation languages, draft
-	 * dialogues (and their nodes/translations), and published versions (and their published
-	 * dialogues/translations).
+	 * Deletes the given project and all its associated data: its draft translation-language
+	 * registry, draft dialogues (and their nodes/translations), and published versions (and their
+	 * published dialogues/translations/translation languages).
 	 *
 	 * <p>None of these relationships cascade at the database or JPA level, and
 	 * {@code latest_version_id} is a circular reference back into a table that references the
@@ -242,10 +222,6 @@ public class ProjectService {
 		// Break the circular reference back into this project before deleting anything.
 		project.setLatestVersion(null);
 		projectRepository.save(project);
-
-		translationLanguageRepository.deleteAll(translationLanguageRepository.findByProject(project));
-		draftTranslationLanguageRepository.deleteAll(
-				draftTranslationLanguageRepository.findByProject(project));
 
 		// Whole-project deletion is final, so every draft dialogue must actually be removed here
 		// (deleteDialogue is a revertible soft-delete, which would leave rows behind referencing
@@ -262,78 +238,20 @@ public class ProjectService {
 						publishedTranslationRepository.findByPublishedDialogue(publishedDialogue));
 			}
 			publishedDialogueRepository.deleteAll(publishedDialogueRepository.findByVersion(version));
+			// Each version owns its own published translation-language snapshot — deleted here
+			// alongside that version's dialogues/translations, rather than as a separate
+			// whole-project step (there is no more single, project-wide registry to clean up).
+			publishedTranslationLanguageRepository.deleteAll(
+					publishedTranslationLanguageRepository.findByVersion(version));
 			projectVersionRepository.delete(version);
 		}
 
+		// Only once nothing references them anymore: draft_translations (deleted above via
+		// hardDeleteDialogue) hold a NOT NULL foreign key into this registry.
+		draftTranslationLanguageRepository.deleteAll(
+				draftTranslationLanguageRepository.findByProject(project));
+
 		projectRepository.delete(project);
-	}
-
-	// ----------------------------------------------------------------------- //
-	// -------------------- Translation Language Management -------------------- //
-	// ----------------------------------------------------------------------- //
-
-	/**
-	 * Returns the (non-removed) published translation language with the given code for the given
-	 * project, or {@link Optional#empty()} if not found.
-	 *
-	 * @param project the project the translation language belongs to.
-	 * @param translationLanguageCode the code of the translation language to look up.
-	 * @return the matching, active {@link DBTranslationLanguage}, or empty.
-	 */
-	public Optional<DBTranslationLanguage> findPublishedLanguage(DBProject project,
-			String translationLanguageCode) {
-		return translationLanguageRepository
-				.findByProjectAndTranslationLanguageCode(project, translationLanguageCode)
-				.filter(t -> !t.getIsRemoved());
-	}
-
-	/**
-	 * Adds a published translation language to the given project, or un-removes and refreshes the
-	 * name of a matching, previously-removed one. Called only by {@link PublishService#publish}
-	 * when reconciling a non-deleted draft translation language — authoring edits go through
-	 * {@link DraftProjectService#addDraftLanguage} instead, and only take effect here once
-	 * published.
-	 *
-	 * @param project                    the owning project.
-	 * @param translationLanguageName    the human-readable name of the translation language.
-	 * @param translationLanguageCode    the ISO code of the translation language.
-	 * @return the newly created or un-removed {@link DBTranslationLanguage}.
-	 */
-	public DBTranslationLanguage applyPublishedTranslationLanguage(DBProject project,
-			String translationLanguageName, String translationLanguageCode) {
-		DBTranslationLanguage translationLanguage = translationLanguageRepository
-				.findByProjectAndTranslationLanguageCode(project, translationLanguageCode)
-				.orElseGet(() -> {
-					DBTranslationLanguage t = new DBTranslationLanguage();
-					t.setProject(project);
-					t.setTranslationLanguageCode(translationLanguageCode);
-					return t;
-				});
-		translationLanguage.setTranslationLanguageName(translationLanguageName);
-		translationLanguage.setIsRemoved(false);
-		return translationLanguageRepository.save(translationLanguage);
-	}
-
-	/**
-	 * Marks the published translation language with the given code as removed
-	 * ({@code isRemoved = true}) for the given project, if one currently exists. Never hard-
-	 * deletes the row — historical {@link com.dialoguebranch.web.service.storage.model
-	 * .DBPublishedTranslation} rows in past, immutable project versions must keep a valid foreign
-	 * key into it forever. Does nothing if no such (non-removed) translation language exists for
-	 * this project (e.g. it was added and removed again in the same draft, without ever being
-	 * published). Called only by {@link PublishService#publish}.
-	 *
-	 * @param project the project the translation language must belong to.
-	 * @param translationLanguageCode the code of the translation language to mark removed.
-	 */
-	public void markPublishedTranslationLanguageRemoved(DBProject project,
-			String translationLanguageCode) {
-		translationLanguageRepository
-				.findByProjectAndTranslationLanguageCode(project, translationLanguageCode)
-				.ifPresent(t -> {
-					t.setIsRemoved(true);
-					translationLanguageRepository.save(t);
-				});
 	}
 
 }

@@ -37,8 +37,9 @@ import java.util.UUID;
 /**
  * JPA entity representing a translation language in the editable draft registry of a project, in
  * the {@code draft_translation_languages} table. This is the working copy of a project's
- * translation languages — edited freely through the authoring API — that gets reconciled into the
- * immutable published registry ({@link DBTranslationLanguage}) whenever the project is published.
+ * translation languages — edited freely through the authoring API — that gets snapshotted into a
+ * fresh {@link DBPublishedTranslationLanguage} row on the new {@link DBProjectVersion} whenever the
+ * project is published.
  *
  * @author Harm op den Akker
  */

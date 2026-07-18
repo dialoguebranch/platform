@@ -1,6 +1,7 @@
 package com.dialoguebranch.web.service.project;
 
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
+import com.dialoguebranch.web.service.storage.model.DBDraftTranslationLanguage;
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,39 @@ class ProjectServiceTest {
 
     @Autowired
     private DraftDialogueService draftDialogueService;
+
+    @Autowired
+    private DraftProjectService draftProjectService;
+
+    @Autowired
+    private PublishService publishService;
+
+    @Test
+    void deleteProjectRemovesDraftAndPublishedTranslationsBeforeTheirLanguageRegistryRowsWithoutForeignKeyViolation()
+            throws Exception {
+        DBProject project = projectService.createProject("delete-project-lang-test",
+                "Delete Project Language Test", "", "en", "English");
+        DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "basic");
+        draftDialogueService.createNode(dialogue, "Start", "title: Start\nspeaker: Narrator", "Hello.");
+
+        // A draft translation language, plus a translation row referencing it — this exercises the
+        // new draft_translations -> draft_translation_languages foreign key.
+        DBDraftTranslationLanguage language = draftProjectService.addDraftLanguage(project, "Dutch", "nl-NL");
+        draftDialogueService.createOrUpdateTranslation(dialogue, language, "{}");
+
+        // Publish so a published_translations row (referencing a version-scoped
+        // published_translation_languages row) also exists, exercising that foreign key too.
+        PublishService.PublishResult publishResult = publishService.publish(project, null);
+        if (!publishResult.isSuccess()) {
+            throw new AssertionError("Publish failed: " + publishResult.getErrors());
+        }
+
+        // Must not throw (e.g. a foreign key violation from deleting the language registry rows
+        // while draft/published translation rows still reference them).
+        projectService.deleteProject(project);
+
+        assertTrue(projectService.findBySlug("delete-project-lang-test").isEmpty());
+    }
 
     @Test
     void deleteProjectRemovesSoftDeletedDraftDialoguesTooWithoutForeignKeyViolation() {

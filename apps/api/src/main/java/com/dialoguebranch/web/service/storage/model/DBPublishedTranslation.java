@@ -45,8 +45,8 @@ import java.util.UUID;
 	name = "published_translations",
 	uniqueConstraints = {
 		@UniqueConstraint(
-			name = "uq_published_translations",
-			columnNames = { "published_dialogue_id", "translation_language_id" }
+			name = "uq_published_translations_language",
+			columnNames = { "published_dialogue_id", "published_translation_language_id" }
 		)
 	}
 )
@@ -64,12 +64,12 @@ public class DBPublishedTranslation {
 	// EAGER, unlike publishedDialogue above: this project runs with open-in-view disabled, and
 	// callers routinely read getTranslationLanguage() outside an open Hibernate
 	// session/transaction (e.g. ProjectLoaderService.loadProject) — LAZY would throw
-	// LazyInitializationException there. DBTranslationLanguage is a small lookup row, so
+	// LazyInitializationException there. DBPublishedTranslationLanguage is a small lookup row, so
 	// Hibernate resolves this as a plain SQL join rather than a real N+1 cost.
 	@ManyToOne(fetch = FetchType.EAGER)
-	@JoinColumn(name = "translation_language_id", nullable = false)
+	@JoinColumn(name = "published_translation_language_id", nullable = false)
 	@JsonIgnore
-	private DBTranslationLanguage translationLanguage;
+	private DBPublishedTranslationLanguage translationLanguage;
 
 	@Column(columnDefinition = "TEXT")
 	private String content;
@@ -117,20 +117,20 @@ public class DBPublishedTranslation {
 	}
 
 	/**
-	 * Returns the {@link DBTranslationLanguage} this translation targets.
+	 * Returns the {@link DBPublishedTranslationLanguage} this translation targets.
 	 *
 	 * @return the target language.
 	 */
-	public DBTranslationLanguage getTranslationLanguage() {
+	public DBPublishedTranslationLanguage getTranslationLanguage() {
 		return translationLanguage;
 	}
 
 	/**
-	 * Sets the {@link DBTranslationLanguage} this translation targets.
+	 * Sets the {@link DBPublishedTranslationLanguage} this translation targets.
 	 *
 	 * @param translationLanguage the target language.
 	 */
-	public void setTranslationLanguage(DBTranslationLanguage translationLanguage) {
+	public void setTranslationLanguage(DBPublishedTranslationLanguage translationLanguage) {
 		this.translationLanguage = translationLanguage;
 	}
 
