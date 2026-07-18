@@ -960,7 +960,7 @@ function onSelectReply(dialogueStep, reply) {
                 />
             </MainPagePanelContainer>
             <MainPagePanelContainer v-else-if="selectedMode === 'translate'" class="-mt-px !overflow-hidden relative">
-                <TranslationEditor ref="translation-editor" :dialogueName="activeTab.dialogueName" />
+                <TranslationEditor ref="translation-editor" :dialogueName="activeTab.dialogueName" @dialogueSaved="$emit('dialogueSaved')" />
             </MainPagePanelContainer>
             <div v-if="activeTab.isDraftTest && selectedMode !== 'edit' && selectedMode !== 'translate'" class="absolute bottom-3 left-3 font-mono text-[10px] text-gray-400 pointer-events-none">
                 <span class="font-semibold">Ephemeral Draft Test</span><template v-if="activeTab.draftSessionId"> — Session ID: {{ activeTab.draftSessionId }}</template>

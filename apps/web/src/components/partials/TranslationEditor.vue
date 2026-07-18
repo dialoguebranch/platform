@@ -12,6 +12,8 @@ const props = defineProps({
     dialogueName: { type: String, default: null },
 });
 
+const emit = defineEmits(['dialogueSaved']);
+
 const state = inject('state');
 const client = useClient();
 
@@ -78,6 +80,11 @@ function submitCell(speaker, term, language) {
         const nextDirty = new Set(dirtyCells.value);
         nextDirty.delete(key);
         dirtyCells.value = nextDirty;
+        // Marks the owning draft dialogue as changed server-side (see
+        // DraftDialogueService#createOrUpdateTranslation) — without this, DialogueBrowser's
+        // dialogue list (the only thing that recomputes "has unpublished changes") never refetches
+        // after a pure translation edit, leaving the Publish Project button disabled.
+        emit('dialogueSaved');
     })
     .catch((error) => {
         showError(describeError(error));

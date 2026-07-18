@@ -39,6 +39,16 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   (Home / Documentation / About / News & Updates) so the docs, marketing site, and web client read
   as one product. All content was ported over 1:1.
 
+### Fixed
+
+- Fixed "Publish Project" staying disabled in the web client's Authoring Mode when the only
+  unpublished change was to translation content. Saving a translation cell in `TranslationEditor
+  .vue` already marked the owning draft dialogue as changed server-side, but the component had no
+  way to tell the rest of the app a save had happened — unlike the node editor (`DialogueEditor
+  .vue`), which emits `dialogueSaved` after every edit, prompting `DialogueBrowser.vue` to refetch
+  the draft dialogue list and recompute whether anything is unpublished. `TranslationEditor.vue`
+  now emits the same `dialogueSaved` event after each successful translation save.
+
 ### Removed
 
 - Removed the old Antora/AsciiDoc documentation project (`documentation/antora/`, including the

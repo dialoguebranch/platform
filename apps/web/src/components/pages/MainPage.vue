@@ -53,7 +53,7 @@ onMounted(() => {
         const slug = state.value.selectedProject.slug;
         client.getProject(slug)
             .then((project) => {
-                state.value.selectedProject = { slug: project.slug, displayName: project.latestVersion?.displayName ?? project.slug, latestVersion: project.latestVersion ?? null };
+                state.value.selectedProject = { slug: project.slug, displayName: project.latestVersion?.displayName ?? project.draftDisplayName ?? project.slug, latestVersion: project.latestVersion ?? null };
                 refreshProjectMetadataChanged(project);
             })
             .catch(() => { /* keep the slug-only project; header just shows the slug */ });
@@ -170,7 +170,7 @@ function onConfigureProjectClick() {
 
 function onProjectConfigured(updated) {
     showConfigureProject.value = false;
-    state.value.selectedProject = { ...state.value.selectedProject, slug: updated.slug, displayName: updated.latestVersion?.displayName ?? updated.slug };
+    state.value.selectedProject = { ...state.value.selectedProject, slug: updated.slug, displayName: updated.latestVersion?.displayName ?? updated.draftDisplayName ?? updated.slug };
     // The modal only reports the fields it itself changed — re-fetch to also pick up any
     // translation-language additions/removals when recomputing the unpublished-changes state.
     client.getProject(updated.slug)
