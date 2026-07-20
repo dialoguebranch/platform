@@ -107,7 +107,7 @@ mv "$CHANGELOG.tmp" "$CHANGELOG"
 NOTES_FILE="$(mktemp)"
 trap 'rm -f "$NOTES_FILE"' EXIT
 awk -v heading="## [${VERSION}]" '
-	$0 ~ "^" heading { found = 1; next }
+	index($0, heading) == 1 { found = 1; next }
 	found && /^## \[/ { exit }
 	found { print }
 ' "$CHANGELOG" > "$NOTES_FILE"
