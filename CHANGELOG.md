@@ -7,6 +7,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+## [2.0.3] - 2026-07-20
+
 ### Added
 
 - Moved project metadata (display name, description, translation languages) into the same
