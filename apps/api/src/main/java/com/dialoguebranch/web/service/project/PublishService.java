@@ -168,6 +168,22 @@ public class PublishService {
 	// ----------------------------------------------------------- //
 
 	/**
+	 * Attempts to publish the given project, auto-assigning the next sequential version number
+	 * (see {@link #getNextVersionNumber(DBProject)}). Equivalent to {@link #publish(DBProject,
+	 * DBUser, Integer)} with a {@code null} version number.
+	 *
+	 * @param project     the project to publish.
+	 * @param publishedBy the user initiating the publish, or {@code null} for system-triggered
+	 *                    publishes.
+	 * @return the result of the publish attempt.
+	 * @throws IOException if script reconstruction fails unexpectedly.
+	 */
+	@Transactional
+	public PublishResult publish(DBProject project, DBUser publishedBy) throws IOException {
+		return publish(project, publishedBy, null);
+	}
+
+	/**
 	 * Attempts to publish the given project. All draft dialogues are reconstructed into
 	 * {@code .dlb} script content and validated by {@link ProjectParser}. If validation passes,
 	 * a new {@link DBProjectVersion} is created as a full snapshot of the project's current draft
@@ -179,11 +195,22 @@ public class PublishService {
 	 * @param project     the project to publish.
 	 * @param publishedBy the user initiating the publish, or {@code null} for system-triggered
 	 *                    publishes.
+	 * @param explicitVersionNumber the version number to assign to the new {@link
+	 *                              DBProjectVersion}, or {@code null} to auto-assign the next
+	 *                              sequential number via {@link #getNextVersionNumber(DBProject)}.
+	 *                              Used by {@code ProjectSeedService.createAndPublishProject} to
+	 *                              preserve a seeded/imported project's stated {@code
+	 *                              dlb-project.xml} {@code version} attribute instead of always
+	 *                              starting over at 1. Callers are responsible for ensuring {@code
+	 *                              project} has no existing version already using this number — the
+	 *                              unique constraint on {@code (project_id, version_number)} would
+	 *                              otherwise fail the transaction.
 	 * @return the result of the publish attempt.
 	 * @throws IOException if script reconstruction fails unexpectedly.
 	 */
 	@Transactional
-	public PublishResult publish(DBProject project, DBUser publishedBy) throws IOException {
+	public PublishResult publish(DBProject project, DBUser publishedBy,
+			Integer explicitVersionNumber) throws IOException {
 		// The caller (PublishController) loads `project` via its own, already-completed query, so
 		// it arrives here detached — with a stale, eagerly-fetched snapshot of its collections
 		// (e.g. draftTranslationLanguages) frozen at that earlier point in time. Re-fetching it as
@@ -219,7 +246,8 @@ public class PublishService {
 		Map<String, Map<String, String>> translationsByDialogue = validation.translations();
 
 		// Determine next version number
-		int nextVersion = getNextVersionNumber(project);
+		int nextVersion = explicitVersionNumber != null
+				? explicitVersionNumber : getNextVersionNumber(project);
 
 		// Create the project version record — a full metadata snapshot, written unconditionally
 		// (exactly like every dialogue below gets a fresh DBPublishedDialogue row regardless of

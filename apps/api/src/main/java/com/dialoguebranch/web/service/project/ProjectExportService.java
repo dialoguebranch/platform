@@ -36,6 +36,8 @@ import com.dialoguebranch.model.execute.LanguageMap;
 import com.dialoguebranch.web.service.exception.BadRequestException;
 import com.dialoguebranch.web.service.exception.NotFoundException;
 import com.dialoguebranch.web.service.repository.DBProjectVersionRepository;
+import com.dialoguebranch.web.service.repository.DBPublishedDialogueRepository;
+import com.dialoguebranch.web.service.repository.DBPublishedTranslationRepository;
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import com.dialoguebranch.web.service.storage.model.DBProjectVersion;
 import com.dialoguebranch.web.service.storage.model.DBPublishedDialogue;
@@ -49,6 +51,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -69,16 +75,27 @@ public class ProjectExportService {
 	private static final String PROJECT_MARKER_FILE = "dlb-project.xml";
 
 	private final DBProjectVersionRepository versionRepository;
+	private final DBPublishedDialogueRepository dialogueRepository;
+	private final DBPublishedTranslationRepository translationRepository;
 
 	/**
 	 * Creates a new {@link ProjectExportService}.
 	 *
-	 * @param versionRepository repository used to re-fetch a project's latest version as a managed
-	 *                          entity, so its lazily-fetched published dialogues/translations can be
-	 *                          read within this method's own transaction.
+	 * @param versionRepository     repository used to re-fetch a project's latest version as a
+	 *                              managed entity, so its lazily-fetched published translation
+	 *                              languages can be read within this method's own transaction.
+	 * @param dialogueRepository    repository used to fetch a version's published dialogues in one
+	 *                              query, rather than lazily through {@code version
+	 *                              .getPublishedDialogues()}.
+	 * @param translationRepository repository used to fetch all of those dialogues' translations in
+	 *                              one batched query, avoiding an N+1 (one query per dialogue).
 	 */
-	public ProjectExportService(DBProjectVersionRepository versionRepository) {
+	public ProjectExportService(DBProjectVersionRepository versionRepository,
+			DBPublishedDialogueRepository dialogueRepository,
+			DBPublishedTranslationRepository translationRepository) {
 		this.versionRepository = versionRepository;
+		this.dialogueRepository = dialogueRepository;
+		this.translationRepository = translationRepository;
 	}
 
 	/**
@@ -98,8 +115,7 @@ public class ProjectExportService {
 		}
 		// `project` (and its EAGER latestVersion) were loaded by the caller's own query, outside
 		// this method's transaction — re-fetch the version by id so it's a managed entity attached
-		// to *this* session, letting its LAZY publishedDialogues/publishedTranslationLanguages (and
-		// each dialogue's LAZY translations) actually load below.
+		// to *this* session, letting its LAZY publishedTranslationLanguages actually load below.
 		DBProjectVersion version = versionRepository.findById(project.getLatestVersion().getId())
 				.orElseThrow(() -> new NotFoundException(
 						"Project version not found: " + project.getLatestVersion().getId()));
@@ -118,15 +134,26 @@ public class ProjectExportService {
 		}
 		metaData.setLanguageMap(languageMap);
 
+		// Fetch dialogues and translations in two batched queries rather than lazily per-dialogue
+		// (version.getPublishedDialogues() followed by dialogue.getTranslations() in a loop would
+		// be 1 + N queries) — same approach ProjectLoaderService.loadProject uses for the same
+		// relationship.
+		List<DBPublishedDialogue> dialogues = dialogueRepository.findByVersion(version);
+		List<DBPublishedTranslation> translations =
+				translationRepository.findByPublishedDialogueIn(dialogues);
+		Map<UUID, List<DBPublishedTranslation>> translationsByDialogueId = translations.stream()
+				.collect(Collectors.groupingBy(t -> t.getPublishedDialogue().getId()));
+
 		ByteArrayOutputStream archiveBytes = new ByteArrayOutputStream();
 		try (ZipOutputStream zip = new ZipOutputStream(archiveBytes)) {
 			writeMetaDataEntry(zip, metaData);
 
 			String sourceLanguageCode = project.getSourceLanguageCode();
-			for (DBPublishedDialogue dialogue : version.getPublishedDialogues()) {
+			for (DBPublishedDialogue dialogue : dialogues) {
 				writeTextEntry(zip, sourceLanguageCode + "/" + dialogue.getName() +
 						DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION, dialogue.getContent());
-				for (DBPublishedTranslation translation : dialogue.getTranslations()) {
+				for (DBPublishedTranslation translation : translationsByDialogueId
+						.getOrDefault(dialogue.getId(), List.of())) {
 					String languageCode =
 							translation.getTranslationLanguage().getTranslationLanguageCode();
 					writeTextEntry(zip, languageCode + "/" + dialogue.getName() +

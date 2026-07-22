@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<dlb-project name="Project Test Project" version="1">
+<dlb-project name="Project Test Project" slug="default-test" version="1">
 	<description>This is a Dialogue Branch project used for testing the implementation of projects into the Dialogue Branch core.</description>
 	<language-map>
 		<source-language name="English" code="en" />

@@ -14,7 +14,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   a new project from that archive ("Import Project" from the project selector). New endpoints `GET
   /project/export-project` and `POST /project/import-project`. Import validates the archive
   (size caps, zip-slip protection, project-content validation, slug-collision check) before
-  creating anything in the database.
+  creating anything in the database. Export fetches a project's dialogues and translations in two
+  batched queries instead of one query per dialogue. Importing an archive preserves its exported
+  version number instead of always restarting the new project at version 1.
 
 ### Fixed
 

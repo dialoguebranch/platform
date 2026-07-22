@@ -63,8 +63,10 @@ import java.util.Optional;
  * startup. Each sub-directory of {@code projects-seed/} is treated as a potential Dialogue Branch
  * project. If a project with the same name does not yet exist in the database, the seed project is
  * validated and, if it passes without errors, created as draft dialogues and then published as the
- * project's version 1 — the exact same path any other project takes from authoring to publishing,
- * so seeded projects never start with published dialogues that lack a corresponding draft.
+ * project's first version (numbered 1, unless {@code dlb-project.xml}'s {@code version} attribute
+ * states otherwise — see {@link #createAndPublishProject}) — the exact same path any other project
+ * takes from authoring to publishing, so seeded projects never start with published dialogues that
+ * lack a corresponding draft.
  *
  * @author Harm op den Akker
  */
@@ -90,8 +92,8 @@ public class ProjectSeedService {
 	 *                             translations from the seed source files.
 	 * @param draftProjectService  service used to seed the project's draft translation language
 	 *                             registry from the seed source's {@code dlb-project.xml}.
-	 * @param publishService       service used to publish the seeded drafts as the project's
-	 *                             version 1.
+	 * @param publishService       service used to publish the seeded drafts as the project's first
+	 *                             version.
 	 * @param self                 a {@code @Lazy} self-reference resolving to this same bean's
 	 *                             Spring proxy. Plain {@code this.seedProject(...)}
 	 *                             self-invocation bypasses Spring's proxy-based AOP entirely, so
@@ -229,23 +231,30 @@ public class ProjectSeedService {
 		}
 
 		// -- Steps 3-7: create the project record, its draft translation languages and draft
-		// dialogues, and publish them as version 1 — shared with project import (see
+		// dialogues, and publish them as their first version — shared with project import (see
 		// createAndPublishProject's Javadoc). --
+		DBProject project;
 		try {
-			createAndPublishProject(projectFolderName, metaData, scriptLoader);
+			project = createAndPublishProject(projectFolderName, metaData, scriptLoader);
 		} catch (IOException e) {
 			throw new UncheckedIOException("Seed project '" + projectFolderName +
 					"': failed to seed from source: " + e.getMessage(), e);
 		}
 
-		logger.info("Successfully seeded project '{}' as version 1.", projectFolderName);
+		logger.info("Successfully seeded project '{}' as version {}.", projectFolderName,
+				project.getLatestVersion().getVersionNumber());
 	}
 
 	/**
 	 * Creates a new project record, seeds it with draft dialogues and translations read from {@code
-	 * scriptLoader}, and publishes those drafts as the project's version 1 — the exact same path any
-	 * other project takes from authoring to publishing, so a project created this way never starts
-	 * with published content that lacks a corresponding draft.
+	 * scriptLoader}, and publishes those drafts as the project's first version — the exact same
+	 * path any other project takes from authoring to publishing, so a project created this way
+	 * never starts with published content that lacks a corresponding draft. That first version is
+	 * numbered 1, unless {@code metaData}'s {@code version} attribute is itself a plain positive
+	 * integer (as written by {@code ProjectExportService} onto an exported archive's {@code
+	 * dlb-project.xml}), in which case that number is used instead — see {@link
+	 * #parseExplicitVersionNumber} — so re-importing a project preserves its original version
+	 * number rather than always restarting at 1.
 	 *
 	 * <p>Shared by two callers: classpath startup seeding ({@link #seedProject}, which has already
 	 * validated the project and derives {@code slug} from the seed folder name) and project import
@@ -256,7 +265,8 @@ public class ProjectSeedService {
 	 * this method does not repeat either check.</p>
 	 *
 	 * @param slug         the unique slug for the new project.
-	 * @param metaData     the parsed project metadata (display name, description, language map).
+	 * @param metaData     the parsed project metadata (display name, description, language map, and
+	 *                     optionally the version number to publish as).
 	 * @param scriptLoader the source to read {@code .dlb}/{@code .json} files from.
 	 * @return the newly created and published project.
 	 * @throws IOException           if {@code scriptLoader}'s files cannot be listed.
@@ -321,9 +331,13 @@ public class ProjectSeedService {
 							dialogue, language.get(), content));
 		}
 
-		// -- Step 7: Publish the drafts as version 1 — the same path as any later publish --
+		// -- Step 7: Publish the drafts — honoring dlb-project.xml's stated version number when
+		// it's a plain positive integer (as written by ProjectExportService, letting a re-imported
+		// project resume at its original version instead of always restarting at 1), otherwise
+		// auto-assigning version 1 for a brand-new project. --
 		try {
-			PublishService.PublishResult publishResult = publishService.publish(project, null);
+			PublishService.PublishResult publishResult = publishService.publish(project, null,
+					parseExplicitVersionNumber(metaData));
 			if (!publishResult.isSuccess()) {
 				throw new IllegalStateException("Project '" + slug +
 						"' failed to publish after passing its own pre-validation: " +
@@ -335,6 +349,30 @@ public class ProjectSeedService {
 		}
 
 		return project;
+	}
+
+	/**
+	 * Parses {@code metaData}'s {@code version} string as an explicit version number to publish
+	 * as, if it looks like one. {@link ProjectMetaData#getVersion()} is documented as a free-form
+	 * indicator (e.g. {@code "v0.1.0"}) for hand-authored/classpath-seed metadata, but {@code
+	 * ProjectExportService} overwrites it with the exact {@code DBProjectVersion.versionNumber}
+	 * it exported — a plain positive integer — so that specific shape is treated as an explicit
+	 * version to preserve on import. Anything else (missing, blank, non-numeric, zero/negative)
+	 * falls back to auto-assignment.
+	 *
+	 * @param metaData the parsed project metadata.
+	 * @return the explicit version number to publish as, or {@code null} to auto-assign the next
+	 * sequential number.
+	 */
+	private Integer parseExplicitVersionNumber(ProjectMetaData metaData) {
+		String version = metaData.getVersion();
+		if (version == null || version.isBlank()) return null;
+		try {
+			int parsed = Integer.parseInt(version.trim());
+			return parsed > 0 ? parsed : null;
+		} catch (NumberFormatException e) {
+			return null;
+		}
 	}
 
 	// --------------------------------------------------------------- //
