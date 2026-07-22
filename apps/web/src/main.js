@@ -1,7 +1,7 @@
 import './assets/css/main.css';
 import config from './config.js';
 import state from './state.js';
-import { fetchWhoAmI, redirectToLogin, redirectToLogout } from './auth.js';
+import { fetchWhoAmI, redirectToLogin } from './auth.js';
 import { checkServicesHealth } from './composables/service-health.js';
 import { User } from './dlb-lib/model/User.js';
 
@@ -9,6 +9,7 @@ import { createApp, ref } from 'vue';
 import App from './App.vue';
 import ServiceStatusPage from './components/pages/ServiceStatusPage.vue';
 import VersionMismatchPage from './components/pages/VersionMismatchPage.vue';
+import AccessDeniedPage from './components/pages/AccessDeniedPage.vue';
 
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { fas } from '@fortawesome/free-solid-svg-icons';
@@ -54,10 +55,11 @@ async function bootstrap() {
     if (hasAccess) {
         stateRef.value.user = new User(identity.username, roles);
     } else {
-        // Authenticated with Keycloak but lacks the required application role — end the
-        // session (this app's and Keycloak's SSO session both), otherwise the next reload
-        // would just resume the same under-privileged account and land straight back here.
-        redirectToLogout();
+        // Authenticated with Keycloak but lacks the required application role. Rather than
+        // silently ending the session and bouncing straight back to a bare Keycloak login page
+        // (which has no way to explain why the user landed there again), show it here — Keycloak
+        // has no notion of this app's roles, so this is the only place that can say why.
+        createApp(AccessDeniedPage, { username: identity.username }).mount('#app');
         return;
     }
 
