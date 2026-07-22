@@ -8,6 +8,7 @@ import { User } from './dlb-lib/model/User.js';
 import { createApp, ref } from 'vue';
 import App from './App.vue';
 import ServiceStatusPage from './components/pages/ServiceStatusPage.vue';
+import VersionMismatchPage from './components/pages/VersionMismatchPage.vue';
 
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { fas } from '@fortawesome/free-solid-svg-icons';
@@ -24,6 +25,17 @@ async function bootstrap() {
     if (!health.apiUp || !health.keycloakUp) {
         createApp(ServiceStatusPage, { apiUp: health.apiUp, keycloakUp: health.keycloakUp })
             .mount('#app');
+        return;
+    }
+
+    // A missing serviceVersion (field absent, or /info/all's body didn't parse) is treated as
+    // "unknown, don't block" rather than a mismatch — only an actual, confirmed difference between
+    // two known version strings should stop the user from logging in.
+    if (health.serviceVersion && health.serviceVersion !== __APP_VERSION__) {
+        createApp(VersionMismatchPage, {
+            clientVersion: __APP_VERSION__,
+            serviceVersion: health.serviceVersion,
+        }).mount('#app');
         return;
     }
 

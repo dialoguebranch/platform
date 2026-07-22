@@ -19,7 +19,10 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   version number instead of always restarting the new project at version 1.
 - Added a service status check to the web client's startup: before redirecting to Keycloak's login
   page, it now verifies the DLB API and Keycloak are both reachable. If either is down, it shows a
-  status page with a Retry button instead of sending the user to a broken login page.
+  status page with a Retry button instead of sending the user to a broken login page. The same
+  check also compares the API's reported software version against the web client's own build
+  version; a mismatch (e.g. a stale cached bundle after a deploy) shows an "Update Available" page
+  with a Reload button instead of proceeding to login.
 
 ### Fixed
 
