@@ -249,6 +249,16 @@ public class PublishService {
 			published.setName(draft.getName());
 			published.setContent(scriptsByName.get(draft.getName()));
 			published = publishedDialogueRepository.save(published);
+			// `version` is a freshly-constructed object, never reloaded from the DB after this
+			// point — Hibernate does not auto-sync a @OneToMany inverse-side collection just
+			// because a child row was persisted with the owning FK set via a separate repository
+			// call (the same reasoning as the identical fix for publishedTranslationLanguages in
+			// reconcilePublishedTranslationLanguages above). publishedDialogues is @JsonIgnore'd
+			// and LAZY, so no current API response depends on this, but without it any future
+			// same-transaction reader of version.getPublishedDialogues() — e.g. a combined
+			// publish-and-export action, or a test — would see an empty collection despite the
+			// row above being correctly persisted.
+			version.getPublishedDialogues().add(published);
 
 			for (Map.Entry<String, String> entry :
 					translationsByDialogue.get(draft.getName()).entrySet()) {

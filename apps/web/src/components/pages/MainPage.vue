@@ -13,6 +13,8 @@ import DialogueWorkspace from '../partials/DialogueWorkspace.vue';
 import ResizablePanels from '../widgets/ResizablePanels.vue';
 import VariableBrowser from '../partials/VariableBrowser.vue';
 import { DLB_APP_MODE_LIVE, DLB_APP_MODE_DRAFT } from '../../dlb-lib/WCTAClientState.js';
+import { showError } from '../../composables/error-toast.js';
+import { describeError } from '../../composables/error-message.js';
 
 const config = inject('config');
 const state = inject('state');
@@ -215,6 +217,44 @@ function onPublishProjectClick() {
     showPublishWizard.value = true;
 }
 
+// Export downloads the project's *published* content — deliberately available only in Live Mode
+// (unlike Configure/Publish, which are Authoring-Mode-only) since it's a snapshot of what's
+// actually live, not the in-progress draft.
+const exporting = ref(false);
+const canExportProject = computed(() =>
+    isAdmin.value && state.value.mode === DLB_APP_MODE_LIVE
+    && !!state.value.selectedProject?.latestVersion);
+const exportProjectDisabledReason = computed(() => {
+    if (!isAdmin.value) return 'Only administrators can export projects.';
+    if (state.value.mode !== DLB_APP_MODE_LIVE) return 'Switch to Live Mode to export the project.';
+    if (!state.value.selectedProject?.latestVersion) return 'This project has not been published yet.';
+    return '';
+});
+
+function onExportProjectClick() {
+    if (!canExportProject.value || exporting.value) return;
+    closeProjectMenu();
+    const slug = state.value.selectedProject.slug;
+    exporting.value = true;
+    client.exportProject(slug)
+        .then((blob) => {
+            const url = URL.createObjectURL(blob);
+            const anchor = document.createElement('a');
+            anchor.href = url;
+            anchor.download = slug + '.zip';
+            document.body.appendChild(anchor);
+            anchor.click();
+            anchor.remove();
+            URL.revokeObjectURL(url);
+        })
+        .catch((error) => {
+            showError(describeError(error));
+        })
+        .finally(() => {
+            exporting.value = false;
+        });
+}
+
 function onProjectPublished(version) {
     showPublishWizard.value = false;
     if (state.value.selectedProject) {
@@ -391,6 +431,16 @@ function onWorkspaceModeChanged(mode) {
                     >
                         <FontAwesomeIcon icon="fa-solid fa-rocket" class="w-4" :class="canPublish ? 'text-orange-medium' : 'text-grey-light'" />
                         Publish Project
+                    </button>
+                    <button
+                        type="button"
+                        :class="['flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm transition-colors', (canExportProject && !exporting) ? 'text-orange-darker hover:bg-grey-lighter cursor-pointer' : 'text-grey-light cursor-not-allowed']"
+                        :disabled="!canExportProject || exporting"
+                        :title="exportProjectDisabledReason"
+                        @click="onExportProjectClick"
+                    >
+                        <FontAwesomeIcon :icon="exporting ? 'fa-solid fa-circle-notch' : 'fa-solid fa-file-export'" :class="['w-4', canExportProject ? 'text-orange-medium' : 'text-grey-light', { 'animate-spin': exporting }]" />
+                        Export Project
                     </button>
                     <div class="border-t border-grey-light mx-3"></div>
                     <button type="button" class="flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm text-orange-darker hover:bg-grey-lighter cursor-pointer transition-colors" @click="onSwitchProjectClick">

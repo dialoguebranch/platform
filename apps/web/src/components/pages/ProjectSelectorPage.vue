@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useClient } from '../../composables/client.js';
 import { useStateManagement } from '../../composables/state-management.js';
 import CreateProjectWizardModal from '../partials/CreateProjectWizardModal.vue';
+import ImportProjectModal from '../partials/ImportProjectModal.vue';
 
 const state = inject('state');
 const client = useClient();
@@ -77,6 +78,7 @@ onBeforeUnmount(() => {
 });
 
 const showCreateWizard = ref(false);
+const showImportModal = ref(false);
 
 onMounted(() => {
     loadProjects();
@@ -164,21 +166,39 @@ function confirmDelete() {
         <div class="w-full px-4 mt-8 pb-12 max-w-3xl mx-auto">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="font-title font-bold text-lg">Select a Project</h2>
-                <button
-                    type="button"
-                    :class="['flex items-center gap-1.5 px-3 py-1.5 rounded text-white text-xs font-title font-semibold transition-colors', isAdmin ? 'bg-orange-darker hover:bg-orange-dark cursor-pointer' : 'bg-orange-medium cursor-not-allowed opacity-60']"
-                    :disabled="!isAdmin"
-                    :title="isAdmin ? '' : 'Only administrators can create new projects'"
-                    @click="isAdmin && (showCreateWizard = true)"
-                >
-                    <FontAwesomeIcon icon="fa-solid fa-plus" />
-                    New Project
-                </button>
+                <div class="flex items-center gap-2">
+                    <button
+                        type="button"
+                        :class="['flex items-center gap-1.5 px-3 py-1.5 rounded text-white text-xs font-title font-semibold transition-colors', isAdmin ? 'bg-orange-darker hover:bg-orange-dark cursor-pointer' : 'bg-orange-medium cursor-not-allowed opacity-60']"
+                        :disabled="!isAdmin"
+                        :title="isAdmin ? '' : 'Only administrators can import projects'"
+                        @click="isAdmin && (showImportModal = true)"
+                    >
+                        <FontAwesomeIcon icon="fa-solid fa-file-import" />
+                        Import Project
+                    </button>
+                    <button
+                        type="button"
+                        :class="['flex items-center gap-1.5 px-3 py-1.5 rounded text-white text-xs font-title font-semibold transition-colors', isAdmin ? 'bg-orange-darker hover:bg-orange-dark cursor-pointer' : 'bg-orange-medium cursor-not-allowed opacity-60']"
+                        :disabled="!isAdmin"
+                        :title="isAdmin ? '' : 'Only administrators can create new projects'"
+                        @click="isAdmin && (showCreateWizard = true)"
+                    >
+                        <FontAwesomeIcon icon="fa-solid fa-plus" />
+                        New Project
+                    </button>
+                </div>
             </div>
 
             <CreateProjectWizardModal
                 v-if="showCreateWizard"
                 @close="showCreateWizard = false"
+                @created="onProjectCreated"
+            />
+
+            <ImportProjectModal
+                v-if="showImportModal"
+                @close="showImportModal = false"
                 @created="onProjectCreated"
             />
 

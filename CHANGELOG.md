@@ -7,6 +7,15 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Added
+
+- Added project export/import: a project's published content can be downloaded as a `.zip`
+  archive ("Export Project" in the project menu, Live Mode only, once published) and re-created as
+  a new project from that archive ("Import Project" from the project selector). New endpoints `GET
+  /project/export-project` and `POST /project/import-project`. Import validates the archive
+  (size caps, zip-slip protection, project-content validation, slug-collision check) before
+  creating anything in the database.
+
 ### Fixed
 
 - The web client footer version had drifted from `global.json` (still showing v2.0.1 after the

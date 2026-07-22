@@ -26,6 +26,13 @@ spring:
     hibernate:
       ddl-auto: none
     open-in-view: false
+  servlet:
+    multipart:
+      # Above ProjectImportService's own 50MB archive-size cap, so that cap (and its clear error
+      # message) is what actually rejects an oversized upload rather than Spring's generic 1MB
+      # default limit.
+      max-file-size: 55MB
+      max-request-size: 55MB
   flyway:
     url: jdbc:mariadb://${dlb.mariadb.host}:${dlb.mariadb.port}/${dlb.mariadb.database}?createDatabaseIfNotExist=true
     user: ${dlb.mariadb.user}

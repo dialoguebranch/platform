@@ -31,6 +31,7 @@ package com.dialoguebranch.web.service.project;
 import com.dialoguebranch.execution.parser.ProjectMetaDataParser;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;
+import com.dialoguebranch.execution.parser.ScriptLoader;
 import com.dialoguebranch.model.common.ProjectMetaData;
 import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.model.execute.Language;
@@ -227,15 +228,53 @@ public class ProjectSeedService {
 							path, w)));
 		}
 
+		// -- Steps 3-7: create the project record, its draft translation languages and draft
+		// dialogues, and publish them as version 1 — shared with project import (see
+		// createAndPublishProject's Javadoc). --
+		try {
+			createAndPublishProject(projectFolderName, metaData, scriptLoader);
+		} catch (IOException e) {
+			throw new UncheckedIOException("Seed project '" + projectFolderName +
+					"': failed to seed from source: " + e.getMessage(), e);
+		}
+
+		logger.info("Successfully seeded project '{}' as version 1.", projectFolderName);
+	}
+
+	/**
+	 * Creates a new project record, seeds it with draft dialogues and translations read from {@code
+	 * scriptLoader}, and publishes those drafts as the project's version 1 — the exact same path any
+	 * other project takes from authoring to publishing, so a project created this way never starts
+	 * with published content that lacks a corresponding draft.
+	 *
+	 * <p>Shared by two callers: classpath startup seeding ({@link #seedProject}, which has already
+	 * validated the project and derives {@code slug} from the seed folder name) and project import
+	 * ({@code ProjectImportService}, which derives {@code slug} from the imported {@code
+	 * dlb-project.xml}'s {@code slug} attribute after its own validation pass). Callers are
+	 * responsible for checking {@code slug} doesn't already exist before calling this method, and
+	 * for validating {@code scriptLoader}'s content (e.g. via {@link ProjectParser}) beforehand —
+	 * this method does not repeat either check.</p>
+	 *
+	 * @param slug         the unique slug for the new project.
+	 * @param metaData     the parsed project metadata (display name, description, language map).
+	 * @param scriptLoader the source to read {@code .dlb}/{@code .json} files from.
+	 * @return the newly created and published project.
+	 * @throws IOException           if {@code scriptLoader}'s files cannot be listed.
+	 * @throws IllegalStateException if {@code metaData} has no source language, its translation
+	 * languages contain a duplicate code, or publishing the seeded drafts fails after passing
+	 * pre-validation.
+	 */
+	@Transactional
+	public DBProject createAndPublishProject(String slug, ProjectMetaData metaData,
+			ScriptLoader scriptLoader) throws IOException {
 		// -- Step 3: Create the project record, including its (required) source language --
 		Language source = metaData.getLanguageMap() != null
 				? metaData.getLanguageMap().getSourceLanguage() : null;
 		if (source == null) {
-			logger.error("Seed project '{}': dlb-project.xml has no <source-language> — not seeding.",
-					projectFolderName);
-			return;
+			throw new IllegalStateException("Project '" + slug +
+					"': dlb-project.xml has no <source-language>.");
 		}
-		DBProject project = projectService.createProject(projectFolderName, metaData.getName(),
+		DBProject project = projectService.createProject(slug, metaData.getName(),
 				metaData.getDescription(), source.getCode(), source.getName());
 
 		// -- Step 4: Store translation languages (as drafts — reconciled into the published
@@ -249,21 +288,13 @@ public class ProjectSeedService {
 			// Must throw, not just log-and-return: the project row (and any languages already
 			// added this loop) are already persisted at this point, and only an exception
 			// propagating out of this method actually rolls them back.
-			throw new IllegalStateException("Seed project '" + projectFolderName +
+			throw new IllegalStateException("Project '" + slug +
 					"': duplicate translation language in " + PROJECT_MARKER_FILE + ": " +
 					e.getMessage(), e);
 		}
 
-		// -- Step 5: List the seed source files --
-		List<ResourcePointer> files;
-		try {
-			files = scriptLoader.listDialogueBranchFiles();
-		} catch (IOException e) {
-			// Same reasoning as step 4 above — must throw to roll back the project/languages
-			// already persisted.
-			throw new UncheckedIOException("Seed project '" + projectFolderName +
-					"': failed to list dialogue files: " + e.getMessage(), e);
-		}
+		// -- Step 5: List the source files --
+		List<ResourcePointer> files = scriptLoader.listDialogueBranchFiles();
 
 		// -- Step 6: Create draft dialogues (scripts first, then translations, since a
 		// translation needs its dialogue's draft to already exist) --
@@ -281,8 +312,8 @@ public class ProjectSeedService {
 			Optional<DBDraftTranslationLanguage> language =
 					draftProjectService.findDraftLanguage(project, pointer.getLanguage());
 			if (language.isEmpty()) {
-				logger.warn("Seed project '{}': translation file for unregistered language '{}' " +
-						"— skipping.", projectFolderName, pointer.getLanguage());
+				logger.warn("Project '{}': translation file for unregistered language '{}' " +
+						"— skipping.", slug, pointer.getLanguage());
 				continue;
 			}
 			draftDialogueService.findDialogue(project, pointer.getDialogueName())
@@ -294,17 +325,16 @@ public class ProjectSeedService {
 		try {
 			PublishService.PublishResult publishResult = publishService.publish(project, null);
 			if (!publishResult.isSuccess()) {
-				throw new IllegalStateException("Seed project '" + projectFolderName +
+				throw new IllegalStateException("Project '" + slug +
 						"' failed to publish after passing its own pre-validation: " +
 						publishResult.getErrors());
 			}
 		} catch (IOException e) {
-			throw new UncheckedIOException("Seed project '" + projectFolderName +
+			throw new UncheckedIOException("Project '" + slug +
 					"': failed to publish seeded drafts: " + e.getMessage(), e);
 		}
 
-		logger.info("Successfully seeded project '{}' as version 1 ({} files).",
-				projectFolderName, files.size());
+		return project;
 	}
 
 	// --------------------------------------------------------------- //
@@ -355,11 +385,11 @@ public class ProjectSeedService {
 	 * Reads the full content of the file identified by the given {@link ResourcePointer} as a
 	 * string, or returns {@code null} and logs an error if reading fails.
 	 *
-	 * @param scriptLoader the {@link SpringResourceScriptLoader} to use.
+	 * @param scriptLoader the {@link ScriptLoader} to use.
 	 * @param pointer    the resource to read.
 	 * @return the file content, or {@code null} on error.
 	 */
-	private String readContent(SpringResourceScriptLoader scriptLoader, ResourcePointer pointer) {
+	private String readContent(ScriptLoader scriptLoader, ResourcePointer pointer) {
 		try (Reader reader = scriptLoader.openFile(pointer)) {
 			StringBuilder sb = new StringBuilder();
 			char[] buf = new char[4096];

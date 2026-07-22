@@ -38,6 +38,8 @@ import com.dialoguebranch.web.service.exception.HttpException;
 import com.dialoguebranch.web.service.exception.NotFoundException;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
 import com.dialoguebranch.web.service.project.DraftProjectService;
+import com.dialoguebranch.web.service.project.ProjectExportService;
+import com.dialoguebranch.web.service.project.ProjectImportService;
 import com.dialoguebranch.web.service.project.ProjectService;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslationLanguage;
 import com.dialoguebranch.web.service.storage.model.DBProject;
@@ -50,8 +52,12 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -82,6 +88,8 @@ public class ProjectController {
 	private final ProjectService projectService;
 	private final DraftProjectService draftProjectService;
 	private final DraftDialogueService draftDialogueService;
+	private final ProjectExportService projectExportService;
+	private final ProjectImportService projectImportService;
 
 	private static final Logger logger = LoggerFactory.getLogger(ProjectController.class);
 
@@ -95,12 +103,19 @@ public class ProjectController {
 	 *                             once published (see {@link PublishController}).
 	 * @param draftDialogueService service used to check which draft dialogues currently have
 	 *                             content in a translation language, before it's removed.
+	 * @param projectExportService service used to build a project's published-content export
+	 *                             archive.
+	 * @param projectImportService service used to create a new project from an uploaded export
+	 *                             archive.
 	 */
 	public ProjectController(ProjectService projectService, DraftProjectService draftProjectService,
-			DraftDialogueService draftDialogueService) {
+			DraftDialogueService draftDialogueService, ProjectExportService projectExportService,
+			ProjectImportService projectImportService) {
 		this.projectService = projectService;
 		this.draftProjectService = draftProjectService;
 		this.draftDialogueService = draftDialogueService;
+		this.projectExportService = projectExportService;
+		this.projectImportService = projectImportService;
 	}
 
 	// ---------------------------------------------------------------- //
@@ -318,6 +333,84 @@ public class ProjectController {
 									"Project not found: " + projectSlug));
 					projectService.deleteProject(project);
 					return null;
+				},
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
+				AuthenticationInfo.USER_ROLE_ADMIN);
+	}
+
+	// -------------------------------------------------------------- //
+	// -------------------- Export / Import -------------------- //
+	// -------------------------------------------------------------- //
+
+	/**
+	 * Exports a project's currently published content as a downloadable {@code .zip} archive, laid
+	 * out so it can be fed straight back into {@code /import-project}. A project that has never been
+	 * published has nothing to export.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project to export.
+	 * @return the archive as a binary response with a {@code Content-Disposition: attachment}
+	 * header.
+	 * @throws HttpException if the project does not exist, has never been published, or the user is
+	 * not authorized.
+	 */
+	@Operation(summary = "Export a project's published content as a downloadable .zip archive.")
+	@Parameter(name = "version", hidden = true)
+	@GetMapping("/export-project")
+	public ResponseEntity<byte[]> exportProject(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("GET /v{}/project/export-project [user: {}]", version, user);
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					byte[] archive = projectExportService.exportProject(project);
+					return ResponseEntity.ok()
+							.contentType(MediaType.valueOf("application/zip"))
+							.header(HttpHeaders.CONTENT_DISPOSITION,
+									"attachment; filename=\"" + project.getSlug() + ".zip\"")
+							.body(archive);
+				},
+				version, ControllerFunctions.extractAccessToken(request), response, "", application,
+				AuthenticationInfo.USER_ROLE_ADMIN);
+	}
+
+	/**
+	 * Imports a new project from a {@code .zip} archive previously produced by {@code
+	 * /export-project}. The archive's {@code dlb-project.xml} determines the new project's slug; the
+	 * import is rejected if a project with that slug already exists.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param file the uploaded {@code .zip} archive.
+	 * @return the newly created project, already published as version 1.
+	 * @throws HttpException if the archive is missing/invalid, a project with its slug already
+	 * exists, or the user is not authorized.
+	 */
+	@Operation(summary = "Import a new project from a previously exported .zip archive.")
+	@Parameter(name = "version", hidden = true)
+	@PostMapping(value = "/import-project", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@ResponseStatus(HttpStatus.CREATED)
+	public DBProject importProject(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "file") MultipartFile file
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("POST /v{}/project/import-project [user: {}]", version, user);
+					return projectImportService.importProject(file);
 				},
 				version, ControllerFunctions.extractAccessToken(request), response, "", application,
 				AuthenticationInfo.USER_ROLE_ADMIN);

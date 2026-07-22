@@ -57,6 +57,9 @@ public class ProjectMetaDataWriter {
     public static void writeToXMLFile(XMLWriter writer, ProjectMetaData projectMetaData) throws IOException {
         writer.writeStartElement("dlb-project");
         writer.writeAttribute("name",projectMetaData.getName());
+        if (projectMetaData.getSlug() != null) {
+            writer.writeAttribute("slug", projectMetaData.getSlug());
+        }
         writer.writeAttribute("version",projectMetaData.getVersion());
 
         writer.writeStartElement("description");

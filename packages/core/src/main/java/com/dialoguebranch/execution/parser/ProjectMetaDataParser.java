@@ -94,6 +94,9 @@ public class ProjectMetaDataParser {
                     } else {
                         result.setName(attributes.getValue("name"));
                     }
+                    // Optional — only present in metadata produced by the web service's Export
+                    // Project feature; absent from hand-authored or classpath seed metadata.
+                    result.setSlug(attributes.getValue("slug"));
                     if(attributes.getValue("version") != null) {
                         result.setVersion(attributes.getValue("version"));
                     } else {

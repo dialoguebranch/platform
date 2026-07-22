@@ -50,6 +50,14 @@ public class ProjectMetaData {
 	/** The name of the Dialogue Branch project */
 	private String name;
 
+	/**
+	 * The unique slug identifying this Dialogue Branch project (e.g. in a web service's database),
+	 * as opposed to {@link #name}, which is a free-form display name. Optional — {@code null} for
+	 * project metadata that was never associated with a slug (e.g. seed projects loaded from the
+	 * classpath, which derive their slug from a folder name instead).
+	 */
+	private String slug;
+
 	/** The base path of the Dialogue Branch project */
 	private String basePath;
 
@@ -135,6 +143,25 @@ public class ProjectMetaData {
 	 */
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	/**
+	 * Returns the unique slug identifying this Dialogue Branch project, or {@code null} if none is
+	 * set.
+	 *
+	 * @return the slug of this Dialogue Branch project, or {@code null}.
+	 */
+	public String getSlug() {
+		return slug;
+	}
+
+	/**
+	 * Sets the unique slug identifying this Dialogue Branch project.
+	 *
+	 * @param slug the slug of this Dialogue Branch project.
+	 */
+	public void setSlug(String slug) {
+		this.slug = slug;
 	}
 
 	/**

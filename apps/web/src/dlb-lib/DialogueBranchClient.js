@@ -156,6 +156,48 @@ export class DialogueBranchClient {
         }).then((response) => this._handleResponse(response));
     }
 
+    // Downloads a project's currently published content as a .zip archive. Deliberately bypasses
+    // _fetch/_handleResponse: those read the response body as text (to log it) and reconstruct a
+    // new Response from that string, which would corrupt binary content — this stays on the raw
+    // fetch Response and reads it as a blob instead.
+    async exportProject(projectSlug) {
+        const url = this._baseUrl + "/project/export-project?projectSlug=" + encodeURIComponent(projectSlug);
+
+        const response = await fetch(url, {
+            method: "GET",
+            headers: { 'Authorization': 'Bearer ' + this._accessToken },
+        });
+
+        if (!response.ok) {
+            const body = await response.json().catch(() => null);
+            return Promise.reject({
+                status: response.status,
+                statusText: response.statusText,
+                code: body?.code ?? null,
+                message: body?.message ?? null,
+                fieldErrors: body?.fieldErrors ?? [],
+                errors: body?.errors ?? null,
+            });
+        }
+
+        return response.blob();
+    }
+
+    // Imports a new project from a previously exported .zip archive (admin only). `file` is a
+    // browser File object (e.g. from a file input). No Content-Type header is set so the browser
+    // fills in the multipart boundary itself.
+    importProject(file) {
+        const url = this._baseUrl + "/project/import-project";
+        const formData = new FormData();
+        formData.append('file', file);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { 'Authorization': 'Bearer ' + this._accessToken },
+            body: formData,
+        }).then((response) => this._handleResponse(response));
+    }
+
     // Adds a *draft* translation language — takes effect on the next publish.
     addTranslationLanguage(projectSlug, translationLanguageName, translationLanguageCode) {
         const url = this._baseUrl + "/project/add-translation-language?projectSlug=" + encodeURIComponent(projectSlug);
