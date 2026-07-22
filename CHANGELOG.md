@@ -7,6 +7,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Fixed
+
+- The web client footer version had drifted from `global.json` (still showing v2.0.1 after the
+  v2.0.3 release) because `apps/web/package.json` was never re-synced. `infrastructure/release/release-github.sh`
+  now runs `npm run sync-version` in `apps/web` right after bumping `global.json`, and includes
+  `apps/web/package.json`/`package-lock.json` in the release commit, so this can't drift again.
+
 ## [2.0.3] - 2026-07-20
 
 ### Added

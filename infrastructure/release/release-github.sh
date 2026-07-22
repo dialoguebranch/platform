@@ -86,6 +86,9 @@ with open(path, 'w') as f:
     f.write('\n')
 "
 
+command -v npm >/dev/null || { echo "error: 'npm' is required to sync apps/web/package.json" >&2; exit 1; }
+(cd apps/web && npm run --silent sync-version)
+
 RELEASE_DATE="$(date +%F)"
 
 # Insert a new dated version heading right after the Unreleased heading, leaving
@@ -112,9 +115,12 @@ awk -v heading="## [${VERSION}]" '
 	found { print }
 ' "$CHANGELOG" > "$NOTES_FILE"
 
+WEB_PACKAGE_JSON="apps/web/package.json"
+WEB_PACKAGE_LOCK="apps/web/package-lock.json"
+
 echo "About to release ${TAG} (${BUMP_TYPE} bump from ${CURRENT_VERSION}):"
 echo "--------------------------------"
-git --no-pager diff -- "$GLOBAL_JSON" "$CHANGELOG"
+git --no-pager diff -- "$GLOBAL_JSON" "$CHANGELOG" "$WEB_PACKAGE_JSON" "$WEB_PACKAGE_LOCK"
 echo "--------------------------------"
 echo "Release notes (from CHANGELOG.md):"
 echo "--------------------------------"
@@ -126,12 +132,12 @@ echo "--------------------------------"
 # empty, so the check below reverts cleanly instead.
 read -r -p "Commit, tag, push, and publish this release? [y/N] " CONFIRM || CONFIRM=""
 if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
-	echo "Aborted; reverting $GLOBAL_JSON and $CHANGELOG."
-	git checkout -- "$GLOBAL_JSON" "$CHANGELOG"
+	echo "Aborted; reverting $GLOBAL_JSON, $CHANGELOG, $WEB_PACKAGE_JSON, and $WEB_PACKAGE_LOCK."
+	git checkout -- "$GLOBAL_JSON" "$CHANGELOG" "$WEB_PACKAGE_JSON" "$WEB_PACKAGE_LOCK"
 	exit 1
 fi
 
-git add "$GLOBAL_JSON" "$CHANGELOG"
+git add "$GLOBAL_JSON" "$CHANGELOG" "$WEB_PACKAGE_JSON" "$WEB_PACKAGE_LOCK"
 git commit -m "Release ${TAG}"
 git tag -a "$TAG" -m "$TAG"
 
