@@ -21,4 +21,19 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version),
   },
+  server: {
+    // This app talks to the BFF only, same-origin, never to the Dialogue Branch Web Service or
+    // Keycloak directly (see src/auth.js and src/dlb-lib/DialogueBranchClient.js) — the dev
+    // server proxies every path the BFF owns so local development matches that in production.
+    // Point VITE_BFF_TARGET at a different BFF instance (e.g. one deployed on Forge) to develop
+    // against it instead of a local one.
+    proxy: {
+      '/api': { target: process.env.VITE_BFF_TARGET ?? 'http://localhost:8082', changeOrigin: true },
+      '/oauth2': { target: process.env.VITE_BFF_TARGET ?? 'http://localhost:8082', changeOrigin: true },
+      '/login': { target: process.env.VITE_BFF_TARGET ?? 'http://localhost:8082', changeOrigin: true },
+      '/logout': { target: process.env.VITE_BFF_TARGET ?? 'http://localhost:8082', changeOrigin: true },
+      '/whoami': { target: process.env.VITE_BFF_TARGET ?? 'http://localhost:8082', changeOrigin: true },
+      '/actuator': { target: process.env.VITE_BFF_TARGET ?? 'http://localhost:8082', changeOrigin: true },
+    },
+  },
 })

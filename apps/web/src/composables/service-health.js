@@ -42,35 +42,36 @@ async function fetchApiStatus(url) {
 }
 
 /**
- * Checks whether both backend services the app depends on — the DLB API and Keycloak — are
- * actually reachable, before keycloak.js's onLoad:'login-required' redirect fires. That redirect
- * is a full top-level navigation to Keycloak's own hosted login/SSO-check flow — triggered
+ * Checks whether both backends this app depends on — the DLB API and the BFF's own auth path
+ * (which in turn depends on Keycloak) — are actually reachable, before redirecting the browser to
+ * log in (see src/auth.js's redirectToLogin, called from src/main.js). That redirect is a full
+ * top-level navigation, ending on the BFF and then Keycloak's own hosted login page — triggered
  * whether or not the user already has a valid session, since there's no way to know that
- * client-side without asking Keycloak's server anyway. If Keycloak or the DLB API behind it is
- * down, that navigation would otherwise strand the user on a broken/unreachable page instead of
- * this app's own status screen, so this check has to run first, unconditionally.
+ * client-side without asking the server anyway. If either backend is down, that navigation would
+ * otherwise strand the user on a broken/unreachable page instead of this app's own status screen,
+ * so this check has to run first, unconditionally.
  *
  * Also returns the API's reported software version, so the caller can compare it against this
  * client's own build-time {@code __APP_VERSION__} and warn about a mismatch (e.g. a stale cached
  * bundle after a deploy) before proceeding into the app.
  *
- * Both endpoints used here are public/unauthenticated:
- * - {@code /info/all} — the DLB API's own public service-info end-point.
- * - {@code /realms/{realm}/.well-known/openid-configuration} — the same OIDC discovery document
- *   keycloak-js itself fetches as part of `keycloak.init()`, so if this fails, `initKeycloak()`
- *   would have failed the exact same way.
+ * Both endpoints used here are public/unauthenticated, and both are called as same-origin
+ * relative paths through the BFF (see vite.config.js's dev-server proxy for local development):
+ * - {@code /api/v1/info/all} — the DLB API's own public service-info end-point, proxied through
+ *   without a session (see the BFF's SecurityConfig and ApiProxyController).
+ * - {@code /actuator/health} — the BFF's own health endpoint. Not a literal Keycloak reachability
+ *   check (this app has no business knowing Keycloak's address at all anymore — that's entirely
+ *   the BFF's concern), but the right layer for this app to probe now: if the BFF itself is up,
+ *   the login redirect at least lands somewhere real, and any actual Keycloak-side outage will
+ *   surface at that point the same way a broken third-party login page always would.
  *
- * @returns {Promise<{apiUp: boolean, keycloakUp: boolean, serviceVersion: (string|null)}>}
+ * @returns {Promise<{apiUp: boolean, authUp: boolean, serviceVersion: (string|null)}>}
  */
 export async function checkServicesHealth() {
-    const keycloakBase = config.keycloak.url.replace(/\/$/, '');
-    const discoveryUrl = `${keycloakBase}/realms/${encodeURIComponent(config.keycloak.realm)}` +
-        '/.well-known/openid-configuration';
-
-    const [apiStatus, keycloakUp] = await Promise.all([
+    const [apiStatus, authUp] = await Promise.all([
         fetchApiStatus(config.baseUrl + '/info/all'),
-        isReachable(discoveryUrl),
+        isReachable('/actuator/health'),
     ]);
 
-    return { apiUp: apiStatus.up, keycloakUp, serviceVersion: apiStatus.serviceVersion };
+    return { apiUp: apiStatus.up, authUp, serviceVersion: apiStatus.serviceVersion };
 }

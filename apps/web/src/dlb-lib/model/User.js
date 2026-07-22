@@ -27,10 +27,9 @@
  */
 
 /**
- * A User object models the user of this client app, based on the information decoded from the
- * Keycloak access token obtained via the Authorization Code + PKCE flow (i.e., username, roles,
- * the access token itself and its expiration time). Keycloak manages token refresh internally
- * (see src/keycloak.js), so this model has no notion of a refresh token.
+ * A User object models the user of this client app: username and roles, as reported by the BFF's
+ * {@code /whoami} endpoint. The BFF holds the actual Keycloak access/refresh token server-side
+ * (and refreshes it transparently) — this app never sees, or needs to track, a token at all.
  *
  * @author Harm op den Akker
  */
@@ -40,12 +39,9 @@ export class User {
     // ---------- Constructor(s) -------------
     // ---------------------------------------
 
-    constructor(name, roles, accessToken, accessTokenExpirationSeconds) {
+    constructor(name, roles) {
         this._name = name;
         this._roles = roles;
-        this._accessToken = accessToken;
-        this._accessTokenExpirationSeconds = accessTokenExpirationSeconds;
-        this._createdAt = Date.now();
     }
 
     // ---------------------------------------
@@ -60,30 +56,9 @@ export class User {
         return this._roles;
     }
 
-    get accessToken() {
-        return this._accessToken;
-    }
-
-    get accessTokenExpirationSeconds() {
-        return this._accessTokenExpirationSeconds;
-    }
-
-    get createdAt() {
-        return this._createdAt;
-    }
-
     // -----------------------------------
     // ---------- Other Methods ----------
     // -----------------------------------
-
-    /**
-     * Returns the number of seconds that the access token has left to live. If this number is 0 or less, it has expired.
-     * 
-     * @returns the number of seconds that the access token has left to live (can be negative).
-     */
-    get accessTokenSecondsToLive() {
-        return ((this._createdAt + (this._accessTokenExpirationSeconds * 1000)) - Date.now()) / 1000;
-    }
 
     /**
      * Returns a human readable String representation of this User object.
@@ -91,12 +66,9 @@ export class User {
      */
    toString() {
        var result = "" +
-       "\n{" + 
+       "\n{" +
        "\n  name: " + this._name +
        "\n  roles: " + this._roles +
-       "\n  accessToken: " + this._accessToken +
-       "\n  accessTokenExpirationSeconds: " + this._accessTokenExpirationSeconds +
-       "\n  createdAt: " + this._createdAt +
        "\n}";
        return result;
    }

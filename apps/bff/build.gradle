@@ -1,0 +1,46 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.5.4'
+}
+
+group = 'com.dialoguebranch'
+
+// Version is defined once for the entire monorepo in /global.json.
+// To release a new version, update it there.
+version = new groovy.json.JsonSlurper()
+        .parse(new File(projectDir.parentFile.parentFile, 'global.json'))
+        .version
+
+repositories {
+	mavenCentral()
+}
+
+base {
+	archivesName = "dlb-bff"
+}
+
+java {
+	sourceCompatibility = JavaVersion.VERSION_17
+	targetCompatibility = JavaVersion.VERSION_17
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-web:3.5.4'
+	implementation 'org.springframework.boot:spring-boot-starter-security:3.5.4'
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client:3.5.4'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator:3.5.4'
+
+	// Used to parse (not re-validate — the access token already came from our own trusted
+	// session) the resource_access claim out of the session's access token for /whoami. Already
+	// a transitive dependency of spring-security-oauth2-client, declared explicitly since we
+	// call it directly.
+	implementation 'com.nimbusds:nimbus-jose-jwt:9.37.3'
+
+	testImplementation 'org.springframework.boot:spring-boot-starter-test:3.5.4'
+	testImplementation 'org.springframework.security:spring-security-test:6.4.1'
+}
+
+test {
+	useJUnitPlatform()
+	testLogging.showStandardStreams = true
+}

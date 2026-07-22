@@ -5,9 +5,12 @@
 #
 #   docker compose up -d                              # supporting services only
 #   docker compose --profile api up -d                # also build and run the API
+#   docker compose --profile api --profile bff up -d  # also build and run the API and the BFF
 #   docker compose --profile variable-service up -d   # also build and run the mock variable service
 #
-# Then run the web client locally (see README.md).
+# The web client (apps/web) authenticates through the BFF, not Keycloak directly — see
+# apps/bff's Javadoc and the web client's vite.config.js dev-server proxy. Run both the API
+# and the BFF profiles together when developing the web client locally.
 
 name: dlb-dev
 
@@ -54,10 +57,11 @@ services:
   # ---------------------------------------------------------------------------
   # Keycloak — identity and access management
   #
-  # The entrypoint injects the web client's redirect URI into the realm export
-  # before importing it (the dlb-web-service client is public — no secret to
-  # inject). Override KEYCLOAK_WEB_CLIENT_REDIRECT_URI to point at a different
-  # deployed web client instance.
+  # The entrypoint injects the BFF's redirect URI into the realm export before
+  # importing it (the dlb-bff client is confidential, its dev secret is set
+  # directly in the realm export — dev-only, not used for any real deployment).
+  # Override KEYCLOAK_BFF_REDIRECT_URI to point at a different deployed BFF
+  # instance.
   #
   # The custom DLB login theme (../keycloak/themes/dlb) is mounted read-only and
   # applied via the realm export's "loginTheme": "dlb".
@@ -71,7 +75,8 @@ services:
       - -c
       - |
         mkdir -p /opt/keycloak/data/import
-        sed "s|__WEB_CLIENT_REDIRECT_URI__|$${KEYCLOAK_WEB_CLIENT_REDIRECT_URI}|" \
+        sed -e "s|__BFF_REDIRECT_URI__|$${KEYCLOAK_BFF_REDIRECT_URI}|" \
+            -e "s|__BFF_POST_LOGOUT_REDIRECT_URI__|$${KEYCLOAK_BFF_POST_LOGOUT_REDIRECT_URI}|" \
           /opt/keycloak/data/import-source/dialoguebranch-realm.json \
           > /opt/keycloak/data/import/dialoguebranch-realm.json
         exec /opt/keycloak/bin/kc.sh start-dev --import-realm \
@@ -83,7 +88,8 @@ services:
       KC_DB_URL_HOST: mariadb
       KC_DB_USERNAME: root
       KC_DB_PASSWORD: dev
-      KEYCLOAK_WEB_CLIENT_REDIRECT_URI: http://localhost:5173/*
+      KEYCLOAK_BFF_REDIRECT_URI: http://localhost:8082/login/oauth2/code/keycloak
+      KEYCLOAK_BFF_POST_LOGOUT_REDIRECT_URI: http://localhost:8082/
     ports:
       - "8081:8080"
     volumes:
@@ -92,6 +98,32 @@ services:
     depends_on:
       mariadb:
         condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Keycloak realm sync — adds any client missing from an already-existing realm
+  #
+  # --import-realm (above) only fires on a genuinely fresh realm; once a developer already has a
+  # local MariaDB volume with the realm in it, re-mounting dialoguebranch-realm.json does nothing
+  # on its own. This one-shot script fills that gap without touching any existing client or data
+  # (see infrastructure/keycloak/sync-realm.py's docstring) — safe, and cheap, to run every time.
+  # ---------------------------------------------------------------------------
+
+  keycloak-sync:
+    image: python:3.13-alpine
+    container_name: dlb-dev-keycloak-sync
+    volumes:
+      - ./import/dialoguebranch-realm.json:/realm-export.json:ro
+      - ../keycloak/sync-realm.py:/sync-realm.py:ro
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+      KEYCLOAK_BFF_REDIRECT_URI: http://localhost:8082/login/oauth2/code/keycloak
+      KEYCLOAK_BFF_POST_LOGOUT_REDIRECT_URI: http://localhost:8082/
+    depends_on:
+      keycloak:
+        condition: service_started
+    command: ["python3", "/sync-realm.py"]
 
   # ---------------------------------------------------------------------------
   # Dialogue Branch Web Service — the API (optional, start with --profile api)
@@ -118,6 +150,35 @@ services:
       mariadb:
         condition: service_healthy
       keycloak:
+        condition: service_started
+
+  # ---------------------------------------------------------------------------
+  # Dialogue Branch BFF (optional, start with --profile bff, alongside --profile api)
+  #
+  # Backend-for-Frontend for the web client (apps/web) — see apps/bff's Javadoc.
+  # ---------------------------------------------------------------------------
+
+  bff:
+    build:
+      context: ../..
+      dockerfile: apps/bff/Dockerfile
+    profiles:
+      - bff
+    container_name: dlb-dev-bff
+    environment:
+      DLB_BFF_KEYCLOAK_BASE_URL: http://keycloak:8080/
+      # Browser-facing Keycloak URL, used to redirect the browser for login/logout — differs
+      # from DLB_BFF_KEYCLOAK_BASE_URL because the container-internal "keycloak" hostname above
+      # is not reachable from the developer's browser.
+      DLB_BFF_KEYCLOAK_BROWSER_BASE_URL: http://localhost:8081/
+      DLB_BFF_API_BASE_URL: http://dlb-web-service:8089/dlb-web-service
+      DLB_BFF_OAUTH2_CLIENT_SECRET: dev-secret
+    ports:
+      - "8082:8082"
+    depends_on:
+      keycloak-sync:
+        condition: service_completed_successfully
+      dlb-web-service:
         condition: service_started
 
   # ---------------------------------------------------------------------------

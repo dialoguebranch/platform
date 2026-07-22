@@ -288,8 +288,8 @@ export class WCTAClientState extends ClientState {
             this._selectedProject = { slug: cookieValue };
         }
 
-        // Authentication state is no longer stored in cookies — it is derived from the Keycloak
-        // token at application boot (see src/main.js and src/keycloak.js).
+        // Authentication state is no longer stored in cookies — it is derived from the BFF's
+        // /whoami response at application boot (see src/main.js and src/auth.js).
     }
 
 }

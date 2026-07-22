@@ -1,7 +1,7 @@
 import './assets/css/main.css';
 import config from './config.js';
 import state from './state.js';
-import keycloak, { initKeycloak } from './keycloak.js';
+import { fetchWhoAmI, redirectToLogin, redirectToLogout } from './auth.js';
 import { checkServicesHealth } from './composables/service-health.js';
 import { User } from './dlb-lib/model/User.js';
 
@@ -19,11 +19,11 @@ library.add(far);
 const stateRef = ref(state);
 
 async function bootstrap() {
-    // Checked before touching Keycloak at all — see service-health.js for why this can't be
-    // scoped to only the "not logged in yet" case.
+    // Checked before touching auth at all — see service-health.js for why this can't be scoped
+    // to only the "not logged in yet" case.
     const health = await checkServicesHealth();
-    if (!health.apiUp || !health.keycloakUp) {
-        createApp(ServiceStatusPage, { apiUp: health.apiUp, keycloakUp: health.keycloakUp })
+    if (!health.apiUp || !health.authUp) {
+        createApp(ServiceStatusPage, { apiUp: health.apiUp, authUp: health.authUp })
             .mount('#app');
         return;
     }
@@ -39,32 +39,31 @@ async function bootstrap() {
         return;
     }
 
-    // onLoad: 'login-required' means this only resolves once the user is authenticated —
-    // if not, the browser has already been redirected to Keycloak's hosted login page.
-    await initKeycloak();
+    // No session yet — redirect to the BFF's login endpoint (a real top-level navigation, see
+    // src/auth.js) rather than continuing to boot the app.
+    const identity = await fetchWhoAmI();
+    if (!identity) {
+        redirectToLogin();
+        return;
+    }
 
-    const roles = keycloak.tokenParsed?.resource_access?.[config.keycloak.clientId]?.roles ?? [];
     // 'participant' is let in too — App.vue routes participant-only users (no editor/admin) to
     // ParticipantPage.vue instead of the full authoring/testing app.
+    const roles = identity.roles ?? [];
     const hasAccess = roles.includes('admin') || roles.includes('editor') || roles.includes('participant');
     if (hasAccess) {
-        stateRef.value.user = new User(
-            keycloak.tokenParsed.preferred_username,
-            roles,
-            keycloak.token,
-            Math.round(keycloak.tokenParsed.exp - keycloak.tokenParsed.iat)
-        );
+        stateRef.value.user = new User(identity.username, roles);
     } else {
         // Authenticated with Keycloak but lacks the required application role — end the
-        // Keycloak session too, otherwise the next reload would re-authenticate the same
-        // under-privileged account and redirect straight back in.
-        await keycloak.logout({ redirectUri: window.location.origin });
+        // session (this app's and Keycloak's SSO session both), otherwise the next reload
+        // would just resume the same under-privileged account and land straight back here.
+        redirectToLogout();
+        return;
     }
 
     const app = createApp(App);
     app.provide('config', config);
     app.provide('state', stateRef);
-    app.provide('keycloak', keycloak);
     app.mount('#app');
 }
 
