@@ -8,6 +8,7 @@
 #   dlb.bff.keycloak-realm                → DLB_BFF_KEYCLOAK_REALM
 #   dlb.bff.api-base-url                  → DLB_BFF_API_BASE_URL
 #   dlb.bff.web-service-client-id         → DLB_BFF_WEB_SERVICE_CLIENT_ID
+#   dlb.bff.post-login-redirect-url       → DLB_BFF_POST_LOGIN_REDIRECT_URL
 #
 # The keycloak ClientRegistration itself is built by hand in SecurityConfig from these same
 # properties, not auto-configured from spring.security.oauth2.client.* — see its Javadoc for why
@@ -55,6 +56,21 @@ dlb:
     # BFF logs in as), kept configurable rather than hard-coded to survive a differently-named
     # realm/client setup.
     web-service-client-id: ${DLB_BFF_WEB_SERVICE_CLIENT_ID:dlb-web-service}
+    # Where SecurityConfig sends the browser after a successful login, and also after a
+    # successful logout (both need the same value: the SPA's own origin). The relative default
+    # ("/") is correct behind a same-origin reverse proxy (production: HAProxy routes everything
+    # else on the same hostname to the static web client) — but it's wrong for local development,
+    # where the SPA's own dev server (Vite) runs on a genuinely different origin than this BFF.
+    # Keycloak's own redirect back to this service (the login callback, or end_session_endpoint's
+    # own redirect after logout) is an absolute address the browser follows directly, bypassing
+    # the dev server's proxy entirely, so a *relative* "/" redirect from here would land the
+    # browser on this BFF's own port instead — which serves no page at all and 404s. Override to
+    # the dev server's origin (e.g. http://localhost:5173/) for local development; see
+    # infrastructure/docker/compose.yml. For logout specifically, this value also has to be
+    # registered as a valid post-logout redirect URI for the dlb-bff Keycloak client (see
+    # dialoguebranch-realm.json's __BFF_POST_LOGOUT_REDIRECT_URI__ placeholder) — Keycloak
+    # rejects end_session_endpoint calls with an unregistered redirect target.
+    post-login-redirect-url: ${DLB_BFF_POST_LOGIN_REDIRECT_URL:/}
 
 management:
   endpoints:

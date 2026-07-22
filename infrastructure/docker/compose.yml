@@ -4,13 +4,12 @@
 # No configuration files are required. Run from infrastructure/docker/:
 #
 #   docker compose up -d                              # supporting services only
-#   docker compose --profile api up -d                # also build and run the API
-#   docker compose --profile api --profile bff up -d  # also build and run the API and the BFF
+#   docker compose --profile api up -d                # also build and run the API and the BFF
 #   docker compose --profile variable-service up -d   # also build and run the mock variable service
 #
 # The web client (apps/web) authenticates through the BFF, not Keycloak directly — see
-# apps/bff's Javadoc and the web client's vite.config.js dev-server proxy. Run both the API
-# and the BFF profiles together when developing the web client locally.
+# apps/bff's Javadoc and the web client's vite.config.js dev-server proxy. --profile api starts
+# both, since developing the web client locally needs both anyway.
 
 name: dlb-dev
 
@@ -89,7 +88,7 @@ services:
       KC_DB_USERNAME: root
       KC_DB_PASSWORD: dev
       KEYCLOAK_BFF_REDIRECT_URI: http://localhost:8082/login/oauth2/code/keycloak
-      KEYCLOAK_BFF_POST_LOGOUT_REDIRECT_URI: http://localhost:8082/
+      KEYCLOAK_BFF_POST_LOGOUT_REDIRECT_URI: http://localhost:5173/
     ports:
       - "8081:8080"
     volumes:
@@ -119,7 +118,7 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: admin
       KEYCLOAK_INTERNAL_URL: http://keycloak:8080
       KEYCLOAK_BFF_REDIRECT_URI: http://localhost:8082/login/oauth2/code/keycloak
-      KEYCLOAK_BFF_POST_LOGOUT_REDIRECT_URI: http://localhost:8082/
+      KEYCLOAK_BFF_POST_LOGOUT_REDIRECT_URI: http://localhost:5173/
     depends_on:
       keycloak:
         condition: service_started
@@ -153,7 +152,7 @@ services:
         condition: service_started
 
   # ---------------------------------------------------------------------------
-  # Dialogue Branch BFF (optional, start with --profile bff, alongside --profile api)
+  # Dialogue Branch BFF (optional, start with --profile api)
   #
   # Backend-for-Frontend for the web client (apps/web) — see apps/bff's Javadoc.
   # ---------------------------------------------------------------------------
@@ -163,7 +162,7 @@ services:
       context: ../..
       dockerfile: apps/bff/Dockerfile
     profiles:
-      - bff
+      - api
     container_name: dlb-dev-bff
     environment:
       DLB_BFF_KEYCLOAK_BASE_URL: http://keycloak:8080/
@@ -173,6 +172,9 @@ services:
       DLB_BFF_KEYCLOAK_BROWSER_BASE_URL: http://localhost:8081/
       DLB_BFF_API_BASE_URL: http://dlb-web-service:8089/dlb-web-service
       DLB_BFF_OAUTH2_CLIENT_SECRET: dev-secret
+      # The web client's own dev server (npm run dev), a different origin than this BFF — see
+      # the property's own comment in apps/bff's application.yml for why this can't just be "/".
+      DLB_BFF_POST_LOGIN_REDIRECT_URL: http://localhost:5173/
     ports:
       - "8082:8082"
     depends_on:

@@ -77,7 +77,7 @@ def main() -> None:
     )
     raw = re.sub(
         r"__BFF_POST_LOGOUT_REDIRECT_URI__",
-        os.environ.get("KEYCLOAK_BFF_POST_LOGOUT_REDIRECT_URI", "http://localhost:8082/"),
+        os.environ.get("KEYCLOAK_BFF_POST_LOGOUT_REDIRECT_URI", "http://localhost:5173/"),
         raw,
     )
     realm = json.loads(raw)

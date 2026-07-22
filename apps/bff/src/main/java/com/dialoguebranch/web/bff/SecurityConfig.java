@@ -57,7 +57,11 @@ import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.csrf.CsrfTokenRequestHandler;
 import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
+import org.springframework.security.web.savedrequest.RequestCache;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -142,17 +146,24 @@ public class SecurityConfig {
      * @param http the {@link HttpSecurity} to configure.
      * @param clientRegistrationRepository the registered OAuth2 client(s), used to build the
      *                                      RP-initiated logout redirect.
+     * @param postLoginRedirectUrl where to send the browser after a successful login, or a
+     *                             successful logout (the two cases need the exact same value: the
+     *                             SPA's own origin) — see the property's own comment in
+     *                             {@code application.yml}.
      * @return the configured {@link SecurityFilterChain}.
      * @throws Exception if the security configuration cannot be built.
      */
     @Bean
     public SecurityFilterChain filterChain(
-            HttpSecurity http, ClientRegistrationRepository clientRegistrationRepository)
+            HttpSecurity http, ClientRegistrationRepository clientRegistrationRepository,
+            @Value("${dlb.bff.post-login-redirect-url:/}") String postLoginRedirectUrl)
             throws Exception {
 
         OidcClientInitiatedLogoutSuccessHandler logoutSuccessHandler =
                 new OidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);
-        logoutSuccessHandler.setPostLogoutRedirectUri("{baseUrl}/");
+        // Not "{baseUrl}/" — same reasoning as postLoginRedirectUrl above: that would land the
+        // browser on this BFF's own port locally, instead of back on the SPA's dev server.
+        logoutSuccessHandler.setPostLogoutRedirectUri(postLoginRedirectUrl);
 
         // Spring only adds PKCE automatically for public clients (ClientAuthenticationMethod.NONE);
         // this BFF's client is confidential, but current OAuth 2.1 guidance is to use PKCE for
@@ -166,6 +177,7 @@ public class SecurityConfig {
         http
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+            .requestCache(requestCache -> requestCache.requestCache(noXhrRequestCache()))
             .csrf(csrf -> csrf
                 // Standard Spring Security recipe for SPA clients: a JS-readable (non-HttpOnly)
                 // XSRF-TOKEN cookie the frontend echoes back as the X-XSRF-TOKEN header on
@@ -187,7 +199,12 @@ public class SecurityConfig {
                 .anyRequest().authenticated())
             .oauth2Login(oauth2Login -> oauth2Login
                 .authorizationEndpoint(authorizationEndpoint -> authorizationEndpoint
-                    .authorizationRequestResolver(authorizationRequestResolver)))
+                    .authorizationRequestResolver(authorizationRequestResolver))
+                // true: always land here after a successful login, ignoring the saved-request
+                // fallback entirely — this service has nothing else to redirect back to (no
+                // real pages of its own beyond the api/whoami/auth paths, all excluded from the
+                // request cache already, see noXhrRequestCache()).
+                .defaultSuccessUrl(postLoginRedirectUrl, true))
             .logout(logout -> logout
                 .logoutSuccessHandler(logoutSuccessHandler))
             .exceptionHandling(exceptionHandling -> exceptionHandling
@@ -207,6 +224,25 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * {@link org.springframework.security.web.access.ExceptionTranslationFilter} saves *every*
+     * request that hits an unauthenticated
+     * {@code AuthenticationException} into the session, including {@code /api/**} and {@code
+     * /whoami} XHR/fetch calls that get a plain 401 (see {@link #apiAuthenticationEntryPoint}) —
+     * not just real page navigations. Left alone, an unauthenticated {@code GET /whoami} the web
+     * client makes on boot (see its src/auth.js) gets remembered as "the page the user wanted",
+     * and {@code SavedRequestAwareAuthenticationSuccessHandler} redirects the browser straight
+     * back to {@code /whoami} after login instead of the app itself. Excluding those two path
+     * patterns here means only a genuine top-level navigation can ever become a resume target.
+     */
+    private RequestCache noXhrRequestCache() {
+        HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
+        RequestMatcher xhrPaths = new OrRequestMatcher(
+                new AntPathRequestMatcher("/api/**"), new AntPathRequestMatcher("/whoami"));
+        requestCache.setRequestMatcher(new NegatedRequestMatcher(xhrPaths));
+        return requestCache;
+    }
+
     private AuthenticationEntryPoint apiAuthenticationEntryPoint() {
         AuthenticationEntryPoint jsonEntryPoint = (request, response, authException) ->
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
@@ -222,10 +258,12 @@ public class SecurityConfig {
 
     /**
      * Delegates to {@link XorCsrfTokenRequestAttributeHandler} (Spring's default,
-     * BREACH-resistant token encoding) but only requires the raw token to be resolvable from the
-     * {@code X-XSRF-TOKEN} header — the plain value the client reads from the {@code XSRF-TOKEN}
-     * cookie and echoes back, rather than the masked value the deferred-loading
-     * (server-rendered form) flow expects.
+     * BREACH-resistant token encoding) but only requires the raw token to be resolvable from
+     * either the {@code X-XSRF-TOKEN} header (the normal fetch/XHR case) or the {@code _csrf}
+     * request parameter (the one case that can't attach a header: logout, which has to be a real
+     * top-level form POST rather than a fetch — see the client's src/auth.js for why) — the plain
+     * value the client reads from the {@code XSRF-TOKEN} cookie and echoes back either way, rather
+     * than the masked value the deferred-loading (server-rendered form) flow expects.
      */
     private static final class SpaCsrfTokenRequestHandler extends CsrfTokenRequestAttributeHandler {
 
@@ -240,7 +278,8 @@ public class SecurityConfig {
         @Override
         public String resolveCsrfTokenValue(HttpServletRequest request, CsrfToken csrfToken) {
             String headerValue = request.getHeader(csrfToken.getHeaderName());
-            return StringUtils.hasText(headerValue)
+            String paramValue = request.getParameter(csrfToken.getParameterName());
+            return (StringUtils.hasText(headerValue) || StringUtils.hasText(paramValue))
                     ? super.resolveCsrfTokenValue(request, csrfToken)
                     : this.delegate.resolveCsrfTokenValue(request, csrfToken);
         }

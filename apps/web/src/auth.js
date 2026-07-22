@@ -1,3 +1,5 @@
+import { DocumentFunctions } from './dlb-lib/util/DocumentFunctions.js';
+
 const LOGIN_PATH = '/oauth2/authorization/keycloak';
 const LOGOUT_PATH = '/logout';
 
@@ -25,11 +27,36 @@ export function redirectToLogin() {
 }
 
 /**
- * Sends the browser to the BFF's logout endpoint (RP-initiated: ends both this app's session and
- * the Keycloak SSO session, then redirects back to `/`). A real top-level navigation — Spring
- * Security's logout redirect chain ends on Keycloak's own domain, which a fetch() call can't
- * usefully follow.
+ * Ends the session: submits a real top-level POST navigation to the BFF's logout endpoint
+ * (RP-initiated — ends both this app's session and the Keycloak SSO session).
+ *
+ * This can't be `window.location.href = '/logout'` (a GET): Spring Security's `LogoutFilter`
+ * only matches `POST /logout` by default, so a GET gets a 404. It also can't be a `fetch()` POST:
+ * that was tried first, and while it does correctly end *this app's own* session, a fetch's
+ * internal redirect-following does not carry cookies across the origin change to Keycloak's own
+ * logout endpoint the way a real navigation does — so Keycloak's SSO session survives, and the
+ * very next login redirect (see redirectToLogin) silently re-authenticates against it without
+ * ever showing a login prompt, which looks exactly like logout did nothing.
+ *
+ * A real browser navigation doesn't have that problem (this is exactly how login already works),
+ * but a plain navigation can't set the required `X-XSRF-TOKEN` header either — so this builds and
+ * submits an actual `<form>`, carrying the token as a hidden field instead (the BFF's CSRF
+ * handler accepts either, see SecurityConfig's SpaCsrfTokenRequestHandler). The BFF's own
+ * redirect back to this app after a successful logout is handled server-side (see
+ * postLoginRedirectUrl in the BFF's application.yml, reused for both login and logout).
  */
 export function redirectToLogout() {
-    window.location.href = LOGOUT_PATH;
+    const csrfToken = DocumentFunctions.getCookie('XSRF-TOKEN');
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = LOGOUT_PATH;
+    if (csrfToken) {
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_csrf';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+    }
+    document.body.appendChild(form);
+    form.submit();
 }
