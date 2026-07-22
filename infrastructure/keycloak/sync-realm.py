@@ -14,6 +14,13 @@ This deliberately does not sync client secrets from environment variables the wa
 connectedcare-nl/lizz script does: this stack has no production deployment, so a client's secret
 value doesn't matter beyond "known and stable for local development", which SKIP already gives
 for free (a client, once created, is never overwritten by a later run).
+
+Keycloak's own depends_on condition (see compose.yml) is "service_started", the weakest one
+Compose offers — it fires as soon as the container process launches, well before Keycloak has
+actually finished booting, let alone running --import-realm against a genuinely fresh volume
+(migrating the database and importing the whole realm export can itself take well over a minute).
+wait_for_token() below is what actually absorbs that gap; its retry budget is deliberately
+generous for exactly that first-run case, not just ordinary restart-speed variance.
 """
 import json
 import os
@@ -43,11 +50,11 @@ def get_token() -> str:
         return json.load(resp)["access_token"]
 
 
-def wait_for_token(retries: int = 10, delay: float = 3) -> str:
+def wait_for_token(retries: int = 40, delay: float = 5) -> str:
     for attempt in range(1, retries + 1):
         try:
             return get_token()
-        except (urllib.error.URLError, KeyError):
+        except (urllib.error.URLError, KeyError, ValueError):
             print(f"Waiting for Keycloak admin API... ({attempt}/{retries})")
             time.sleep(delay)
     sys.exit("Could not obtain a Keycloak admin token")
