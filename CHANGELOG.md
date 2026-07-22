@@ -9,12 +9,27 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Added a Backend-for-Frontend (BFF) service (`apps/bff`) between the web client and Keycloak/the
+  Dialogue Branch Web Service ([#79](https://github.com/dialoguebranch/platform/issues/79)). The
+  web client no longer talks to Keycloak or the API directly, and no longer holds an access token
+  in the browser at all — the BFF performs the login exchange with Keycloak and keeps the session's
+  token server-side, so the browser only ever holds a session cookie. All API calls now go through
+  the BFF at `/api/**`, and a new `/whoami` endpoint returns the current session's username and
+  roles. Logging out now also ends the Keycloak SSO session, not just the local one, so logging
+  back in properly re-prompts for credentials instead of silently resuming the same session. Local
+  development gained a matching `bff` Docker Compose service (started via the existing `api`
+  profile) and a one-shot `keycloak-sync` service that adds the BFF's Keycloak client to a realm
+  that already existed before this change.
 - Added a `variable-service` Docker Compose profile (`infrastructure/docker/compose.yml`) that
   builds and runs the mock external variable service alongside MariaDB and Keycloak, for testing
   `dlb-web-service`'s external variable service integration locally.
 - The mock variable service now also resolves a `$dayPart` variable on `retrieve-updates` requests,
   returning `"morning"`, `"afternoon"`, `"evening"`, or `"night"` based on the current hour in the
   user's time zone, alongside the existing `$currentDate`/`$currentTime` handling.
+- Added an "Insufficient Privileges" screen to the web client: a user who successfully logs in but
+  lacks the required Dialogue Branch role (`admin`, `editor`, or `participant`) now sees an
+  explanation and a Log Out button, instead of being silently logged out and redirected straight
+  back to the login page with no indication of why.
 
 ### Fixed
 

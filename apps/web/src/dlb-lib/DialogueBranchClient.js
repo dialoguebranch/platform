@@ -33,35 +33,24 @@ import { Segment } from "./model/Segment";
 import { Statement } from "./model/Statement";
 import { Variable } from "./model/Variable";
 import { logApiCall } from "../composables/debug-log.js";
+import { DocumentFunctions } from "./util/DocumentFunctions.js";
+import { redirectToLogin } from "../auth.js";
 
 export class DialogueBranchClient {
 
-    // TODO: Create a generic "call protected end-point" function that will inject the accessToken
-    // in the header, and will automatically attempt access token refresh upon "expired token" errors.
-
-    constructor(baseUrl, accessTokenFn) {
+    constructor(baseUrl) {
         this._baseUrl = baseUrl;
-        this._accessTokenFn = typeof accessTokenFn === 'function' ? accessTokenFn : () => accessTokenFn;
         this._timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         this.delegateUser = null;
-    }
-
-    get _accessToken() {
-        return this._accessTokenFn();
     }
 
     get _delegateParam() {
         return this.delegateUser ? '&delegateUser=' + encodeURIComponent(this.delegateUser) : '';
     }
 
-    onUnauthorized(onUnauthorized) {
-        this._onUnauthorized = onUnauthorized;
-    }
-
     logout() {
         return this._fetch(this._baseUrl + "/auth/logout", {
             method: "POST",
-            headers: { 'Authorization': 'Bearer ' + this._accessToken },
         }).then((response) => this._handleResponse(response));
     }
 
@@ -76,10 +65,7 @@ export class DialogueBranchClient {
     getTechnicalInfo() {
         return this._fetch(this._baseUrl + "/info/technical", {
             method: "GET",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
         })
         .then((response) => this._handleResponse(response));
     }
@@ -89,10 +75,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "GET",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            }
+            headers: { "Content-Type": "application/json" }
         })
         .then((response) => this._handleResponse(response));
     }
@@ -102,10 +85,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ slug, displayName, description, defaultLanguageCode, defaultLanguageName }),
         })
         .then((response) => this._handleResponse(response));
@@ -116,7 +96,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "GET",
-            headers: { 'Authorization': 'Bearer ' + this._accessToken, "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json" },
         }).then((response) => this._handleResponse(response));
     }
 
@@ -126,7 +106,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: { 'Authorization': 'Bearer ' + this._accessToken, "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ displayName, description }),
         }).then((response) => this._handleResponse(response));
     }
@@ -142,7 +122,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: { 'Authorization': 'Bearer ' + this._accessToken, "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ displayName, description, removeLanguageIds, addLanguages, updateLanguages }),
         }).then((response) => this._handleResponse(response));
     }
@@ -152,7 +132,6 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: { 'Authorization': 'Bearer ' + this._accessToken },
         }).then((response) => this._handleResponse(response));
     }
 
@@ -165,8 +144,13 @@ export class DialogueBranchClient {
 
         const response = await fetch(url, {
             method: "GET",
-            headers: { 'Authorization': 'Bearer ' + this._accessToken },
+            credentials: "include",
         });
+
+        if (response.status === 401) {
+            redirectToLogin();
+            return new Promise(() => {}); // navigation is in flight; never resolve
+        }
 
         if (!response.ok) {
             const body = await response.json().catch(() => null);
@@ -193,7 +177,6 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: { 'Authorization': 'Bearer ' + this._accessToken },
             body: formData,
         }).then((response) => this._handleResponse(response));
     }
@@ -204,7 +187,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: { 'Authorization': 'Bearer ' + this._accessToken, "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ translationLanguageName, translationLanguageCode }),
         }).then((response) => this._handleResponse(response));
     }
@@ -216,7 +199,6 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: { 'Authorization': 'Bearer ' + this._accessToken },
         }).then((response) => this._handleResponse(response));
     }
 
@@ -227,7 +209,6 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: { 'Authorization': 'Bearer ' + this._accessToken },
         }).then((response) => this._handleResponse(response));
     }
 
@@ -239,10 +220,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "GET",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
         }).then((response) => this._handleResponse(response));
     }
 
@@ -253,10 +231,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            }
+            headers: { "Content-Type": "application/json" }
         }).then((response) => this._handleResponse(response));
     }
 
@@ -267,10 +242,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            }
+            headers: { "Content-Type": "application/json" }
         }).then((response) => this._handleResponse(response));
     }
 
@@ -280,10 +252,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "GET",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            }
+            headers: { "Content-Type": "application/json" }
         }).then((response) => this._handleResponse(response));
     }
 
@@ -292,10 +261,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "GET",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            }
+            headers: { "Content-Type": "application/json" }
         })
         .then((response) => this._handleResponse(response));
     }
@@ -312,10 +278,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            }
+            headers: { "Content-Type": "application/json" }
         })
         .then((response) => this._handleResponse(response))
         .then((json) => this.createDialogueStepObject(json));
@@ -331,10 +294,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            }
+            headers: { "Content-Type": "application/json" }
         })
         .then((response) => this._handleResponse(response))
         .then((json) => json.value ? this.createDialogueStepObject(json.value) : null);
@@ -350,10 +310,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            }
+            headers: { "Content-Type": "application/json" }
         })
         .then((response) => this._handleResponse(response))
         .then((data) => {
@@ -372,10 +329,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            }
+            headers: { "Content-Type": "application/json" }
         })
         .then((response) => this._handleResponse(response));
     }
@@ -389,10 +343,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "GET",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            }
+            headers: { "Content-Type": "application/json" }
         })
         .then((response) => this._handleResponse(response));
     }
@@ -409,10 +360,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            }
+            headers: { "Content-Type": "application/json" }
         })
         .then((response) => this._handleResponse(response))
         .then((json) => ({
@@ -431,10 +379,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            }
+            headers: { "Content-Type": "application/json" }
         })
         .then((response) => this._handleResponse(response))
         .then((json) => json.value ? this.createDialogueStepObject(json.value) : null);
@@ -446,10 +391,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            }
+            headers: { "Content-Type": "application/json" }
         })
         .then((response) => this._handleResponse(response));
     }
@@ -461,10 +403,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            }
+            headers: { "Content-Type": "application/json" }
         })
         .then((response) => this._handleResponse(response));
     }
@@ -478,10 +417,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ name }),
         }).then((response) => this._handleResponse(response));
     }
@@ -494,7 +430,6 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: { 'Authorization': 'Bearer ' + this._accessToken },
         }).then((response) => this._handleResponse(response));
     }
 
@@ -504,7 +439,6 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: { 'Authorization': 'Bearer ' + this._accessToken },
         }).then((response) => this._handleResponse(response));
     }
 
@@ -517,10 +451,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "GET",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
         }).then((response) => this._handleResponse(response));
     }
 
@@ -532,7 +463,6 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: { 'Authorization': 'Bearer ' + this._accessToken },
         }).then((response) => this._handleResponse(response));
     }
 
@@ -542,10 +472,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "GET",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
         }).then((response) => this._handleResponse(response));
     }
 
@@ -555,10 +482,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ title, header, body }),
         }).then((response) => this._handleResponse(response));
     }
@@ -570,10 +494,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ header, body }),
         }).then((response) => this._handleResponse(response));
     }
@@ -585,7 +506,6 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: { 'Authorization': 'Bearer ' + this._accessToken },
         }).then((response) => this._handleResponse(response));
     }
 
@@ -598,10 +518,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "GET",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
         }).then((response) => this._handleResponse(response));
     }
 
@@ -614,7 +531,6 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: { 'Authorization': 'Bearer ' + this._accessToken },
         }).then((response) => this._handleResponse(response));
     }
 
@@ -624,10 +540,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "GET",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
         }).then((response) => this._handleResponse(response));
     }
 
@@ -638,10 +551,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "GET",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
         }).then((response) => this._handleResponse(response));
     }
 
@@ -652,10 +562,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ content }),
         }).then((response) => this._handleResponse(response));
     }
@@ -668,10 +575,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "GET",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            }
+            headers: { "Content-Type": "application/json" }
         })
         .then((response) => this._handleResponse(response))
         .then((data) => {
@@ -703,10 +607,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "GET",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            }
+            headers: { "Content-Type": "application/json" }
         })
         .then((response) => this._handleResponse(response))
         .then((data) => data?.value ?? null);
@@ -722,10 +623,7 @@ export class DialogueBranchClient {
 
         return this._fetch(url, {
             method: "POST",
-            headers: {
-                'Authorization': 'Bearer ' + this._accessToken,
-                "Content-Type": "application/json",
-            }
+            headers: { "Content-Type": "application/json" }
         })
         .then((response) => this._handleResponse(response));
     }
@@ -766,7 +664,7 @@ export class DialogueBranchClient {
                 }
                 reply.replyId = element.replyId;
                 reply.endsDialogue = element.endsDialogue;
-                
+
                 if(reply instanceof BasicReply) {
                     statement = Statement.emptyInstance();
                     element.statement.segments.forEach(
@@ -784,14 +682,25 @@ export class DialogueBranchClient {
         return dialogueStep;
     }
 
+    // Attaches the session cookie (credentials: 'include') to every call, and — for state-changing
+    // methods, which are the ones Spring Security's CSRF filter actually checks — the XSRF-TOKEN
+    // cookie's value as the X-XSRF-TOKEN header. There is no access token to attach or refresh
+    // here at all: the BFF holds it server-side and refreshes it transparently.
     async _fetch(url, options, logRequestBody = null) {
+        const method = (options?.method || 'GET').toUpperCase();
         const path = url.startsWith(this._baseUrl) ? url.slice(this._baseUrl.length) : url;
-        const method = options?.method || 'GET';
-        const hasAuth = !!options?.headers?.['Authorization'];
+
+        const fetchOptions = { ...options, credentials: 'include' };
+        if (!['GET', 'HEAD'].includes(method)) {
+            const csrfToken = DocumentFunctions.getCookie('XSRF-TOKEN');
+            if (csrfToken) {
+                fetchOptions.headers = { ...options?.headers, 'X-XSRF-TOKEN': csrfToken };
+            }
+        }
 
         let response;
         try {
-            response = await fetch(url, options);
+            response = await fetch(url, fetchOptions);
         } catch (networkError) {
             logApiCall(method, path, 0, null, logRequestBody);
             throw networkError;
@@ -799,35 +708,22 @@ export class DialogueBranchClient {
         const text = await response.text().catch(() => null);
         logApiCall(method, path, response.status, text, logRequestBody);
         const nullBodyStatus = [204, 205, 304].includes(response.status);
-        const reconstructed = new Response(nullBodyStatus ? null : text, {
+        return new Response(nullBodyStatus ? null : text, {
             status: response.status,
             statusText: response.statusText,
             headers: response.headers,
         });
-
-        if (response.status === 401 && hasAuth && this._onUnauthorized) {
-            const newToken = await this._onUnauthorized().catch(() => null);
-            if (newToken) {
-                const retryOptions = {
-                    ...options,
-                    headers: { ...options.headers, 'Authorization': 'Bearer ' + newToken },
-                };
-                const retryResponse = await fetch(url, retryOptions);
-                const retryText = await retryResponse.text().catch(() => null);
-                logApiCall(method + ' [retried]', path, retryResponse.status, retryText, logRequestBody);
-                const retryNullBodyStatus = [204, 205, 304].includes(retryResponse.status);
-                return new Response(retryNullBodyStatus ? null : retryText, {
-                    status: retryResponse.status,
-                    statusText: retryResponse.statusText,
-                    headers: retryResponse.headers,
-                });
-            }
-        }
-
-        return reconstructed;
     }
 
     _handleResponse(response) {
+        if (response.status === 401) {
+            // No session (or one the BFF could not refresh) — send the browser to log in via a
+            // real navigation, matching the BFF's documented client pattern. Returns a promise
+            // that never resolves so callers' .then()/.catch() don't fire while that navigation
+            // is in flight.
+            redirectToLogin();
+            return new Promise(() => {});
+        }
         if (response.ok) {
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.startsWith('application/json')) {

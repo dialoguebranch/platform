@@ -1,0 +1,12 @@
+dlb:
+  bff:
+    # SecurityConfig builds the ClientRegistration from these dlb.bff.* properties directly (see
+    # its Javadoc) — no OIDC discovery call happens either way, so these values just need to be
+    # well-formed, not actually reachable, for a context-load test.
+    oauth2-client-id: test-bff
+    oauth2-client-secret: test-secret
+    keycloak-base-url: http://localhost:8081/
+    keycloak-browser-base-url: http://localhost:8081/
+    keycloak-realm: dialoguebranch
+    api-base-url: http://localhost:8089/dlb-web-service
+    web-service-client-id: dlb-web-service

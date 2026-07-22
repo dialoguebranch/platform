@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
 defineProps({
     apiUp: { type: Boolean, default: false },
-    keycloakUp: { type: Boolean, default: false },
+    authUp: { type: Boolean, default: false },
 });
 
 function retry() {
@@ -31,8 +31,8 @@ function retry() {
                 </li>
                 <li class="flex items-center gap-2">
                     <FontAwesomeIcon
-                        :icon="keycloakUp ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-xmark'"
-                        :class="keycloakUp ? 'text-green-600' : 'text-red-500'"
+                        :icon="authUp ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-xmark'"
+                        :class="authUp ? 'text-green-600' : 'text-red-500'"
                     />
                     Authentication service
                 </li>

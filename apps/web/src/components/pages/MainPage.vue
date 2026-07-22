@@ -30,9 +30,11 @@ const appVersion = __APP_VERSION__;
 onUnmounted(() => {
     document.removeEventListener('click', onClickOutsideMenus);
 });
-const serviceUrl = new URL(config.baseUrl);
-const serviceHost = serviceUrl.hostname;
-const servicePort = serviceUrl.port;
+// config.baseUrl is a same-origin relative path (e.g. "/api/v1"), proxied through the BFF — not
+// a URL of its own to parse. The connection info below is about where the browser itself is
+// actually talking, which is this page's own origin either way.
+const serviceHost = window.location.hostname;
+const servicePort = window.location.port;
 const connectionInfo = ref('Not connected.');
 const showTechnicalInfo = ref(false);
 

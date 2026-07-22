@@ -1,0 +1,79 @@
+# Dialogue Branch BFF (Backend-for-Frontend) — Spring Boot configuration.
+#
+# All dlb.bff.* properties can be overridden at runtime via environment variables:
+#   dlb.bff.oauth2-client-id             → DLB_BFF_OAUTH2_CLIENT_ID
+#   dlb.bff.oauth2-client-secret          → DLB_BFF_OAUTH2_CLIENT_SECRET
+#   dlb.bff.keycloak-base-url             → DLB_BFF_KEYCLOAK_BASE_URL
+#   dlb.bff.keycloak-browser-base-url     → DLB_BFF_KEYCLOAK_BROWSER_BASE_URL
+#   dlb.bff.keycloak-realm                → DLB_BFF_KEYCLOAK_REALM
+#   dlb.bff.api-base-url                  → DLB_BFF_API_BASE_URL
+#   dlb.bff.web-service-client-id         → DLB_BFF_WEB_SERVICE_CLIENT_ID
+#   dlb.bff.post-login-redirect-url       → DLB_BFF_POST_LOGIN_REDIRECT_URL
+#
+# The keycloak ClientRegistration itself is built by hand in SecurityConfig from these same
+# properties, not auto-configured from spring.security.oauth2.client.* — see its Javadoc for why
+# (in short: end_session_endpoint has to be supplied directly, since this app deliberately never
+# triggers OIDC discovery).
+#
+# The defaults below are tuned for local development (infrastructure/docker/compose.yml).
+# Production deployments must override the client id/secret via environment variables.
+
+server:
+  port: 8082
+  # Trust X-Forwarded-Proto/Host from a reverse proxy in front of this service, so absolute URLs
+  # Spring Security builds itself (redirect_uri, post_logout_redirect_uri) use https:// there
+  # instead of http://, matching the https-only redirect URIs registered in Keycloak. No-op when
+  # there's no reverse proxy in front (e.g. local development).
+  forward-headers-strategy: framework
+
+dlb:
+  bff:
+    oauth2-client-id: ${DLB_BFF_OAUTH2_CLIENT_ID:dlb-bff}
+    oauth2-client-secret: ${DLB_BFF_OAUTH2_CLIENT_SECRET:dev-secret}
+    # Server-to-server Keycloak address (token exchange, ID token signature verification).
+    keycloak-base-url: ${DLB_BFF_KEYCLOAK_BASE_URL:http://localhost:8081/}
+    # Browser-facing Keycloak address: the browser is redirected here directly (login, and
+    # RP-initiated logout via end_session_endpoint), so it must resolve from a developer's or a
+    # deployment's actual browser, not just from wherever this service itself runs. Only differs
+    # from the above when this service runs inside a container network that has its own internal
+    # Keycloak hostname.
+    #
+    # Deliberately no issuer-uri / OIDC discovery anywhere in this configuration: without
+    # Keycloak's hostname pinned (only a real deployment sets KC_HOSTNAME, never local dev), the
+    # internal and browser-facing addresses genuinely disagree on what the issuer is, and
+    # configuring either would make real logins fail (invalid_id_token / invalid_user_info_response)
+    # even though everything looks correctly wired. OidcIdTokenValidator already tolerates a
+    # missing issuer-uri (skips the iss check; signature/expiry/audience still validate), and
+    # OidcUserService tolerates a missing user-info-uri (builds the principal from the ID token's
+    # own claims, sufficient since profile/email scope claims already land there).
+    keycloak-browser-base-url: ${DLB_BFF_KEYCLOAK_BROWSER_BASE_URL:http://localhost:8081/}
+    keycloak-realm: ${DLB_BFF_KEYCLOAK_REALM:dialoguebranch}
+    # Internal address of the Dialogue Branch Web Service that ApiProxyController forwards
+    # /api/** to — never browser-facing, the browser only ever talks to this BFF.
+    api-base-url: ${DLB_BFF_API_BASE_URL:http://localhost:8089/dlb-web-service}
+    # The Keycloak client id whose resource_access roles WhoAmIController reads for the current
+    # user — this is the dlb-web-service client's id itself (a role container, not something this
+    # BFF logs in as), kept configurable rather than hard-coded to survive a differently-named
+    # realm/client setup.
+    web-service-client-id: ${DLB_BFF_WEB_SERVICE_CLIENT_ID:dlb-web-service}
+    # Where SecurityConfig sends the browser after a successful login, and also after a
+    # successful logout (both need the same value: the SPA's own origin). The relative default
+    # ("/") is correct behind a same-origin reverse proxy (production: HAProxy routes everything
+    # else on the same hostname to the static web client) — but it's wrong for local development,
+    # where the SPA's own dev server (Vite) runs on a genuinely different origin than this BFF.
+    # Keycloak's own redirect back to this service (the login callback, or end_session_endpoint's
+    # own redirect after logout) is an absolute address the browser follows directly, bypassing
+    # the dev server's proxy entirely, so a *relative* "/" redirect from here would land the
+    # browser on this BFF's own port instead — which serves no page at all and 404s. Override to
+    # the dev server's origin (e.g. http://localhost:5173/) for local development; see
+    # infrastructure/docker/compose.yml. For logout specifically, this value also has to be
+    # registered as a valid post-logout redirect URI for the dlb-bff Keycloak client (see
+    # dialoguebranch-realm.json's __BFF_POST_LOGOUT_REDIRECT_URI__ placeholder) — Keycloak
+    # rejects end_session_endpoint calls with an unregistered redirect target.
+    post-login-redirect-url: ${DLB_BFF_POST_LOGIN_REDIRECT_URL:/}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
