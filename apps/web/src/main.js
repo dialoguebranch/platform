@@ -2,10 +2,12 @@ import './assets/css/main.css';
 import config from './config.js';
 import state from './state.js';
 import keycloak, { initKeycloak } from './keycloak.js';
+import { checkServicesHealth } from './composables/service-health.js';
 import { User } from './dlb-lib/model/User.js';
 
 import { createApp, ref } from 'vue';
 import App from './App.vue';
+import ServiceStatusPage from './components/pages/ServiceStatusPage.vue';
 
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { fas } from '@fortawesome/free-solid-svg-icons';
@@ -16,6 +18,15 @@ library.add(far);
 const stateRef = ref(state);
 
 async function bootstrap() {
+    // Checked before touching Keycloak at all — see service-health.js for why this can't be
+    // scoped to only the "not logged in yet" case.
+    const health = await checkServicesHealth();
+    if (!health.apiUp || !health.keycloakUp) {
+        createApp(ServiceStatusPage, { apiUp: health.apiUp, keycloakUp: health.keycloakUp })
+            .mount('#app');
+        return;
+    }
+
     // onLoad: 'login-required' means this only resolves once the user is authenticated —
     // if not, the browser has already been redirected to Keycloak's hosted login page.
     await initKeycloak();

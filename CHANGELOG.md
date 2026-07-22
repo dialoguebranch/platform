@@ -17,6 +17,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   creating anything in the database. Export fetches a project's dialogues and translations in two
   batched queries instead of one query per dialogue. Importing an archive preserves its exported
   version number instead of always restarting the new project at version 1.
+- Added a service status check to the web client's startup: before redirecting to Keycloak's login
+  page, it now verifies the DLB API and Keycloak are both reachable. If either is down, it shows a
+  status page with a Retry button instead of sending the user to a broken login page.
 
 ### Fixed
 
