@@ -7,6 +7,21 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Added
+
+- Added a `variable-service` Docker Compose profile (`infrastructure/docker/compose.yml`) that
+  builds and runs the mock external variable service alongside MariaDB and Keycloak, for testing
+  `dlb-web-service`'s external variable service integration locally.
+
+### Fixed
+
+- Fixed the mock variable service's Docker image, which failed to build: it referenced source
+  paths that no longer exist and packaged the app as a WAR for a standalone Tomcat instead of the
+  Spring Boot jar it's built as today. Its logging config also referenced a missing resource file,
+  which crashed the service on startup.
+- Fixed a `NullPointerException` thrown when starting a dialogue that references a variable with
+  no existing value while an external variable service is enabled.
+
 ## [2.0.4] - 2026-07-22
 
 ### Added

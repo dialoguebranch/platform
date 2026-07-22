@@ -410,7 +410,7 @@ public class UserService {
 							variableName, dialogueBranchUser.getId(), variable);
 					varsToUpdate.add(variable);
 				} else {
-					varsToUpdate.add(new Variable(variableName, null, null, null));
+					varsToUpdate.add(Variable.unknown(variableName));
 				}
 			}
 

@@ -3,8 +3,9 @@
 # Starts MariaDB, phpMyAdmin, and Keycloak with hard-coded dev credentials.
 # No configuration files are required. Run from infrastructure/docker/:
 #
-#   docker compose up -d                    # supporting services only
-#   docker compose --profile api up -d     # also build and run the API
+#   docker compose up -d                              # supporting services only
+#   docker compose --profile api up -d                # also build and run the API
+#   docker compose --profile variable-service up -d   # also build and run the mock variable service
 #
 # Then run the web client locally (see README.md).
 
@@ -118,6 +119,32 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_started
+
+  # ---------------------------------------------------------------------------
+  # Mock External Variable Service (optional, start with --profile variable-service)
+  #
+  # A dummy implementation of the "External Variable Service" protocol, used to
+  # test the dlb-web-service's integration with an external variable back-end.
+  # To point dlb-web-service at it (e.g. when running the API via ./gradlew
+  # bootRun locally, outside this compose stack), set:
+  #   DLB_EXTERNAL_VARIABLE_SERVICE_ENABLED=true
+  #   DLB_EXTERNAL_VARIABLE_SERVICE_URL=http://localhost:8090
+  #   DLB_EXTERNAL_VARIABLE_SERVICE_API_KEY=dev
+  # (matching the DLB_AUTH_API_KEY set below). If dlb-web-service runs inside
+  # this compose stack instead, use DLB_EXTERNAL_VARIABLE_SERVICE_URL=http://mock-variable-service:8090.
+  # ---------------------------------------------------------------------------
+
+  mock-variable-service:
+    build:
+      context: ../..
+      dockerfile: apps/mock-variable-service/Dockerfile
+    profiles:
+      - variable-service
+    container_name: dlb-dev-mock-variable-service
+    environment:
+      DLB_AUTH_API_KEY: dev
+    ports:
+      - "8090:8090"
 
 volumes:
   mariadb-data:

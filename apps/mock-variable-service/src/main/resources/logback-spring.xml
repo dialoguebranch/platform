@@ -2,7 +2,8 @@
 <!DOCTYPE xml>
 
 <configuration>
-	<property resource="service.properties" />
+	<springProperty scope="context" name="dataDir" source="dlb.data-dir"
+		defaultValue="/usr/local/dialogue-branch/data/dlb-external-var-service"/>
 
 	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
 		<encoder>

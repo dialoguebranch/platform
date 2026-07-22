@@ -123,6 +123,23 @@ public class Variable {
 		this.updatedSource = updatedSource;
 	}
 
+	// ------------------------------------------------------- //
+	// -------------------- Factory Methods ------------------- //
+	// ------------------------------------------------------- //
+
+	/**
+	 * Creates a stub {@link Variable} with the given {@code name} and no known value, timestamp,
+	 * or timezone. Used to represent a variable that has never been set locally — e.g. when asking
+	 * an external Dialogue Branch Variable Service to resolve a value for a variable this
+	 * {@link VariableStore} has no record of.
+	 *
+	 * @param name the name (or 'identifier') of the variable.
+	 * @return a {@link Variable} with only its {@code name} set.
+	 */
+	public static Variable unknown(String name) {
+		return new Variable(name, null, (Long) null, null, VariableUpdatedSource.UNKNOWN);
+	}
+
 	// ----------------------------------------------------------- //
 	// -------------------- Getters & Setters -------------------- //
 	// ----------------------------------------------------------- //

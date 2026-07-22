@@ -1,38 +1,63 @@
-### From your GIT/dialoguebranch/ folder
-### docker build --no-cache -t dlb-external-var-service -f ./dlb-web/dlb-external-var-service/standalone.Dockerfile .
-### docker run -itd -p 8090:8090 --name dlb-external-var-service dlb-external-var-service
-### (User 'docker system prune -a') to clean up the cache and free up disk space
+# Dialogue Branch External Variable Service (mock) Docker image.
+#
+# Build context must be the platform/ root of the monorepo:
+#   docker build -t dlb-mock-variable-service -f apps/mock-variable-service/Dockerfile .
+#
+# Run the resulting image:
+#   docker run -p 8090:8090 dlb-mock-variable-service
 
-# Use an official Java runtime as a parent image
-FROM tomcat:11.0
+# ---------------------------------------------------------- #
+# -------------------- Stage 1: Builder -------------------- #
+# ---------------------------------------------------------- #
 
-# Edit the server.xml, changing the port from 8080 to 8090
-RUN sed -i 's/port="8080"/port="8090"/' ${CATALINA_HOME}/conf/server.xml
+FROM eclipse-temurin:17-jdk AS builder
 
-# Make port 8090 available to the world outside this container
-EXPOSE 8090
+WORKDIR /build
 
-# Copy the local source folder into the container
-COPY . /usr/local/dialogue-branch/source/dlb-web/dlb-external-var-service/
+COPY global.json global.json
+COPY apps/mock-variable-service/ apps/mock-variable-service/
 
-# Ensure that the gradlew script may be executed in the container
-RUN for f in `find /usr/local/dialogue-branch/source -name "gradlew" -print`; do chmod 755 $f && sed -i -e 's/\r//' $f; done
+RUN chmod +x apps/mock-variable-service/gradlew
 
-# Create the data folders used by the service
-RUN mkdir /usr/local/dialogue-branch/data/
-RUN mkdir /usr/local/dialogue-branch/data/dlb-external-var-service/
+WORKDIR /build/apps/mock-variable-service
 
-# Set the working directory to the DLB External Variable Service source folder
-WORKDIR /usr/local/dialogue-branch/source/dlb-web/dlb-external-var-service/
+# Build the JAR, skipping tests and Javadoc for a faster image build.
+# All runtime configuration is supplied via environment variables — see Stage 2.
+RUN ./gradlew clean build -x test -PbuildEnv=dev --no-daemon
 
-# Execute a clean build
-RUN ./gradlew clean updateVersion updateConfig build -PbuildEnv=prod
+# ---------------------------------------------------------- #
+# -------------------- Stage 2: Runtime -------------------- #
+# ---------------------------------------------------------- #
 
-# Copy the generated .war file into the tomcat webapps
-RUN cp /usr/local/dialogue-branch/source/dlb-web/dlb-external-var-service/build/libs/dlb-external-var-service-1.3.0.war /usr/local/tomcat/webapps/dlb-external-var-service.war
+FROM eclipse-temurin:17-jre
 
-# Set the working directory in the container
-WORKDIR /usr/local/tomcat
+# The HTTP port Spring Boot listens on inside the container (default: 8090).
+# Override with -e SERVER_PORT=... or in docker-compose.yml.
+# Remember to match your -p host:container port mapping accordingly.
+ENV SERVER_PORT=8090
+EXPOSE ${SERVER_PORT}
 
-# Run Tomcat server
-CMD ["catalina.sh", "run"]
+# Create the data directory used by the service
+RUN mkdir -p /usr/local/dialogue-branch/data/dlb-external-var-service/
+
+# Copy the built JAR from the builder stage
+COPY --from=builder /build/apps/mock-variable-service/build/libs/dlb-external-var-service-*.jar /app/dlb-external-var-service.jar
+
+ENTRYPOINT ["java", "-jar", "/app/dlb-external-var-service.jar"]
+
+# -------------------------------------------------------------------------
+# Runtime configuration via environment variables.
+# All values below can be overridden in a docker run -e or docker-compose.yml.
+# -------------------------------------------------------------------------
+
+ENV DLB_BASE_URL=http://localhost:8090/dlb-external-var-service
+ENV DLB_DATA_DIR=/usr/local/dialogue-branch/data/dlb-external-var-service
+
+# -------------------------------------------------------------------------
+# Sensitive values — DO NOT set defaults here in production.
+# Supply these at runtime via docker run -e, a docker-compose.yml
+# environment block, or Docker Secrets.
+#
+# Optional:
+#   DLB_AUTH_API_KEY — API key that callers (e.g. dlb-web-service) must present
+# -------------------------------------------------------------------------
