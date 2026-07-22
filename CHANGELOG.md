@@ -7,6 +7,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+## [2.0.4] - 2026-07-22
+
 ### Added
 
 - Added project export/import: a project's published content can be downloaded as a `.zip`
