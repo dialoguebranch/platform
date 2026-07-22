@@ -12,6 +12,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 - Added a `variable-service` Docker Compose profile (`infrastructure/docker/compose.yml`) that
   builds and runs the mock external variable service alongside MariaDB and Keycloak, for testing
   `dlb-web-service`'s external variable service integration locally.
+- The mock variable service now also resolves a `$dayPart` variable on `retrieve-updates` requests,
+  returning `"morning"`, `"afternoon"`, `"evening"`, or `"night"` based on the current hour in the
+  user's time zone, alongside the existing `$currentDate`/`$currentTime` handling.
 
 ### Fixed
 

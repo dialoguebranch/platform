@@ -20,6 +20,7 @@ This specific module `dlb-external-var-service` is a Dummy implementation that p
 
   * For every variable that you include in the request list to `/variables/retrieve-updates` there is a 50% chance that it will be returned in the response list with the same value as provided in the request, and the lastUpdated time set to the current UTC time in epoch seconds.
   * If an update is requested for a variable with name `$currentDate` and/or `$currentTime`, those two variables will be updated and returned to reflect the current date and time in the user's provided time zone.
+  * If an update is requested for a variable with name `$dayPart`, it will be updated and returned as one of `"morning"` (6-11h), `"afternoon"` (12-17h), `"evening"` (18-21h), or `"night"` (22-5h), based on the current hour in the user's provided time zone.
   * Calls to `/notify-updated` and `/notify-cleared` will be checked for correctness (e.g. Authorization header must be correct), but otherwise don't result in anything.
 
 If you have an existing back-end service, and you want it to take up the role of "Dialogue Branch External Variable Service", here is what you do:

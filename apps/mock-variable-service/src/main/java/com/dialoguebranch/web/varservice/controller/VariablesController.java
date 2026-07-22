@@ -135,8 +135,9 @@ public class VariablesController {
 			"<br/><br/>You must pass along the current timezone of the user (client) so that " +
 			"certain time sensitive variables may be correctly set according to the timezone of " +
 			"the user." +
-			"<br/><br/>In this dummy implementation, two specific variables will always be " +
-			"updated: 'currentDate' and 'currentTime'. Furthermore, for every other variable " +
+			"<br/><br/>In this dummy implementation, three specific variables will always be " +
+			"updated: 'currentDate', 'currentTime', and 'dayPart' (one of 'morning', 'afternoon', " +
+				"'evening', or 'night', based on the current hour). Furthermore, for every other variable " +
 			"that is included in the request list there is a 50% chance that it will be returned " +
 			"in the response list, with the same value as provided in the request, and the " +
 			"lastUpdated time set to the current UTC time in epoch seconds.")
@@ -199,8 +200,9 @@ public class VariablesController {
 	 *
 	 * <p>In this dummy implementation, the method does the following:</p>
 	 *
-	 * <p>First of all, if an update is requested for a variable with name 'currentDate' and/or
-	 * 'currentTime', those two variables will be updated to reflect the current date and time in
+	 * <p>First of all, if an update is requested for a variable with name 'currentDate',
+	 * 'currentTime', and/or 'dayPart', those variables will be updated to reflect the current
+	 * date, time, and part of the day (one of 'morning', 'afternoon', 'evening', or 'night') in
 	 * the user's provided time zone.</p>
 	 *
 	 * <p>For every other Dialogue Branch Variable for which an update is requested, there is a 50%
@@ -280,6 +282,19 @@ public class VariablesController {
 				result.add(newParam);
 			}
 
+			// Handle the 'dayPart' case
+			else if(parameterToUpdate.getName().equals("dayPart")) {
+				ZonedDateTime currentDateTime = ZonedDateTime.ofInstant(Instant.now(),timeZoneId);
+				String dayPart = determineDayPart(currentDateTime.getHour());
+				DLBVariablePayload newParam = new DLBVariablePayload(
+						parameterToUpdate.getName(),
+						dayPart,
+						Instant.now().toEpochMilli(),
+						timeZone
+				);
+				result.add(newParam);
+			}
+
 			// With 50% chance, return the variable as if it has been updated
 			else if(random.nextBoolean()) {
 				DLBVariablePayload newParam = new DLBVariablePayload(
@@ -293,6 +308,20 @@ public class VariablesController {
 		}
 
 		return result;
+	}
+
+	/**
+	 * Determines the part of the day for the given {@code hour} (in 24-hour format): 'morning'
+	 * (6-11), 'afternoon' (12-17), 'evening' (18-21), or 'night' (22-5).
+	 *
+	 * @param hour the hour of the day, in 24-hour format (0-23).
+	 * @return one of 'morning', 'afternoon', 'evening', or 'night'.
+	 */
+	private String determineDayPart(int hour) {
+		if(hour >= 6 && hour < 12) return "morning";
+		else if(hour >= 12 && hour < 18) return "afternoon";
+		else if(hour >= 18 && hour < 22) return "evening";
+		else return "night";
 	}
 
 	// ---------------------------------------------------------------------
