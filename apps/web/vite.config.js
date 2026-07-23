@@ -21,6 +21,20 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version),
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Keeps dlb-lib (see its own README on the original intent: a plain-JS client library
+        // other JS projects could reuse, independent of this particular Vue app) in its own chunk,
+        // separate from the rest of the app — its own file, cacheable independently of app changes.
+        manualChunks(id) {
+          if (id.includes('/src/dlb-lib/')) {
+            return 'dlb-lib';
+          }
+        },
+      },
+    },
+  },
   server: {
     // This app talks to the BFF only, same-origin, never to the Dialogue Branch Web Service or
     // Keycloak directly (see src/auth.js and src/dlb-lib/DialogueBranchClient.js) — the dev

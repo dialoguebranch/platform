@@ -12,10 +12,34 @@ import VersionMismatchPage from './components/pages/VersionMismatchPage.vue';
 import AccessDeniedPage from './components/pages/AccessDeniedPage.vue';
 
 import { library } from '@fortawesome/fontawesome-svg-core';
-import { fas } from '@fortawesome/free-solid-svg-icons';
-import { far } from '@fortawesome/free-regular-svg-icons';
-library.add(fas);
-library.add(far);
+// Only the icons actually used across the app — importing the full fas/far sets (every icon
+// Font Awesome ships) instead of these specific ones bloats the production bundle by well over
+// 1 MB for icons that are never rendered.
+import {
+    faAlignLeft, faAnglesLeft, faAnglesRight, faArrowUpRightFromSquare, faArrowsRotate, faBug,
+    faCaretDown, faCaretRight, faCaretUp, faCheck, faCircle, faCircleArrowRight, faCircleCheck,
+    faCircleChevronLeft, faCircleChevronRight, faCircleExclamation, faCircleInfo, faCircleNotch,
+    faCircleXmark, faClockRotateLeft, faCloudArrowUp, faCookieBite, faDiagramProject, faFileExport,
+    faFileImport, faFileLines, faFileZipper, faFingerprint, faFlagCheckered, faFlask, faFolder,
+    faFolderMinus, faFolderOpen, faHeading, faLanguage, faMagnifyingGlass, faParagraph, faPen,
+    faPlay, faPlus, faRightFromBracket, faRocket, faRotateLeft, faRotateRight, faServer, faSliders,
+    faTrash, faTriangleExclamation, faUser, faUserGear, faUserLock, faUserXmark,
+    faWandMagicSparkles, faXmark,
+} from '@fortawesome/free-solid-svg-icons';
+import { faComments, faCopy } from '@fortawesome/free-regular-svg-icons';
+
+library.add(
+    faAlignLeft, faAnglesLeft, faAnglesRight, faArrowUpRightFromSquare, faArrowsRotate, faBug,
+    faCaretDown, faCaretRight, faCaretUp, faCheck, faCircle, faCircleArrowRight, faCircleCheck,
+    faCircleChevronLeft, faCircleChevronRight, faCircleExclamation, faCircleInfo, faCircleNotch,
+    faCircleXmark, faClockRotateLeft, faCloudArrowUp, faCookieBite, faDiagramProject, faFileExport,
+    faFileImport, faFileLines, faFileZipper, faFingerprint, faFlagCheckered, faFlask, faFolder,
+    faFolderMinus, faFolderOpen, faHeading, faLanguage, faMagnifyingGlass, faParagraph, faPen,
+    faPlay, faPlus, faRightFromBracket, faRocket, faRotateLeft, faRotateRight, faServer, faSliders,
+    faTrash, faTriangleExclamation, faUser, faUserGear, faUserLock, faUserXmark,
+    faWandMagicSparkles, faXmark,
+    faComments, faCopy,
+);
 
 const stateRef = ref(state);
 

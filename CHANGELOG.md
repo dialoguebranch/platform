@@ -31,6 +31,16 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   explanation and a Log Out button, instead of being silently logged out and redirected straight
   back to the login page with no indication of why.
 
+### Changed
+
+- The web client's production build now splits `dlb-lib` (the framework-agnostic client library
+  for talking to a Dialogue Branch Web Service, intended to be reusable outside this app) into its
+  own JS chunk instead of bundling it into the main app chunk, via a `manualChunks` rule in
+  `vite.config.js`.
+- The web client now imports only the specific Font Awesome icons it actually uses, instead of the
+  entire solid and regular icon sets. This shrinks the main production bundle from ~1.49 MB to
+  ~450 kB (minified), removing the build's "chunks larger than 500 kB" warning entirely.
+
 ### Fixed
 
 - Fixed the mock variable service's Docker image, which failed to build: it referenced source
