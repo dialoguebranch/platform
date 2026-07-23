@@ -14,14 +14,19 @@ export default withMermaid(defineConfig({
 
   themeConfig: {
     logo: '/dlb-square.png',
+    // Hides the default site-title text next to the logo — a custom SiteTitle
+    // component is injected instead (see theme/index.ts), showing the full
+    // "Dialogue Branch Documentation Hub" only on the home page and a shorter
+    // "Documentation Hub" everywhere else, where the full title otherwise
+    // overlapped the search box.
+    siteTitle: false,
 
     nav: [
       { text: 'Language', link: '/language/' },
       { text: 'Web Services', link: '/web-services/' },
       { text: 'Core Java', link: '/core-java/' },
       { text: 'Tutorials', link: '/tutorials/' },
-      { text: 'Contributing', link: '/contribution/' },
-      { text: 'dialoguebranch.com', link: 'https://www.dialoguebranch.com' }
+      { text: 'Release Notes', link: '/release-notes' }
     ],
 
     sidebar: {
@@ -40,7 +45,11 @@ export default withMermaid(defineConfig({
           items: [
             { text: 'Overview', link: '/web-services/' },
             { text: 'Authentication', link: '/web-services/authentication' },
-            { text: 'Release Notes', link: '/web-services/release-notes' }
+            { text: 'API Service', link: '/web-services/api-service' },
+            { text: 'BFF Service', link: '/web-services/bff-service' },
+            { text: 'Studio', link: '/web-services/studio' },
+            { text: '3rd Party Clients', link: '/web-services/third-party-clients' },
+            { text: 'External Variable Service', link: '/web-services/external-variable-service' }
           ]
         }
       ],
@@ -48,8 +57,7 @@ export default withMermaid(defineConfig({
         {
           text: 'Core Java Library',
           items: [
-            { text: 'Overview', link: '/core-java/' },
-            { text: 'Release Notes', link: '/core-java/release-notes' }
+            { text: 'Overview', link: '/core-java/' }
           ]
         }
       ],
@@ -60,14 +68,6 @@ export default withMermaid(defineConfig({
             { text: 'Overview', link: '/tutorials/' },
             { text: 'Web Service - Installation', link: '/tutorials/webservice-installation' },
             { text: 'Web Service - Exploring the API', link: '/tutorials/webservice-exploringapi' }
-          ]
-        }
-      ],
-      '/contribution/': [
-        {
-          text: 'Contributing',
-          items: [
-            { text: 'Overview', link: '/contribution/' }
           ]
         }
       ]

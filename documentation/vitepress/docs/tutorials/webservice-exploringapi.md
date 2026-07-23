@@ -207,7 +207,7 @@ Finally, if you (or your client app) wants to stop engaging in a certain dialogu
 
 ## What's next?
 
-So now you have a running Dialogue Branch Web Service, and you understand how you can use its API to start, progress, continue and end dialogues. The next step is to move away from Swagger, and start with a proper client application — the Vue-based Web Client Test Application in `apps/web` of this repository is a complete, working example of exactly that, and a good reference to read alongside `src/dlb-lib/DialogueBranchClient.js`, its thin fetch-based API client.
+So now you have a running Dialogue Branch Web Service, and you understand how you can use its API to start, progress, continue and end dialogues. The next step is to move away from Swagger, and start with a proper client application — Dialogue Branch Studio (in `apps/web` of this repository) is a complete, working example of exactly that, and a good reference to read alongside `src/dlb-lib/DialogueBranchClient.js`, its thin fetch-based API client.
 
 ::: info Note
 If you found errors or have questions about this tutorial, please let us know by sending an email to info@dialoguebranch.com.

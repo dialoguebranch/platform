@@ -9,7 +9,7 @@ The Dialogue Branch Platform is a monorepo for authoring, executing, and serving
 1. **`packages/core`** — Core Java library (`com.dialoguebranch`) for parsing and executing `.dlb` scripts. Published to Maven Central as `com.dialoguebranch:dlb-core-java`.
 2. **`apps/api`** — Spring Boot web service that wraps the core library with a REST API. Deployed as a WAR on Tomcat. API base path: `/dlb-web-service/v1`.
 3. **`apps/bff`** — Spring Boot Backend-for-Frontend: performs the OAuth2 login against Keycloak on behalf of `apps/web` and proxies its API calls to `apps/api`, so the browser never holds an access token (see [BFF service](#bff-service-apps-bff) below). Deployed as an executable JAR, not a WAR.
-4. **`apps/web`** — Vue 3 / Vite / Tailwind CSS front-end (the "Web Client Test Application" / WCTA) that consumes the REST API via the BFF.
+4. **`apps/web`** — Vue 3 / Vite / Tailwind CSS front-end ("Dialogue Branch Studio") that consumes the REST API via the BFF.
 
 The version for the entire monorepo is declared once in `global.json` at the root. Both Gradle builds and the web `package.json` read from this file.
 

@@ -58,7 +58,7 @@ and Keycloak's admin console is available at:
 
 On first startup, the Web Service automatically seeds a default project from `apps/api/src/main/resources/projects-seed/` into the database — you don't need to configure anything to have some dialogues available to try out. The seeded project's slug is `default-test`, and includes a simple `basic.dlb` dialogue we'll use in the next tutorial.
 
-Beyond the seed project, dialogue content is managed through the API itself (`/project/*`, `/authoring/*`, `/publish/*` end-points — see [Dialogue Branch Web Services](/web-services/)) or through the Vue-based Web Client's visual editor, rather than by dropping files onto disk.
+Beyond the seed project, dialogue content is managed through the API itself (`/project/*`, `/authoring/*`, `/publish/*` end-points — see [Dialogue Branch Web Services](/web-services/)) or through Dialogue Branch Studio's visual editor, rather than by dropping files onto disk.
 
 ## Creating a Test User
 

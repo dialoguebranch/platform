@@ -8,7 +8,7 @@ As of 2026-07-17, this is the live docs site. It replaced a previous Antora/Asci
 
 * `docs/` — the VitePress site root (source directory).
   * `docs/.vitepress/config.mts` — site config: nav, sidebar, search, etc.
-  * `docs/.vitepress/theme/` — a thin extension of the default theme, adding the Dialogue Branch brand colors and self-hosted "Roboto Slab" font (matching `apps/web/src/assets/css/theme.css` and `fonts.css`) so the docs site and the Web Client Test Application look like one product.
+  * `docs/.vitepress/theme/` — a thin extension of the default theme, adding the Dialogue Branch brand colors and self-hosted "Roboto Slab" font (matching `apps/web/src/assets/css/theme.css` and `fonts.css`) so the docs site and Dialogue Branch Studio look like one product.
   * `docs/public/` — static assets (logo, fonts, images) served as-is.
   * `docs/language/`, `docs/web-services/`, `docs/core-java/`, `docs/tutorials/`, `docs/contribution/` — the documentation content, one folder per section (mirroring the old Antora modules).
 

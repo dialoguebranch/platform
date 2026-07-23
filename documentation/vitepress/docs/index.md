@@ -29,7 +29,7 @@ features:
     link: /core-java/
     linkText: Explore the core library
   - title: Web Services
-    details: A Spring Boot REST API that wraps the core library, plus a Vue-based Web Client Test Application for trying it out and authoring dialogues.
+    details: A Spring Boot REST API that wraps the core library, plus Dialogue Branch Studio, a Vue-based app for trying it out and authoring dialogues.
     link: /web-services/
     linkText: Read the web services docs
   - title: Tutorials
@@ -40,7 +40,7 @@ features:
 
 <div class="vp-doc" style="max-width: 720px; margin: 0 auto; padding: 0 24px 64px;">
 
-The Dialogue Branch Platform ([`dialoguebranch/platform`](https://github.com/dialoguebranch/platform) on GitHub) is a monorepo consisting of three components that work together: the [Core Java Library](/core-java/) for parsing and executing `.dlb` scripts, the [Web Service](/web-services/) that wraps the core library in a REST API (and includes a Vue-based Web Client Test Application for trying it out and authoring dialogues), and the [Dialogue Branch Language](/language/) that the `.dlb` scripts themselves are written in.
+The Dialogue Branch Platform ([`dialoguebranch/platform`](https://github.com/dialoguebranch/platform) on GitHub) is a monorepo consisting of three components that work together: the [Core Java Library](/core-java/) for parsing and executing `.dlb` scripts, the [Web Service](/web-services/) that wraps the core library in a REST API (and includes Dialogue Branch Studio, a Vue-based app for trying it out and authoring dialogues), and the [Dialogue Branch Language](/language/) that the `.dlb` scripts themselves are written in.
 
 > Did you find an error? Or you didn't find what you were looking for? Please send your feedback to [info@dialoguebranch.com](mailto:info@dialoguebranch.com).
 

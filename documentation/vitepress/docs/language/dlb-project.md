@@ -31,16 +31,16 @@ Without going into the question of how to store this information, we first descr
 
 A Dialogue Branch Project should define the following basic metadata elements:
 
-* Name — A Dialogue Branch Project has a name, which can be any string up to a length of 255 characters. This is the only required piece of metadata.
-* Version — A Dialogue Branch Project has a version, which can be any string up to a length of 255 characters. Optional, defaults to an empty string.
+* Name — A Dialogue Branch Project has a name, which can be any string. This is the only required piece of metadata.
+* Version — A Dialogue Branch Project has a free-form version indicator (e.g. `v0.1.0`), which can be any string. Optional, defaults to an empty string.
 * Description — A Dialogue Branch Project has a description, which can be any string of any length.
 
 ::: info Note
-The limit on the number of characters that may be used to describe e.g. the project's name and version is there to ensure compatibility between Dialogue Branch Projects that are stored as files vs Dialogue Branch Projects stored in e.g. a relational database.
+When a project is stored in the Web Service's database rather than as files, its name is limited to 255 characters, to ensure compatibility between Dialogue Branch Projects that are stored as files vs Dialogue Branch Projects stored in a relational database. This limit does not apply to the version or description, nor to any of these fields when working with project files directly.
 :::
 
 ::: info Note
-When a project is authored through the web client's visual editor (see [Dialogue Branch Web Services](/web-services/)), it is additionally identified by a `projectSlug` — a short, URL-safe identifier used throughout the Web Service API to select which project a call applies to. The slug is not part of the `dlb-project.xml` file format described below; it is assigned when the project is created in the Web Service.
+When a project is authored through the web client's visual editor (see [Dialogue Branch Web Services](/web-services/)), it is additionally identified by a `projectSlug` — a short, URL-safe identifier used throughout the Web Service API to select which project a call applies to. This is the same identifier as the `slug` attribute described below; the Web Service assigns it when the project is created, and writes it back into the exported `dlb-project.xml` file's root element.
 :::
 
 ### Language Map Metadata
@@ -55,11 +55,11 @@ Both a **Source Language** and a **Translation Language** are defined by a *name
 
 ## Dialogue Branch Project Metadata file
 
-A Dialogue Branch Project's metadata is stored in a `dlb-project.xml` file at the root of the project. The root element is `dlb-project`, with a required `name` attribute and an optional `version` attribute:
+A Dialogue Branch Project's metadata is stored in a `dlb-project.xml` file at the root of the project. The root element is `dlb-project`, with a required `name` attribute and optional `version` and `slug` attributes. `slug` (shown below) is normally only populated by the Web Service, when it writes out a project's metadata as part of its Export Project feature — see the Note on `projectSlug` above; when hand-authoring a project file yourself, you can safely omit it:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<dlb-project name="My Dialogue Branch Project" version="1">
+<dlb-project name="My Dialogue Branch Project" version="1" slug="my-dialogue-branch-project">
   <description>A short description of this project.
 
   Descriptions may span multiple lines.</description>
