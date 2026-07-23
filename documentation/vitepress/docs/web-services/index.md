@@ -132,7 +132,32 @@ In short: the Web Service is a pure OAuth2 resource server — it validates Bear
 
 This `delegateUser` mechanism may be used e.g. in a scenario where "clients" don't directly interact with the Dialogue Branch Web Service, but instead connect through a trusted web component that manages a single connection (see Figure below).
 
-![The two modes of authentication. Left: multiple clients authenticate directly "as themselves" with the Web Service. Right: a trusted server component authenticates as an "admin" user, on behalf of multiple "delegateUsers".](/images/dlb-web-user-vs-admin-authentication.png)
+```mermaid
+flowchart LR
+    subgraph Left["Authenticate with a regular 'user' for each client"]
+        direction LR
+        C1["Client #1"]
+        C2["Client .."]
+        C3["Client #n"]
+        WS1["Dialogue Branch Web Service"]
+        C1 <--> WS1
+        C2 <--> WS1
+        C3 <--> WS1
+    end
+
+    subgraph Right["Authenticate with a single 'admin' user, on behalf of a 'delegateUser'"]
+        direction LR
+        D1["Client #1"]
+        D2["Client .."]
+        D3["Client #n"]
+        TSC["Trusted Server Component"]
+        WS2["Dialogue Branch Web Service"]
+        D1 <--> TSC
+        D2 <--> TSC
+        D3 <--> TSC
+        TSC <--> WS2
+    end
+```
 
 *The two modes of authentication. Left: multiple clients authenticate directly "as themselves" with the Web Service. Right: a trusted server component authenticates as an "admin" user, on behalf of multiple "delegateUsers".*
 
