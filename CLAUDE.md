@@ -4,11 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-The Dialogue Branch Platform is a monorepo for authoring, executing, and serving branching dialogue scripts (`.dlb` files). The platform consists of three components that work together:
+The Dialogue Branch Platform is a monorepo for authoring, executing, and serving branching dialogue scripts (`.dlb` files). The platform consists of four components that work together:
 
 1. **`packages/core`** — Core Java library (`com.dialoguebranch`) for parsing and executing `.dlb` scripts. Published to Maven Central as `com.dialoguebranch:dlb-core-java`.
 2. **`apps/api`** — Spring Boot web service that wraps the core library with a REST API. Deployed as a WAR on Tomcat. API base path: `/dlb-web-service/v1`.
-3. **`apps/web`** — Vue 3 / Vite / Tailwind CSS front-end (the "Web Client Test Application" / WCTA) that consumes the REST API.
+3. **`apps/bff`** — Spring Boot Backend-for-Frontend: performs the OAuth2 login against Keycloak on behalf of `apps/web` and proxies its API calls to `apps/api`, so the browser never holds an access token (see [BFF service](#bff-service-apps-bff) below). Deployed as an executable JAR, not a WAR.
+4. **`apps/web`** — Vue 3 / Vite / Tailwind CSS front-end (the "Web Client Test Application" / WCTA) that consumes the REST API via the BFF.
 
 The version for the entire monorepo is declared once in `global.json` at the root. Both Gradle builds and the web `package.json` read from this file.
 
@@ -52,28 +53,41 @@ docker build -t dlb-web-service -f apps/api/Dockerfile .
 
 Database schema is managed by Flyway (`src/main/resources/db/migration/V*__*.sql`); migrations run automatically on startup against the configured MariaDB instance — there is no separate manual migrate command.
 
+### BFF service (`apps/bff/`)
+
+```bash
+cd apps/bff
+./gradlew build   # compile and build the executable JAR
+```
+
+Docker build (from repo root):
+```bash
+docker build -t dlb-bff -f apps/bff/Dockerfile .
+```
+
 ### Web client (`apps/web/`)
 
 ```bash
 cd apps/web
 npm install
-npm run dev      # dev server with hot-reload (proxies to API at localhost:8089)
+npm run dev      # dev server with hot-reload (proxies /api, /oauth2, /login, /logout, /whoami to the BFF at localhost:8082)
 npm run build    # production build
 npm run preview  # preview production build locally
 ```
 
 ## Local Development Stack
 
-The full stack (MariaDB + Keycloak, plus the API when the `api` profile is enabled) is defined in
+The full stack (MariaDB + Keycloak, plus the API and BFF when the `api` profile is enabled) is defined in
 `infrastructure/docker/compose.yml`.
 
 ```bash
 docker compose -f infrastructure/docker/compose.yml up               # MariaDB + Keycloak only
-docker compose -f infrastructure/docker/compose.yml --profile api up # also builds/runs the API
+docker compose -f infrastructure/docker/compose.yml --profile api up # also builds/runs the API and the BFF
 ```
 
 Service URLs:
 - API: `http://localhost:8089/dlb-web-service`
+- BFF: `http://localhost:8082`
 - Keycloak admin: `http://localhost:8081`
 
 ## Architecture
@@ -111,7 +125,7 @@ Controllers (all under `/v1`):
 - `InfoController` — `/info/all`
 - `LogController` — dialogue log access
 
-The service is a pure OAuth2 resource server: it validates bearer tokens issued by Keycloak (JWKS-based JWT validation configured in `SecurityConfig`, with claim extraction in `QueryRunner`) but never issues or refreshes tokens itself. Clients authenticate directly with Keycloak via the Authorization Code + PKCE flow.
+The service is a pure OAuth2 resource server: it validates bearer tokens issued by Keycloak (JWKS-based JWT validation configured in `SecurityConfig`, with claim extraction in `QueryRunner`) but never issues or refreshes tokens itself. A direct API client (a custom integration, or the bundled Swagger UI) authenticates with Keycloak itself via the Authorization Code + PKCE flow; the reference web client instead goes through `apps/bff` (see below) and never holds a token at all.
 
 Variable storage is pluggable: `VariableStoreJSONStorageHandler` (file-based) or `VariableStoreDatabaseStorageHandler` (MariaDB via Hibernate). An optional external variable service can be enabled via `DLB_EXTERNAL_VARIABLE_SERVICE_ENABLED`.
 
@@ -131,15 +145,26 @@ Authoring (used by the web client's visual editor) operates on a separate, mutab
 
 Migration `V6__add_draft_dialogue_status_flags.sql` added the `is_new`/`is_changed`/`is_deleted` columns backing this (plus a since-dropped `renamed_from` column — see `V9__drop_draft_dialogue_renamed_from.sql`).
 
+### BFF service (`apps/bff`)
+
+A small Spring Boot 3 application, deployed as a plain executable JAR (not a WAR), that sits between the web client and `apps/api` so the browser never holds an OAuth2 token — the token lives server-side, in this service's HTTP session, and the browser only ever sees a `JSESSIONID` cookie. Key classes:
+
+- **`SecurityConfig`** — Builds the `keycloak` `ClientRegistration` by hand (so `end_session_endpoint` can be supplied directly, since this service deliberately skips OIDC discovery) and wires the security filter chain: session-cookie login against Keycloak with PKCE, the standard SPA CSRF cookie recipe, a plain `401` (instead of a redirect) for unauthenticated `/api/**`/`/whoami` fetch/XHR calls, and RP-initiated logout.
+- **`ProxyConfig`** — Provides the `OAuth2AuthorizedClientManager` (fetches and transparently refreshes the session's access token) and the `RestClient` used to call `apps/api`.
+- **`ApiProxyController`** — Proxies every `/api/**` call through to `apps/api`, attaching the session's access token as the `Authorization: Bearer` header. `GET /api/v1/info/all` is forwarded without a token, matching that one endpoint's public status on `apps/api` itself.
+- **`WhoAmIController`** — `GET /whoami`, returning `{ "username", "roles" }` decoded server-side from the session's access token (`preferred_username` and `resource_access` → `dlb-web-service` → `roles` claims) — replaces the client-side JWT decode the web client used before this service existed.
+
+See [documentation/vitepress/docs/web-services/authentication.md](documentation/vitepress/docs/web-services/authentication.md) for the full authentication flow (both this BFF-mediated flow and the direct-API-client flow).
+
 ### Web client (`apps/web`)
 
 A single-page Vue 3 app. Key structure:
 
-- **`src/config.js`** — `baseUrl` pointing to the API (`http://localhost:8089/dlb-web-service/v1`); change here for different environments
+- **`src/config.js`** — `baseUrl` defaults to the relative `/api/v1`; the app talks only to the BFF (same origin), which proxies `/api/**` to the actual Web Service — change here only to point at a different BFF/API base for non-standard environments
 - **`src/state.js`** — Singleton `WCTAClientState` (extends `ClientState` from `dlb-lib`); loaded from cookie on startup; exported as the shared reactive state
 - **`src/dlb-lib/DialogueBranchClient.js`** — Thin fetch-based API client; wraps all REST calls; returns parsed model objects
 - **`src/dlb-lib/WCTAClientState.js`** — App-specific state; extends the reusable `ClientState`
-- **`src/components/pages/`** — `MainPage.vue`, `ProjectSelectorPage.vue`. There is no login page: `src/keycloak.js` initialises Keycloak with `onLoad: 'login-required'`, so an unauthenticated user is redirected straight to Keycloak's hosted login page before the app ever mounts.
+- **`src/components/pages/`** — `MainPage.vue`, `ProjectSelectorPage.vue`. There is no login page: on boot, `src/main.js` calls `fetchWhoAmI()` (`src/auth.js`) against the BFF's `GET /whoami`; a `401` (no session) triggers `redirectToLogin()`, a real top-level navigation to the BFF's `/oauth2/authorization/keycloak`, which redirects on to Keycloak's hosted login page — the app itself never mounts until that round-trip completes.
 - **`src/components/partials/`** — `DialogueBrowser.vue` (folder tree, with New/Draft/Deleted badges and publish-enablement driven by draft status), `DialogueTreeNode.vue`, `DialogueWorkspace.vue`, `DialogueEditor.vue`, `NodeEditPanel.vue`, `BalloonDialogueComponent.vue`, `TextDialogueComponent.vue`, `VariableBrowser.vue`
 - **`src/components/widgets/`** — Reusable UI primitives (buttons, panels, inputs, `ModeSelector.vue`)
 

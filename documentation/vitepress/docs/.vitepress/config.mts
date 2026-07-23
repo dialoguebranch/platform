@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitepress'
+import { withMermaid } from 'vitepress-plugin-mermaid'
 
-export default defineConfig({
+export default withMermaid(defineConfig({
   title: 'Dialogue Branch Documentation Hub',
   description: 'Documentation for the Dialogue Branch Platform: the language, the core Java library, the web services, and tutorials for getting started.',
   base: '/docs/',
@@ -90,4 +91,4 @@ export default defineConfig({
       copyright: 'Copyright © Fruit Tree Labs'
     }
   }
-})
+}))

@@ -4,19 +4,42 @@
 
 The Dialogue Branch Web Service is a [JAVA Spring Boot Application](https://spring.io/projects/spring-boot) that can be deployed as a web service. It acts as a wrapper around the Dialogue Branch Core Library, offering an API that allows you to create client-server dialogue applications. A typical, simple architecture is shown in the Figure below.
 
-![The overall Dialogue Branch Web Architecture. The Web Service acts as a REST API wrapper around the Dialogue Branch Core, allowing Dialogue Branch Clients to render remotely executed dialogues.](/images/dlb-web-architecture.png)
+```mermaid
+flowchart LR
+    Client["3rd party Dialogue Branch client"]
+    WebClient["Web Client (apps/web)"]
+    BFF["BFF (apps/bff)"]
+    EVS["External Variable Service"]
 
-*The overall Dialogue Branch Web Architecture. The Web Service acts as a REST API wrapper around the Dialogue Branch Core, allowing Dialogue Branch Clients to render remotely executed dialogues.*
+    subgraph WS["Dialogue Branch Web Service"]
+        direction LR
+        API["REST API"]
+        Core["Dialogue Branch Core"]
+        API <--> Core
+    end
 
-The components described in the Architecture above are described as follows (from left to right):
+    Client <--> WS
+    WebClient <--> BFF
+    BFF <--> WS
+    WS <--> EVS
 
-* **Dialogue Branch Client** — Your client application that connects to the web service in order to render remotely executed Dialogue Branch dialogues. This could be your own application, or the bundled Vue-based "Web Client Test Application" described below.
+    classDef external stroke-dasharray: 5 5
+    class Client,WebClient,EVS external
+```
+
+*The overall Dialogue Branch Web Architecture. The Web Service acts as a REST API wrapper around the Dialogue Branch Core. A direct API client attaches its own Bearer token and talks to the Web Service directly; the bundled web client instead goes through the BFF, which never lets the browser hold a token (see [Authentication](/web-services/authentication)).*
+
+The components described in the Architecture above are described as follows:
+
+* **3rd party Dialogue Branch client** — Your own client application that connects to the Web Service directly, attaching its own OAuth2 Bearer token to every request, in order to render remotely executed Dialogue Branch dialogues.
+* **Web Client (`apps/web`)** — The bundled Vue-based "Web Client Test Application" (WCTA) described below. Unlike a direct API client, it never holds a token itself; it authenticates and calls the Web Service through the BFF.
+* **BFF (`apps/bff`)** — The Backend-for-Frontend that performs the OAuth2 login against Keycloak on behalf of the web client and proxies its API calls to the Web Service, keeping the access token server-side. See [Authentication](/web-services/authentication) for the full flow.
 * **Dialogue Branch Web Service** — the Java Spring Boot Application that can be deployed in a web server. It is a pure [OAuth2](https://oauth.net/2/) resource server (user authentication itself is handled entirely by Keycloak, see [Authentication](#authentication)) and offers a REST API.
   * **REST API** — a set of REST end-points for executing DLB dialogues, managing DLB Variables, authoring and publishing dialogue content, and retrieving service info and logs.
   * **Dialogue Branch Core** — the "core" Java Library that contains the software for parsing and executing .dlb scripts. This is a collection of POJO's (Plain Old Java Objects) that can be embedded into any Java or Android application.
 * **External Variable Service** — Your (optional) web service that may be used to provide just-in-time updates to DLB Variables.
 
-Given the architecture above, a typical scenario for using Dialogue Branch in a client-server deployment is as follows. You deploy a DLB Web Service that has one or more [Dialogue Branch Projects](/language/dlb-project) loaded (initially seeded from disk, then managed in a database — see [Dialogue Branch Web Service Component](#dialogue-branch-web-service-component)). You then write a client application that connects to the DLB Web Service, allowing users to authenticate through Keycloak and start-, and progress dialogues. If your .dlb dialogues include Variables that need to be updated from an external source, implement and deploy your own [External Variable Service](#external-variable-service) and connect this to your web service deployment.
+Given the architecture above, a typical scenario for using Dialogue Branch in a client-server deployment is as follows. You deploy a DLB Web Service that has one or more [Dialogue Branch Projects](/language/dlb-project) loaded (initially seeded from disk, then managed in a database — see [Dialogue Branch Web Service Component](#dialogue-branch-web-service-component)). You then either write your own client application that connects to the DLB Web Service directly, or use (and adapt) the bundled web client, which connects through the BFF instead. Either way, users authenticate through Keycloak to start- and progress dialogues. If your .dlb dialogues include Variables that need to be updated from an external source, implement and deploy your own [External Variable Service](#external-variable-service) and connect this to your web service deployment.
 
 ## Dialogue Branch Web Service Component
 
@@ -48,7 +71,24 @@ A typical workflow for a client application interacting with the Web Service is 
 5. When the user selects a reply, call the `/dialogue/progress` end-point, providing the previously memorized `loggedDialogueId` and `loggedInteractionIndex`, as well as the selected `replyId`.
 6. The result is a JSON object with the same structure as received in step 4, which can again be rendered, repeating the process.
 
-![Sequence diagram for a typical User to Client to Server scenario of authenticating and executing dialogues with the Dialogue Branch Web Service](/images/dlb-web-api-sequence.png)
+```mermaid
+sequenceDiagram
+    actor User
+    participant Client as 3rd party Dialogue Branch client
+    participant Keycloak
+    participant API as Dialogue Branch Web Service
+
+    User->>Client: Press "Login"
+    Client->>Keycloak: Authorization Code + PKCE flow
+    Keycloak-->>Client: Access token (JWT)
+
+    Client->>API: POST /dialogue/start
+    API-->>Client: DialogueMessage
+
+    User->>Client: Select reply option
+    Client->>API: POST /dialogue/progress
+    API-->>Client: DialogueMessage
+```
 
 *Sequence diagram for a typical User to Client to Server scenario of authenticating and executing dialogues with the Dialogue Branch Web Service*
 
