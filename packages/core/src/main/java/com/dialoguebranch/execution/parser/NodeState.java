@@ -28,10 +28,10 @@
 
 package com.dialoguebranch.execution.parser;
 
+import com.dialoguebranch.model.execute.nodepointer.NodePointer;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 
 /**
  * Holds mutable state accumulated while parsing a single Dialogue Branch node. A new

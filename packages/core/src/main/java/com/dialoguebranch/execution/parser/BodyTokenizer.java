@@ -28,12 +28,12 @@
 
 package com.dialoguebranch.execution.parser;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.dialoguebranch.model.execute.VariableString;
 import nl.rrd.utils.ReferenceParameter;
 import nl.rrd.utils.exception.LineNumberParseException;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A {@link BodyTokenizer} may be used to split a line of dialogue branch script into a {@link List}
@@ -52,7 +52,7 @@ public class BodyTokenizer {
 	/**
 	 * Reads the body tokens from the specified line. The line should end with a newline (\n)
 	 * character.
-	 * 
+	 *
 	 * @param line the line including the newline (\n) character
 	 * @param lineNum the line number within the Dialogue Branch script (first line is 1)
 	 * @return the body tokens
@@ -298,12 +298,12 @@ public class BodyTokenizer {
 		}
 		throw new LineNumberParseException("Quoted string not terminated", lineNum, start + 1);
 	}
-	
+
 	private void startBodyTextBuffer(int colNum) {
 		bodyState.textBuffer = new StringBuilder();
 		bodyState.textStartCol = colNum;
 	}
-	
+
 	private void finishTextToken(List<BodyToken> tokens, String line, int lineNum, int end) {
 		String text = bodyState.textBuffer.toString();
 		if (text.isEmpty())
@@ -315,7 +315,7 @@ public class BodyTokenizer {
 		token.setColNumber(bodyState.textStartCol);
 		tokens.add(token);
 	}
-	
+
 	private void finishCommandStart(List<BodyToken> tokens, int lineNum, int colNum)
 			throws LineNumberParseException {
 		if (bodyState.inCommand) {
@@ -329,7 +329,7 @@ public class BodyTokenizer {
 		tokens.add(token);
 		bodyState.inCommand = true;
 	}
-	
+
 	private void finishCommandEnd(List<BodyToken> tokens, int lineNum, int colNum)
 			throws LineNumberParseException {
 		if (!bodyState.inCommand) {
@@ -343,7 +343,7 @@ public class BodyTokenizer {
 		tokens.add(token);
 		bodyState.inCommand = false;
 	}
-	
+
 	private void finishReplyStart(List<BodyToken> tokens, int lineNum, int colNum)
 			throws LineNumberParseException {
 		if (bodyState.inReply) {
@@ -356,7 +356,7 @@ public class BodyTokenizer {
 		tokens.add(token);
 		bodyState.inReply = true;
 	}
-	
+
 	private void finishReplyEnd(List<BodyToken> tokens, int lineNum, int colNum)
 			throws LineNumberParseException {
 		if (!bodyState.inReply) {
@@ -369,7 +369,7 @@ public class BodyTokenizer {
 		tokens.add(token);
 		bodyState.inReply = false;
 	}
-	
+
 	private void finishReplySeparator(List<BodyToken> tokens, int lineNum, int colNum) {
 		BodyToken token = new BodyToken(BodyToken.Type.REPLY_SEPARATOR);
 		token.setText("|");

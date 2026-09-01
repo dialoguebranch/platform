@@ -28,15 +28,15 @@
 
 package com.dialoguebranch.model.execute.command;
 
+import com.dialoguebranch.execution.VariableStore;
+import com.dialoguebranch.execution.parser.BodyToken;
+import com.dialoguebranch.execution.parser.NodeState;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.Reply;
 import com.dialoguebranch.model.execute.VariableString;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
-import com.dialoguebranch.execution.parser.NodeState;
 import nl.rrd.utils.CurrentIterator;
 import nl.rrd.utils.exception.LineNumberParseException;
-import com.dialoguebranch.execution.VariableStore;
-import com.dialoguebranch.execution.parser.BodyToken;
 
 import java.util.Arrays;
 import java.util.List;
@@ -46,7 +46,7 @@ import java.util.Set;
 /**
  * This class models the &lt;&lt;input ...&gt;&gt; command in Dialogue Branch. It can
  * be part of a {@link NodeBody} inside a reply.
- * 
+ *
  * @author Dennis Hofs
  */
 public abstract class InputCommand extends AttributesCommand {
@@ -65,7 +65,7 @@ public abstract class InputCommand extends AttributesCommand {
 
 	private static final List<String> VALID_TYPES = Arrays.asList(TYPE_EMAIL,
 			TYPE_TEXT, TYPE_LONGTEXT, TYPE_NUMERIC, TYPE_SET, TYPE_TIME);
-	
+
 	private String type;
 	private String description = null;
 

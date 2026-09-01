@@ -28,14 +28,14 @@
 
 package com.dialoguebranch.model.execute.command;
 
+import com.dialoguebranch.execution.parser.BodyToken;
+import com.dialoguebranch.model.execute.VariableString;
+import nl.rrd.utils.CurrentIterator;
+import nl.rrd.utils.exception.LineNumberParseException;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import nl.rrd.utils.CurrentIterator;
-import nl.rrd.utils.exception.LineNumberParseException;
-import com.dialoguebranch.model.execute.VariableString;
-import com.dialoguebranch.execution.parser.BodyToken;
 
 /**
  * Base class for Dialogue Branch commands that specify key="value" attribute pairs between
@@ -54,10 +54,10 @@ public abstract class AttributesCommand extends Command {
 	/**
 	 * Parses a command that is formatted like:<br />
 	 * &lt;&lt;command attr1="value1" attr2="value2"&gt;&gt;
-	 * 
+	 *
 	 * <p>It returns a map where the keys are attribute names and the values
 	 * are tokens with type QUOTED_STRING.</p>
-	 * 
+	 *
 	 * @param cmdStartToken the command start token
 	 * @param tokens the token iterator, positioned after the command start
 	 * token
@@ -132,7 +132,7 @@ public abstract class AttributesCommand extends Command {
 		throw new LineNumberParseException("Command not terminated",
 				cmdStartToken.getLineNumber(), cmdStartToken.getColNumber());
 	}
-	
+
 	/**
 	 * Reads an attribute value as a {@link VariableString} from the parsed attribute map.
 	 *
@@ -156,7 +156,7 @@ public abstract class AttributesCommand extends Command {
 		BodyToken token = attrs.get(name);
 		return (VariableString)token.getValue();
 	}
-	
+
 	/**
 	 * Reads an attribute value that must be plain text (no variable references).
 	 *
@@ -184,7 +184,7 @@ public abstract class AttributesCommand extends Command {
 		}
 		return varStr.evaluate(null);
 	}
-	
+
 	/**
 	 * Reads an attribute whose value must be a single variable reference (e.g. {@code "$varName"}).
 	 *
@@ -215,7 +215,7 @@ public abstract class AttributesCommand extends Command {
 				(VariableString.VariableSegment)segments.get(0);
 		return segment.getVariableName();
 	}
-	
+
 	/**
 	 * Reads an attribute value as an {@link Integer}, with optional range validation.
 	 *

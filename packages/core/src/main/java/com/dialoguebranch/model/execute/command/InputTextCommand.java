@@ -28,8 +28,8 @@
 
 package com.dialoguebranch.model.execute.command;
 
-import nl.rrd.utils.exception.LineNumberParseException;
 import com.dialoguebranch.execution.parser.BodyToken;
+import nl.rrd.utils.exception.LineNumberParseException;
 
 import java.util.Map;
 

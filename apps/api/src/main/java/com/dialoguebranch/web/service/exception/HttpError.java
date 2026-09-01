@@ -28,15 +28,15 @@
 
 package com.dialoguebranch.web.service.exception;
 
+import nl.rrd.utils.json.JsonObject;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import nl.rrd.utils.json.JsonObject;
 
 /**
  * An HTTP error can be included as a JSON string in the content of an HTTP error response. It has
  * an optional error code. The core error codes are defined as constants in {@link ErrorCode}.
- * 
+ *
  * @author Dennis Hofs
  * @author Harm op den Akker
  */
@@ -54,20 +54,20 @@ public class HttpError extends JsonObject {
 	 * Constructs a new empty error.
 	 */
 	public HttpError() { }
-	
+
 	/**
 	 * Constructs a new error without an error code, but with a given {@code message}..
-	 * 
+	 *
 	 * @param message the error message describing the cause of this exception.
 	 */
 	public HttpError(String message) {
 		this.message = message;
 	}
-	
+
 	/**
 	 * Creates an instance of a {@link HttpError} with a given error {@code code} and {@code
 	 * message}.
-	 * 
+	 *
 	 * @param code the error code or {@code null}.
 	 * @param message the error message describing the cause of this exception.
 	 */
@@ -82,7 +82,7 @@ public class HttpError extends JsonObject {
 
 	/**
 	 * Returns the error code.
-	 * 
+	 *
 	 * @return the error code or {@code null}.
 	 */
 	public String getCode() {
@@ -91,7 +91,7 @@ public class HttpError extends JsonObject {
 
 	/**
 	 * Sets the error code.
-	 * 
+	 *
 	 * @param code the error code or null
 	 */
 	public void setCode(String code) {
@@ -100,7 +100,7 @@ public class HttpError extends JsonObject {
 
 	/**
 	 * Returns the error message.
-	 * 
+	 *
 	 * @return the error message
 	 */
 	public String getMessage() {
@@ -109,7 +109,7 @@ public class HttpError extends JsonObject {
 
 	/**
 	 * Sets the error message.
-	 * 
+	 *
 	 * @param message the error message
 	 */
 	public void setMessage(String message) {
@@ -122,7 +122,7 @@ public class HttpError extends JsonObject {
 
 	/**
 	 * Returns errors for fields where invalid user input was provided.
-	 * 
+	 *
 	 * @return the field errors
 	 */
 	public List<HttpFieldError> getFieldErrors() {
@@ -131,7 +131,7 @@ public class HttpError extends JsonObject {
 
 	/**
 	 * Sets errors for fields where invalid user input was provided.
-	 * 
+	 *
 	 * @param fieldErrors the field errors
 	 */
 	public void setFieldErrors(List<HttpFieldError> fieldErrors) {
@@ -140,7 +140,7 @@ public class HttpError extends JsonObject {
 
 	/**
 	 * Adds an error for a field where invalid user input was provided.
-	 * 
+	 *
 	 * @param error the field error
 	 */
 	public void addFieldError(HttpFieldError error) {

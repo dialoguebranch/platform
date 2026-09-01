@@ -43,8 +43,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-
 /**
  * A {@link LoggedDialogueStore} is a class that acts as the storage for {@link
  * ServerLoggedDialogue} objects, used in the execution of dialogues by the Dialogue Branch Web

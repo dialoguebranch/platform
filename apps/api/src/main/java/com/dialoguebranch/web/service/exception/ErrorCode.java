@@ -30,7 +30,7 @@ package com.dialoguebranch.web.service.exception;
 
 /**
  * Possible error codes that may be returned by the Dialogue Branch Web Service.
- * 
+ *
  * @author Dennis Hofs
  * @author Harm op den Akker
  */

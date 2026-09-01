@@ -28,22 +28,22 @@
 
 package com.dialoguebranch.model.execute.command;
 
-import com.dialoguebranch.model.execute.NodeBody;
-import com.dialoguebranch.model.execute.nodepointer.NodePointer;
+import com.dialoguebranch.execution.parser.BodyParser;
+import com.dialoguebranch.execution.parser.BodyToken;
 import com.dialoguebranch.execution.parser.NodeState;
+import com.dialoguebranch.model.execute.NodeBody;
+import com.dialoguebranch.model.execute.Reply;
+import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import nl.rrd.utils.CurrentIterator;
 import nl.rrd.utils.exception.LineNumberParseException;
 import nl.rrd.utils.expressions.EvaluationException;
-import com.dialoguebranch.model.execute.Reply;
-import com.dialoguebranch.execution.parser.BodyParser;
-import com.dialoguebranch.execution.parser.BodyToken;
 
 import java.util.*;
 
 /**
  * This class models the &lt;&lt;random ...&gt;&gt; command in Dialogue Branch. It can be
  * part of a {@link NodeBody} (not inside a reply).
- * 
+ *
  * @author Dennis Hofs
  */
 public class RandomCommand extends AttributesCommand {
@@ -68,7 +68,7 @@ public class RandomCommand extends AttributesCommand {
 
 	/**
 	 * Returns the clauses. There should be at least one clause.
-	 * 
+	 *
 	 * @return the clauses
 	 */
 	public List<Clause> getClauses() {
@@ -77,16 +77,16 @@ public class RandomCommand extends AttributesCommand {
 
 	/**
 	 * Sets the clauses. There should be at least one clause.
-	 * 
+	 *
 	 * @param clauses the clauses
 	 */
 	public void setClauses(List<Clause> clauses) {
 		this.clauses = clauses;
 	}
-	
+
 	/**
 	 * Adds a clause. There should be at least one clause.
-	 * 
+	 *
 	 * @param clause the clause
 	 */
 	public void addClause(Clause clause) {
@@ -229,7 +229,7 @@ public class RandomCommand extends AttributesCommand {
 
 		/**
 		 * Constructs a new clause.
-		 * 
+		 *
 		 * @param weight the weight for this clause
 		 * @param statement the statement that should be output if this clause
 		 * is selected
@@ -270,7 +270,7 @@ public class RandomCommand extends AttributesCommand {
 		/**
 		 * Returns the statement that should be output if the expression
 		 * evaluates to true.
-		 * 
+		 *
 		 * @return the statement
 		 */
 		public NodeBody getStatement() {
@@ -280,7 +280,7 @@ public class RandomCommand extends AttributesCommand {
 		/**
 		 * Sets the statement that should be output if the expression evaluates
 		 * to true.
-		 * 
+		 *
 		 * @param statement the statement
 		 */
 		public void setStatement(NodeBody statement) {

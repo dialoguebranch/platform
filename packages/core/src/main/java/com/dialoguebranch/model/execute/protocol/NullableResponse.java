@@ -52,10 +52,10 @@ public class NullableResponse<T> extends JsonObject {
 	 * JSON serialization.
 	 */
 	public NullableResponse() { }
-	
+
 	/**
 	 * Constructs a new response with the specified value.
-	 * 
+	 *
 	 * @param value the value or {@code null}
 	 */
 	public NullableResponse(T value) {
@@ -68,7 +68,7 @@ public class NullableResponse<T> extends JsonObject {
 
 	/**
 	 * Returns the value. This can be {@code null}.
-	 * 
+	 *
 	 * @return the value or {@code null}
 	 */
 	public T getValue() {
@@ -77,7 +77,7 @@ public class NullableResponse<T> extends JsonObject {
 
 	/**
 	 * Sets the value. This can be {@code null}.
-	 * 
+	 *
 	 * @param value the value or {@code null}
 	 */
 	public void setValue(T value) {

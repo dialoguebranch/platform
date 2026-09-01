@@ -38,7 +38,7 @@ import java.io.Serial;
  * This exception results in an HTTP response with status 401 Unauthorized. The exception message
  * (default "Unauthorized") will be written to the response. It is handled by the {@link
  * ErrorController}.
- * 
+ *
  * @author Dennis Hofs
  * @author Harm op den Akker
  */

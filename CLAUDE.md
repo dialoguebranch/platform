@@ -24,6 +24,8 @@ The version for the entire monorepo is declared once in `global.json` at the roo
 
 All Gradle commands use the wrapper (`./gradlew`). Docker builds must be run from the **repo root** (`platform/`) because the build context spans both `apps/api/` and `packages/core/`.
 
+All four JVM modules (`packages/core`, `apps/api`, `apps/bff`, `apps/mock-variable-service`) run the [Spotless](https://github.com/diffplug/spotless) plugin for mechanical style hygiene only — unused-import removal, import ordering, trailing-whitespace and final-newline normalisation; **no line-reflowing formatter**, the tab-indented house style is unchanged. `spotlessCheck` runs as part of `check` (so `./gradlew build` fails on a style deviation); `./gradlew spotlessApply` fixes it. Run `spotlessApply` in the affected module before committing Java changes.
+
 ### Core library (`packages/core/`)
 
 ```bash

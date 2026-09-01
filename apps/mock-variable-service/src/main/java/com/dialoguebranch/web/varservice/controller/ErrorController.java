@@ -28,25 +28,24 @@
 
 package com.dialoguebranch.web.varservice.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import org.slf4j.LoggerFactory;
 import com.dialoguebranch.web.varservice.exception.HttpException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.swagger.v3.oas.annotations.Hidden;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-
 /**
  * This controller handles all errors in the application. It looks at the request attributes for a
  * status code, error message and exception. It distinguishes the following cases:
- * 
+ *
  * <p><ul>
  * <li>The request has no exception. It sets the status code and returns the error message or an
  * empty string.</li>
@@ -59,7 +58,7 @@ import jakarta.servlet.http.HttpServletResponse;
  * and returns "Internal Server Error". This means that any details about the exception, which may
  * contain sensitive information, are hidden for the client.</li>
  * </ul></p>
- * 
+ *
  * @author Dennis Hofs
  * @author Harm op den Akker
  */

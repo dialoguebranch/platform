@@ -35,7 +35,7 @@ import java.io.Serial;
 
 /**
  * This exception indicates a parse error within a Dialogue Branch node.
- * 
+ *
  * @author Dennis Hofs
  * @author Harm op den Akker
  */
@@ -54,7 +54,7 @@ public class NodeParseException extends ParseException {
 	/**
 	 * Constructs a new exception in the specified node. If the node title is unknown, it can be set
 	 * to {@code null}.
-	 * 
+	 *
 	 * @param message the message
 	 * @param nodeTitle the node title or {@code null}
 	 * @param cause the parse error
@@ -70,7 +70,7 @@ public class NodeParseException extends ParseException {
 
 	/**
 	 * Returns the node title. If the title is unknown, this method returns {@code null}.
-	 * 
+	 *
 	 * @return the node title or {@code null}
 	 */
 	public String getNodeTitle() {
@@ -80,7 +80,7 @@ public class NodeParseException extends ParseException {
 	/**
 	 * Returns the cause of this {@link NodeParseException} as a
 	 * {@link LineNumberParseException}.
-	 * 
+	 *
 	 * @return the {@link LineNumberParseException} that caused this {@link NodeParseException}
 	 */
 	public LineNumberParseException getLineNumberParseException() {

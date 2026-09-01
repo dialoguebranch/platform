@@ -34,7 +34,7 @@ import java.util.*;
 /**
  * A {@link VariableStore} is an object that stores all Dialogue Branch variable values for a given
  * {@link User}.
- * 
+ *
  * @author Harm op den Akker
  */
 public class VariableStore {

@@ -119,11 +119,11 @@ public class LoggedInteraction {
 		this.statement = statement;
 		this.replyId = replyId;
 	}
-	
+
 	// ------------------------------------------------- //
 	// -------------------- Getters -------------------- //
 	// ------------------------------------------------- //
-	
+
 	/**
 	 * Returns the UTC epoch time (ms) when this interaction was recorded.
 	 * @return the timestamp in milliseconds.
@@ -190,11 +190,11 @@ public class LoggedInteraction {
 	public int getReplyId() {
 		return this.replyId;
 	}
-	
+
 	// ------------------------------------------------- //
 	// -------------------- Setters -------------------- //
 	// ------------------------------------------------- //
-	
+
 	/**
 	 * Sets the UTC epoch time (ms) when this interaction was recorded.
 	 * @param timestamp the timestamp in milliseconds.
@@ -259,6 +259,6 @@ public class LoggedInteraction {
 	public void setReplyId(int replyId) {
 		this.replyId = replyId;
 	}
-	
-	
+
+
 }

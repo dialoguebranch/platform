@@ -53,7 +53,7 @@ import java.util.Objects;
  * @author Harm op den Akker
  */
 public class ResourcePointer {
-	
+
 	private String language;
 	private String dialogueName;
 	private ResourceType resourceType;

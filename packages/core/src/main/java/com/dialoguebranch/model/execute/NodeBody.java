@@ -29,16 +29,16 @@
 package com.dialoguebranch.model.execute;
 
 import com.dialoguebranch.model.execute.command.*;
-import com.dialoguebranch.model.execute.nodepointer.NodePointer;
-import nl.rrd.utils.expressions.EvaluationException;
 import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
+import com.dialoguebranch.model.execute.nodepointer.NodePointer;
+import nl.rrd.utils.expressions.EvaluationException;
 
 import java.util.*;
 
 /**
  * A node body can occur in three different contexts inside a {@link Node}.
- * 
+ *
  * <ul>
  *   <li>Directly in the node. In this case it specifies the agent statement with possible commands
  *   and user replies.</li>
@@ -51,21 +51,21 @@ import java.util.*;
  *   performed when the reply is chosen. Such commands are specified separately in a
  *   {@link Reply}.</li>
  * </ul>
- * 
+ *
  * <p>The body contains a statement as a list of segments where each segment is one of:</p>
- * 
+ *
  * <ul>
  *   <li>{@link NodeBody.TextSegment TextSegment}: a {@link VariableString} with text and
  *   variables</li>
  *   <li>{@link NodeBody.CommandSegment CommandSegment}: a command (see below)</li>
  * </ul>
- * 
+ *
  * <p>The segments are always normalized so that subsequent text segments are
  * automatically merged into one.</p>
- * 
+ *
  * <p>The type of commands depend on the context. Directly in the node or in a
  * {@link IfCommand} or {@link RandomCommand}, it can be:</p>
- * 
+ *
  * <ul>
  *   <li>{@link ActionCommand}: Actions to perform along with the agent's text statement.</li>
  *   <li>{@link IfCommand}: Contains clauses, each with a {@link NodeBody} specifying
@@ -74,15 +74,15 @@ import java.util.*;
  *   statements, replies and commands.</li>
  *   <li>{@link SetCommand}: Sets a variable value.</li>
  * </ul>
- * 
+ *
  * <p>As part of a reply (remember the earlier remarks about commands in a
  * reply), it can be:</p>
- * 
+ *
  * <ul>
  *   <li>{@link InputCommand}: Allow user to provide input other than just clicking the reply
  *   option.</li>
  * </ul>
- * 
+ *
  * @author Dennis Hofs
  * @author Harm op den Akker
  */
@@ -112,7 +112,7 @@ public class NodeBody {
 
 	/**
 	 * Returns the segments as an unmodifiable list.
-	 * 
+	 *
 	 * @return the segments as an unmodifiable list
 	 */
 	public List<Segment> getSegments() {
@@ -207,7 +207,7 @@ public class NodeBody {
 
 	/**
 	 * Retrieves all variable names that are read in this body.
-	 * 
+	 *
 	 * @return the variable names that are read in this body
 	 */
 	public List<String> getReadVariableNames() {
@@ -217,11 +217,11 @@ public class NodeBody {
 		Collections.sort(result);
 		return result;
 	}
-	
+
 	/**
 	 * Retrieves all variable names that are read in this body and adds them to
 	 * the specified set.
-	 * 
+	 *
 	 * @param varNames the set to which the variable names are added
 	 */
 	public void getReadVariableNames(Set<String> varNames) {
@@ -235,7 +235,7 @@ public class NodeBody {
 
 	/**
 	 * Retrieves all variable names that are written in this body.
-	 * 
+	 *
 	 * @return the variable names that are written in this body
 	 */
 	public List<String> getWriteVariableNames() {
@@ -249,7 +249,7 @@ public class NodeBody {
 	/**
 	 * Retrieves all variable names that are written in this body and adds them
 	 * to the specified set.
-	 * 
+	 *
 	 * @param varNames the set to which the variable names are added
 	 */
 	public void getWriteVariableNames(Set<String> varNames) {
@@ -260,7 +260,7 @@ public class NodeBody {
 			reply.getWriteVariableNames(varNames);
 		}
 	}
-	
+
 	/**
 	 * Returns a sorted list of all {@link NodePointer}s found in this body's command segments and
 	 * reply list. Internal pointers are listed before external ones; within each group they are
@@ -275,7 +275,7 @@ public class NodeBody {
 		Collections.sort(result, this::compareNodePointers);
 		return result;
 	}
-	
+
 	private int compareNodePointers(NodePointer o1, NodePointer o2) {
 		if (o1 instanceof InternalNodePointer) {
 			if (o2 instanceof ExternalNodePointer)
@@ -294,7 +294,7 @@ public class NodeBody {
 			return p1.getTargetNodeId().compareTo(p2.getTargetNodeId());
 		}
 	}
-	
+
 	/**
 	 * Collects all {@link NodePointer}s from this body's command segments and replies into the
 	 * given {@code pointers} set.
@@ -312,7 +312,7 @@ public class NodeBody {
 			pointers.add(reply.getNodePointer());
 		}
 	}
-	
+
 	/**
 	 * Executes the agent statement and reply statements in this body with
 	 * respect to the specified variable map. It executes ("if" and "set")
@@ -320,15 +320,15 @@ public class NodeBody {
 	 * be sent to the client, is added to agent and reply statements in
 	 * "processedBody". This content can be text or client commands, with all
 	 * variables resolved.
-	 * 
+	 *
 	 * <p>This method also normalizes whitespace in the text segments. It
 	 * removes empty lines and makes sure that lines end with "\n". Within each
 	 * line, it trims whitespace from the start and end, and it replaces any
 	 * sequence of spaces and tabs with one space.</p>
-	 * 
+	 *
 	 * <p>This method should only be called if all variables in the text
 	 * segments have been resolved.</p>
-	 *  
+	 *
 	 * @param variables the variable map
 	 * @param trimText true if trailing new lines should be trimmed, false if
 	 * they should be preserved. This should be set to true for the body that is
@@ -354,14 +354,14 @@ public class NodeBody {
 		if (trimText)
 			processedBody.trimText();
 	}
-	
+
 	private void executeTextSegment(TextSegment segment,
 			Map<String,Object> variables, NodeBody processedBody) {
 		TextSegment processedText = new TextSegment(
 				segment.text.execute(variables));
 		processedBody.addSegment(processedText);
 	}
-	
+
 	private void executeCommandSegment(CommandSegment segment,
 			Map<String,Object> variables, NodeBody processedBody)
 			throws EvaluationException {
@@ -438,7 +438,7 @@ public class NodeBody {
 			segments.remove(segments.size() - 1);
 		}
 	}
-	
+
 	@Override
 	public String toString() {
 		String newline = System.getProperty("line.separator");
@@ -467,7 +467,7 @@ public class NodeBody {
 		/**
 		 * Tries to find a reply with the specified ID within this segment. If
 		 * no such reply is found, this method returns null.
-		 * 
+		 *
 		 * @param replyId the reply ID
 		 * @return the reply or null
 		 */
@@ -476,15 +476,15 @@ public class NodeBody {
 		/**
 		 * Retrieves all variable names that are read in this segment and adds
 		 * them to the specified set.
-		 * 
+		 *
 		 * @param varNames the set to which the variable names are added
 		 */
 		public abstract void getReadVariableNames(Set<String> varNames);
-		
+
 		/**
 		 * Retrieves all variable names that are written in this segment and
 		 * adds them to the specified set.
-		 * 
+		 *
 		 * @param varNames the set to which the variable names are added
 		 */
 		public abstract void getWriteVariableNames(Set<String> varNames);
@@ -497,7 +497,7 @@ public class NodeBody {
 		@Override
 		public abstract Segment clone();
 	}
-	
+
 	/**
 	 * A {@link Segment} that holds a {@link VariableString} — plain text that may contain
 	 * variable references.
@@ -540,7 +540,7 @@ public class NodeBody {
 		public void setText(VariableString text) {
 			this.text = text;
 		}
-		
+
 		@Override
 		public Reply findReplyById(int replyId) {
 			return null;
@@ -565,7 +565,7 @@ public class NodeBody {
 			return new TextSegment(this);
 		}
 	}
-	
+
 	/**
 	 * A {@link Segment} that wraps a {@link Command} embedded in the node body (e.g. an
 	 * {@code <<if>>}, {@code <<set>>}, or {@code <<action>>} command).
@@ -599,7 +599,7 @@ public class NodeBody {
 		public Command getCommand() {
 			return command;
 		}
-		
+
 		@Override
 		public Reply findReplyById(int replyId) {
 			return command.findReplyById(replyId);
@@ -614,7 +614,7 @@ public class NodeBody {
 		public void getWriteVariableNames(Set<String> varNames) {
 			command.getWriteVariableNames(varNames);
 		}
-		
+
 		@Override
 		public String toString() {
 			return command.toString();

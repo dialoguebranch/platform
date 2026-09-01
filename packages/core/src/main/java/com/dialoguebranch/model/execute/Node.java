@@ -36,10 +36,10 @@ import com.dialoguebranch.model.common.DialogueBranchConstants;
  * @author Harm op den Akker
  */
 public class Node {
-	
+
 	private NodeHeader header;
 	private NodeBody body;
-	
+
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
@@ -79,7 +79,7 @@ public class Node {
 		header = new NodeHeader(other.header);
 		body = new NodeBody(other.body);
 	}
-	
+
 	// ------------------------------------------------- //
 	// -------------------- Getters -------------------- //
 	// ------------------------------------------------- //
@@ -123,11 +123,11 @@ public class Node {
 	public void setBody(NodeBody body) {
 		this.body = body;
 	}
-	
+
 	// ------------------------------------------------- //
 	// -------------------- Utility -------------------- //
 	// ------------------------------------------------- //
-	
+
 	/**
 	 * Returns the title of this {@link Node} as defined in its
 	 * corresponding {@link NodeHeader}. Returns the same as {@code
@@ -142,7 +142,7 @@ public class Node {
 			return header.getTitle();
 		else return null;
 	}
-	
+
 	@Override
 	public String toString() {
 		return header + System.lineSeparator() +

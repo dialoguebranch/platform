@@ -34,7 +34,7 @@ import java.util.Date;
  * The authentication details that are included in a JWT token. It contains the
  * username of the authenticated user, the date/time when the JWT token was
  * issued, and the date/time when the JWT token expires.
- * 
+ *
  * @author Dennis Hofs
  */
 public class AuthenticationInfo {
@@ -56,7 +56,7 @@ public class AuthenticationInfo {
 	/**
 	 * Constructs a new instance of an {@link AuthenticationInfo} object, containing the information
 	 * resulting from a successful authentication of a user to the Dialogue Branch Web Service.
-	 * 
+	 *
 	 * @param username the username of the authenticated user
 	 * @param roles a list of roles associated with this user
 	 * @param issuedAt the date/time when the JWT token was issued, with precision of seconds. Any
@@ -79,7 +79,7 @@ public class AuthenticationInfo {
 
 	/**
 	 * Returns the username of the authenticated user.
-	 * 
+	 *
 	 * @return the username of the authenticated user
 	 */
 	public String getUsername() {
@@ -124,10 +124,10 @@ public class AuthenticationInfo {
 		}
 		return false;
 	}
-	
+
 	/**
 	 * Returns the date/time when the JWT token was issued, with precision of seconds.
-	 * 
+	 *
 	 * @return the date/time when the JWT token was issued, with precision of
 	 * seconds
 	 */
@@ -138,7 +138,7 @@ public class AuthenticationInfo {
 	/**
 	 * Returns the date/time when the JWT token expires, with precision of
 	 * seconds.
-	 * 
+	 *
 	 * @return the date/time when the JWT token expires, with precision of
 	 * seconds
 	 */

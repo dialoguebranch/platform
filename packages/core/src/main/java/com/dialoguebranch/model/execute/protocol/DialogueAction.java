@@ -45,7 +45,7 @@ public class DialogueAction {
 	private String type;
 	private String value;
 	private Map<String,String> parameters = new LinkedHashMap<>();
-	
+
 	/** Creates an empty {@link DialogueAction}. Required for JSON deserialization. */
 	public DialogueAction() {
 	}

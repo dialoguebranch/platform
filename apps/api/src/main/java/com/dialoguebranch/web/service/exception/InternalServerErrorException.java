@@ -37,7 +37,7 @@ import java.io.Serial;
  * This exception results in an HTTP response with status 500 Internal Server Error. The exception
  * message (default "Internal Server Error") will be written to the response. It is handled by the
  * {@link com.dialoguebranch.web.service.controller.GlobalExceptionHandler}.
- * 
+ *
  * @author Dennis Hofs
  * @author Harm op den Akker
  */

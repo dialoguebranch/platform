@@ -40,10 +40,10 @@ import com.dialoguebranch.web.service.storage.ExternalVariableServiceUpdater;
 import com.dialoguebranch.web.service.storage.LoggedDialogueStore;
 import com.dialoguebranch.web.service.storage.ServerLoggedDialogue;
 import com.dialoguebranch.web.service.storage.VariableStoreDatabaseStorageHandler;
-import org.slf4j.LoggerFactory;
 import nl.rrd.utils.exception.DatabaseException;
 import nl.rrd.utils.exception.ParseException;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.*;
@@ -59,7 +59,7 @@ import java.util.*;
 /**
  * A {@link UserService} is a service class that handles all communication with the Dialogue Branch
  * Web Service for a specific {@link User}.
- * 
+ *
  * @author Harm op den Akker
  * @author Tessa Beinema
  */
@@ -89,7 +89,7 @@ public class UserService {
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
-	
+
 	/**
 	 * Instantiates a {@link UserService} for a given {@link User}. The UserService creates a {@link
 	 * VariableStore} instance and loads in all known variables for the user.
@@ -144,7 +144,7 @@ public class UserService {
 	// ----------------------------------------------------------- //
 	// -------------------- Getters & Setters -------------------- //
 	// ----------------------------------------------------------- //
-	
+
 	/**
 	 * Returns the {@link User} which this {@link UserService} is serving.
 	 * @return the {@link User} which this {@link UserService} is serving.
@@ -170,7 +170,7 @@ public class UserService {
 	public void setTranslationContext(TranslationContext translationContext) {
 		this.translationContext = translationContext;
 	}
-	
+
 	/**
 	 * Returns the application's {@link ApplicationManager} that is governing this
 	 * {@link UserService}.

@@ -28,6 +28,8 @@
 
 package com.dialoguebranch.model.execute.protocol;
 
+import com.dialoguebranch.model.execute.NodeBody;
+import com.dialoguebranch.model.execute.command.ActionCommand;
 import com.dialoguebranch.model.execute.command.InputCommand;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
@@ -39,8 +41,6 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.json.JsonMapper;
-import com.dialoguebranch.model.execute.NodeBody;
-import com.dialoguebranch.model.execute.command.ActionCommand;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -100,7 +100,7 @@ public class DialogueStatement {
 		segment.setText(text);
 		segments.add(segment);
 	}
-	
+
 	/**
 	 * Appends an input segment derived from the given {@link InputCommand} to this statement.
 	 * @param inputCommand the resolved input command.
@@ -112,7 +112,7 @@ public class DialogueStatement {
 		segment.setParameters(inputCommand.getParameters());
 		segments.add(segment);
 	}
-	
+
 	/**
 	 * Appends an action segment derived from the given {@link ActionCommand} to this statement.
 	 * @param actionCommand the resolved action command.
@@ -181,7 +181,7 @@ public class DialogueStatement {
 			this.text = text;
 		}
 	}
-	
+
 	/** A segment representing an input command whose parameters have already been resolved. */
 	@JsonDeserialize(using=InputSegmentDeserializer.class)
 	@JsonSerialize(using=InputSegmentSerializer.class)
@@ -259,7 +259,7 @@ public class DialogueStatement {
 			this.parameters = parameters;
 		}
 	}
-	
+
 	/** A segment containing a resolved {@link DialogueAction}. */
 	@JsonDeserialize(using=JsonDeserializer.None.class)
 	public static class ActionSegment extends Segment {

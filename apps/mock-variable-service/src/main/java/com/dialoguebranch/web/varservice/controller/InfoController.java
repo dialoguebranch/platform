@@ -28,15 +28,15 @@
 
 package com.dialoguebranch.web.varservice.controller;
 
+import com.dialoguebranch.web.varservice.Application;
 import com.dialoguebranch.web.varservice.DlbVarServiceProperties;
 import com.dialoguebranch.web.varservice.ProtocolVersion;
 import com.dialoguebranch.web.varservice.controller.schema.ServiceInfoPayload;
-import org.slf4j.LoggerFactory;
-import com.dialoguebranch.web.varservice.Application;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 

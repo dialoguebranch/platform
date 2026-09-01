@@ -28,11 +28,11 @@
 
 package com.dialoguebranch.execution.parser;
 
-import java.util.List;
-
 import com.dialoguebranch.model.execute.command.*;
 import nl.rrd.utils.CurrentIterator;
 import nl.rrd.utils.exception.LineNumberParseException;
+
+import java.util.List;
 
 /**
  * Parses a single Dialogue Branch command token sequence into the appropriate {@link Command}
@@ -62,7 +62,7 @@ public class CommandParser {
 	 * Reads the command name from the start of a command. The specified iterator should be
 	 * positioned at the command start token. When this method returns, it will be positioned at the
 	 * token with the command name. This method does not validate the command name.
-	 * 
+	 *
 	 * @param tokens the tokens
 	 * @return the command name
 	 * @throws LineNumberParseException if a parsing error occurs
@@ -75,13 +75,13 @@ public class CommandParser {
 		BodyToken token = tokens.getCurrent();
 		return getCommandName(startToken, token);
 	}
-	
+
 	/**
 	 * Parses a command from the command name. The specified iterator should be positioned at the
 	 * command name token. When this method returns it will be positioned after the command end
 	 * token. This method can be called after {@link #readCommandName(CurrentIterator)}. This method
 	 * validates the command name.
-	 * 
+	 *
 	 * @param startToken the command start token
 	 * @param tokens the tokens
 	 * @return the command
@@ -105,13 +105,13 @@ public class CommandParser {
                     token.getLineNumber(), token.getColNumber());
         };
 	}
-	
+
 	/**
 	 * Parses a command from the start token. The specified iterator should be positioned at the
 	 * command start token. When this method returns it will be positioned after the command end
 	 * token. This method cannot be called after {@link #readCommandName(CurrentIterator)}. This
 	 * method validates the command name.
-	 * 
+	 *
 	 * @param tokens the tokens
 	 * @return the command
 	 * @throws LineNumberParseException if a parsing error occurs
@@ -123,11 +123,11 @@ public class CommandParser {
 		BodyToken.skipWhitespace(tokens);
 		return parseFromName(startToken, tokens);
 	}
-	
+
 	/**
 	 * Tries to read the command name from the specified name token. This should be the first
 	 * non-whitespace token after the command start token. It may be null.
-	 * 
+	 *
 	 * @param startToken the start token
 	 * @param nameToken the name token or null
 	 * @return the command name

@@ -28,21 +28,21 @@
 
 package com.dialoguebranch.model.execute.command;
 
+import com.dialoguebranch.execution.parser.BodyToken;
+import com.dialoguebranch.execution.parser.NodeState;
+import com.dialoguebranch.model.execute.NodeBody;
+import com.dialoguebranch.model.execute.Reply;
+import com.dialoguebranch.model.execute.VariableString;
+import com.dialoguebranch.model.execute.nodepointer.NodePointer;
+import nl.rrd.utils.CurrentIterator;
+import nl.rrd.utils.exception.LineNumberParseException;
+import nl.rrd.utils.expressions.EvaluationException;
+
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import com.dialoguebranch.model.execute.NodeBody;
-import com.dialoguebranch.model.execute.Reply;
-import com.dialoguebranch.model.execute.VariableString;
-import com.dialoguebranch.model.execute.nodepointer.NodePointer;
-import com.dialoguebranch.execution.parser.BodyToken;
-import com.dialoguebranch.execution.parser.NodeState;
-import nl.rrd.utils.CurrentIterator;
-import nl.rrd.utils.exception.LineNumberParseException;
-import nl.rrd.utils.expressions.EvaluationException;
 
 /**
  * This command models the &lt;&lt;action ...&gt;&gt; command in Dialogue Branch. It specifies an
@@ -266,7 +266,7 @@ public class ActionCommand extends AttributesCommand {
 		result.append(">>");
 		return result.toString();
 	}
-	
+
 	/**
 	 * Parses an {@link ActionCommand} from the token stream.
 	 *

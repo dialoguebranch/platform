@@ -31,13 +31,13 @@ package com.dialoguebranch;
 import com.dialoguebranch.execution.ActiveDialogue;
 import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.VariableStore;
-import com.dialoguebranch.model.execute.Dialogue;
-import com.dialoguebranch.model.execute.ResourcePointer;
-import com.dialoguebranch.model.execute.Node;
-import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.execution.parser.DirectoryScriptLoader;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;
+import com.dialoguebranch.model.common.ResourceType;
+import com.dialoguebranch.model.execute.Dialogue;
+import com.dialoguebranch.model.execute.Node;
+import com.dialoguebranch.model.execute.ResourcePointer;
 import org.junit.Test;
 
 import java.io.File;

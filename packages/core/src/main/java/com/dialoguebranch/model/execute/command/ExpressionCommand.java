@@ -28,6 +28,7 @@
 
 package com.dialoguebranch.model.execute.command;
 
+import com.dialoguebranch.execution.parser.BodyToken;
 import nl.rrd.utils.CurrentIterator;
 import nl.rrd.utils.exception.LineNumberParseException;
 import nl.rrd.utils.expressions.Expression;
@@ -35,7 +36,6 @@ import nl.rrd.utils.expressions.ExpressionParser;
 import nl.rrd.utils.expressions.Token;
 import nl.rrd.utils.expressions.Tokenizer;
 import nl.rrd.utils.io.LineColumnNumberReader;
-import com.dialoguebranch.execution.parser.BodyToken;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -55,7 +55,7 @@ public abstract class ExpressionCommand extends Command {
 	/**
 	 * Reads the content of a command as a code string. When this method
 	 * returns, the iterator will be positioned after the command end token.
-	 * 
+	 *
 	 * @param cmdStartToken the command start token
 	 * @param tokens the token iterator positioned after the command start token
 	 * @return the content
@@ -85,7 +85,7 @@ public abstract class ExpressionCommand extends Command {
 		result.content = text.toString();
 		return result;
 	}
-	
+
 	/** Holds the raw text content read from a command body together with its source position. */
 	protected static class ReadContentResult {
 		/** The raw text content of the command body. */
@@ -99,11 +99,11 @@ public abstract class ExpressionCommand extends Command {
 		public ReadContentResult() {
 		}
 	}
-	
+
 	/**
 	 * Parses the specified command content. This method checks whether the
 	 * command name is the specified name, and there is no expression.
-	 * 
+	 *
 	 * @param cmdStartToken the command start token
 	 * @param content the command content
 	 * @param name the command name
@@ -130,7 +130,7 @@ public abstract class ExpressionCommand extends Command {
 	/**
 	 * Parses the specified command content. This method checks whether the
 	 * command name is the specified name, and there is an expression.
-	 * 
+	 *
 	 * @param cmdStartToken the command start token
 	 * @param content the command content
 	 * @param name the command name
@@ -153,12 +153,12 @@ public abstract class ExpressionCommand extends Command {
 		}
 		return result;
 	}
-	
+
 	/**
 	 * Parses the specified command content. It tries to read a command name and
 	 * an expression. If there is no expression, then the expression in the
 	 * result will be null.
-	 * 
+	 *
 	 * @param cmdStartToken the command start token
 	 * @param content the command content
 	 * @return the parsed content

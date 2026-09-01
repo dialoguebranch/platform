@@ -37,7 +37,7 @@ import java.io.Serial;
  * This exception results in an HTTP response with status 501 Not Implemented. The exception message
  * (default "Not Implemented") will be written to the response. It is handled by the
  * {@link com.dialoguebranch.web.service.controller.GlobalExceptionHandler}.
- * 
+ *
  * @author Dennis Hofs
  * @author Harm op den Akker
  */
