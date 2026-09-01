@@ -10,6 +10,7 @@ plugins {
 	// See: https://gradleup.com/nmcp/
 	id 'com.gradleup.nmcp' version '1.5.0'
 	id 'com.gradleup.nmcp.aggregation' version '1.5.0'
+	id 'com.diffplug.spotless' version '8.10.1'
 }
 
 group = 'com.dialoguebranch'
@@ -26,6 +27,17 @@ base {
 
 repositories {
 	mavenCentral()
+}
+
+// Mechanical style hygiene only — no line-reflowing formatter. `./gradlew spotlessApply`
+// fixes violations; `spotlessCheck` runs as part of `check`. See issue #96 / CONTRIBUTING.md.
+spotless {
+	java {
+		removeUnusedImports('cleanthat-javaparser-unnecessaryimport')
+		importOrder('', 'java|javax', '\\#')
+		trimTrailingWhitespace()
+		endWithNewline()
+	}
 }
 
 application {

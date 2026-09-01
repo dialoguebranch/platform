@@ -1,6 +1,7 @@
 plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.5.4'
+	id 'com.diffplug.spotless' version '8.10.1'
 }
 
 group = 'com.dialoguebranch'
@@ -13,6 +14,17 @@ version = new groovy.json.JsonSlurper()
 
 repositories {
 	mavenCentral()
+}
+
+// Mechanical style hygiene only — no line-reflowing formatter. `./gradlew spotlessApply`
+// fixes violations; `spotlessCheck` runs as part of `check`. See issue #96 / CONTRIBUTING.md.
+spotless {
+	java {
+		removeUnusedImports('cleanthat-javaparser-unnecessaryimport')
+		importOrder('', 'java|javax', '\\#')
+		trimTrailingWhitespace()
+		endWithNewline()
+	}
 }
 
 base {

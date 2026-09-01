@@ -119,10 +119,16 @@ still be called out clearly in the changelog.
 
 ### Code style
 
-Match the conventions of the file and module you are editing (indentation,
-naming, comment density, import style). A shared formatter and `.editorconfig`
-are planned ([#96](https://github.com/dialoguebranch/platform/issues/96)); until
-then, consistency with the surrounding code is the rule.
+Match the conventions of the file and module you are editing — indentation,
+naming, comment density, wrapping. A repo-root `.editorconfig` captures the
+whitespace basics (tabs, width 4, for `.java` / `.gradle`).
+
+The four JVM modules run [Spotless](https://github.com/diffplug/spotless) for
+mechanical hygiene only: unused-import removal, import ordering, trailing
+whitespace, final newline. There is **no** line-reflowing formatter — layout is
+still hand-maintained. `spotlessCheck` runs as part of `check`, so a formatting
+deviation fails the build; run `./gradlew spotlessApply` in the affected module
+to fix it before committing.
 
 ## Pull requests
 
