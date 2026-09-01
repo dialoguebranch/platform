@@ -28,6 +28,22 @@
 
 package com.dialoguebranch.execution.parser;
 
+import com.dialoguebranch.i18n.ContextTranslation;
+import com.dialoguebranch.i18n.Translatable;
+import com.dialoguebranch.i18n.TranslationContext;
+import com.dialoguebranch.i18n.TranslationParser;
+import com.dialoguebranch.i18n.TranslationParserResult;
+import com.dialoguebranch.i18n.Translator;
+import com.dialoguebranch.model.common.DialogueBranchConstants;
+import com.dialoguebranch.model.common.ProjectMetaData;
+import com.dialoguebranch.model.common.ResourceType;
+import com.dialoguebranch.model.execute.*;
+import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
+import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
+import com.dialoguebranch.model.execute.nodepointer.NodePointer;
+import nl.rrd.utils.exception.ParseException;
+import nl.rrd.utils.i18n.I18nLanguageFinder;
+
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
@@ -38,22 +54,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-
-import com.dialoguebranch.model.common.DialogueBranchConstants;
-import com.dialoguebranch.model.common.ResourceType;
-import com.dialoguebranch.model.common.ProjectMetaData;
-import com.dialoguebranch.model.execute.*;
-import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
-import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
-import com.dialoguebranch.model.execute.nodepointer.NodePointer;
-import nl.rrd.utils.exception.ParseException;
-import nl.rrd.utils.i18n.I18nLanguageFinder;
-import com.dialoguebranch.i18n.ContextTranslation;
-import com.dialoguebranch.i18n.Translatable;
-import com.dialoguebranch.i18n.TranslationContext;
-import com.dialoguebranch.i18n.TranslationParser;
-import com.dialoguebranch.i18n.TranslationParserResult;
-import com.dialoguebranch.i18n.Translator;
 
 /**
  * This class can read an entire Dialogue Branch project consisting of dialogue script files (files

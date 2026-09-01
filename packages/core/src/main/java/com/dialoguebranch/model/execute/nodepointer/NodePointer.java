@@ -34,7 +34,7 @@ import com.dialoguebranch.model.execute.Node;
  * An abstract representation of a pointer to another Node, that can either be an {@link
  * InternalNodePointer} that links to a node withing the same dialogue, or an {@link
  * ExternalNodePointer} linking to a node in another Dialogue Branch script.
- * 
+ *
  * @author Tessa Beinema
  * @author Harm op den Akker
  *
@@ -52,7 +52,7 @@ public abstract class NodePointer implements Cloneable {
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
-	
+
 	/**
 	 * Creates an instance of a {@link NodePointer} with given {@code originNodeId} and
 	 * {@code targetNodeId}.
@@ -108,7 +108,7 @@ public abstract class NodePointer implements Cloneable {
 	public String getTargetNodeId() {
 		return this.targetNodeId;
 	}
-	
+
 	/**
 	 * Sets the identifier of the {@link Node} that this pointer is pointing to.
 	 *

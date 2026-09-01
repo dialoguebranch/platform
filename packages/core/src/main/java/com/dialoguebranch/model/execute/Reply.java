@@ -28,34 +28,34 @@
 
 package com.dialoguebranch.model.execute;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.dialoguebranch.model.execute.command.ActionCommand;
 import com.dialoguebranch.model.execute.command.Command;
 import com.dialoguebranch.model.execute.command.InputCommand;
 import com.dialoguebranch.model.execute.command.SetCommand;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import nl.rrd.utils.expressions.EvaluationException;
-import com.dialoguebranch.model.execute.command.ActionCommand;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * A reply option within a {@link NodeBody}. A reply always has a pointer to the next node when the
  * reply is chosen. This might be a pointer to the end node. The reply usually has a statement that
  * is shown in the UI, but a node may have at most one reply without a statement, which is known as
  * an auto-forward reply.
- * 
+ *
  * <p>The statement may contain a {@link InputCommand} (see {@link NodeBody}).</p>
- * 
+ *
  * <p>The reply may also have commands that should be performed when the reply is chosen. This can
  * be:</p>
- * 
+ *
  * <ul>
  *   <li>{@link ActionCommand}</li>
  *   <li>{@link SetCommand}</li>
  * </ul>
- * 
+ *
  * @author Dennis Hofs
  * @author Harm op den Akker
  */
@@ -107,7 +107,7 @@ public class Reply {
 
 	/**
 	 * Returns the reply ID. The ID is unique within a node.
-	 * 
+	 *
 	 * @return the reply ID
 	 */
 	public int getReplyId() {
@@ -116,7 +116,7 @@ public class Reply {
 
 	/**
 	 * Sets the reply ID. The ID is unique within a node.
-	 * 
+	 *
 	 * @param replyId the reply ID
 	 */
 	public void setReplyId(int replyId) {
@@ -146,7 +146,7 @@ public class Reply {
 	/**
 	 * Sets the statement. If this reply is an auto-forward reply, then the
 	 * statement can be null.
-	 * 
+	 *
 	 * @param statement the statement or null
 	 */
 	public void setStatement(NodeBody statement) {
@@ -156,7 +156,7 @@ public class Reply {
 	/**
 	 * Returns the next node when this reply is chosen. This might be the end
 	 * node.
-	 * 
+	 *
 	 * @return the next node when this reply is chosen
 	 */
 	public NodePointer getNodePointer() {
@@ -165,7 +165,7 @@ public class Reply {
 
 	/**
 	 * Sets the next node when this reply is chosen.
-	 * 
+	 *
 	 * @param nodePointer the next node when this reply is chosen
 	 */
 	public void setNodePointer(NodePointer nodePointer) {
@@ -174,7 +174,7 @@ public class Reply {
 
 	/**
 	 * Returns the commands that should be executed when this reply is chosen.
-	 * 
+	 *
 	 * @return the commands that should be executed when this reply is chosen
 	 */
 	public List<Command> getCommands() {
@@ -183,28 +183,28 @@ public class Reply {
 
 	/**
 	 * Sets the commands that should be executed when this reply is chosen.
-	 * 
+	 *
 	 * @param commands the commands that should be executed when this reply is
 	 * chosen
 	 */
 	public void setCommands(List<Command> commands) {
 		this.commands = commands;
 	}
-	
+
 	/**
 	 * Adds a command that should be executed when this reply is chosen.
-	 * 
+	 *
 	 * @param command the command that should be executed when this reply is
 	 * chosen
 	 */
 	public void addCommand(Command command) {
 		commands.add(command);
 	}
-	
+
 	/**
 	 * Retrieves all variable names that are read in this reply and adds them to
 	 * the specified set.
-	 * 
+	 *
 	 * @param varNames the set to which the variable names are added
 	 */
 	public void getReadVariableNames(Set<String> varNames) {
@@ -214,11 +214,11 @@ public class Reply {
 			command.getReadVariableNames(varNames);
 		}
 	}
-	
+
 	/**
 	 * Retrieves all variable names that are written in this reply and adds them
 	 * to the specified set.
-	 * 
+	 *
 	 * @param varNames the set to which the variable names are added
 	 */
 	public void getWriteVariableNames(Set<String> varNames) {
@@ -228,14 +228,14 @@ public class Reply {
 			command.getWriteVariableNames(varNames);
 		}
 	}
-	
+
 	/**
 	 * Executes the statement in this reply with respect to the specified
 	 * variable map. It executes commands and resolves variables, so that only
 	 * content that should be sent to the client, remains in the resulting
 	 * reply statement. This content can be text or client commands, with all
 	 * variables resolved.
-	 * 
+	 *
 	 * @param variables the variable map
 	 * @return the processed reply
 	 * @throws EvaluationException if an expression cannot be evaluated

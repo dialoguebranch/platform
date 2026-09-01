@@ -31,9 +31,9 @@ package com.dialoguebranch.execution.parser;
 import com.dialoguebranch.i18n.ContextTranslation;
 import com.dialoguebranch.i18n.Translatable;
 import com.dialoguebranch.model.execute.Dialogue;
+import com.dialoguebranch.model.execute.ExecutableProject;
 import com.dialoguebranch.model.execute.ResourcePointer;
 import nl.rrd.utils.exception.ParseException;
-import com.dialoguebranch.model.execute.ExecutableProject;
 
 import java.util.LinkedHashMap;
 import java.util.List;

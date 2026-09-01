@@ -31,14 +31,14 @@ package com.dialoguebranch.model.execute.nodepointer;
 /**
  * An {@link InternalNodePointer} represents a pointer from an originNode to a targetNode within
  * the same Dialogue Branch script.
- * 
+ *
  * @author Tessa Beinema
  * @author Harm op den Akker
  *
  * @see NodePointer
  */
 public class InternalNodePointer extends NodePointer {
-	
+
 	/**
 	 * Creates an {@link InternalNodePointer} from {@code originNodeId} to {@code targetNodeId}
 	 * within the same Dialogue Branch script.
@@ -58,7 +58,7 @@ public class InternalNodePointer extends NodePointer {
 	public InternalNodePointer(InternalNodePointer other) {
 		super(other);
 	}
-	
+
 	// --------------------------------------------------- //
 	// -------------------- Functions -------------------- //
 	// --------------------------------------------------- //

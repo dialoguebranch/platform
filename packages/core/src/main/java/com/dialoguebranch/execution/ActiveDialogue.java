@@ -34,8 +34,8 @@ import com.dialoguebranch.model.execute.*;
 import com.dialoguebranch.model.execute.command.Command;
 import com.dialoguebranch.model.execute.command.InputCommand;
 import com.dialoguebranch.model.execute.command.SetCommand;
-import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
+import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import nl.rrd.utils.expressions.EvaluationException;
 
 import java.time.ZonedDateTime;
@@ -48,7 +48,7 @@ import java.util.Map;
  * definition of a dialogue (referred to as the {@code dialogueDefinition}). The
  * {@link ActiveDialogue} also contains utility functions to keep track of the state during
  * "execution" of the dialogue.
- * 
+ *
  * @author Harm op den Akker
  * @author Tessa Beinema
  */
@@ -143,7 +143,7 @@ public class ActiveDialogue {
 	// ------------------------------------------------------- //
 	// -------------------- Other Methods -------------------- //
 	// ------------------------------------------------------- //
-	
+
 	/**
 	 * "Starts" this {@link ActiveDialogue}, returning the start node and updating its internal
 	 * state.
@@ -158,7 +158,7 @@ public class ActiveDialogue {
 			EvaluationException {
 		return startDialogue(null, eventTime);
 	}
-	
+
 	/**
 	 * "Starts" this {@link ActiveDialogue} at the {@link Node} represented by the provided
 	 * {@code startNodeId}, or at the "Start" node of the dialogue if the given {@code startNodeId}
@@ -194,12 +194,12 @@ public class ActiveDialogue {
 		this.currentNode = executeNode(nextNode,eventTime);
 		return currentNode;
 	}
-	
+
 	/**
 	 * Retrieves the pointer to the next node based on the provided {@code replyId}. This might be a
 	 * pointer to the end node. This method also performs any "set" actions associated with the
 	 * reply.
-	 * 
+	 *
 	 * @param replyId the reply ID
 	 * @param eventTime the time (in the user's timezone) of the event that triggered this
 	 *                  processing of the reply.
@@ -219,15 +219,15 @@ public class ActiveDialogue {
 		}
 		return selectedReply.getNodePointer();
 	}
-	
+
 	/**
 	 * Takes the next node pointer from the selected reply and determines the next node. The pointer
 	 * might point to the end note, which means that there is no next node. If there is no next
 	 * node, or the next node has no reply options, then the dialogue is considered finished.
-	 * 
+	 *
 	 * <p>If there is a next node, then it returns the executed version of that next
 	 * {@link Node}.</p>
-	 *  
+	 *
 	 * @param nodePointer the next node pointer from the selected reply
 	 * @param eventTime the timestamp (in the time zone of the user) of the event that triggered the
 	 *                  progressing of the dialogue

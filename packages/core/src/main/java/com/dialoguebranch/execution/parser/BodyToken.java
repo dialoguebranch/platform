@@ -62,7 +62,7 @@ public class BodyToken {
 		 * Value: text with escaped characters resolved
 		 */
 		TEXT,
-	
+
 		/** Marks the opening {@code <<} of a command block. */
 		COMMAND_START,
 		/** Marks the closing {@code >>} of a command block. */
@@ -73,12 +73,12 @@ public class BodyToken {
 		REPLY_END,
 		/** Marks the {@code |} separator between sections within a reply block. */
 		REPLY_SEPARATOR,
-		
+
 		/**
 		 * Value: VariableString
 		 */
 		QUOTED_STRING,
-		
+
 		/**
 		 * Value: variable name
 		 */
@@ -262,7 +262,7 @@ public class BodyToken {
 
 	/**
 	 * Moves to the next token that is not a text token with only whitespace.
-	 * 
+	 *
 	 * @param tokens the tokens
 	 * @return the skipped tokens
 	 */

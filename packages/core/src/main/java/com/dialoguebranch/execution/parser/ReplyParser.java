@@ -28,18 +28,18 @@
 
 package com.dialoguebranch.execution.parser;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.Reply;
-import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
+import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import nl.rrd.utils.CurrentIterator;
 import nl.rrd.utils.exception.LineNumberParseException;
 import nl.rrd.utils.exception.ParseException;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Parses a single reply construct ({@code [[ ... ]]}) from a Dialogue Branch node body into a
@@ -86,7 +86,7 @@ public class ReplyParser {
 			parseCommands(reply);
 		return reply;
 	}
-	
+
 	private void readSections(CurrentIterator<BodyToken> tokens)
 			throws LineNumberParseException {
 		int maxSections = 3;
@@ -139,7 +139,7 @@ public class ReplyParser {
 			commandSection = sections.get(2);
 		}
 	}
-	
+
 	private NodeBody parseStatement() throws LineNumberParseException {
 		if (statementSection == null)
 			return null;
@@ -151,7 +151,7 @@ public class ReplyParser {
 		else
 			return result;
 	}
-	
+
 	private NodePointer parseNodePointer() throws LineNumberParseException {
 		BodyToken.trimWhitespace(nodePointerSection.tokens);
 		if (nodePointerSection.tokens.size() == 0) {
@@ -195,7 +195,7 @@ public class ReplyParser {
 		nodeState.addNodePointerToken(result, nodePointerToken);
 		return result;
 	}
-	
+
 	private void parseCommands(Reply reply) throws LineNumberParseException {
 		CurrentIterator<BodyToken> it = new CurrentIterator<>(
 				commandSection.tokens.iterator());

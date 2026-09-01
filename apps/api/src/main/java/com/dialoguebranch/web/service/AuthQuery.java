@@ -33,19 +33,19 @@ import com.dialoguebranch.web.service.exception.HttpException;
 /**
  * Implementations of this interface can be passed to {@link QueryRunner
  * QueryRunner} to run a query using the authentication database.
- * 
+ *
  * @author Dennis Hofs
  *
  * @param <T> the type of the query result
  */
 public interface AuthQuery<T> {
-	
+
 	/**
 	 * Runs the query. If a token was passed to the {@link QueryRunner
 	 * QueryRunner}, then the token has been validated and the parameter "user"
 	 * is specified. If the token was invalid, this method will never be
 	 * called. If no token was specified, the user will be null.
-	 * 
+	 *
 	 * @param version the protocol version
 	 * @param authenticatedUser the authenticated user, or null if no token was provided
 	 * @return the query result

@@ -32,7 +32,7 @@ import nl.rrd.utils.json.JsonObject;
 
 /**
  * This class defines an error in the user input for a specified field.
- * 
+ *
  * @author Dennis Hofs
  */
 public class HttpFieldError extends JsonObject {
@@ -48,10 +48,10 @@ public class HttpFieldError extends JsonObject {
 	 */
 	public HttpFieldError() {
 	}
-	
+
 	/**
 	 * Constructs a new HTTP field error without an error code and message.
-	 * 
+	 *
 	 * @param field the field name
 	 */
 	public HttpFieldError(String field) {
@@ -60,7 +60,7 @@ public class HttpFieldError extends JsonObject {
 
 	/**
 	 * Constructs a new HTTP field error without an error code.
-	 * 
+	 *
 	 * @param field the field name
 	 * @param message the error message (can be an empty string or null)
 	 */
@@ -75,7 +75,7 @@ public class HttpFieldError extends JsonObject {
 
 	/**
 	 * Returns the field name.
-	 * 
+	 *
 	 * @return the field name
 	 */
 	public String getField() {
@@ -84,7 +84,7 @@ public class HttpFieldError extends JsonObject {
 
 	/**
 	 * Sets the field name.
-	 * 
+	 *
 	 * @param field the field name
 	 */
 	public void setField(String field) {
@@ -93,7 +93,7 @@ public class HttpFieldError extends JsonObject {
 
 	/**
 	 * Returns the error message.
-	 * 
+	 *
 	 * @return the error message (can be an empty string or null)
 	 */
 	public String getMessage() {
@@ -102,7 +102,7 @@ public class HttpFieldError extends JsonObject {
 
 	/**
 	 * Sets the error message.
-	 * 
+	 *
 	 * @param message the error message (can be an empty string or null)
 	 */
 	public void setMessage(String message) {

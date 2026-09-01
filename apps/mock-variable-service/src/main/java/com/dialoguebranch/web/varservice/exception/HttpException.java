@@ -35,7 +35,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * Base class for exceptions that result in a HTTP error response. Subclasses
  * should be annotated with {@link ResponseStatus ResponseStatus}. They are
  * handled by {@link ErrorController ErrorController}.
- * 
+ *
  * @author Dennis Hofs
  */
 public abstract class HttpException extends Exception {
@@ -50,17 +50,17 @@ public abstract class HttpException extends Exception {
 
 	/**
 	 * Constructs a new HTTP exception with default error code 0.
-	 * 
+	 *
 	 * @param message the error message
 	 */
 	public HttpException(String message) {
 		super(message);
 		error = new HttpError(null, message);
 	}
-	
+
 	/**
 	 * Constructs a new HTTP exception.
-	 * 
+	 *
 	 * @param code the error code (default null)
 	 * @param message the error message
 	 */
@@ -68,10 +68,10 @@ public abstract class HttpException extends Exception {
 		super(message);
 		error = new HttpError(code, message);
 	}
-	
+
 	/**
 	 * Constructs a new HTTP exception with the specified error.
-	 * 
+	 *
 	 * @param error the error
 	 */
 	public HttpException(HttpError error) {
@@ -85,7 +85,7 @@ public abstract class HttpException extends Exception {
 
 	/**
 	 * Returns the error details.
-	 * 
+	 *
 	 * @return the error details
 	 */
 	public HttpError getError() {
@@ -95,12 +95,12 @@ public abstract class HttpException extends Exception {
 	// ------------------------------------------------------- //
 	// -------------------- Other Methods -------------------- //
 	// ------------------------------------------------------- //
-	
+
 	/**
 	 * Returns the HTTP exception for the specified HTTP status code.
 	 * Unsupported status codes will be mapped to an {@link
 	 * InternalServerErrorException InternalServerErrorException}.
-	 * 
+	 *
 	 * @param statusCode the HTTP status code
 	 * @param error the error details
 	 * @return the HTTP exception

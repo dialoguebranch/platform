@@ -30,7 +30,6 @@ package com.dialoguebranch.web.service;
 
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.models.Components;
-import com.dialoguebranch.web.service.ServiceContext;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.Paths;

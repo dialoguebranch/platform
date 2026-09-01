@@ -29,8 +29,8 @@
 package com.dialoguebranch.model.execute.nodepointer;
 
 import com.dialoguebranch.model.common.DialogueBranchConstants;
-import nl.rrd.utils.exception.ParseException;
 import com.dialoguebranch.model.execute.Dialogue;
+import nl.rrd.utils.exception.ParseException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +48,7 @@ import java.util.List;
  *     and may also contain errors.</li>
  *     <li>targetNodeId - the ID (or "Title") of the node to which is being referenced.</li>
  * </ul>
- * 
+ *
  * @author Harm op den Akker
  * @author Tessa Beinema
  *
@@ -61,7 +61,7 @@ public class ExternalNodePointer extends NodePointer {
 
 	/** The absolute path (e.g. "/folder/folder/dialogue" to the target dialogue */
 	private final String absoluteTargetDialogue;
-	
+
 	/**
 	 * Creates an {@link ExternalNodePointer} from the given origin dialogue and node to the
 	 * referenced target dialogue and node. The absolute path of the target dialogue is derived

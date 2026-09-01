@@ -36,11 +36,11 @@ import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import com.dialoguebranch.web.service.storage.ServerLoggedDialogue;
-import org.slf4j.LoggerFactory;
 import nl.rrd.utils.datetime.DateTimeUtils;
 import nl.rrd.utils.exception.DatabaseException;
 import nl.rrd.utils.expressions.EvaluationException;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.ZonedDateTime;
@@ -50,7 +50,7 @@ import java.util.Set;
 /**
  * A {@link DialogueExecutor} holds a set of functions for executing Dialogue Branch Dialogue for a
  * given {@link UserService}.
- * 
+ *
  * @author Tessa Beinema
  * @author Harm op den Akker
  */
@@ -137,18 +137,18 @@ public class DialogueExecutor {
 		return new ExecuteNodeResult(dialogueDefinition, startNode, serverLoggedDialogue,
 				serverLoggedDialogue.getInteractionList().size() - 1);
 	}
-	
+
 	/**
 	 * Continues the dialogue after the user selected the specified reply. This method stores the
 	 * reply as a user action in the database, and it performs any "set" actions associated with the
 	 * reply. Then it determines the next node, if any.
-	 * 
+	 *
 	 * <p>If there is no next node, this method will complete the current dialogue, and this method
 	 * returns null.</p>
-	 * 
+	 *
 	 * <p>If the reply points to another dialogue, this method will complete the current dialogue
 	 * and start the other dialogue.</p>
-	 * 
+	 *
 	 * <p>For the returned node, this method executes the agent statement and reply statements using
 	 * the variable store. It executes ("if" and "set") commands and resolves variables. The
 	 * returned node contains any content that should be sent to the client. This content can be
@@ -286,11 +286,11 @@ public class DialogueExecutor {
 	/**
 	 * This method is called before the current node is returned from startDialogue() or
 	 * progressDialogue(). The node can be null as a result of progressDialogue() with an end reply.
-	 * 
+	 *
 	 * <p>If the node is not null, this method adds a logged agent interaction for it.</p>
-	 * 
+	 *
 	 * <p>If the node is null or it has no replies, the dialogue is marked as completed.</p>
-	 * 
+	 *
 	 * @param node the current node or null
 	 * @param serverLoggedDialogue the {@link ServerLoggedDialogue} to update.
 	 * @param previousIndex the previous interaction index

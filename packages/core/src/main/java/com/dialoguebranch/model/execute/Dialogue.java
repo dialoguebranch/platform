@@ -28,6 +28,9 @@
 
 package com.dialoguebranch.model.execute;
 
+import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
+import com.dialoguebranch.model.execute.nodepointer.NodePointer;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -36,19 +39,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.dialoguebranch.model.execute.nodepointer.NodePointer;
-import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
-
 /**
  * Object representation of a Dialogue Branch Dialogue definition. A {@link Dialogue} has a name
  * and an (unordered) list of {@link Node}s. One of these {@link Node}s should have as title
  * "Start".
- * 
+ *
  * @author Dennis Hofs
  * @author Harm op den Akker
  */
 public class Dialogue {
-	
+
 	private String dialogueName;
 	private Map<String, Node> nodes = new LinkedHashMap<>(); // map from lower-case node titles to nodes
 	private Set<String> speakers = new HashSet<>();
@@ -56,17 +56,17 @@ public class Dialogue {
 	private Set<String> variablesWritten = new HashSet<>();
 	private Set<String> dialoguesReferenced = new HashSet<>();
 	private Set<ExternalNodePointer> externalNodePointers = new HashSet<>();
-	
+
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
-	
+
 	/**
 	 * Creates an empty instance of a {@link Dialogue}.
 	 */
 	public Dialogue() {
 	}
-	
+
 	/**
 	 * Creates an instance of a {@link Dialogue} with a given {@code dialogueName}.
 	 *
@@ -93,11 +93,11 @@ public class Dialogue {
 		dialoguesReferenced.addAll(other.dialoguesReferenced);
 		externalNodePointers.addAll(other.externalNodePointers);
 	}
-	
+
 	// ------------------------------------------------- //
 	// -------------------- Getters -------------------- //
 	// ------------------------------------------------- //
-	
+
 	/**
 	 * Returns the name of this {@link Dialogue}.
 	 *
@@ -106,7 +106,7 @@ public class Dialogue {
 	public String getDialogueName() {
 		return this.dialogueName;
 	}
-	
+
 	/**
 	 * Returns the starting {@link Node} for this {@link Dialogue}.
 	 *
@@ -115,10 +115,10 @@ public class Dialogue {
 	public Node getStartNode() {
 		return nodes.get("start");
 	}
-	
+
 	/**
 	 * Returns the nodes as an unmodifiable list.
-	 * 
+	 *
 	 * @return the nodes as an unmodifiable list
 	 */
 	public List<Node> getNodes() {
@@ -148,7 +148,7 @@ public class Dialogue {
 			externalNodePointers.add(extPointer);
 		}
 	}
-	
+
 	/**
 	 * Returns an unmodifiable {@link Set} of all unique speaker names present in this
 	 * {@link Dialogue}.
@@ -217,7 +217,7 @@ public class Dialogue {
 	// ------------------------------------------------- //
 	// -------------------- Setters -------------------- //
 	// ------------------------------------------------- //
-	
+
 	/**
 	 * Sets the name of this {@link Dialogue}.
 	 * @param dialogueName the name of this {@link Dialogue}.
@@ -225,11 +225,11 @@ public class Dialogue {
 	public void setDialogueName(String dialogueName) {
 		this.dialogueName = dialogueName;
 	}
-	
+
 	// --------------------------------------------------- //
 	// -------------------- Functions -------------------- //
 	// --------------------------------------------------- //
-	
+
 	/**
 	 * Returns {@code true} if a node with the given {@code nodeId} (case-insensitive) exists in
 	 * this {@link Dialogue}.
@@ -249,7 +249,7 @@ public class Dialogue {
 	public Node getNodeById(String nodeId) {
 		return nodes.get(nodeId.toLowerCase());
 	}
-	
+
 	/**
 	 * Returns the total number of nodes in this {@link Dialogue}.
 	 *
@@ -258,7 +258,7 @@ public class Dialogue {
 	public int getNodeCount() {
 		return nodes.size();
 	}
-	
+
 	/**
 	 * Returns the total number of speakers present in this {@link Dialogue}.
 	 *
@@ -267,7 +267,7 @@ public class Dialogue {
 	public int getSpeakerCount() {
 		return speakers.size();
 	}
-	
+
 	/**
 	 * Returns the total number of different dialogues referenced from this {@link Dialogue}.
 	 *
@@ -276,7 +276,7 @@ public class Dialogue {
 	public int getDialoguesReferencedCount() {
 		return dialoguesReferenced.size();
 	}
-	
+
 	/**
 	 * Returns the total number of different variables needed in executing this {@link Dialogue}.
 	 *
@@ -285,7 +285,7 @@ public class Dialogue {
 	public int getVariablesNeededCount() {
 		return variablesNeeded.size();
 	}
-	
+
 	/**
 	 * Returns the total number of different variables written in executing this {@link Dialogue}.
 	 *
@@ -294,45 +294,45 @@ public class Dialogue {
 	public int getVariablesWrittenCount() {
 		return variablesWritten.size();
 	}
-	
+
 	/**
 	 * Returns a human-readable multi-line summary string, representing the contents of this
 	 * {@link Dialogue}.
 	 */
 	public String toString() {
 		String summaryString = "";
-		
+
 		summaryString += "Dialogue Name: "+getDialogueName()+"\n";
 		summaryString += "Number of Nodes: "+getNodeCount()+"\n";
-		
+
 		summaryString += "\n";
-		
+
 		summaryString += "Speakers present ("+getSpeakerCount()+"):\n";
 		for(String s : getSpeakers()) {
 			summaryString += "  - " + s + "\n";
 		}
-		
+
 		summaryString += "Dialogues referenced ("+getDialoguesReferencedCount()+"):\n";
 		List<String> names = new ArrayList<>(getDialoguesReferenced());
 		Collections.sort(names);
 		for(String s : names) {
 			summaryString += "  - " + s + "\n";
 		}
-		
+
 		summaryString += "Variables needed ("+getVariablesNeededCount()+"):\n";
 		names = new ArrayList<>(getVariablesNeeded());
 		Collections.sort(names);
 		for(String s : names) {
 			summaryString += "  - " + s + "\n";
 		}
-		
+
 		summaryString += "Variables written ("+getVariablesWrittenCount()+"):\n";
 		names = new ArrayList<>(getVariablesWritten());
 		Collections.sort(names);
 		for(String s : names) {
 			summaryString += "  - " + s + "\n";
 		}
-		
+
 		return summaryString;
 	}
 }

@@ -70,7 +70,7 @@ public class ReplyMessage {
 
 	/**
 	 * Returns the reply ID.
-	 * 
+	 *
 	 * @return the reply ID
 	 */
 	public int getReplyId() {
@@ -79,7 +79,7 @@ public class ReplyMessage {
 
 	/**
 	 * Sets the reply ID.
-	 * 
+	 *
 	 * @param replyId the reply ID
 	 */
 	public void setReplyId(int replyId) {
@@ -89,7 +89,7 @@ public class ReplyMessage {
 	/**
 	 * Returns the reply statement. This is null if the reply is an autoforward
 	 * reply.
-	 * 
+	 *
 	 * @return the reply statement or null (default)
 	 */
 	public DialogueStatement getStatement() {
@@ -99,7 +99,7 @@ public class ReplyMessage {
 	/**
 	 * Sets the reply statement. This is null if the reply is an autoforward
 	 * reply.
-	 * 
+	 *
 	 * @param statement the reply statement or null (default)
 	 */
 	public void setStatement(DialogueStatement statement) {
@@ -108,7 +108,7 @@ public class ReplyMessage {
 
 	/**
 	 * Returns the actions that should be performed when this reply is chosen.
-	 * 
+	 *
 	 * @return the actions that should be performed when this reply is chosen
 	 */
 	public List<DialogueAction> getActions() {
@@ -117,17 +117,17 @@ public class ReplyMessage {
 
 	/**
 	 * Sets the actions that should be performed when this reply is chosen.
-	 * 
+	 *
 	 * @param actions the actions that should be performed when this reply is
 	 * chosen
 	 */
 	public void setActions(List<DialogueAction> actions) {
 		this.actions = actions;
 	}
-	
+
 	/**
 	 * Adds an action that should be performed when this reply is chosen.
-	 * 
+	 *
 	 * @param action the action that should be performed when this reply is
 	 * chosen
 	 */
@@ -137,7 +137,7 @@ public class ReplyMessage {
 
 	/**
 	 * Returns whether this reply ends the dialogue.
-	 * 
+	 *
 	 * @return true if this reply ends the dialogue, false otherwise (default)
 	 */
 	public boolean isEndsDialogue() {
@@ -146,7 +146,7 @@ public class ReplyMessage {
 
 	/**
 	 * Sets whether this reply ends the dialogue.
-	 * 
+	 *
 	 * @param endsDialogue true if this reply ends the dialogue, false otherwise
 	 * (default)
 	 */

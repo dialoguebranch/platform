@@ -113,7 +113,7 @@ public class DialogueBranchParser implements AutoCloseable {
 	public DialogueBranchParser(String dialogueName, Reader reader) {
 		init(dialogueName, new LineColumnNumberReader(reader));
 	}
-	
+
 	private void init(File file) throws FileNotFoundException {
 		String name = file.getName();
 		int extSep = name.lastIndexOf('.');
@@ -121,12 +121,12 @@ public class DialogueBranchParser implements AutoCloseable {
 			name = name.substring(0, extSep);
 		init(name, new FileInputStream(file));
 	}
-	
+
 	private void init(String dialogueName, InputStream input) {
 		init(dialogueName, new InputStreamReader(input,
 				StandardCharsets.UTF_8));
 	}
-	
+
 	private void init(String dialogueName, Reader reader) {
 		this.dialogueName = dialogueName;
 		if (reader instanceof LineColumnNumberReader) {
@@ -152,7 +152,7 @@ public class DialogueBranchParser implements AutoCloseable {
 	 * Tries to read the dialogue file. If a reading error occurs, it throws an {@link IOException}.
 	 * Otherwise, it returns a result object where either the dialogue is set, or one or more parse
 	 * errors are set.
-	 * 
+	 *
 	 * @return the read result
 	 * @throws IOException if a reading error occurs
 	 */
@@ -205,20 +205,20 @@ public class DialogueBranchParser implements AutoCloseable {
 		nodePointerTokens = null;
 		return result;
 	}
-	
+
 	private static class ReadNodeResult {
 		public Node node = null;
 		public NodeParseException parseException = null;
 		public boolean readNodeEnd = false;
 	}
-	
+
 	/**
 	 * Tries to read the next node. The reader should be positioned at the start of a node. If there
 	 * are no more nodes, this method returns null. If a reading error occurs, it throws an
 	 * {@link IOException}. Otherwise, it returns a result object, where either "node" or
 	 * "parseException" is set. The property "readNodeEnd" is set if the end of the node (===) has
 	 * been read. This can be used to skip to the next node in case of a parse exception.
-	 * 
+	 *
 	 * @return the result or null
 	 * @throws IOException if a reading error occurs
 	 */
@@ -283,7 +283,7 @@ public class DialogueBranchParser implements AutoCloseable {
 			return result;
 		}
 	}
-	
+
 	private void validateEndNode(NodeHeader header, NodeBody body,
 								 List<BodyToken> tokens) throws LineNumberParseException {
 		if (body.getSegments().isEmpty() && body.getReplies().isEmpty())
@@ -293,11 +293,11 @@ public class DialogueBranchParser implements AutoCloseable {
 				"Node \"%s\" must have an empty body", header.getTitle()),
 				token.getLineNumber(), token.getColNumber());
 	}
-	
+
 	/**
 	 * Creates a {@link NodeParseException} with message "Error in node ..." If the node title is
 	 * unknown, it can be set to null.
-	 * 
+	 *
 	 * @param nodeTitle the node title or null
 	 * @param ex the parse error
 	 * @return the NodeParseException
@@ -310,7 +310,7 @@ public class DialogueBranchParser implements AutoCloseable {
 		return new NodeParseException(msg + ": " + ex.getMessage(),
 				nodeTitle, ex);
 	}
-	
+
 	private void moveToNextNode() throws IOException {
 		String line;
 		while ((line = readLine()) != null) {
@@ -364,7 +364,7 @@ public class DialogueBranchParser implements AutoCloseable {
 			headerMap.put(key, value);
 		}
 	}
-	
+
 	private NodeHeader createHeader(Map<String,String> headerMap,
 									int lineNum, NodeState nodeState)
 			throws LineNumberParseException {
@@ -392,7 +392,7 @@ public class DialogueBranchParser implements AutoCloseable {
 		header.setSpeaker(speaker);
 		return header;
 	}
-	
+
 	/**
 	 * Removes a possible comment, and leading and trailing white space from a string. This should
 	 * not be used for body lines, because this method does not check whether a comment marker (//)
@@ -409,11 +409,11 @@ public class DialogueBranchParser implements AutoCloseable {
 			s = s.substring(0, commentIndex);
 		return s.trim();
 	}
-	
+
 	/**
 	 * Reads whitespace characters from the specified index and returns the number of characters
 	 * read.
-	 * 
+	 *
 	 * @param s the string
 	 * @param start the start index
 	 * @return the number of whitespace characters
@@ -428,7 +428,7 @@ public class DialogueBranchParser implements AutoCloseable {
 		}
 		return result;
 	}
-	
+
 	private String readLine() throws IOException {
 		StringBuilder builder = new StringBuilder();
 		boolean foundCR = false;
@@ -457,5 +457,5 @@ public class DialogueBranchParser implements AutoCloseable {
 			}
 		}
 	}
-	
+
 }

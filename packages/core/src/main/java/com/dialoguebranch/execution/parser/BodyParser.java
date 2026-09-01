@@ -30,10 +30,10 @@ package com.dialoguebranch.execution.parser;
 
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.Reply;
+import com.dialoguebranch.model.execute.VariableString;
 import com.dialoguebranch.model.execute.command.Command;
 import nl.rrd.utils.CurrentIterator;
 import nl.rrd.utils.exception.LineNumberParseException;
-import com.dialoguebranch.model.execute.VariableString;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -158,7 +158,7 @@ public class BodyParser {
 		result.body.trimWhitespace();
 		return result;
 	}
-	
+
 	private boolean hasAutoForwardReply(NodeBody body) {
 		for (Reply reply : body.getReplies()) {
 			if (reply.isAutoForward())
@@ -184,7 +184,7 @@ public class BodyParser {
 		/** The name of the command clause that was encountered, or {@code null}. */
 		public String cmdClauseName = null;
 	}
-	
+
 	private VariableString parseTextSegment(CurrentIterator<BodyToken> tokens) {
 		VariableString string = new VariableString();
 		boolean foundEnd = false;

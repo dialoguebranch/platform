@@ -28,12 +28,12 @@
 
 package com.dialoguebranch.model.execute.protocol;
 
-import com.dialoguebranch.model.execute.command.Command;
 import com.dialoguebranch.execution.ExecuteNodeResult;
 import com.dialoguebranch.model.execute.Node;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.Reply;
 import com.dialoguebranch.model.execute.command.ActionCommand;
+import com.dialoguebranch.model.execute.command.Command;
 import com.dialoguebranch.model.execute.command.InputCommand;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 
@@ -53,7 +53,7 @@ public class DialogueMessageFactory {
 	 * Generates a DialogueMessage based on the given executed node. Since the
 	 * node has already been executed, it should not contain variables or "if"
 	 * and "set" commands.
-	 * 
+	 *
 	 * @param executedNode the executed node
 	 * @return the DialogueMessage
 	 */
@@ -77,7 +77,7 @@ public class DialogueMessageFactory {
 		}
 		return dialogueMessage;
 	}
-	
+
 	private static DialogueStatement generateDialogueStatement(
 			NodeBody body) {
 		DialogueStatement statement = new DialogueStatement();
@@ -100,7 +100,7 @@ public class DialogueMessageFactory {
 		}
 		return statement;
 	}
-	
+
 	private static ReplyMessage generateDialogueReply(Reply reply) {
 		ReplyMessage replyMsg = new ReplyMessage();
 		replyMsg.setReplyId(reply.getReplyId());

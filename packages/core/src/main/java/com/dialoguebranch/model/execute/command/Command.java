@@ -28,18 +28,18 @@
 
 package com.dialoguebranch.model.execute.command;
 
-import java.util.Map;
-import java.util.Set;
-
+import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.Reply;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import nl.rrd.utils.expressions.EvaluationException;
-import com.dialoguebranch.model.execute.NodeBody;
+
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Base class for commands that are specified with &lt;&lt;...&gt;&gt; in Dialogue Branch statements
  * and replies.
- * 
+ *
  * @author Dennis Hofs
  */
 public abstract class Command implements Cloneable {
@@ -51,31 +51,31 @@ public abstract class Command implements Cloneable {
 	/**
 	 * Tries to find a reply with the specified ID within this command. If no such reply is found,
 	 * this method returns {@code null}.
-	 * 
+	 *
 	 * @param replyId the reply ID
 	 * @return the reply or null
 	 */
 	public abstract Reply findReplyById(int replyId);
-	
+
 	/**
 	 * Retrieves all variable names that are read in this command and adds them to the specified
 	 * set.
-	 * 
+	 *
 	 * @param varNames the set to which the variable names are added
 	 */
 	public abstract void getReadVariableNames(Set<String> varNames);
-	
+
 	/**
 	 * Retrieves all variable names that are written in this command and adds them to the specified
 	 * set.
-	 * 
+	 *
 	 * @param varNames the set to which the variable names are added
 	 */
 	public abstract void getWriteVariableNames(Set<String> varNames);
-	
+
 	/**
 	 * Retrieves all node pointers that occur in this command and adds them to the specified list.
-	 * 
+	 *
 	 * @param pointers the list to which the node pointers are added
 	 */
 	public abstract void getNodePointers(Set<NodePointer> pointers);
@@ -85,7 +85,7 @@ public abstract class Command implements Cloneable {
 	 * with respect to the specified variable map. Any content in the body that should be sent to
 	 * the client, is added to the {@code processedBody} {@link NodeBody} object. This content can
 	 * be text or client commands, with all variables resolved.
-	 * 
+	 *
 	 * @param variables the variable map
 	 * @param processedBody the processed body
 	 * @throws EvaluationException if an expression cannot be evaluated

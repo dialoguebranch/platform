@@ -29,8 +29,8 @@
 package com.dialoguebranch.execution.parser;
 
 import com.dialoguebranch.model.common.DialogueBranchConstants;
-import com.dialoguebranch.model.execute.ResourcePointer;
 import com.dialoguebranch.model.common.ResourceType;
+import com.dialoguebranch.model.execute.ResourcePointer;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;

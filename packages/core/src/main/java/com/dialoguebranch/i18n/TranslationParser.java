@@ -28,15 +28,15 @@
 
 package com.dialoguebranch.i18n;
 
-import com.dialoguebranch.model.execute.NodeBody;
+import com.dialoguebranch.execution.parser.BodyParser;
 import com.dialoguebranch.execution.parser.BodyToken;
 import com.dialoguebranch.execution.parser.BodyTokenizer;
+import com.dialoguebranch.model.execute.NodeBody;
 import com.fasterxml.jackson.core.type.TypeReference;
 import nl.rrd.utils.exception.LineNumberParseException;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.io.FileUtils;
 import nl.rrd.utils.json.JsonMapper;
-import com.dialoguebranch.execution.parser.BodyParser;
 
 import java.io.*;
 import java.net.URL;

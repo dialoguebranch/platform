@@ -28,21 +28,21 @@
 
 package com.dialoguebranch.model.execute;
 
+import nl.rrd.utils.expressions.Value;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import nl.rrd.utils.expressions.Value;
-
 /**
  * This class represents a text with possible variables. It is modelled as a list of segments, where
  * each segment is plain text or a variable.
- * 
+ *
  * <p>The segments are always normalized so that subsequent plain text segments are automatically
  * merged into one.</p>
- * 
+ *
  * @author Dennis Hofs
  * @author Harm op den Akker
  */
@@ -87,7 +87,7 @@ public class VariableString {
 
 	/**
 	 * Returns the segments as an unmodifiable list.
-	 * 
+	 *
 	 * @return the segments as an unmodifiable list
 	 */
 	public List<Segment> getSegments() {
@@ -129,7 +129,7 @@ public class VariableString {
 	/**
 	 * Executes this variable string with respect to the specified variables. The result will be a
 	 * string with 0 or 1 text segments. Undefined variables will be evaluated as string "null".
-	 * 
+	 *
 	 * @param variables the variable map (can be {@code null}).
 	 * @return the processed variable string.
 	 */
@@ -153,7 +153,7 @@ public class VariableString {
 	/**
 	 * Evaluates this variable string with respect to the specified variables. Undefined variables
 	 * will be evaluated as string "null".
-	 * 
+	 *
 	 * @param variables the variable map (can be {@code null}).
 	 * @return the evaluated string.
 	 */
@@ -164,11 +164,11 @@ public class VariableString {
 		TextSegment segment = (TextSegment)variableString.segments.get(0);
 		return segment.text;
 	}
-	
+
 	/**
 	 * Retrieves all variable names that are read in this variable string and adds them to the
 	 * specified set.
-	 * 
+	 *
 	 * @param variableNames the set to which the variable names are added.
 	 */
 	public void getReadVariableNames(Set<String> variableNames) {
@@ -260,11 +260,11 @@ public class VariableString {
 		}
 		return result.toString();
 	}
-	
+
 	/**
 	 * Returns the code string for this instance. It will escape \ and $ with a backslash. You may
 	 * specify additional characters to escape.
-	 * 
+	 *
 	 * @param escapes the characters to escape
 	 * @return the code string
 	 */
@@ -335,17 +335,17 @@ public class VariableString {
 		public void setText(String text) {
 			this.text = text;
 		}
-		
+
 		@Override
 		public String toString() {
 			return text.replaceAll("\\\\", "\\\\\\\\")
 					.replaceAll("\\$", "\\\\\\$");
 		}
-		
+
 		/**
 		 * Returns the code string for this instance. It will escape \ and $
 		 * with a backslash. You may specify additional characters to escape.
-		 * 
+		 *
 		 * @param escapes the characters to escape
 		 * @return the code string
 		 */

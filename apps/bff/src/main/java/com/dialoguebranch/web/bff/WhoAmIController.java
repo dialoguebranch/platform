@@ -28,8 +28,8 @@
 
 package com.dialoguebranch.web.bff;
 
-import com.nimbusds.jwt.JWTParser;
 import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.JWTParser;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;

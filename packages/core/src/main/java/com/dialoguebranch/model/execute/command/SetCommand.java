@@ -28,33 +28,33 @@
 
 package com.dialoguebranch.model.execute.command;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.dialoguebranch.execution.parser.BodyToken;
+import com.dialoguebranch.execution.parser.NodeState;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.Reply;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
-import com.dialoguebranch.execution.parser.NodeState;
 import nl.rrd.utils.CurrentIterator;
 import nl.rrd.utils.exception.LineNumberParseException;
 import nl.rrd.utils.expressions.EvaluationException;
 import nl.rrd.utils.expressions.Expression;
 import nl.rrd.utils.expressions.types.AssignExpression;
-import com.dialoguebranch.execution.parser.BodyToken;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * This class models a &lt;&lt;set ...&gt;&gt; command. It can be part of a
  * {@link NodeBody} (along with an agent statement) or a {@link
  * Reply} (to be performed when the user chooses the reply). It
  * contains an assign statement.
- * 
+ *
  * @author Dennis Hofs
  */
 public class SetCommand extends ExpressionCommand {
 	private AssignExpression expression;
-	
+
 	/**
 	 * Creates a {@link SetCommand} that evaluates the given assignment expression.
 	 *
@@ -88,7 +88,7 @@ public class SetCommand extends ExpressionCommand {
 	public void setExpression(AssignExpression expression) {
 		this.expression = expression;
 	}
-	
+
 	@Override
 	public Reply findReplyById(int replyId) {
 		return null;

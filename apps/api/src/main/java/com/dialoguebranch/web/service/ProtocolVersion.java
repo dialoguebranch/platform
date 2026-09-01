@@ -36,13 +36,13 @@ public enum ProtocolVersion {
 
 	/** Protocol version 1 — the first and currently latest API version. */
 	V1("1");
-	
+
 	private final String versionName;
-	
+
 	ProtocolVersion(String versionName) {
 		this.versionName = versionName;
 	}
-	
+
 	/**
 	 * Returns the version name string for this protocol version (e.g. {@code "1"}).
 	 *
@@ -51,7 +51,7 @@ public enum ProtocolVersion {
 	public String versionName() {
 		return versionName;
 	}
-	
+
 	/**
 	 * Returns the {@link ProtocolVersion} matching the given version name string.
 	 *

@@ -30,13 +30,12 @@ package com.dialoguebranch.web.service.controller;
 
 import com.dialoguebranch.execution.Variable;
 import com.dialoguebranch.execution.VariableStore;
-import com.dialoguebranch.execution.VariableStoreChange;
 import com.dialoguebranch.execution.VariableUpdatedSource;
-import com.dialoguebranch.web.service.controller.schema.ProjectVariableInfo;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.ProtocolVersion;
 import com.dialoguebranch.web.service.QueryRunner;
 import com.dialoguebranch.web.service.auth.Permission;
+import com.dialoguebranch.web.service.controller.schema.ProjectVariableInfo;
 import com.dialoguebranch.web.service.exception.BadRequestException;
 import com.dialoguebranch.web.service.exception.ErrorCode;
 import com.dialoguebranch.web.service.exception.HttpError;
@@ -48,10 +47,10 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.slf4j.LoggerFactory;
 import nl.rrd.utils.datetime.DateTimeUtils;
 import nl.rrd.utils.exception.DatabaseException;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 

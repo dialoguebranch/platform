@@ -28,25 +28,25 @@
 
 package com.dialoguebranch.model.execute.command;
 
-import com.dialoguebranch.model.execute.NodeBody;
-import com.dialoguebranch.model.execute.nodepointer.NodePointer;
+import com.dialoguebranch.execution.parser.BodyParser;
+import com.dialoguebranch.execution.parser.BodyToken;
 import com.dialoguebranch.execution.parser.NodeState;
+import com.dialoguebranch.model.execute.NodeBody;
+import com.dialoguebranch.model.execute.Reply;
+import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import nl.rrd.utils.CurrentIterator;
 import nl.rrd.utils.exception.LineNumberParseException;
 import nl.rrd.utils.expressions.EvaluationException;
 import nl.rrd.utils.expressions.Expression;
 import nl.rrd.utils.expressions.Value;
 import nl.rrd.utils.expressions.types.AssignExpression;
-import com.dialoguebranch.model.execute.Reply;
-import com.dialoguebranch.execution.parser.BodyParser;
-import com.dialoguebranch.execution.parser.BodyToken;
 
 import java.util.*;
 
 /**
  * This class models the &lt;&lt;if ...&gt;&gt; command in Dialogue Branch. It can be part
  * of a {@link NodeBody} (not inside a reply).
- * 
+ *
  * @author Dennis Hofs
  */
 public class IfCommand extends ExpressionCommand {
@@ -74,7 +74,7 @@ public class IfCommand extends ExpressionCommand {
 	 * Returns the if clauses. They should be processed from first to last.
 	 * There should be at least one clause. That is the "if" clause. Any
 	 * subsequent clauses are "elseif" clauses.
-	 * 
+	 *
 	 * @return the if clauses
 	 */
 	public List<Clause> getIfClauses() {
@@ -85,18 +85,18 @@ public class IfCommand extends ExpressionCommand {
 	 * Sets the if clauses. They should be processed from first to last. There
 	 * should be at least one clause. That is the "if" clause. Any subsequent
 	 * clauses are "elseif" clauses.
-	 * 
+	 *
 	 * @param ifClauses the if clauses
 	 */
 	public void setIfClauses(List<Clause> ifClauses) {
 		this.ifClauses = ifClauses;
 	}
-	
+
 	/**
 	 * Adds an if clause. The clauses should be processed from first to last.
 	 * There should be at least one clause.That is the "if" clause. Any
 	 * subsequent clauses are "elseif" clauses.
-	 * 
+	 *
 	 * @param ifClause the if clause
 	 */
 	public void addIfClause(Clause ifClause) {
@@ -106,7 +106,7 @@ public class IfCommand extends ExpressionCommand {
 	/**
 	 * Returns the else clause. If there is no else clause, then this method
 	 * returns null (default).
-	 * 
+	 *
 	 * @return the else clause or null
 	 */
 	public NodeBody getElseClause() {
@@ -116,13 +116,13 @@ public class IfCommand extends ExpressionCommand {
 	/**
 	 * Sets the else clause. If there is no else clause, this can be set to
 	 * null (default).
-	 * 
+	 *
 	 * @param elseClause the else clause or null
 	 */
 	public void setElseClause(NodeBody elseClause) {
 		this.elseClause = elseClause;
 	}
-	
+
 	@Override
 	public Reply findReplyById(int replyId) {
 		for (Clause clause : ifClauses) {
@@ -265,7 +265,7 @@ public class IfCommand extends ExpressionCommand {
 			}
 		}
 	}
-	
+
 	private static void checkNoAssignment(BodyToken cmdStartToken,
                                           String name, Expression expression)
 			throws LineNumberParseException {
@@ -296,7 +296,7 @@ public class IfCommand extends ExpressionCommand {
 
 		/**
 		 * Constructs a new if clause.
-		 * 
+		 *
 		 * @param expression the if expression that should be evaluated as a
 		 * boolean
 		 * @param statement the statement that should be output if the
@@ -319,7 +319,7 @@ public class IfCommand extends ExpressionCommand {
 
 		/**
 		 * Returns the if expression that should be evaluated as a boolean.
-		 * 
+		 *
 		 * @return the if expression
 		 */
 		public Expression getExpression() {
@@ -328,7 +328,7 @@ public class IfCommand extends ExpressionCommand {
 
 		/**
 		 * Sets the if expression that should be evaluated as a boolean.
-		 * 
+		 *
 		 * @param expression the if expression
 		 */
 		public void setExpression(Expression expression) {
@@ -338,7 +338,7 @@ public class IfCommand extends ExpressionCommand {
 		/**
 		 * Returns the statement that should be output if the expression
 		 * evaluates to true.
-		 * 
+		 *
 		 * @return the statement
 		 */
 		public NodeBody getStatement() {
@@ -348,7 +348,7 @@ public class IfCommand extends ExpressionCommand {
 		/**
 		 * Sets the statement that should be output if the expression evaluates
 		 * to true.
-		 * 
+		 *
 		 * @param statement the statement
 		 */
 		public void setStatement(NodeBody statement) {
