@@ -98,7 +98,7 @@ public class DialogueBranchCLI {
     // ----------------------------------------------------- //
 
     /**
-     * Entry point for the Dialogue Branch Project Tool. With no arguments, launches the
+     * Entry point for the Dialogue Branch CLI. With no arguments, launches the
      * interactive menu-driven session. With arguments, runs non-interactively — see
      * {@link #printUsage()} for the exact syntax — and exits with a non-zero status on failure,
      * making it suitable as a CI gate.
@@ -123,7 +123,7 @@ public class DialogueBranchCLI {
 
         System.out.println("""
             ============================================================
-             Dialogue Branch Project Tool
+             Dialogue Branch CLI
             ============================================================
             Interactive tool for inspecting Dialogue Branch projects.
             """);
