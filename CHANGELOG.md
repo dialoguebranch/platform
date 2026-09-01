@@ -80,6 +80,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Core: updated the interactive banner and entry-point Javadoc to use "Dialogue Branch CLI"
+  instead of the old "Dialogue Branch Project Tool" name
+  ([#110](https://github.com/dialoguebranch/platform/issues/110)).
 - Studio: the "Continue" button in the balloon test view (shown for auto-forward dialogue steps)
   was near-invisible — a transparent fill with a border and text colour that matched the grey
   page background. It now has a light fill, an orange border and dark text, so it reads clearly
