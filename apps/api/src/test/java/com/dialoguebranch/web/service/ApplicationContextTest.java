@@ -11,9 +11,9 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles("test")
 class ApplicationContextTest {
 
-    @Test
-    void contextLoads() {
-        // If the context fails to start, Spring throws before this body runs.
-    }
+	@Test
+	void contextLoads() {
+		// If the context fails to start, Spring throws before this body runs.
+	}
 
 }

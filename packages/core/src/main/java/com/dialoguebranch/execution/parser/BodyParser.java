@@ -102,7 +102,7 @@ public class BodyParser {
 	 */
 	public ParseUntilCommandClauseResult parseUntilCommandClause(
 			CurrentIterator<BodyToken> tokens, List<String> validCommands,
-            List<String> validCommandClauses) throws LineNumberParseException {
+			List<String> validCommandClauses) throws LineNumberParseException {
 		ParseUntilCommandClauseResult result = new ParseUntilCommandClauseResult();
 		result.body = new NodeBody();
 		while (result.cmdClauseStartToken == null && tokens.getCurrent() != null) {

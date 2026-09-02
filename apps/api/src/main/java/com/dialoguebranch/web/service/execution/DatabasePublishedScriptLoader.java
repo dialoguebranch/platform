@@ -53,87 +53,87 @@ import java.util.Map;
  */
 public class DatabasePublishedScriptLoader implements ScriptLoader {
 
-    private final String sourceLanguage;
+	private final String sourceLanguage;
 
-    /** dialogueName → script content */
-    private final Map<String, String> scriptContents;
+	/** dialogueName → script content */
+	private final Map<String, String> scriptContents;
 
-    /** language → dialogueName → translation content */
-    private final Map<String, Map<String, String>> translationContents;
+	/** language → dialogueName → translation content */
+	private final Map<String, Map<String, String>> translationContents;
 
-    // -------------------------------------------------------- //
-    // -------------------- Constructor(s) -------------------- //
-    // -------------------------------------------------------- //
+	// -------------------------------------------------------- //
+	// -------------------- Constructor(s) -------------------- //
+	// -------------------------------------------------------- //
 
-    /**
-     * Creates a {@link DatabasePublishedScriptLoader} from pre-built content maps.
-     *
-     * @param sourceLanguage      the source language code for the project (e.g. {@code "en"}).
-     * @param scriptContents      map of dialogue name → script content.
-     * @param translationContents map of language code → (dialogue name → translation content).
-     */
-    public DatabasePublishedScriptLoader(String sourceLanguage,
-                                       Map<String, String> scriptContents,
-                                       Map<String, Map<String, String>> translationContents) {
-        this.sourceLanguage = sourceLanguage;
-        this.scriptContents = new LinkedHashMap<>(scriptContents);
-        this.translationContents = new LinkedHashMap<>(translationContents);
-    }
+	/**
+	 * Creates a {@link DatabasePublishedScriptLoader} from pre-built content maps.
+	 *
+	 * @param sourceLanguage      the source language code for the project (e.g. {@code "en"}).
+	 * @param scriptContents      map of dialogue name → script content.
+	 * @param translationContents map of language code → (dialogue name → translation content).
+	 */
+	public DatabasePublishedScriptLoader(String sourceLanguage,
+									   Map<String, String> scriptContents,
+									   Map<String, Map<String, String>> translationContents) {
+		this.sourceLanguage = sourceLanguage;
+		this.scriptContents = new LinkedHashMap<>(scriptContents);
+		this.translationContents = new LinkedHashMap<>(translationContents);
+	}
 
-    // ------------------------------------------------------- //
-    // -------------------- ScriptLoader API -------------------- //
-    // ------------------------------------------------------- //
+	// ------------------------------------------------------- //
+	// -------------------- ScriptLoader API -------------------- //
+	// ------------------------------------------------------- //
 
-    /**
-     * Returns {@link ResourcePointer}s for all scripts (using the source language) and all
-     * translation files (using each translation's language code).
-     *
-     * @return the list of all available file descriptors.
-     * @throws IOException never thrown by this implementation.
-     */
-    @Override
-    public List<ResourcePointer> listDialogueBranchFiles() throws IOException {
-        List<ResourcePointer> result = new ArrayList<>();
+	/**
+	 * Returns {@link ResourcePointer}s for all scripts (using the source language) and all
+	 * translation files (using each translation's language code).
+	 *
+	 * @return the list of all available file descriptors.
+	 * @throws IOException never thrown by this implementation.
+	 */
+	@Override
+	public List<ResourcePointer> listDialogueBranchFiles() throws IOException {
+		List<ResourcePointer> result = new ArrayList<>();
 
-        for (String dialogueName : scriptContents.keySet()) {
-            result.add(new ResourcePointer(sourceLanguage, dialogueName, ResourceType.SCRIPT));
-        }
+		for (String dialogueName : scriptContents.keySet()) {
+			result.add(new ResourcePointer(sourceLanguage, dialogueName, ResourceType.SCRIPT));
+		}
 
-        for (Map.Entry<String, Map<String, String>> langEntry : translationContents.entrySet()) {
-            String language = langEntry.getKey();
-            for (String dialogueName : langEntry.getValue().keySet()) {
-                result.add(new ResourcePointer(language, dialogueName, ResourceType.TRANSLATION));
-            }
-        }
+		for (Map.Entry<String, Map<String, String>> langEntry : translationContents.entrySet()) {
+			String language = langEntry.getKey();
+			for (String dialogueName : langEntry.getValue().keySet()) {
+				result.add(new ResourcePointer(language, dialogueName, ResourceType.TRANSLATION));
+			}
+		}
 
-        return result;
-    }
+		return result;
+	}
 
-    /**
-     * Opens the content for the file identified by the given {@link ResourcePointer} as a
-     * {@link StringReader}.
-     *
-     * @param fileDescriptor the descriptor of the file to open.
-     * @return a {@link Reader} over the stored content string.
-     * @throws IOException if the requested file is not present in this loader.
-     */
-    @Override
-    public Reader openFile(ResourcePointer fileDescriptor) throws IOException {
-        String content;
-        if (fileDescriptor.getResourceType() == ResourceType.SCRIPT) {
-            content = scriptContents.get(fileDescriptor.getDialogueName());
-            if (content == null) {
-                throw new IOException("Published script not found: " + fileDescriptor.getDialogueName());
-            }
-        } else {
-            Map<String, String> langMap = translationContents.get(fileDescriptor.getLanguage());
-            content = langMap != null ? langMap.get(fileDescriptor.getDialogueName()) : null;
-            if (content == null) {
-                throw new IOException("Published translation not found: " +
-                        fileDescriptor.getLanguage() + "/" + fileDescriptor.getDialogueName());
-            }
-        }
-        return new StringReader(content);
-    }
+	/**
+	 * Opens the content for the file identified by the given {@link ResourcePointer} as a
+	 * {@link StringReader}.
+	 *
+	 * @param fileDescriptor the descriptor of the file to open.
+	 * @return a {@link Reader} over the stored content string.
+	 * @throws IOException if the requested file is not present in this loader.
+	 */
+	@Override
+	public Reader openFile(ResourcePointer fileDescriptor) throws IOException {
+		String content;
+		if (fileDescriptor.getResourceType() == ResourceType.SCRIPT) {
+			content = scriptContents.get(fileDescriptor.getDialogueName());
+			if (content == null) {
+				throw new IOException("Published script not found: " + fileDescriptor.getDialogueName());
+			}
+		} else {
+			Map<String, String> langMap = translationContents.get(fileDescriptor.getLanguage());
+			content = langMap != null ? langMap.get(fileDescriptor.getDialogueName()) : null;
+			if (content == null) {
+				throw new IOException("Published translation not found: " +
+						fileDescriptor.getLanguage() + "/" + fileDescriptor.getDialogueName());
+			}
+		}
+		return new StringReader(content);
+	}
 
 }

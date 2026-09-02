@@ -136,9 +136,9 @@ public abstract class NodePointer implements Cloneable {
 		if (getClass() != obj.getClass())
 			return false;
 		NodePointer other = (NodePointer)obj;
-        return this.originNodeId.equals(other.getOriginNodeId())
+		return this.originNodeId.equals(other.getOriginNodeId())
 				&& this.targetNodeId.equals(other.getTargetNodeId());
-    }
+	}
 
 	@Override
 	public abstract NodePointer clone();

@@ -53,103 +53,103 @@ import static org.junit.Assert.*;
  */
 public class TranslatedDialogueTest {
 
-    // ------------------------------------------------- //
-    // -------------------- Helpers -------------------- //
-    // ------------------------------------------------- //
+	// ------------------------------------------------- //
+	// -------------------- Helpers -------------------- //
+	// ------------------------------------------------- //
 
-    /**
-     * Returns a {@link ProjectParserResult} by parsing the bundled test-resource example folder
-     * (contains {@code en/basic.dlb} and {@code nl/basic.json}).
-     */
-    private ProjectParserResult parseExamples() throws Exception {
-        URL resourceUrl = getClass().getClassLoader().getResource("examples");
-        assertNotNull("Test resource folder 'examples' not found on classpath", resourceUrl);
-        File examplesDir = new File(resourceUrl.toURI());
-        DirectoryScriptLoader loader = new DirectoryScriptLoader(examplesDir);
-        return new ProjectParser(loader).parse();
-    }
+	/**
+	 * Returns a {@link ProjectParserResult} by parsing the bundled test-resource example folder
+	 * (contains {@code en/basic.dlb} and {@code nl/basic.json}).
+	 */
+	private ProjectParserResult parseExamples() throws Exception {
+		URL resourceUrl = getClass().getClassLoader().getResource("examples");
+		assertNotNull("Test resource folder 'examples' not found on classpath", resourceUrl);
+		File examplesDir = new File(resourceUrl.toURI());
+		DirectoryScriptLoader loader = new DirectoryScriptLoader(examplesDir);
+		return new ProjectParser(loader).parse();
+	}
 
-    /**
-     * Finds the {@link Dialogue} for the given {@code language} and {@code dialogueName} in the
-     * parsed project, or returns {@code null} if not found.
-     */
-    private Dialogue findDialogue(ProjectParserResult result, String language, String dialogueName)
-            throws Exception {
-        for (Map.Entry<ResourcePointer, Dialogue> entry
-                : result.getProject().getDialogues().entrySet()) {
-            ResourcePointer fd = entry.getKey();
-            if (fd.getLanguage().equals(language)
-                    && fd.getDialogueName().equals(dialogueName)) {
-                return entry.getValue();
-            }
-        }
-        return null;
-    }
+	/**
+	 * Finds the {@link Dialogue} for the given {@code language} and {@code dialogueName} in the
+	 * parsed project, or returns {@code null} if not found.
+	 */
+	private Dialogue findDialogue(ProjectParserResult result, String language, String dialogueName)
+			throws Exception {
+		for (Map.Entry<ResourcePointer, Dialogue> entry
+				: result.getProject().getDialogues().entrySet()) {
+			ResourcePointer fd = entry.getKey();
+			if (fd.getLanguage().equals(language)
+					&& fd.getDialogueName().equals(dialogueName)) {
+				return entry.getValue();
+			}
+		}
+		return null;
+	}
 
-    // ----------------------------------------------- //
-    // -------------------- Tests -------------------- //
-    // ----------------------------------------------- //
+	// ----------------------------------------------- //
+	// -------------------- Tests -------------------- //
+	// ----------------------------------------------- //
 
-    /**
-     * Verifies that the English source script parses without errors.
-     */
-    @Test
-    public void testEnglishBasicParsesWithoutErrors() throws Exception {
-        ProjectParserResult result = parseExamples();
-        assertTrue("Parse errors: " + result.getParseErrors(),
-                result.getParseErrors().isEmpty());
-    }
+	/**
+	 * Verifies that the English source script parses without errors.
+	 */
+	@Test
+	public void testEnglishBasicParsesWithoutErrors() throws Exception {
+		ProjectParserResult result = parseExamples();
+		assertTrue("Parse errors: " + result.getParseErrors(),
+				result.getParseErrors().isEmpty());
+	}
 
-    /**
-     * Verifies that the Dutch translation of {@code basic} is present after parsing.
-     */
-    @Test
-    public void testDutchTranslationIsLoaded() throws Exception {
-        ProjectParserResult result = parseExamples();
-        Dialogue dutch = findDialogue(result, "nl", "basic");
-        assertNotNull("Dutch translated dialogue 'nl/basic' not found in parsed project", dutch);
-    }
+	/**
+	 * Verifies that the Dutch translation of {@code basic} is present after parsing.
+	 */
+	@Test
+	public void testDutchTranslationIsLoaded() throws Exception {
+		ProjectParserResult result = parseExamples();
+		Dialogue dutch = findDialogue(result, "nl", "basic");
+		assertNotNull("Dutch translated dialogue 'nl/basic' not found in parsed project", dutch);
+	}
 
-    /**
-     * Verifies that executing the Start node of the Dutch {@code basic} dialogue returns the
-     * Dutch-translated opening statement.
-     */
-    @Test
-    public void testDutchStartNodeContainsTranslatedText() throws Exception {
-        ProjectParserResult result = parseExamples();
-        Dialogue dutch = findDialogue(result, "nl", "basic");
-        assertNotNull("Dutch translated dialogue not found", dutch);
+	/**
+	 * Verifies that executing the Start node of the Dutch {@code basic} dialogue returns the
+	 * Dutch-translated opening statement.
+	 */
+	@Test
+	public void testDutchStartNodeContainsTranslatedText() throws Exception {
+		ProjectParserResult result = parseExamples();
+		Dialogue dutch = findDialogue(result, "nl", "basic");
+		assertNotNull("Dutch translated dialogue not found", dutch);
 
-        ResourcePointer fd = new ResourcePointer("nl", "basic", ResourceType.TRANSLATION);
-        ActiveDialogue ad = new ActiveDialogue(fd, dutch);
-        ad.setVariableStore(new VariableStore(new User("test")));
+		ResourcePointer fd = new ResourcePointer("nl", "basic", ResourceType.TRANSLATION);
+		ActiveDialogue ad = new ActiveDialogue(fd, dutch);
+		ad.setVariableStore(new VariableStore(new User("test")));
 
-        Node startNode = ad.startDialogue(ZonedDateTime.now());
-        assertNotNull("startDialogue returned null node", startNode);
+		Node startNode = ad.startDialogue(ZonedDateTime.now());
+		assertNotNull("startDialogue returned null node", startNode);
 
-        String bodyText = startNode.getBody().toString();
-        assertTrue(
-                "Expected Dutch opening text, got: " + bodyText,
-                bodyText.contains("Hallo, mijn naam is Martin McOwl"));
-    }
+		String bodyText = startNode.getBody().toString();
+		assertTrue(
+				"Expected Dutch opening text, got: " + bodyText,
+				bodyText.contains("Hallo, mijn naam is Martin McOwl"));
+	}
 
-    /**
-     * Verifies that all reply options on the English Start node are present (sanity-check that
-     * the English source itself is intact).
-     */
-    @Test
-    public void testEnglishStartNodeHasExpectedReplies() throws Exception {
-        ProjectParserResult result = parseExamples();
-        Dialogue english = findDialogue(result, "en", "basic");
-        assertNotNull("English source dialogue not found", english);
+	/**
+	 * Verifies that all reply options on the English Start node are present (sanity-check that
+	 * the English source itself is intact).
+	 */
+	@Test
+	public void testEnglishStartNodeHasExpectedReplies() throws Exception {
+		ProjectParserResult result = parseExamples();
+		Dialogue english = findDialogue(result, "en", "basic");
+		assertNotNull("English source dialogue not found", english);
 
-        ResourcePointer fd = new ResourcePointer("en", "basic", ResourceType.SCRIPT);
-        ActiveDialogue ad = new ActiveDialogue(fd, english);
-        ad.setVariableStore(new VariableStore(new User("test")));
+		ResourcePointer fd = new ResourcePointer("en", "basic", ResourceType.SCRIPT);
+		ActiveDialogue ad = new ActiveDialogue(fd, english);
+		ad.setVariableStore(new VariableStore(new User("test")));
 
-        Node startNode = ad.startDialogue(ZonedDateTime.now());
-        assertNotNull(startNode);
-        assertEquals("Start node should have 2 reply options", 2,
-                startNode.getBody().getReplies().size());
-    }
+		Node startNode = ad.startDialogue(ZonedDateTime.now());
+		assertNotNull(startNode);
+		assertEquals("Start node should have 2 reply options", 2,
+				startNode.getBody().getReplies().size());
+	}
 }

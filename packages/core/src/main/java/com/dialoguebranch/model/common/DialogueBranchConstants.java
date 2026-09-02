@@ -41,48 +41,48 @@ public class DialogueBranchConstants {
 	 */
 	private DialogueBranchConstants() { }
 
-    /** The String constants that defines how individual nodes are separated from each other in the
-     * source code of a Dialogue Branch script */
-    public static final String DLB_NODE_SEPARATOR = "===";
+	/** The String constants that defines how individual nodes are separated from each other in the
+	 * source code of a Dialogue Branch script */
+	public static final String DLB_NODE_SEPARATOR = "===";
 
-    /** The String constant that defines how the header is separated from the body in the source
-     * code of a Dialogue Branch script */
-    public static final String DLB_HEADER_SEPARATOR = "---";
+	/** The String constant that defines how the header is separated from the body in the source
+	 * code of a Dialogue Branch script */
+	public static final String DLB_HEADER_SEPARATOR = "---";
 
-    /** The String constant used as path separator when linking to a different Dialogue Branch
-     * script from within the source of a Dialogue Branch script */
-    public static final String DLB_PATH_SEPARATOR = "/";
+	/** The String constant used as path separator when linking to a different Dialogue Branch
+	 * script from within the source of a Dialogue Branch script */
+	public static final String DLB_PATH_SEPARATOR = "/";
 
-    /** The String constant defining the title of the specific "End" node, which has no contents
-     * and defines the end of a conversation */
-    public static final String DLB_NODE_END_ID = "end";
+	/** The String constant defining the title of the specific "End" node, which has no contents
+	 * and defines the end of a conversation */
+	public static final String DLB_NODE_END_ID = "end";
 
-    /** The String constant defining the title of the specific "Start" node, which is the default
-     * starting point of a conversation */
-    public static final String DLB_NODE_START_ID = "start";
+	/** The String constant defining the title of the specific "Start" node, which is the default
+	 * starting point of a conversation */
+	public static final String DLB_NODE_START_ID = "start";
 
-    /** The String constant used as the 'statement' part of a reply when that reply is an
-     * auto-forward reply */
-    public static final String DLB_REPLY_STATEMENT_AUTOFORWARD = "AUTOFORWARD";
+	/** The String constant used as the 'statement' part of a reply when that reply is an
+	 * auto-forward reply */
+	public static final String DLB_REPLY_STATEMENT_AUTOFORWARD = "AUTOFORWARD";
 
-    /** The String constant used for (temporarily) naming a dialogue that has not been given a
-     * specific name */
-    public static final String DLB_DEFAULT_DIALOGUE_NAME = "undefined";
+	/** The String constant used for (temporarily) naming a dialogue that has not been given a
+	 * specific name */
+	public static final String DLB_DEFAULT_DIALOGUE_NAME = "undefined";
 
-    /** The String constant defining the default language code to use if one has not been defined */
-    public static final String DLB_DEFAULT_LANGUAGE_CODE = "en";
+	/** The String constant defining the default language code to use if one has not been defined */
+	public static final String DLB_DEFAULT_LANGUAGE_CODE = "en";
 
-    /** The String constant defining the file extension for Dialogue Branch scripts (including the
-     * '.') */
-    public static final String DLB_SCRIPT_FILE_EXTENSION = ".dlb";
+	/** The String constant defining the file extension for Dialogue Branch scripts (including the
+	 * '.') */
+	public static final String DLB_SCRIPT_FILE_EXTENSION = ".dlb";
 
-    /** The String constant defining the file extension for Dialogue Branch translation files
-     *  (including the '.') */
-    public static final String DLB_TRANSLATION_FILE_EXTENSION = ".json";
+	/** The String constant defining the file extension for Dialogue Branch translation files
+	 *  (including the '.') */
+	public static final String DLB_TRANSLATION_FILE_EXTENSION = ".json";
 
-    /** The list of Strings defining the names of header tags that bear a special meaning within
-     * Dialogue Branch */
-    public static final String[] DLB_RESERVED_HEADER_TAGS
-            = {"title","speaker","position","colorId"};
+	/** The list of Strings defining the names of header tags that bear a special meaning within
+	 * Dialogue Branch */
+	public static final String[] DLB_RESERVED_HEADER_TAGS
+			= {"title","speaker","position","colorId"};
 
 }

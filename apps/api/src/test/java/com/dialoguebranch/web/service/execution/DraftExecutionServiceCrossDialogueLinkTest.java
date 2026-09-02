@@ -30,60 +30,60 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @ActiveProfiles("test")
 class DraftExecutionServiceCrossDialogueLinkTest {
 
-    @Autowired
-    private Application application;
+	@Autowired
+	private Application application;
 
-    @Autowired
-    private ProjectService projectService;
+	@Autowired
+	private ProjectService projectService;
 
-    @Autowired
-    private DraftDialogueService draftDialogueService;
+	@Autowired
+	private DraftDialogueService draftDialogueService;
 
-    @Autowired
-    private DraftExecutionService draftExecutionService;
+	@Autowired
+	private DraftExecutionService draftExecutionService;
 
-    @Test
-    void replyLinkingToSiblingDialogueSwitchesTheSession() throws Exception {
-        DBProject project = projectService.createProject(
-                "draft-cross-dialogue-" + UUID.randomUUID(), "Draft Cross Dialogue", "", "en",
-                "English");
+	@Test
+	void replyLinkingToSiblingDialogueSwitchesTheSession() throws Exception {
+		DBProject project = projectService.createProject(
+				"draft-cross-dialogue-" + UUID.randomUUID(), "Draft Cross Dialogue", "", "en",
+				"English");
 
-        DBDraftDialogue main = draftDialogueService.createDialogue(project, "main");
-        draftDialogueService.createNode(main, "Start",
-                "title: Start\nspeaker: Agent\nposition: 0,0",
-                "Hi there.\n\n[[Go to the other dialogue.|other.Start]]");
+		DBDraftDialogue main = draftDialogueService.createDialogue(project, "main");
+		draftDialogueService.createNode(main, "Start",
+				"title: Start\nspeaker: Agent\nposition: 0,0",
+				"Hi there.\n\n[[Go to the other dialogue.|other.Start]]");
 
-        DBDraftDialogue other = draftDialogueService.createDialogue(project, "other");
-        draftDialogueService.createNode(other, "Start",
-                "title: Start\nspeaker: Agent\nposition: 0,0",
-                "You made it to the other dialogue.");
+		DBDraftDialogue other = draftDialogueService.createDialogue(project, "other");
+		draftDialogueService.createNode(other, "Start",
+				"title: Start\nspeaker: Agent\nposition: 0,0",
+				"You made it to the other dialogue.");
 
-        ApplicationManager applicationManager = application.getApplicationManager();
-        String userId = "draft-cross-dialogue-user-" + UUID.randomUUID();
-        UserService userService = applicationManager.getOrCreateActiveUserService(userId);
+		ApplicationManager applicationManager = application.getApplicationManager();
+		String userId = "draft-cross-dialogue-user-" + UUID.randomUUID();
+		UserService userService = applicationManager.getOrCreateActiveUserService(userId);
 
-        DraftExecutionService.StartResult startResult =
-                draftExecutionService.startSession(userService, project, main, "en", null);
-        assertNotNull(startResult);
+		DraftExecutionService.StartResult startResult =
+				draftExecutionService.startSession(userService, project, main, "en", null);
+		assertNotNull(startResult);
 
-        DraftTestSession session = draftExecutionService.getSession(startResult.sessionId());
-        assertEquals("main", session.getDialogueDefinition().getDialogueName(),
-                "the session should start on the requested dialogue");
+		DraftTestSession session = draftExecutionService.getSession(startResult.sessionId());
+		assertEquals("main", session.getDialogueDefinition().getDialogueName(),
+				"the session should start on the requested dialogue");
 
-        Reply reply = startResult.executeNodeResult().node().getBody().getReplies().get(0);
+		Reply reply = startResult.executeNodeResult().node().getBody().getReplies().get(0);
 
-        ZonedDateTime eventTime =
-                DateTimeUtils.nowMs(userService.getDialogueBranchUser().getTimeZone());
-        ExecuteNodeResult nextResult = draftExecutionService.progressSession(
-                session, reply.getReplyId(), null, eventTime);
+		ZonedDateTime eventTime =
+				DateTimeUtils.nowMs(userService.getDialogueBranchUser().getTimeZone());
+		ExecuteNodeResult nextResult = draftExecutionService.progressSession(
+				session, reply.getReplyId(), null, eventTime);
 
-        assertNotNull(nextResult, "following the cross-dialogue link should not end the session");
-        assertEquals("other", nextResult.dialogue().getDialogueName(),
-                "the reply should switch execution to the target dialogue");
-        assertEquals("Start", nextResult.node().getTitle(),
-                "the reply should land on the target dialogue's linked node");
-        assertEquals("other", session.getDialogueDefinition().getDialogueName(),
-                "the session itself should now reflect the target dialogue");
-    }
+		assertNotNull(nextResult, "following the cross-dialogue link should not end the session");
+		assertEquals("other", nextResult.dialogue().getDialogueName(),
+				"the reply should switch execution to the target dialogue");
+		assertEquals("Start", nextResult.node().getTitle(),
+				"the reply should land on the target dialogue's linked node");
+		assertEquals("other", session.getDialogueDefinition().getDialogueName(),
+				"the session itself should now reflect the target dialogue");
+	}
 
 }

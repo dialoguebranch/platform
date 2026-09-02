@@ -9,9 +9,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest
 class ApplicationContextTest {
 
-    @Test
-    void contextLoads() {
-        // If the context fails to start, Spring throws before this body runs.
-    }
+	@Test
+	void contextLoads() {
+		// If the context fails to start, Spring throws before this body runs.
+	}
 
 }

@@ -58,8 +58,8 @@ public class DialogueState {
 	 * @param activeDialogue        the {@link ActiveDialogue} managing live execution state.
 	 */
 	public DialogueState(ResourcePointer dialogueDescription,
-                         Dialogue dialogueDefinition, LoggedDialogue loggedDialogue,
-                         int loggedInteractionIndex, ActiveDialogue activeDialogue) {
+						 Dialogue dialogueDefinition, LoggedDialogue loggedDialogue,
+						 int loggedInteractionIndex, ActiveDialogue activeDialogue) {
 		this.dialogueDescription = dialogueDescription;
 		this.dialogueDefinition = dialogueDefinition;
 		this.loggedDialogue = loggedDialogue;

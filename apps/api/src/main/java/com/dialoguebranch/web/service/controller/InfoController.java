@@ -119,7 +119,7 @@ public class InfoController {
 		}
 
 		// Log this call to the service log
-        logger.info("GET /v{}/info/all", version);
+		logger.info("GET /v{}/info/all", version);
 
 		// Construct the string that indicates the service's uptime
 		Long launchedTime = application.getLaunchedTime();

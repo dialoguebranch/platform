@@ -47,4 +47,4 @@ import com.dialoguebranch.model.execute.Node;
  * @author Dennis Hofs
  */
 public record ExecuteNodeResult(Dialogue dialogue, Node node,
-                                LoggedDialogue loggedDialogue, int interactionIndex) { }
+								LoggedDialogue loggedDialogue, int interactionIndex) { }

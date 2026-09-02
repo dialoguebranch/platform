@@ -24,34 +24,34 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @ActiveProfiles("test")
 class UserServiceLanguageMatchingTest {
 
-    @Autowired
-    private Application application;
+	@Autowired
+	private Application application;
 
-    @Test
-    void exactlyDeclaredLanguageResolvesToItsOwnTranslation() throws Exception {
-        ResourcePointer resolved =
-                resolveMenuDialogue("nl-NL");
+	@Test
+	void exactlyDeclaredLanguageResolvesToItsOwnTranslation() throws Exception {
+		ResourcePointer resolved =
+				resolveMenuDialogue("nl-NL");
 
-        assertNotNull(resolved, "the 'menu' dialogue should be found in the 'default-test' project");
-        assertEquals("nl-NL", resolved.getLanguage(),
-                "requesting the exact declared code nl-NL should resolve to its own translation");
-    }
+		assertNotNull(resolved, "the 'menu' dialogue should be found in the 'default-test' project");
+		assertEquals("nl-NL", resolved.getLanguage(),
+				"requesting the exact declared code nl-NL should resolve to its own translation");
+	}
 
-    @Test
-    void undeclaredLanguageFallsBackToSourceLanguage() throws Exception {
-        ResourcePointer resolved = resolveMenuDialogue("nl");
+	@Test
+	void undeclaredLanguageFallsBackToSourceLanguage() throws Exception {
+		ResourcePointer resolved = resolveMenuDialogue("nl");
 
-        assertNotNull(resolved, "the 'menu' dialogue should be found in the 'default-test' project");
-        assertEquals("en", resolved.getLanguage(),
-                "requesting a language the project doesn't declare (nl, vs. the declared nl-NL) " +
-                        "should fall back to the source language, not fuzzy-match nl-NL");
-    }
+		assertNotNull(resolved, "the 'menu' dialogue should be found in the 'default-test' project");
+		assertEquals("en", resolved.getLanguage(),
+				"requesting a language the project doesn't declare (nl, vs. the declared nl-NL) " +
+						"should fall back to the source language, not fuzzy-match nl-NL");
+	}
 
-    private ResourcePointer resolveMenuDialogue(String language) throws Exception {
-        ApplicationManager applicationManager = application.getApplicationManager();
-        String userId = "language-matching-test-user-" + UUID.randomUUID();
-        UserService userService = applicationManager.getOrCreateActiveUserService(userId);
-        return userService.getDialogueDescriptionFromProject("default-test", "menu", language);
-    }
+	private ResourcePointer resolveMenuDialogue(String language) throws Exception {
+		ApplicationManager applicationManager = application.getApplicationManager();
+		String userId = "language-matching-test-user-" + UUID.randomUUID();
+		UserService userService = applicationManager.getOrCreateActiveUserService(userId);
+		return userService.getDialogueDescriptionFromProject("default-test", "menu", language);
+	}
 
 }

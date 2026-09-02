@@ -51,87 +51,87 @@ import static org.junit.Assert.assertTrue;
  */
 public class ProjectMetaDataParserTest {
 
-    @Rule
-    public TemporaryFolder tmp = new TemporaryFolder();
+	@Rule
+	public TemporaryFolder tmp = new TemporaryFolder();
 
-    private File metadataFile(String xml) throws IOException {
-        File file = tmp.newFile("dlb-project.xml");
-        Files.writeString(file.toPath(), xml);
-        return file;
-    }
+	private File metadataFile(String xml) throws IOException {
+		File file = tmp.newFile("dlb-project.xml");
+		Files.writeString(file.toPath(), xml);
+		return file;
+	}
 
-    @Test
-    public void parsesValidMetadata() throws Exception {
-        ProjectMetaData meta = ProjectMetaDataParser.parse(metadataFile("""
-            <dlb-project name="Demo" version="3">
-                <description>A demo project.</description>
-                <language-map>
-                    <source-language code="en" name="English"/>
-                    <translation-language code="nl-NL" name="Nederlands"/>
-                    <translation-language code="pt-PT" name="Portugues"/>
-                </language-map>
-            </dlb-project>
-            """));
+	@Test
+	public void parsesValidMetadata() throws Exception {
+		ProjectMetaData meta = ProjectMetaDataParser.parse(metadataFile("""
+			<dlb-project name="Demo" version="3">
+				<description>A demo project.</description>
+				<language-map>
+					<source-language code="en" name="English"/>
+					<translation-language code="nl-NL" name="Nederlands"/>
+					<translation-language code="pt-PT" name="Portugues"/>
+				</language-map>
+			</dlb-project>
+			"""));
 
-        assertEquals("Demo", meta.getName());
-        assertEquals("3", meta.getVersion());
-        LanguageMap languages = meta.getLanguageMap();
-        assertEquals("en", languages.getSourceLanguage().getCode());
-        assertEquals(2, languages.getTranslationLanguages().size());
-    }
+		assertEquals("Demo", meta.getName());
+		assertEquals("3", meta.getVersion());
+		LanguageMap languages = meta.getLanguageMap();
+		assertEquals("en", languages.getSourceLanguage().getCode());
+		assertEquals(2, languages.getTranslationLanguages().size());
+	}
 
-    @Test
-    public void rejectsWrongRootElement() throws Exception {
-        File file = metadataFile("<not-a-project name=\"Demo\"></not-a-project>");
-        assertThrows(ParseException.class, () -> ProjectMetaDataParser.parse(file));
-    }
+	@Test
+	public void rejectsWrongRootElement() throws Exception {
+		File file = metadataFile("<not-a-project name=\"Demo\"></not-a-project>");
+		assertThrows(ParseException.class, () -> ProjectMetaDataParser.parse(file));
+	}
 
-    @Test
-    public void rejectsMissingProjectName() throws Exception {
-        File file = metadataFile("<dlb-project version=\"1\"></dlb-project>");
-        assertThrows(ParseException.class, () -> ProjectMetaDataParser.parse(file));
-    }
+	@Test
+	public void rejectsMissingProjectName() throws Exception {
+		File file = metadataFile("<dlb-project version=\"1\"></dlb-project>");
+		assertThrows(ParseException.class, () -> ProjectMetaDataParser.parse(file));
+	}
 
-    @Test
-    public void rejectsDuplicateTranslationLanguageCode() throws Exception {
-        File file = metadataFile("""
-            <dlb-project name="Demo">
-                <language-map>
-                    <source-language code="en" name="English"/>
-                    <translation-language code="nl-NL" name="Nederlands"/>
-                    <translation-language code="nl-NL" name="Nederlands (again)"/>
-                </language-map>
-            </dlb-project>
-            """);
-        ParseException ex = assertThrows(ParseException.class,
-                () -> ProjectMetaDataParser.parse(file));
-        assertTrue(ex.getMessage().toLowerCase().contains("duplicate"));
-    }
+	@Test
+	public void rejectsDuplicateTranslationLanguageCode() throws Exception {
+		File file = metadataFile("""
+			<dlb-project name="Demo">
+				<language-map>
+					<source-language code="en" name="English"/>
+					<translation-language code="nl-NL" name="Nederlands"/>
+					<translation-language code="nl-NL" name="Nederlands (again)"/>
+				</language-map>
+			</dlb-project>
+			""");
+		ParseException ex = assertThrows(ParseException.class,
+				() -> ProjectMetaDataParser.parse(file));
+		assertTrue(ex.getMessage().toLowerCase().contains("duplicate"));
+	}
 
-    @Test
-    public void rejectsTranslationLanguageSharingSourceLanguageCodeCaseInsensitively()
-            throws Exception {
-        File file = metadataFile("""
-            <dlb-project name="Demo">
-                <language-map>
-                    <source-language code="en" name="English"/>
-                    <translation-language code="EN" name="English (again)"/>
-                </language-map>
-            </dlb-project>
-            """);
-        assertThrows(ParseException.class, () -> ProjectMetaDataParser.parse(file));
-    }
+	@Test
+	public void rejectsTranslationLanguageSharingSourceLanguageCodeCaseInsensitively()
+			throws Exception {
+		File file = metadataFile("""
+			<dlb-project name="Demo">
+				<language-map>
+					<source-language code="en" name="English"/>
+					<translation-language code="EN" name="English (again)"/>
+				</language-map>
+			</dlb-project>
+			""");
+		assertThrows(ParseException.class, () -> ProjectMetaDataParser.parse(file));
+	}
 
-    @Test
-    public void rejectsLanguageWithoutCode() throws Exception {
-        File file = metadataFile("""
-            <dlb-project name="Demo">
-                <language-map>
-                    <source-language code="en" name="English"/>
-                    <translation-language name="Nameless"/>
-                </language-map>
-            </dlb-project>
-            """);
-        assertThrows(ParseException.class, () -> ProjectMetaDataParser.parse(file));
-    }
+	@Test
+	public void rejectsLanguageWithoutCode() throws Exception {
+		File file = metadataFile("""
+			<dlb-project name="Demo">
+				<language-map>
+					<source-language code="en" name="English"/>
+					<translation-language name="Nameless"/>
+				</language-map>
+			</dlb-project>
+			""");
+		assertThrows(ParseException.class, () -> ProjectMetaDataParser.parse(file));
+	}
 }

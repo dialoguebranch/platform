@@ -50,173 +50,173 @@ import static org.junit.Assert.*;
  */
 public class JacksonSerializationTest {
 
-    @Rule
-    public TemporaryFolder tmp = new TemporaryFolder();
+	@Rule
+	public TemporaryFolder tmp = new TemporaryFolder();
 
-    private final ObjectMapper mapper = new ObjectMapper();
+	private final ObjectMapper mapper = new ObjectMapper();
 
-    // --------------------------------------------------------- //
-    // -------------------- TranslationFile -------------------- //
-    // --------------------------------------------------------- //
+	// --------------------------------------------------------- //
+	// -------------------- TranslationFile -------------------- //
+	// --------------------------------------------------------- //
 
-    /**
-     * Verifies that a {@link TranslationFile} can be written to disk and read back, with all
-     * speaker/term/translation entries preserved.
-     */
-    @Test
-    public void testTranslationFileRoundTrip() throws Exception {
-        TranslationFile original = new TranslationFile("basic");
-        original.addTerm("Martin McOwl", "Hello!", "Hallo!");
-        original.addTerm("Martin McOwl", "Goodbye.", "Tot ziens.");
-        original.addTerm("_user", "Yes.", "Ja.");
+	/**
+	 * Verifies that a {@link TranslationFile} can be written to disk and read back, with all
+	 * speaker/term/translation entries preserved.
+	 */
+	@Test
+	public void testTranslationFileRoundTrip() throws Exception {
+		TranslationFile original = new TranslationFile("basic");
+		original.addTerm("Martin McOwl", "Hello!", "Hallo!");
+		original.addTerm("Martin McOwl", "Goodbye.", "Tot ziens.");
+		original.addTerm("_user", "Yes.", "Ja.");
 
-        File dir = tmp.newFolder("translations");
-        original.writeToDirectory(dir);
+		File dir = tmp.newFolder("translations");
+		original.writeToDirectory(dir);
 
-        File written = new File(dir, "basic.json");
-        assertTrue("Translation JSON file was not created", written.exists());
+		File written = new File(dir, "basic.json");
+		assertTrue("Translation JSON file was not created", written.exists());
 
-        TranslationFile loaded = new TranslationFile("basic");
-        loaded.readFromFile(written);
+		TranslationFile loaded = new TranslationFile("basic");
+		loaded.readFromFile(written);
 
-        assertEquals("Martin McOwl entry count",
-                2, loaded.getContentMap().get("Martin McOwl").size());
-        assertEquals("Hallo!", loaded.getContentMap().get("Martin McOwl").get("Hello!"));
-        assertEquals("Tot ziens.", loaded.getContentMap().get("Martin McOwl").get("Goodbye."));
-        assertEquals("Ja.", loaded.getContentMap().get("_user").get("Yes."));
-    }
+		assertEquals("Martin McOwl entry count",
+				2, loaded.getContentMap().get("Martin McOwl").size());
+		assertEquals("Hallo!", loaded.getContentMap().get("Martin McOwl").get("Hello!"));
+		assertEquals("Tot ziens.", loaded.getContentMap().get("Martin McOwl").get("Goodbye."));
+		assertEquals("Ja.", loaded.getContentMap().get("_user").get("Yes."));
+	}
 
-    /**
-     * Verifies that a {@link TranslationFile} written via {@code writeToFile} can be read back
-     * with all content intact.
-     */
-    @Test
-    public void testTranslationFileWriteToFileRoundTrip() throws Exception {
-        TranslationFile original = new TranslationFile("test");
-        original.addTerm("Speaker", "term1", "vertaling1");
+	/**
+	 * Verifies that a {@link TranslationFile} written via {@code writeToFile} can be read back
+	 * with all content intact.
+	 */
+	@Test
+	public void testTranslationFileWriteToFileRoundTrip() throws Exception {
+		TranslationFile original = new TranslationFile("test");
+		original.addTerm("Speaker", "term1", "vertaling1");
 
-        File file = tmp.newFile("test.json");
-        original.writeToFile(file);
+		File file = tmp.newFile("test.json");
+		original.writeToFile(file);
 
-        TranslationFile loaded = new TranslationFile("test");
-        loaded.readFromFile(file);
+		TranslationFile loaded = new TranslationFile("test");
+		loaded.readFromFile(file);
 
-        assertEquals("vertaling1", loaded.getContentMap().get("Speaker").get("term1"));
-    }
+		assertEquals("vertaling1", loaded.getContentMap().get("Speaker").get("term1"));
+	}
 
-    // ----------------------------------------------------------- //
-    // -------------------- DialogueStatement -------------------- //
-    // ----------------------------------------------------------- //
+	// ----------------------------------------------------------- //
+	// -------------------- DialogueStatement -------------------- //
+	// ----------------------------------------------------------- //
 
-    /**
-     * Verifies that a {@link DialogueStatement} containing a {@link DialogueStatement.TextSegment}
-     * survives a full JSON serialization/deserialization round-trip.
-     */
-    @Test
-    public void testDialogueStatementTextSegmentRoundTrip() throws Exception {
-        DialogueStatement.TextSegment text = new DialogueStatement.TextSegment();
-        text.setText("Hello, world!");
+	/**
+	 * Verifies that a {@link DialogueStatement} containing a {@link DialogueStatement.TextSegment}
+	 * survives a full JSON serialization/deserialization round-trip.
+	 */
+	@Test
+	public void testDialogueStatementTextSegmentRoundTrip() throws Exception {
+		DialogueStatement.TextSegment text = new DialogueStatement.TextSegment();
+		text.setText("Hello, world!");
 
-        String json = mapper.writeValueAsString(text);
-        DialogueStatement.TextSegment restored =
-                mapper.readValue(json, DialogueStatement.TextSegment.class);
+		String json = mapper.writeValueAsString(text);
+		DialogueStatement.TextSegment restored =
+				mapper.readValue(json, DialogueStatement.TextSegment.class);
 
-        assertEquals("Hello, world!", restored.getText());
-        assertEquals(DialogueStatement.SegmentType.TEXT, restored.getSegmentType());
-    }
+		assertEquals("Hello, world!", restored.getText());
+		assertEquals(DialogueStatement.SegmentType.TEXT, restored.getSegmentType());
+	}
 
-    /**
-     * Verifies that a {@link DialogueStatement.InputSegment} serializes and deserializes correctly,
-     * including the custom {@link DialogueStatement.InputSegmentSerializer} and
-     * {@link DialogueStatement.InputSegmentDeserializer}.
-     */
-    @Test
-    public void testDialogueStatementInputSegmentRoundTrip() throws Exception {
-        DialogueStatement.InputSegment input = new DialogueStatement.InputSegment();
-        input.setInputType("text");
-        input.setDescription("Enter your name");
+	/**
+	 * Verifies that a {@link DialogueStatement.InputSegment} serializes and deserializes correctly,
+	 * including the custom {@link DialogueStatement.InputSegmentSerializer} and
+	 * {@link DialogueStatement.InputSegmentDeserializer}.
+	 */
+	@Test
+	public void testDialogueStatementInputSegmentRoundTrip() throws Exception {
+		DialogueStatement.InputSegment input = new DialogueStatement.InputSegment();
+		input.setInputType("text");
+		input.setDescription("Enter your name");
 
-        String json = mapper.writeValueAsString(input);
+		String json = mapper.writeValueAsString(input);
 
-        assertTrue("Serialized JSON should contain inputType", json.contains("inputType"));
-        assertTrue("Serialized JSON should contain segmentType", json.contains("segmentType"));
+		assertTrue("Serialized JSON should contain inputType", json.contains("inputType"));
+		assertTrue("Serialized JSON should contain segmentType", json.contains("segmentType"));
 
-        DialogueStatement.InputSegment restored =
-                mapper.readValue(json, DialogueStatement.InputSegment.class);
+		DialogueStatement.InputSegment restored =
+				mapper.readValue(json, DialogueStatement.InputSegment.class);
 
-        assertEquals("text", restored.getInputType());
-        assertEquals("Enter your name", restored.getDescription());
-        assertEquals(DialogueStatement.SegmentType.INPUT, restored.getSegmentType());
-    }
+		assertEquals("text", restored.getInputType());
+		assertEquals("Enter your name", restored.getDescription());
+		assertEquals(DialogueStatement.SegmentType.INPUT, restored.getSegmentType());
+	}
 
-    /**
-     * Verifies that a {@link DialogueStatement} with a list of mixed segments (text + input)
-     * round-trips correctly through JSON, exercising the polymorphic
-     * {@link DialogueStatement.SegmentDeserializer}.
-     */
-    @Test
-    public void testDialogueStatementWithMixedSegmentsRoundTrip() throws Exception {
-        DialogueStatement statement = new DialogueStatement();
+	/**
+	 * Verifies that a {@link DialogueStatement} with a list of mixed segments (text + input)
+	 * round-trips correctly through JSON, exercising the polymorphic
+	 * {@link DialogueStatement.SegmentDeserializer}.
+	 */
+	@Test
+	public void testDialogueStatementWithMixedSegmentsRoundTrip() throws Exception {
+		DialogueStatement statement = new DialogueStatement();
 
-        DialogueStatement.TextSegment text = new DialogueStatement.TextSegment();
-        text.setText("What is your name?");
-        statement.getSegments().add(text);
+		DialogueStatement.TextSegment text = new DialogueStatement.TextSegment();
+		text.setText("What is your name?");
+		statement.getSegments().add(text);
 
-        DialogueStatement.InputSegment input = new DialogueStatement.InputSegment();
-        input.setInputType("text");
-        input.setDescription("Your name");
-        statement.getSegments().add(input);
+		DialogueStatement.InputSegment input = new DialogueStatement.InputSegment();
+		input.setInputType("text");
+		input.setDescription("Your name");
+		statement.getSegments().add(input);
 
-        String json = mapper.writeValueAsString(statement);
-        DialogueStatement restored = mapper.readValue(json, DialogueStatement.class);
+		String json = mapper.writeValueAsString(statement);
+		DialogueStatement restored = mapper.readValue(json, DialogueStatement.class);
 
-        List<DialogueStatement.Segment> segments = restored.getSegments();
-        assertEquals("Expected 2 segments", 2, segments.size());
-        assertSame(DialogueStatement.SegmentType.TEXT, segments.get(0).getSegmentType());
-        assertSame(DialogueStatement.SegmentType.INPUT, segments.get(1).getSegmentType());
-        assertEquals("What is your name?",
-                ((DialogueStatement.TextSegment) segments.get(0)).getText());
-        assertEquals("text",
-                ((DialogueStatement.InputSegment) segments.get(1)).getInputType());
-    }
+		List<DialogueStatement.Segment> segments = restored.getSegments();
+		assertEquals("Expected 2 segments", 2, segments.size());
+		assertSame(DialogueStatement.SegmentType.TEXT, segments.get(0).getSegmentType());
+		assertSame(DialogueStatement.SegmentType.INPUT, segments.get(1).getSegmentType());
+		assertEquals("What is your name?",
+				((DialogueStatement.TextSegment) segments.get(0)).getText());
+		assertEquals("text",
+				((DialogueStatement.InputSegment) segments.get(1)).getInputType());
+	}
 
-    // -------------------------------------------------- //
-    // -------------------- Variable -------------------- //
-    // -------------------------------------------------- //
+	// -------------------------------------------------- //
+	// -------------------- Variable -------------------- //
+	// -------------------------------------------------- //
 
-    /**
-     * Verifies that a {@link Variable} serializes to JSON and deserializes back correctly,
-     * exercising the {@code @JsonProperty}-annotated constructor.
-     */
-    @Test
-    public void testVariableRoundTrip() throws Exception {
-        Variable original = new Variable("userName", "Alice", ZonedDateTime.now(), VariableUpdatedSource.UNKNOWN);
+	/**
+	 * Verifies that a {@link Variable} serializes to JSON and deserializes back correctly,
+	 * exercising the {@code @JsonProperty}-annotated constructor.
+	 */
+	@Test
+	public void testVariableRoundTrip() throws Exception {
+		Variable original = new Variable("userName", "Alice", ZonedDateTime.now(), VariableUpdatedSource.UNKNOWN);
 
-        String json = mapper.writeValueAsString(original);
+		String json = mapper.writeValueAsString(original);
 
-        assertTrue("Serialized JSON should contain 'name'", json.contains("\"name\""));
-        assertTrue("Serialized JSON should contain 'value'", json.contains("\"value\""));
-        assertTrue("Serialized JSON should contain 'updatedTime'",
-                json.contains("\"updatedTime\""));
+		assertTrue("Serialized JSON should contain 'name'", json.contains("\"name\""));
+		assertTrue("Serialized JSON should contain 'value'", json.contains("\"value\""));
+		assertTrue("Serialized JSON should contain 'updatedTime'",
+				json.contains("\"updatedTime\""));
 
-        Variable restored = mapper.readValue(json, Variable.class);
+		Variable restored = mapper.readValue(json, Variable.class);
 
-        assertEquals("userName", restored.getName());
-        assertEquals("Alice", restored.getValue());
-        assertNotNull(restored.getUpdatedTime());
-    }
+		assertEquals("userName", restored.getName());
+		assertEquals("Alice", restored.getValue());
+		assertNotNull(restored.getUpdatedTime());
+	}
 
-    /**
-     * Verifies that a {@link Variable} holding a numeric value deserializes correctly — Jackson
-     * may deserialize numbers as {@code Integer} or {@code Long} depending on the version.
-     */
-    @Test
-    public void testVariableWithNumericValue() throws Exception {
-        Variable original = new Variable("score", 42, ZonedDateTime.now(), VariableUpdatedSource.UNKNOWN);
-        String json = mapper.writeValueAsString(original);
-        Variable restored = mapper.readValue(json, Variable.class);
+	/**
+	 * Verifies that a {@link Variable} holding a numeric value deserializes correctly — Jackson
+	 * may deserialize numbers as {@code Integer} or {@code Long} depending on the version.
+	 */
+	@Test
+	public void testVariableWithNumericValue() throws Exception {
+		Variable original = new Variable("score", 42, ZonedDateTime.now(), VariableUpdatedSource.UNKNOWN);
+		String json = mapper.writeValueAsString(original);
+		Variable restored = mapper.readValue(json, Variable.class);
 
-        assertEquals("score", restored.getName());
-        assertEquals(42, ((Number) restored.getValue()).intValue());
-    }
+		assertEquals("score", restored.getName());
+		assertEquals(42, ((Number) restored.getValue()).intValue());
+	}
 }

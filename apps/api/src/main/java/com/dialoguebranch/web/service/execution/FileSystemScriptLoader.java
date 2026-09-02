@@ -68,111 +68,111 @@ import java.util.stream.Stream;
  */
 public class FileSystemScriptLoader implements ScriptLoader {
 
-    private final File projectRoot;
+	private final File projectRoot;
 
-    // -------------------------------------------------------- //
-    // -------------------- Constructor(s) -------------------- //
-    // -------------------------------------------------------- //
+	// -------------------------------------------------------- //
+	// -------------------- Constructor(s) -------------------- //
+	// -------------------------------------------------------- //
 
-    /**
-     * Creates a {@link FileSystemScriptLoader} for the Dialogue Branch project rooted at the given
-     * directory.
-     *
-     * @param projectRoot the project's root directory (the one directly containing {@code
-     *                     dlb-project.xml} and the per-language sub-directories).
-     */
-    public FileSystemScriptLoader(File projectRoot) {
-        this.projectRoot = projectRoot;
-    }
+	/**
+	 * Creates a {@link FileSystemScriptLoader} for the Dialogue Branch project rooted at the given
+	 * directory.
+	 *
+	 * @param projectRoot the project's root directory (the one directly containing {@code
+	 *                     dlb-project.xml} and the per-language sub-directories).
+	 */
+	public FileSystemScriptLoader(File projectRoot) {
+		this.projectRoot = projectRoot;
+	}
 
-    // ------------------------------------------------------ //
-    // -------------------- ScriptLoader API ---------------- //
-    // ------------------------------------------------------ //
+	// ------------------------------------------------------ //
+	// -------------------- ScriptLoader API ---------------- //
+	// ------------------------------------------------------ //
 
-    /**
-     * Walks every language sub-directory of the project root and returns every {@code *.dlb} and
-     * {@code *.json} file found as a {@link ResourcePointer}.
-     *
-     * @return the list of discovered dialogue and translation file descriptors.
-     * @throws IOException if the directory tree cannot be read.
-     */
-    @Override
-    public List<ResourcePointer> listDialogueBranchFiles() throws IOException {
-        List<ResourcePointer> result = new ArrayList<>();
+	/**
+	 * Walks every language sub-directory of the project root and returns every {@code *.dlb} and
+	 * {@code *.json} file found as a {@link ResourcePointer}.
+	 *
+	 * @return the list of discovered dialogue and translation file descriptors.
+	 * @throws IOException if the directory tree cannot be read.
+	 */
+	@Override
+	public List<ResourcePointer> listDialogueBranchFiles() throws IOException {
+		List<ResourcePointer> result = new ArrayList<>();
 
-        File[] languageDirs = projectRoot.listFiles(File::isDirectory);
-        if (languageDirs == null) return result;
+		File[] languageDirs = projectRoot.listFiles(File::isDirectory);
+		if (languageDirs == null) return result;
 
-        for (File languageDir : languageDirs) {
-            String language = languageDir.getName();
-            try (Stream<Path> paths = Files.walk(languageDir.toPath())) {
-                for (Path path : (Iterable<Path>) paths.filter(Files::isRegularFile)::iterator) {
-                    ResourcePointer pointer = toResourcePointer(languageDir, path, language);
-                    if (pointer != null) result.add(pointer);
-                }
-            } catch (UncheckedIOException e) {
-                throw e.getCause();
-            }
-        }
+		for (File languageDir : languageDirs) {
+			String language = languageDir.getName();
+			try (Stream<Path> paths = Files.walk(languageDir.toPath())) {
+				for (Path path : (Iterable<Path>) paths.filter(Files::isRegularFile)::iterator) {
+					ResourcePointer pointer = toResourcePointer(languageDir, path, language);
+					if (pointer != null) result.add(pointer);
+				}
+			} catch (UncheckedIOException e) {
+				throw e.getCause();
+			}
+		}
 
-        return result;
-    }
+		return result;
+	}
 
-    /**
-     * Opens the file identified by the given {@link ResourcePointer} as a {@link Reader}.
-     *
-     * @param fileDescriptor the descriptor of the file to open.
-     * @return a {@link Reader} over the file contents.
-     * @throws IOException if the file cannot be found or opened.
-     */
-    @Override
-    public Reader openFile(ResourcePointer fileDescriptor) throws IOException {
-        String extension = fileDescriptor.getResourceType() == ResourceType.SCRIPT
-                ? DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION
-                : DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION;
-        File file = new File(new File(projectRoot, fileDescriptor.getLanguage()),
-                fileDescriptor.getDialogueName() + extension);
-        if (!file.isFile()) {
-            throw new IOException("File not found: " + file);
-        }
-        return new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8);
-    }
+	/**
+	 * Opens the file identified by the given {@link ResourcePointer} as a {@link Reader}.
+	 *
+	 * @param fileDescriptor the descriptor of the file to open.
+	 * @return a {@link Reader} over the file contents.
+	 * @throws IOException if the file cannot be found or opened.
+	 */
+	@Override
+	public Reader openFile(ResourcePointer fileDescriptor) throws IOException {
+		String extension = fileDescriptor.getResourceType() == ResourceType.SCRIPT
+				? DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION
+				: DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION;
+		File file = new File(new File(projectRoot, fileDescriptor.getLanguage()),
+				fileDescriptor.getDialogueName() + extension);
+		if (!file.isFile()) {
+			throw new IOException("File not found: " + file);
+		}
+		return new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8);
+	}
 
-    // ---------------------------------------------------------------- //
-    // -------------------- Private Helper Methods -------------------- //
-    // ---------------------------------------------------------------- //
+	// ---------------------------------------------------------------- //
+	// -------------------- Private Helper Methods -------------------- //
+	// ---------------------------------------------------------------- //
 
-    /**
-     * Derives a {@link ResourcePointer} from a file found beneath a language directory, using its
-     * path relative to that language directory (with {@code File.separatorChar} normalised to
-     * {@code /}) as the dialogue name, minus its extension.
-     *
-     * @param languageDir the language directory {@code path} was found under.
-     * @param path        the file to convert.
-     * @param language    the language code (the language directory's own name).
-     * @return the {@link ResourcePointer}, or {@code null} if {@code path} is not a recognised
-     * script or translation file.
-     */
-    private ResourcePointer toResourcePointer(File languageDir, Path path, String language) {
-        String fileName = path.getFileName().toString();
-        ResourceType resourceType;
-        String extension;
-        if (fileName.endsWith(DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION)) {
-            resourceType = ResourceType.SCRIPT;
-            extension = DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION;
-        } else if (fileName.endsWith(DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION)) {
-            resourceType = ResourceType.TRANSLATION;
-            extension = DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION;
-        } else {
-            return null;
-        }
+	/**
+	 * Derives a {@link ResourcePointer} from a file found beneath a language directory, using its
+	 * path relative to that language directory (with {@code File.separatorChar} normalised to
+	 * {@code /}) as the dialogue name, minus its extension.
+	 *
+	 * @param languageDir the language directory {@code path} was found under.
+	 * @param path        the file to convert.
+	 * @param language    the language code (the language directory's own name).
+	 * @return the {@link ResourcePointer}, or {@code null} if {@code path} is not a recognised
+	 * script or translation file.
+	 */
+	private ResourcePointer toResourcePointer(File languageDir, Path path, String language) {
+		String fileName = path.getFileName().toString();
+		ResourceType resourceType;
+		String extension;
+		if (fileName.endsWith(DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION)) {
+			resourceType = ResourceType.SCRIPT;
+			extension = DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION;
+		} else if (fileName.endsWith(DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION)) {
+			resourceType = ResourceType.TRANSLATION;
+			extension = DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION;
+		} else {
+			return null;
+		}
 
-        String relative = languageDir.toPath().relativize(path).toString()
-                .replace(File.separatorChar, '/');
-        String dialogueName = relative.substring(0, relative.length() - extension.length());
-        if (dialogueName.isEmpty()) return null;
+		String relative = languageDir.toPath().relativize(path).toString()
+				.replace(File.separatorChar, '/');
+		String dialogueName = relative.substring(0, relative.length() - extension.length());
+		if (dialogueName.isEmpty()) return null;
 
-        return new ResourcePointer(language, dialogueName, resourceType);
-    }
+		return new ResourcePointer(language, dialogueName, resourceType);
+	}
 
 }

@@ -95,15 +95,15 @@ public class CommandParser {
 			throw new LineNumberParseException("Unexpected command: " + name,
 					token.getLineNumber(), token.getColNumber());
 		}
-        return switch (name) {
-            case "action" -> ActionCommand.parse(startToken, tokens, nodeState);
-            case "if" -> IfCommand.parse(startToken, tokens, nodeState);
-            case "input" -> InputCommand.parse(startToken, tokens, nodeState);
-            case "random" -> RandomCommand.parse(startToken, tokens, nodeState);
-            case "set" -> SetCommand.parse(startToken, tokens, nodeState);
-            default -> throw new LineNumberParseException("Unknown command: " + name,
-                    token.getLineNumber(), token.getColNumber());
-        };
+		return switch (name) {
+			case "action" -> ActionCommand.parse(startToken, tokens, nodeState);
+			case "if" -> IfCommand.parse(startToken, tokens, nodeState);
+			case "input" -> InputCommand.parse(startToken, tokens, nodeState);
+			case "random" -> RandomCommand.parse(startToken, tokens, nodeState);
+			case "set" -> SetCommand.parse(startToken, tokens, nodeState);
+			default -> throw new LineNumberParseException("Unknown command: " + name,
+					token.getLineNumber(), token.getColNumber());
+		};
 	}
 
 	/**
@@ -134,7 +134,7 @@ public class CommandParser {
 	 * @throws LineNumberParseException if the command name can't be read
 	 */
 	private String getCommandName(BodyToken startToken,
-                                  BodyToken nameToken) throws LineNumberParseException {
+								  BodyToken nameToken) throws LineNumberParseException {
 		if (nameToken == null) {
 			throw new LineNumberParseException("Command not terminated",
 					startToken.getLineNumber(), startToken.getColNumber());

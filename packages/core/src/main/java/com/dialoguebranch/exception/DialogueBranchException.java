@@ -38,29 +38,29 @@ package com.dialoguebranch.exception;
  */
 public abstract class DialogueBranchException extends Exception {
 
-    // -------------------------------------------------------- //
-    // -------------------- Constructor(s) -------------------- //
-    // -------------------------------------------------------- //
+	// -------------------------------------------------------- //
+	// -------------------- Constructor(s) -------------------- //
+	// -------------------------------------------------------- //
 
-    /**
-     * Creates an instance of a {@link DialogueBranchException} with a given {@code message},
-     * explaining the cause of the exception.
-     *
-     * @param message the message explaining the cause of the exception.
-     */
-    public DialogueBranchException(String message) {
-        super(message);
-    }
+	/**
+	 * Creates an instance of a {@link DialogueBranchException} with a given {@code message},
+	 * explaining the cause of the exception.
+	 *
+	 * @param message the message explaining the cause of the exception.
+	 */
+	public DialogueBranchException(String message) {
+		super(message);
+	}
 
-    /**
-     * Creates an instance of a {@link DialogueBranchException} with a given {@code message},
-     * explaining the cause of the exception, and the nested {@code cause}.
-     *
-     * @param message the message explaining the cause of the exception.
-     * @param cause the actual nested {@link Throwable} cause of the exception.
-     */
-    public DialogueBranchException(String message, Throwable cause) {
-        super(message,cause);
-    }
+	/**
+	 * Creates an instance of a {@link DialogueBranchException} with a given {@code message},
+	 * explaining the cause of the exception, and the nested {@code cause}.
+	 *
+	 * @param message the message explaining the cause of the exception.
+	 * @param cause the actual nested {@link Throwable} cause of the exception.
+	 */
+	public DialogueBranchException(String message, Throwable cause) {
+		super(message,cause);
+	}
 
 }

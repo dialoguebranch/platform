@@ -21,26 +21,26 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 class ApiIntegrationTest {
 
-    @Autowired
-    MockMvc mockMvc;
+	@Autowired
+	MockMvc mockMvc;
 
-    @Test
-    void healthEndpointReturnsUp() throws Exception {
-        mockMvc.perform(get("/actuator/health"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("UP"));
-    }
+	@Test
+	void healthEndpointReturnsUp() throws Exception {
+		mockMvc.perform(get("/actuator/health"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("UP"));
+	}
 
-    @Test
-    void infoEndpointIsAccessibleWithoutToken() throws Exception {
-        mockMvc.perform(get("/v1/info/all"))
-                .andExpect(status().isOk());
-    }
+	@Test
+	void infoEndpointIsAccessibleWithoutToken() throws Exception {
+		mockMvc.perform(get("/v1/info/all"))
+				.andExpect(status().isOk());
+	}
 
-    @Test
-    void protectedEndpointWithoutTokenReturnsUnauthorized() throws Exception {
-        mockMvc.perform(get("/v1/variables/get").param("timeZone", "Europe/Amsterdam"))
-                .andExpect(status().isUnauthorized());
-    }
+	@Test
+	void protectedEndpointWithoutTokenReturnsUnauthorized() throws Exception {
+		mockMvc.perform(get("/v1/variables/get").param("timeZone", "Europe/Amsterdam"))
+				.andExpect(status().isUnauthorized());
+	}
 
 }

@@ -153,7 +153,7 @@ public class DialogueController {
 		HttpServletRequest request,
 		HttpServletResponse response,
 
-        @PathVariable @Parameter(hidden = true, description = "API Version to use, e.g. '1'")
+		@PathVariable @Parameter(hidden = true, description = "API Version to use, e.g. '1'")
 		String version,
 
 		@Parameter(description = "Name of the project that contains the dialogue to start")
@@ -246,9 +246,9 @@ public class DialogueController {
 
 		// If no sessionId was provided, generate a unique one now
 		if(sessionId == null || sessionId.isEmpty()) {
-            do {
-                sessionId = UUID.randomUUID().toString().toLowerCase();
-            } while (userService.existsSessionId(sessionId));
+			do {
+				sessionId = UUID.randomUUID().toString().toLowerCase();
+			} while (userService.existsSessionId(sessionId));
 
 		// If a sessionId was provided, check its uniqueness (for this user), or generate error
 		} else {
@@ -310,7 +310,7 @@ public class DialogueController {
 		HttpServletRequest request,
 		HttpServletResponse response,
 
-        @PathVariable @Parameter(hidden = true, description = "API Version to use, e.g. '1'")
+		@PathVariable @Parameter(hidden = true, description = "API Version to use, e.g. '1'")
 		String version,
 
 		@Parameter(description = "The identifier of the (in-progress) dialogue to progress")
@@ -463,7 +463,7 @@ public class DialogueController {
 		HttpServletRequest request,
 		HttpServletResponse response,
 
-        @PathVariable @Parameter(hidden = true, description = "API Version to use, e.g. '1'")
+		@PathVariable @Parameter(hidden = true, description = "API Version to use, e.g. '1'")
 		String version,
 
 		@Parameter(description = "Name of the project that contains the dialogue to continue")
@@ -612,7 +612,7 @@ public class DialogueController {
 		HttpServletRequest request,
 		HttpServletResponse response,
 
-        @PathVariable @Parameter(hidden = true, description = "API Version to use, e.g. '1'")
+		@PathVariable @Parameter(hidden = true, description = "API Version to use, e.g. '1'")
 		String version,
 
 		@Parameter(description = "The identifier of the (in-progress) dialogue to cancel")
@@ -657,7 +657,7 @@ public class DialogueController {
 	 * @throws BadRequestException if attempting to cancel a dialogue for a user that isn't active
 	 */
 	private Object doCancelDialogue(String userId, String loggedDialogueId)
-            throws DatabaseException, IOException, BadRequestException {
+			throws DatabaseException, IOException, BadRequestException {
 
 		UserService userService
 				= application.getApplicationManager().getActiveUserService(userId);
@@ -719,7 +719,7 @@ public class DialogueController {
 		HttpServletRequest request,
 		HttpServletResponse response,
 
-        @PathVariable @Parameter(hidden = true, description = "API Version to use, e.g. '1'")
+		@PathVariable @Parameter(hidden = true, description = "API Version to use, e.g. '1'")
 		String version,
 
 		@Parameter(description = "The identifier of the (in-progress) dialogue to take a step " +
@@ -848,7 +848,7 @@ public class DialogueController {
 		HttpServletRequest request,
 		HttpServletResponse response,
 
-        @PathVariable @Parameter(hidden = true, description = "API Version to use, e.g. '1'")
+		@PathVariable @Parameter(hidden = true, description = "API Version to use, e.g. '1'")
 		String version,
 
 		@Parameter(description = "The name of the project for which to check for an ongoing dialogue")
@@ -905,7 +905,7 @@ public class DialogueController {
 	private NullableResponse<OngoingDialoguePayload> doGetOngoingDialogue(String userId,
 																		  String projectSlug,
 																		  String timeZone)
-            throws DatabaseException, IOException, BadRequestException {
+			throws DatabaseException, IOException, BadRequestException {
 
 		// Get or create a UserService for the user in the given time zone
 		ZoneId timeZoneId = ControllerFunctions.parseTimeZone(timeZone);
@@ -970,7 +970,7 @@ public class DialogueController {
 		HttpServletRequest request,
 		HttpServletResponse response,
 
-        @PathVariable @Parameter(hidden = true, description = "API Version to use, e.g. '1'")
+		@PathVariable @Parameter(hidden = true, description = "API Version to use, e.g. '1'")
 		String version,
 
 		@Parameter(description = "Name of the project to list dialogues for")

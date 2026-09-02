@@ -51,36 +51,36 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @ActiveProfiles("test")
 class ProjectVariableNamesTest {
 
-    @Autowired
-    private Application application;
+	@Autowired
+	private Application application;
 
-    private ProjectVariableInfo find(List<ProjectVariableInfo> vars, String name) {
-        return vars.stream().filter(v -> v.name().equals(name)).findFirst().orElse(null);
-    }
+	private ProjectVariableInfo find(List<ProjectVariableInfo> vars, String name) {
+		return vars.stream().filter(v -> v.name().equals(name)).findFirst().orElse(null);
+	}
 
-    @Test
-    void listsEveryVariableReferencedByTheProjectSortedWithReadWriteFlags() {
-        List<ProjectVariableInfo> vars = application.getApplicationManager()
-                .getProjectVariables("default-test");
+	@Test
+	void listsEveryVariableReferencedByTheProjectSortedWithReadWriteFlags() {
+		List<ProjectVariableInfo> vars = application.getApplicationManager()
+				.getProjectVariables("default-test");
 
-        assertFalse(vars.isEmpty(), "the seeded default-test project references variables");
-        assertEquals(vars.stream().map(ProjectVariableInfo::name).sorted().toList(),
-                vars.stream().map(ProjectVariableInfo::name).toList(),
-                "the list should be sorted by name");
+		assertFalse(vars.isEmpty(), "the seeded default-test project references variables");
+		assertEquals(vars.stream().map(ProjectVariableInfo::name).sorted().toList(),
+				vars.stream().map(ProjectVariableInfo::name).toList(),
+				"the list should be sorted by name");
 
-        // Names come back without the '$' sigil.
-        ProjectVariableInfo userName = find(vars, "userName");
-        assertNotNull(userName, "a read variable ('Hey $userName') should be included");
-        assertTrue(userName.read());
+		// Names come back without the '$' sigil.
+		ProjectVariableInfo userName = find(vars, "userName");
+		assertNotNull(userName, "a read variable ('Hey $userName') should be included");
+		assertTrue(userName.read());
 
-        ProjectVariableInfo written = find(vars, "variableOne");
-        assertNotNull(written, "a written variable ('<<set $variableOne ...>>') should be included");
-        assertTrue(written.written());
-    }
+		ProjectVariableInfo written = find(vars, "variableOne");
+		assertNotNull(written, "a written variable ('<<set $variableOne ...>>') should be included");
+		assertTrue(written.written());
+	}
 
-    @Test
-    void returnsEmptyListForAnUnknownProject() {
-        assertTrue(application.getApplicationManager()
-                .getProjectVariables("no-such-project").isEmpty());
-    }
+	@Test
+	void returnsEmptyListForAnUnknownProject() {
+		assertTrue(application.getApplicationManager()
+				.getProjectVariables("no-such-project").isEmpty());
+	}
 }

@@ -261,7 +261,7 @@ public class VariableStore {
 	 * @return the {@link Variable} that was removed, or {@code null}.
 	 */
 	public Variable removeByName(String name, boolean notifyObservers,
-                                 ZonedDateTime eventTime) {
+								 ZonedDateTime eventTime) {
 		return removeByName(name,notifyObservers,eventTime, VariableUpdatedSource.UNKNOWN);
 	}
 
@@ -279,8 +279,8 @@ public class VariableStore {
 	 * @return the {@link Variable} that was removed, or {@code null}.
 	 */
 	public Variable removeByName(String name, boolean notifyObservers,
-                                 ZonedDateTime eventTime,
-                                 VariableUpdatedSource source) {
+								 ZonedDateTime eventTime,
+								 VariableUpdatedSource source) {
 		Variable result;
 		synchronized (variables) {
 			result = variables.remove(name);

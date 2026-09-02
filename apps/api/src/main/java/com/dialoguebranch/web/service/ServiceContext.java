@@ -41,51 +41,51 @@ import org.springframework.stereotype.Component;
 @Component
 public class ServiceContext {
 
-    private static DlbProperties dlbProperties;
+	private static DlbProperties dlbProperties;
 
-    /**
-     * Creates an instance of {@link ServiceContext} and stores the given {@link DlbProperties}
-     * in a static field so that the static accessor methods remain usable from non-Spring code.
-     *
-     * @param dlbProperties the application configuration properties.
-     */
-    @Autowired
-    public ServiceContext(DlbProperties dlbProperties) {
-        ServiceContext.dlbProperties = dlbProperties;
-    }
+	/**
+	 * Creates an instance of {@link ServiceContext} and stores the given {@link DlbProperties}
+	 * in a static field so that the static accessor methods remain usable from non-Spring code.
+	 *
+	 * @param dlbProperties the application configuration properties.
+	 */
+	@Autowired
+	public ServiceContext(DlbProperties dlbProperties) {
+		ServiceContext.dlbProperties = dlbProperties;
+	}
 
-    /**
-     * Returns the public base URL of this service instance as configured in {@link DlbProperties}.
-     *
-     * @return the base URL string.
-     */
-    public static String getBaseUrl() {
-        return dlbProperties.getBaseUrl();
-    }
+	/**
+	 * Returns the public base URL of this service instance as configured in {@link DlbProperties}.
+	 *
+	 * @return the base URL string.
+	 */
+	public static String getBaseUrl() {
+		return dlbProperties.getBaseUrl();
+	}
 
-    /**
-     * Returns the URL path component of this service's base URL.
-     *
-     * @return the base path string, e.g. {@code "/dlb-web-service"}.
-     */
-    public static String getBasePath() {
-        String url = getBaseUrl();
-        HttpURL httpUrl;
-        try {
-            httpUrl = HttpURL.parse(url);
-        } catch (ParseException ex) {
-            throw new RuntimeException("Invalid base URL: " + url + ": " + ex.getMessage(), ex);
-        }
-        return httpUrl.getPath();
-    }
+	/**
+	 * Returns the URL path component of this service's base URL.
+	 *
+	 * @return the base path string, e.g. {@code "/dlb-web-service"}.
+	 */
+	public static String getBasePath() {
+		String url = getBaseUrl();
+		HttpURL httpUrl;
+		try {
+			httpUrl = HttpURL.parse(url);
+		} catch (ParseException ex) {
+			throw new RuntimeException("Invalid base URL: " + url + ": " + ex.getMessage(), ex);
+		}
+		return httpUrl.getPath();
+	}
 
-    /**
-     * Returns the version name of the latest supported {@link ProtocolVersion}.
-     *
-     * @return the latest version name string, e.g. {@code "1"}.
-     */
-    public static String getCurrentVersion() {
-        ProtocolVersion[] versions = ProtocolVersion.values();
-        return versions[versions.length - 1].versionName();
-    }
+	/**
+	 * Returns the version name of the latest supported {@link ProtocolVersion}.
+	 *
+	 * @return the latest version name string, e.g. {@code "1"}.
+	 */
+	public static String getCurrentVersion() {
+		ProtocolVersion[] versions = ProtocolVersion.values();
+		return versions[versions.length - 1].versionName();
+	}
 }

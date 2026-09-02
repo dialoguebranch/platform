@@ -53,95 +53,95 @@ import static org.junit.Assert.*;
  */
 public class OrphanedNodeDetectionTest {
 
-    private ProjectParserResult parse(Map<String, String> scriptsByName) throws IOException {
-        return new ProjectParser(new MapScriptLoader(scriptsByName)).parse();
-    }
+	private ProjectParserResult parse(Map<String, String> scriptsByName) throws IOException {
+		return new ProjectParser(new MapScriptLoader(scriptsByName)).parse();
+	}
 
-    @Test
-    public void testUnreferencedNodeIsReportedAsOrphan() throws IOException {
-        Map<String, String> scripts = new LinkedHashMap<>();
-        scripts.put("main",
-                "title: Start\nspeaker: Narrator\n---\nHello.\n===\n" +
-                "title: Disconnected\nspeaker: Narrator\n---\nNobody links here.\n===\n");
+	@Test
+	public void testUnreferencedNodeIsReportedAsOrphan() throws IOException {
+		Map<String, String> scripts = new LinkedHashMap<>();
+		scripts.put("main",
+				"title: Start\nspeaker: Narrator\n---\nHello.\n===\n" +
+				"title: Disconnected\nspeaker: Narrator\n---\nNobody links here.\n===\n");
 
-        ProjectParserResult result = parse(scripts);
+		ProjectParserResult result = parse(scripts);
 
-        assertTrue("Did not expect any parse errors: " + result.getParseErrors(),
-                result.getParseErrors().isEmpty());
-        assertFalse("Expected a warning for the orphaned node", result.getWarnings().isEmpty());
-        String allWarnings = result.getWarnings().toString();
-        assertTrue("Expected the warning to mention the orphaned node, got: " + allWarnings,
-                allWarnings.contains("Disconnected"));
-    }
+		assertTrue("Did not expect any parse errors: " + result.getParseErrors(),
+				result.getParseErrors().isEmpty());
+		assertFalse("Expected a warning for the orphaned node", result.getWarnings().isEmpty());
+		String allWarnings = result.getWarnings().toString();
+		assertTrue("Expected the warning to mention the orphaned node, got: " + allWarnings,
+				allWarnings.contains("Disconnected"));
+	}
 
-    @Test
-    public void testStartNodeIsNeverReportedAsOrphan() throws IOException {
-        Map<String, String> scripts = new LinkedHashMap<>();
-        scripts.put("main", "title: Start\nspeaker: Narrator\n---\nHello.\n===\n");
+	@Test
+	public void testStartNodeIsNeverReportedAsOrphan() throws IOException {
+		Map<String, String> scripts = new LinkedHashMap<>();
+		scripts.put("main", "title: Start\nspeaker: Narrator\n---\nHello.\n===\n");
 
-        ProjectParserResult result = parse(scripts);
+		ProjectParserResult result = parse(scripts);
 
-        assertTrue("Did not expect any warnings: " + result.getWarnings(),
-                result.getWarnings().isEmpty());
-    }
+		assertTrue("Did not expect any warnings: " + result.getWarnings(),
+				result.getWarnings().isEmpty());
+	}
 
-    @Test
-    public void testInternallyLinkedNodeIsNotOrphaned() throws IOException {
-        Map<String, String> scripts = new LinkedHashMap<>();
-        scripts.put("main",
-                "title: Start\nspeaker: Narrator\n---\n[[Continue.|Next]]\n===\n" +
-                "title: Next\nspeaker: Narrator\n---\nReached via reply link.\n===\n");
+	@Test
+	public void testInternallyLinkedNodeIsNotOrphaned() throws IOException {
+		Map<String, String> scripts = new LinkedHashMap<>();
+		scripts.put("main",
+				"title: Start\nspeaker: Narrator\n---\n[[Continue.|Next]]\n===\n" +
+				"title: Next\nspeaker: Narrator\n---\nReached via reply link.\n===\n");
 
-        ProjectParserResult result = parse(scripts);
+		ProjectParserResult result = parse(scripts);
 
-        assertTrue("Did not expect any warnings: " + result.getWarnings(),
-                result.getWarnings().isEmpty());
-    }
+		assertTrue("Did not expect any warnings: " + result.getWarnings(),
+				result.getWarnings().isEmpty());
+	}
 
-    @Test
-    public void testExternallyLinkedNodeIsNotOrphaned() throws IOException {
-        Map<String, String> scripts = new LinkedHashMap<>();
-        scripts.put("main",
-                "title: Start\nspeaker: Narrator\n---\n[[Go elsewhere.|other.Middle]]\n===\n");
-        scripts.put("other",
-                "title: Start\nspeaker: Narrator\n---\nHello.\n===\n" +
-                "title: Middle\nspeaker: Narrator\n---\nReached only via another dialogue.\n===\n");
+	@Test
+	public void testExternallyLinkedNodeIsNotOrphaned() throws IOException {
+		Map<String, String> scripts = new LinkedHashMap<>();
+		scripts.put("main",
+				"title: Start\nspeaker: Narrator\n---\n[[Go elsewhere.|other.Middle]]\n===\n");
+		scripts.put("other",
+				"title: Start\nspeaker: Narrator\n---\nHello.\n===\n" +
+				"title: Middle\nspeaker: Narrator\n---\nReached only via another dialogue.\n===\n");
 
-        ProjectParserResult result = parse(scripts);
+		ProjectParserResult result = parse(scripts);
 
-        assertTrue("Did not expect any parse errors: " + result.getParseErrors(),
-                result.getParseErrors().isEmpty());
-        assertTrue("Did not expect any warnings: " + result.getWarnings(),
-                result.getWarnings().isEmpty());
-    }
+		assertTrue("Did not expect any parse errors: " + result.getParseErrors(),
+				result.getParseErrors().isEmpty());
+		assertTrue("Did not expect any warnings: " + result.getWarnings(),
+				result.getWarnings().isEmpty());
+	}
 
-    /**
-     * A minimal {@link ScriptLoader} serving dialogue scripts (no translations) from an in-memory
-     * map of dialogue name to {@code .dlb} script content, all in a single unnamed source
-     * language — enough to exercise {@link ProjectParser} without touching the filesystem.
-     */
-    private static class MapScriptLoader implements ScriptLoader {
+	/**
+	 * A minimal {@link ScriptLoader} serving dialogue scripts (no translations) from an in-memory
+	 * map of dialogue name to {@code .dlb} script content, all in a single unnamed source
+	 * language — enough to exercise {@link ProjectParser} without touching the filesystem.
+	 */
+	private static class MapScriptLoader implements ScriptLoader {
 
-        private final Map<String, String> scripts;
+		private final Map<String, String> scripts;
 
-        MapScriptLoader(Map<String, String> scripts) {
-            this.scripts = scripts;
-        }
+		MapScriptLoader(Map<String, String> scripts) {
+			this.scripts = scripts;
+		}
 
-        @Override
-        public List<ResourcePointer> listDialogueBranchFiles() {
-            List<ResourcePointer> pointers = new ArrayList<>();
-            for (String dialogueName : scripts.keySet())
-                pointers.add(new ResourcePointer("en", dialogueName, ResourceType.SCRIPT));
-            return pointers;
-        }
+		@Override
+		public List<ResourcePointer> listDialogueBranchFiles() {
+			List<ResourcePointer> pointers = new ArrayList<>();
+			for (String dialogueName : scripts.keySet())
+				pointers.add(new ResourcePointer("en", dialogueName, ResourceType.SCRIPT));
+			return pointers;
+		}
 
-        @Override
-        public Reader openFile(ResourcePointer fileDescription) throws IOException {
-            String content = scripts.get(fileDescription.getDialogueName());
-            if (content == null)
-                throw new IOException("Script not found: " + fileDescription.getDialogueName());
-            return new StringReader(content);
-        }
-    }
+		@Override
+		public Reader openFile(ResourcePointer fileDescription) throws IOException {
+			String content = scripts.get(fileDescription.getDialogueName());
+			if (content == null)
+				throw new IOException("Script not found: " + fileDescription.getDialogueName());
+			return new StringReader(content);
+		}
+	}
 }

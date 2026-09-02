@@ -267,7 +267,7 @@ public class IfCommand extends ExpressionCommand {
 	}
 
 	private static void checkNoAssignment(BodyToken cmdStartToken,
-                                          String name, Expression expression)
+										  String name, Expression expression)
 			throws LineNumberParseException {
 		List<Expression> list = new ArrayList<>();
 		list.add(expression);

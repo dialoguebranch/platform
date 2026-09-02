@@ -50,65 +50,65 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+	private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    /** Creates a new {@link GlobalExceptionHandler}. Instantiated by Spring. */
-    public GlobalExceptionHandler() { }
+	/** Creates a new {@link GlobalExceptionHandler}. Instantiated by Spring. */
+	public GlobalExceptionHandler() { }
 
-    /**
-     * Handles all {@link HttpException} subclasses (BadRequestException, UnauthorizedException,
-     * etc.). The HTTP status is read from the {@link ResponseStatus} annotation present on each
-     * subclass.
-     *
-     * @param ex the {@link HttpException} thrown by the controller.
-     * @return a response with the status from {@code ex}'s {@link ResponseStatus} annotation and
-     *         {@code ex}'s {@link HttpError} as the body.
-     */
-    @ExceptionHandler(HttpException.class)
-    public ResponseEntity<HttpError> handleHttpException(HttpException ex) {
-        ResponseStatus annotation = ex.getClass().getAnnotation(ResponseStatus.class);
-        HttpStatus status = annotation != null ? annotation.value() : HttpStatus.INTERNAL_SERVER_ERROR;
-        return ResponseEntity.status(status).body(ex.getError());
-    }
+	/**
+	 * Handles all {@link HttpException} subclasses (BadRequestException, UnauthorizedException,
+	 * etc.). The HTTP status is read from the {@link ResponseStatus} annotation present on each
+	 * subclass.
+	 *
+	 * @param ex the {@link HttpException} thrown by the controller.
+	 * @return a response with the status from {@code ex}'s {@link ResponseStatus} annotation and
+	 *         {@code ex}'s {@link HttpError} as the body.
+	 */
+	@ExceptionHandler(HttpException.class)
+	public ResponseEntity<HttpError> handleHttpException(HttpException ex) {
+		ResponseStatus annotation = ex.getClass().getAnnotation(ResponseStatus.class);
+		HttpStatus status = annotation != null ? annotation.value() : HttpStatus.INTERNAL_SERVER_ERROR;
+		return ResponseEntity.status(status).body(ex.getError());
+	}
 
-    /**
-     * Handles malformed JSON request bodies. Returns 400 Bad Request with the parse error message.
-     *
-     * @param ex the exception thrown while reading the request body.
-     * @return a 400 Bad Request response with the parse error message, or a generic message if the
-     *         cause isn't a JSON parse error.
-     */
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<String> handleNotReadable(HttpMessageNotReadableException ex) {
-        Throwable cause = ex.getCause();
-        if (cause instanceof JsonProcessingException) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(cause.getMessage());
-        }
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid request body");
-    }
+	/**
+	 * Handles malformed JSON request bodies. Returns 400 Bad Request with the parse error message.
+	 *
+	 * @param ex the exception thrown while reading the request body.
+	 * @return a 400 Bad Request response with the parse error message, or a generic message if the
+	 *         cause isn't a JSON parse error.
+	 */
+	@ExceptionHandler(HttpMessageNotReadableException.class)
+	public ResponseEntity<String> handleNotReadable(HttpMessageNotReadableException ex) {
+		Throwable cause = ex.getCause();
+		if (cause instanceof JsonProcessingException) {
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(cause.getMessage());
+		}
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid request body");
+	}
 
-    /**
-     * Handles requests for static resources or paths that don't exist. Returns 404 without logging.
-     *
-     * @param ex the exception thrown for the unresolved resource or path.
-     * @return an empty 404 Not Found response.
-     */
-    @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<Void> handleNoResource(NoResourceFoundException ex) {
-        return ResponseEntity.notFound().build();
-    }
+	/**
+	 * Handles requests for static resources or paths that don't exist. Returns 404 without logging.
+	 *
+	 * @param ex the exception thrown for the unresolved resource or path.
+	 * @return an empty 404 Not Found response.
+	 */
+	@ExceptionHandler(NoResourceFoundException.class)
+	public ResponseEntity<Void> handleNoResource(NoResourceFoundException ex) {
+		return ResponseEntity.notFound().build();
+	}
 
-    /**
-     * Catch-all for any unhandled exception. Logs the full stack trace and returns 500 Internal
-     * Server Error without exposing internal details to the client.
-     *
-     * @param ex the unhandled exception.
-     * @return a 500 Internal Server Error response with a generic message.
-     */
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<String> handleGeneral(Exception ex) {
-        logger.error("Internal Server Error: {}", ex.getMessage(), ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal Server Error");
-    }
+	/**
+	 * Catch-all for any unhandled exception. Logs the full stack trace and returns 500 Internal
+	 * Server Error without exposing internal details to the client.
+	 *
+	 * @param ex the unhandled exception.
+	 * @return a 500 Internal Server Error response with a generic message.
+	 */
+	@ExceptionHandler(Exception.class)
+	public ResponseEntity<String> handleGeneral(Exception ex) {
+		logger.error("Internal Server Error: {}", ex.getMessage(), ex);
+		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal Server Error");
+	}
 
 }

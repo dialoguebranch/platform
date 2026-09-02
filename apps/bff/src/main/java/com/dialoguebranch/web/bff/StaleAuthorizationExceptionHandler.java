@@ -53,16 +53,16 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class StaleAuthorizationExceptionHandler {
 
-    /**
-     * @param request the failing request, used to invalidate its session.
-     * @return an empty 401 response.
-     */
-    @ExceptionHandler(OAuth2AuthorizationException.class)
-    public ResponseEntity<Void> handleStaleAuthorization(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            session.invalidate();
-        }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-    }
+	/**
+	 * @param request the failing request, used to invalidate its session.
+	 * @return an empty 401 response.
+	 */
+	@ExceptionHandler(OAuth2AuthorizationException.class)
+	public ResponseEntity<Void> handleStaleAuthorization(HttpServletRequest request) {
+		HttpSession session = request.getSession(false);
+		if (session != null) {
+			session.invalidate();
+		}
+		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+	}
 }

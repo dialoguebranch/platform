@@ -72,87 +72,87 @@ import java.util.Set;
  */
 final class AzpClaimValidator implements OAuth2TokenValidator<Jwt> {
 
-    /** Upper bound on the number of distinct rejected {@code azp} values remembered for WARN de-duplication. */
-    static final int WARN_CACHE_CAP = 100;
+	/** Upper bound on the number of distinct rejected {@code azp} values remembered for WARN de-duplication. */
+	static final int WARN_CACHE_CAP = 100;
 
-    private static final Logger logger = LoggerFactory.getLogger(AzpClaimValidator.class);
+	private static final Logger logger = LoggerFactory.getLogger(AzpClaimValidator.class);
 
-    private final Set<String> trustedClients;
-    private final boolean trustAnyClient;
+	private final Set<String> trustedClients;
+	private final boolean trustAnyClient;
 
-    /**
-     * Access-ordered LRU of rejected {@code azp} values already logged, so repeats stay silent
-     * without the set growing without bound under a flood of random {@code azp} values. Bounded to
-     * {@link #WARN_CACHE_CAP} entries; guarded by {@code this} (only touched on the uncommon
-     * rejection path).
-     */
-    @SuppressWarnings("serial") // anonymous LinkedHashMap subclass, never serialized
-    private final Map<String, Boolean> loggedAzpValues =
-            new LinkedHashMap<>(16, 0.75f, true) {
-                @Override
-                protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
-                    return size() > WARN_CACHE_CAP;
-                }
-            };
+	/**
+	 * Access-ordered LRU of rejected {@code azp} values already logged, so repeats stay silent
+	 * without the set growing without bound under a flood of random {@code azp} values. Bounded to
+	 * {@link #WARN_CACHE_CAP} entries; guarded by {@code this} (only touched on the uncommon
+	 * rejection path).
+	 */
+	@SuppressWarnings("serial") // anonymous LinkedHashMap subclass, never serialized
+	private final Map<String, Boolean> loggedAzpValues =
+			new LinkedHashMap<>(16, 0.75f, true) {
+				@Override
+				protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
+					return size() > WARN_CACHE_CAP;
+				}
+			};
 
-    /** Count of distinct {@code azp} values seen; once past {@link #WARN_CACHE_CAP}, new ones drop to DEBUG. */
-    private long distinctRejectedAzpValues;
+	/** Count of distinct {@code azp} values seen; once past {@link #WARN_CACHE_CAP}, new ones drop to DEBUG. */
+	private long distinctRejectedAzpValues;
 
-    /**
-     * Creates a validator that accepts tokens whose {@code azp} claim is one of
-     * {@code trustedClients}. If {@code trustedClients} is exactly {@code ["*"]}, every token is
-     * accepted regardless of its {@code azp}.
-     *
-     * @param trustedClients the trusted client IDs; must be non-empty (callers pass
-     *                       {@code DlbProperties.Auth.Keycloak#getEffectiveTrustedClients()},
-     *                       which never returns an empty list).
-     * @throws IllegalArgumentException if {@code "*"} appears alongside other entries — that would
-     *                                  silently trust every client, so it is treated as a
-     *                                  configuration error rather than honoured.
-     */
-    AzpClaimValidator(Collection<String> trustedClients) {
-        this.trustedClients = Set.copyOf(trustedClients);
-        this.trustAnyClient = this.trustedClients.contains("*");
-        if (trustAnyClient && this.trustedClients.size() > 1) {
-            throw new IllegalArgumentException("dlb.auth.keycloak.trusted-clients: the wildcard "
-                    + "\"*\" must be the only entry when present; got " + this.trustedClients);
-        }
-    }
+	/**
+	 * Creates a validator that accepts tokens whose {@code azp} claim is one of
+	 * {@code trustedClients}. If {@code trustedClients} is exactly {@code ["*"]}, every token is
+	 * accepted regardless of its {@code azp}.
+	 *
+	 * @param trustedClients the trusted client IDs; must be non-empty (callers pass
+	 *                       {@code DlbProperties.Auth.Keycloak#getEffectiveTrustedClients()},
+	 *                       which never returns an empty list).
+	 * @throws IllegalArgumentException if {@code "*"} appears alongside other entries — that would
+	 *                                  silently trust every client, so it is treated as a
+	 *                                  configuration error rather than honoured.
+	 */
+	AzpClaimValidator(Collection<String> trustedClients) {
+		this.trustedClients = Set.copyOf(trustedClients);
+		this.trustAnyClient = this.trustedClients.contains("*");
+		if (trustAnyClient && this.trustedClients.size() > 1) {
+			throw new IllegalArgumentException("dlb.auth.keycloak.trusted-clients: the wildcard "
+					+ "\"*\" must be the only entry when present; got " + this.trustedClients);
+		}
+	}
 
-    @Override
-    public OAuth2TokenValidatorResult validate(Jwt token) {
-        if (trustAnyClient) {
-            return OAuth2TokenValidatorResult.success();
-        }
-        String azp = token.getClaimAsString("azp");
-        if (azp != null && trustedClients.contains(azp)) {
-            return OAuth2TokenValidatorResult.success();
-        }
-        logFirstRejection(azp);
-        return OAuth2TokenValidatorResult.failure(new OAuth2Error(
-                "invalid_token",
-                "The token's azp claim '" + azp + "' is not a trusted client",
-                null));
-    }
+	@Override
+	public OAuth2TokenValidatorResult validate(Jwt token) {
+		if (trustAnyClient) {
+			return OAuth2TokenValidatorResult.success();
+		}
+		String azp = token.getClaimAsString("azp");
+		if (azp != null && trustedClients.contains(azp)) {
+			return OAuth2TokenValidatorResult.success();
+		}
+		logFirstRejection(azp);
+		return OAuth2TokenValidatorResult.failure(new OAuth2Error(
+				"invalid_token",
+				"The token's azp claim '" + azp + "' is not a trusted client",
+				null));
+	}
 
-    /**
-     * Logs the first rejection of each distinct {@code azp} value at {@code WARN} (or {@code DEBUG}
-     * once {@link #WARN_CACHE_CAP} distinct values have been seen), and stays silent for repeats
-     * that are still within the LRU window.
-     */
-    private synchronized void logFirstRejection(String azp) {
-        String key = azp == null ? "<missing>" : azp;
-        // put() returns the previous value (non-null) for a key already in the window, and also
-        // marks it most-recently-used; a null return means this is a newly-seen value.
-        if (loggedAzpValues.put(key, Boolean.TRUE) != null) {
-            return;
-        }
-        if (distinctRejectedAzpValues++ < WARN_CACHE_CAP) {
-            logger.warn("Rejected a validly-signed token from an untrusted client (azp='{}'). "
-                    + "Add it to dlb.auth.keycloak.trusted-clients if this client is meant to "
-                    + "call this service.", key);
-        } else {
-            logger.debug("Rejected a validly-signed token from an untrusted client (azp='{}').", key);
-        }
-    }
+	/**
+	 * Logs the first rejection of each distinct {@code azp} value at {@code WARN} (or {@code DEBUG}
+	 * once {@link #WARN_CACHE_CAP} distinct values have been seen), and stays silent for repeats
+	 * that are still within the LRU window.
+	 */
+	private synchronized void logFirstRejection(String azp) {
+		String key = azp == null ? "<missing>" : azp;
+		// put() returns the previous value (non-null) for a key already in the window, and also
+		// marks it most-recently-used; a null return means this is a newly-seen value.
+		if (loggedAzpValues.put(key, Boolean.TRUE) != null) {
+			return;
+		}
+		if (distinctRejectedAzpValues++ < WARN_CACHE_CAP) {
+			logger.warn("Rejected a validly-signed token from an untrusted client (azp='{}'). "
+					+ "Add it to dlb.auth.keycloak.trusted-clients if this client is meant to "
+					+ "call this service.", key);
+		} else {
+			logger.debug("Rejected a validly-signed token from an untrusted client (azp='{}').", key);
+		}
+	}
 }
