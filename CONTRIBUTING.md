@@ -39,7 +39,10 @@ the module `README.md` files carry the fuller architecture reference.
 
 ## Building and testing
 
-All Gradle commands use the wrapper (`./gradlew`).
+All Gradle commands use the wrapper (`./gradlew`). Every JVM module compiles and runs its
+tests on a pinned **JDK 21 toolchain** regardless of the JDK on your `PATH`; if no JDK 21 is
+installed, Gradle downloads one on the first build (via the foojay resolver). The published
+bytecode stays at Java 17.
 
 ```bash
 # Core library

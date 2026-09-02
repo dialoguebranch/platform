@@ -1,1 +1,7 @@
+plugins {
+	// Resolves and downloads a matching JDK for the Java toolchain (see build.gradle)
+	// when one is not already installed. See issue #106.
+	id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
 rootProject.name = 'dlb-bff'

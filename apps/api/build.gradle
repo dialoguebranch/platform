@@ -32,12 +32,21 @@ base {
 }
 
 java {
-	sourceCompatibility = JavaVersion.VERSION_17
-	targetCompatibility = JavaVersion.VERSION_17
+	// Compile and test on a pinned JDK 21 toolchain (auto-provisioned via the
+	// foojay resolver in settings.gradle), regardless of the JDK on PATH. See issue #106.
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
 	if (project.properties['buildEnv'] == null || !project.properties['buildEnv'].equals('dev')) {
 		withJavadocJar()
 		withSourcesJar()
 	}
+}
+
+// Keep the compiled bytecode / language level at 17; `release` cross-compiles against the
+// real 17 API. Consistent with the dlb-core-java subproject.
+tasks.withType(JavaCompile).configureEach {
+	options.release = 17
 }
 
 dependencies {
