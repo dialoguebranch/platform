@@ -33,6 +33,7 @@ import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import nl.rrd.utils.expressions.EvaluationException;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
@@ -183,7 +184,7 @@ public class NodeBody {
 	 * @param replyId the reply identifier to look up.
 	 * @return the matching {@link Reply}, or {@code null} if not found.
 	 */
-	public Reply findReplyById(int replyId) {
+	public @Nullable Reply findReplyById(int replyId) {
 		for (Reply reply : replies) {
 			if (reply.getReplyId() == replyId)
 				return reply;
@@ -471,7 +472,7 @@ public class NodeBody {
 		 * @param replyId the reply ID
 		 * @return the reply or null
 		 */
-		public abstract Reply findReplyById(int replyId);
+		public abstract @Nullable Reply findReplyById(int replyId);
 
 		/**
 		 * Retrieves all variable names that are read in this segment and adds
@@ -542,7 +543,7 @@ public class NodeBody {
 		}
 
 		@Override
-		public Reply findReplyById(int replyId) {
+		public @Nullable Reply findReplyById(int replyId) {
 			return null;
 		}
 
@@ -601,7 +602,7 @@ public class NodeBody {
 		}
 
 		@Override
-		public Reply findReplyById(int replyId) {
+		public @Nullable Reply findReplyById(int replyId) {
 			return command.findReplyById(replyId);
 		}
 

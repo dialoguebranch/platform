@@ -35,6 +35,7 @@ import com.dialoguebranch.model.execute.NodeBody;
 import nl.rrd.utils.exception.LineNumberParseException;
 import nl.rrd.utils.expressions.EvaluationException;
 import nl.rrd.utils.expressions.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -49,8 +50,8 @@ import java.util.Set;
  */
 public abstract class InputAbstractTextCommand extends InputCommand {
 	private String variableName;
-	private Integer min = null;
-	private Integer max = null;
+	private @Nullable Integer min = null;
+	private @Nullable Integer max = null;
 	private Boolean allowNumbers = Boolean.TRUE;
 	private Boolean allowSpecialCharacters = Boolean.TRUE;
 	private Boolean allowSpaces = Boolean.TRUE;
@@ -115,7 +116,7 @@ public abstract class InputAbstractTextCommand extends InputCommand {
 	 * or {@code null} if no minimum is set.
 	 * @return the minimum number of characters allowed for this text input command.
 	 */
-	public Integer getMin() {
+	public @Nullable Integer getMin() {
 		return min;
 	}
 
@@ -124,7 +125,7 @@ public abstract class InputAbstractTextCommand extends InputCommand {
 	 * or {@code null} if no minimum should be set.
 	 * @param min the minimum number of characters needed for this text input command.
 	 */
-	public void setMin(Integer min) {
+	public void setMin(@Nullable Integer min) {
 		this.min = min;
 	}
 
@@ -133,7 +134,7 @@ public abstract class InputAbstractTextCommand extends InputCommand {
 	 * or {@code null} if no maximum is set.
 	 * @return the maximum number of characters allowed for this text input command.
 	 */
-	public Integer getMax() {
+	public @Nullable Integer getMax() {
 		return max;
 	}
 
@@ -142,7 +143,7 @@ public abstract class InputAbstractTextCommand extends InputCommand {
 	 * or {@code null} if no maximum should be set.
 	 * @param max the maximum number of characters allowed for this text input command.
 	 */
-	public void setMax(Integer max) {
+	public void setMax(@Nullable Integer max) {
 		this.max = max;
 	}
 
@@ -159,7 +160,7 @@ public abstract class InputAbstractTextCommand extends InputCommand {
 	 * {@code null} the value reverts to its default value of {@code Boolean.TRUE}.
 	 * @param allowNumbers whether or not numbers are allowed in this text input command.
 	 */
-	public void setAllowNumbers(Boolean allowNumbers) {
+	public void setAllowNumbers(@Nullable Boolean allowNumbers) {
 		if(allowNumbers != null) this.allowNumbers = allowNumbers;
 		else this.allowNumbers = Boolean.TRUE;
 	}
@@ -179,7 +180,7 @@ public abstract class InputAbstractTextCommand extends InputCommand {
 	 * default value of {@code Boolean.TRUE}.
 	 * @param allowSpecialCharacters whether or not special characters are allowed in this text input command.
 	 */
-	public void setAllowSpecialCharacters(Boolean allowSpecialCharacters) {
+	public void setAllowSpecialCharacters(@Nullable Boolean allowSpecialCharacters) {
 		if(allowSpecialCharacters != null) this.allowSpecialCharacters = allowSpecialCharacters;
 		else this.allowSpecialCharacters = Boolean.TRUE;
 	}
@@ -197,7 +198,7 @@ public abstract class InputAbstractTextCommand extends InputCommand {
 	 * {@code null} the value reverts to its default value of {@code Boolean.TRUE}.
 	 * @param allowSpaces whether or not spaces are allowed in this text input command.
 	 */
-	public void setAllowSpaces(Boolean allowSpaces) {
+	public void setAllowSpaces(@Nullable Boolean allowSpaces) {
 		if(allowSpaces != null) this.allowSpaces = allowSpaces;
 		else this.allowSpaces = Boolean.TRUE;
 	}
@@ -215,7 +216,7 @@ public abstract class InputAbstractTextCommand extends InputCommand {
 	 * {@code null} the value reverts to its default value of {@code Boolean.FALSE}.
 	 * @param capCharacters whether or not to hint capitalization on character level.
 	 */
-	public void setCapCharacters(Boolean capCharacters) {
+	public void setCapCharacters(@Nullable Boolean capCharacters) {
 		if(capCharacters != null) this.capCharacters = capCharacters;
 		else this.capCharacters = Boolean.FALSE;
 	}
@@ -233,7 +234,7 @@ public abstract class InputAbstractTextCommand extends InputCommand {
 	 * {@code null} the value reverts to its default value of {@code Boolean.FALSE}.
 	 * @param capWords whether or not to hint capitalization on word level.
 	 */
-	public void setCapWords(Boolean capWords) {
+	public void setCapWords(@Nullable Boolean capWords) {
 		if(capWords != null) this.capWords = capWords;
 		else this.capWords = Boolean.FALSE;
 	}
@@ -251,7 +252,7 @@ public abstract class InputAbstractTextCommand extends InputCommand {
 	 * {@code null} the value reverts to its default value of {@code Boolean.FALSE}.
 	 * @param capSentences whether or not to hint capitalization on character level.
 	 */
-	public void setCapSentences(Boolean capSentences) {
+	public void setCapSentences(@Nullable Boolean capSentences) {
 		if(capSentences != null) this.capSentences = capSentences;
 		else this.capSentences = Boolean.FALSE;
 	}
@@ -269,7 +270,7 @@ public abstract class InputAbstractTextCommand extends InputCommand {
 	 * {@code null} the value reverts to its default value of {@code Boolean.FALSE}.
 	 * @param forceCapCharacters whether or not to force capitalization on character level.
 	 */
-	public void setForceCapCharacters(Boolean forceCapCharacters) {
+	public void setForceCapCharacters(@Nullable Boolean forceCapCharacters) {
 		if(forceCapCharacters != null) this.forceCapCharacters = forceCapCharacters;
 		else this.forceCapCharacters = Boolean.FALSE;
 	}
@@ -287,7 +288,7 @@ public abstract class InputAbstractTextCommand extends InputCommand {
 	 * {@code null} the value reverts to its default value of {@code Boolean.FALSE}.
 	 * @param forceCapWords whether or not to force capitalization on word level.
 	 */
-	public void setForceCapWords(Boolean forceCapWords) {
+	public void setForceCapWords(@Nullable Boolean forceCapWords) {
 		if(forceCapWords != null) this.forceCapWords = forceCapWords;
 		else this.forceCapWords = Boolean.FALSE;
 	}
@@ -305,7 +306,7 @@ public abstract class InputAbstractTextCommand extends InputCommand {
 	 * {@code null} the value reverts to its default value of {@code Boolean.FALSE}.
 	 * @param forceCapSentences whether or not to force capitalization on sentence level.
 	 */
-	public void setForceCapSentences(Boolean forceCapSentences) {
+	public void setForceCapSentences(@Nullable Boolean forceCapSentences) {
 		if(forceCapSentences != null) this.forceCapSentences = forceCapSentences;
 		else this.forceCapSentences = Boolean.FALSE;
 	}

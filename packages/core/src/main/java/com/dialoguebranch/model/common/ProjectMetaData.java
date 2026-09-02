@@ -32,6 +32,7 @@ import com.dialoguebranch.exception.DuplicateLanguageCodeException;
 import com.dialoguebranch.exception.UnknownLanguageCodeException;
 import com.dialoguebranch.model.execute.Language;
 import com.dialoguebranch.model.execute.LanguageMap;
+import org.jspecify.annotations.Nullable;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -56,10 +57,10 @@ public class ProjectMetaData {
 	 * project metadata that was never associated with a slug (e.g. seed projects loaded from the
 	 * classpath, which derive their slug from a folder name instead).
 	 */
-	private String slug;
+	private @Nullable String slug;
 
 	/** The base path of the Dialogue Branch project */
-	private String basePath;
+	private @Nullable String basePath;
 
 	/** A free-form description of the Dialogue Branch project */
 	private String description;
@@ -68,7 +69,7 @@ public class ProjectMetaData {
 	private String version;
 
 	/** The mapping object of source- and translation languages available in this project */
-	private LanguageMap languageMap;
+	private @Nullable LanguageMap languageMap;
 
 	/** An object that contains information on where/how this ProjectMetaData is stored */
 	private StorageSource storageSource;
@@ -151,7 +152,7 @@ public class ProjectMetaData {
 	 *
 	 * @return the slug of this Dialogue Branch project, or {@code null}.
 	 */
-	public String getSlug() {
+	public @Nullable String getSlug() {
 		return slug;
 	}
 
@@ -170,7 +171,7 @@ public class ProjectMetaData {
 	 *
 	 * @return a String representation of the base path of this Dialogue Branch project.
 	 */
-	public String getBasePath() {
+	public @Nullable String getBasePath() {
 		return basePath;
 	}
 
@@ -230,7 +231,7 @@ public class ProjectMetaData {
 	 *
 	 * @return the {@link LanguageMap} for this {@link ProjectMetaData}.
 	 */
-	public LanguageMap getLanguageMap() {
+	public @Nullable LanguageMap getLanguageMap() {
 		return languageMap;
 	}
 
@@ -382,7 +383,7 @@ public class ProjectMetaData {
 	 *
 	 * @return the source {@link Language} of this Dialogue Branch project, or {@code null}.
 	 */
-	public Language getSourceLanguage() {
+	public @Nullable Language getSourceLanguage() {
 		return languageMap != null ? languageMap.getSourceLanguage() : null;
 	}
 
@@ -392,7 +393,7 @@ public class ProjectMetaData {
 	 *
 	 * @return the source language code of this Dialogue Branch project, or {@code null}.
 	 */
-	public String getSourceLanguageCode() {
+	public @Nullable String getSourceLanguageCode() {
 		Language source = getSourceLanguage();
 		return source != null ? source.getCode() : null;
 	}

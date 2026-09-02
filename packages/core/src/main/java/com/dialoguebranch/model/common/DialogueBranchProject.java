@@ -29,6 +29,7 @@
 package com.dialoguebranch.model.common;
 
 import com.dialoguebranch.model.execute.ResourcePointer;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 
@@ -62,7 +63,7 @@ public interface DialogueBranchProject {
 	 *
 	 * @return the {@link ProjectMetaData} for this project.
 	 */
-	ProjectMetaData getMetaData();
+	@Nullable ProjectMetaData getMetaData();
 
 	/**
 	 * Sets the {@link ProjectMetaData} associated with this project.

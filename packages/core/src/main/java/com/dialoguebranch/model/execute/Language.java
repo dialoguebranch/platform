@@ -28,6 +28,8 @@
 
 package com.dialoguebranch.model.execute;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * A {@link Language} defines a language used in a Dialogue Branch project with a given name and
  * language code. The 'code' is preferably a specific ISO3 code, an ISO1 code, or for languages that
@@ -41,10 +43,10 @@ package com.dialoguebranch.model.execute;
 public class Language {
 
 	/** The name of this language (e.g. "English") */
-	private String name;
+	private @Nullable String name;
 
 	/** The language code for this language (e.g. "en") */
-	private String code;
+	private @Nullable String code;
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
@@ -75,7 +77,7 @@ public class Language {
 	 *
 	 * @return the name of this {@link Language}.
 	 */
-	public String getName() {
+	public @Nullable String getName() {
 		return name;
 	}
 
@@ -93,7 +95,7 @@ public class Language {
 	 *
 	 * @return the code of this {@link Language}.
 	 */
-	public String getCode() {
+	public @Nullable String getCode() {
 		return code;
 	}
 

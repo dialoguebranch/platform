@@ -36,6 +36,7 @@ import com.dialoguebranch.model.execute.VariableString;
 import nl.rrd.utils.exception.LineNumberParseException;
 import nl.rrd.utils.expressions.EvaluationException;
 import nl.rrd.utils.expressions.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -57,9 +58,9 @@ public class InputTimeCommand extends InputCommand {
 
 	private String variableName;
 	private int granularityMinutes = 1;
-	private VariableString startTime = null;
-	private VariableString minTime = null;
-	private VariableString maxTime = null;
+	private @Nullable VariableString startTime = null;
+	private @Nullable VariableString minTime = null;
+	private @Nullable VariableString maxTime = null;
 
 	/**
 	 * Creates an {@link InputTimeCommand} that stores the user's time input in
@@ -125,7 +126,7 @@ public class InputTimeCommand extends InputCommand {
 	 * Returns the initial time shown in the time picker, or {@code null} if not set.
 	 * @return the start time, or {@code null}.
 	 */
-	public VariableString getStartTime() {
+	public @Nullable VariableString getStartTime() {
 		return startTime;
 	}
 
@@ -133,7 +134,7 @@ public class InputTimeCommand extends InputCommand {
 	 * Sets the initial time shown in the time picker, or {@code null} for no initial value.
 	 * @param startTime the start time, or {@code null}.
 	 */
-	public void setStartTime(VariableString startTime) {
+	public void setStartTime(@Nullable VariableString startTime) {
 		this.startTime = startTime;
 	}
 
@@ -141,7 +142,7 @@ public class InputTimeCommand extends InputCommand {
 	 * Returns the earliest time the user may select, or {@code null} if not set.
 	 * @return the minimum time, or {@code null}.
 	 */
-	public VariableString getMinTime() {
+	public @Nullable VariableString getMinTime() {
 		return minTime;
 	}
 
@@ -149,7 +150,7 @@ public class InputTimeCommand extends InputCommand {
 	 * Sets the earliest time the user may select, or {@code null} for no lower bound.
 	 * @param minTime the minimum time, or {@code null}.
 	 */
-	public void setMinTime(VariableString minTime) {
+	public void setMinTime(@Nullable VariableString minTime) {
 		this.minTime = minTime;
 	}
 
@@ -157,7 +158,7 @@ public class InputTimeCommand extends InputCommand {
 	 * Returns the latest time the user may select, or {@code null} if not set.
 	 * @return the maximum time, or {@code null}.
 	 */
-	public VariableString getMaxTime() {
+	public @Nullable VariableString getMaxTime() {
 		return maxTime;
 	}
 
@@ -165,7 +166,7 @@ public class InputTimeCommand extends InputCommand {
 	 * Sets the latest time the user may select, or {@code null} for no upper bound.
 	 * @param maxTime the maximum time, or {@code null}.
 	 */
-	public void setMaxTime(VariableString maxTime) {
+	public void setMaxTime(@Nullable VariableString maxTime) {
 		this.maxTime = maxTime;
 	}
 

@@ -28,6 +28,8 @@
 
 package com.dialoguebranch.model.execute;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -41,7 +43,7 @@ import java.util.Objects;
  */
 public class LanguageMap {
 
-	private Language sourceLanguage;
+	private @Nullable Language sourceLanguage;
 	private List<Language> translationLanguages;
 
 	// -------------------------------------------------------- //
@@ -76,7 +78,7 @@ public class LanguageMap {
 	 * @param translationLanguages a list of translation {@link Language}s for this
 	 *                              {@link LanguageMap}.
 	 */
-	public LanguageMap(Language sourceLanguage, List<Language> translationLanguages) {
+	public LanguageMap(Language sourceLanguage, @Nullable List<Language> translationLanguages) {
 		this.sourceLanguage = sourceLanguage;
 		this.translationLanguages = Objects.requireNonNullElseGet(
 				translationLanguages, ArrayList::new);
@@ -92,7 +94,7 @@ public class LanguageMap {
 	 *
 	 * @return the source language of this {@link LanguageMap}.
 	 */
-	public Language getSourceLanguage() {
+	public @Nullable Language getSourceLanguage() {
 		return sourceLanguage;
 	}
 
@@ -121,7 +123,7 @@ public class LanguageMap {
 	 *
 	 * @param translationLanguages the list of translation languages for this {@link LanguageMap}.
 	 */
-	public void setTranslationLanguages(List<Language> translationLanguages) {
+	public void setTranslationLanguages(@Nullable List<Language> translationLanguages) {
 		this.translationLanguages = Objects.requireNonNullElseGet(
 				translationLanguages, ArrayList::new);
 	}
@@ -138,7 +140,7 @@ public class LanguageMap {
 	 * @param translationLanguage the translation {@link Language} to add to this
 	 *                            {@link LanguageMap}.
 	 */
-	public void addTranslationLanguage(Language translationLanguage) {
+	public void addTranslationLanguage(@Nullable Language translationLanguage) {
 		if (translationLanguage != null)
 			translationLanguages.add(translationLanguage);
 	}

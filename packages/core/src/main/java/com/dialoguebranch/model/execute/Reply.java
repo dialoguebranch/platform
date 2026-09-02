@@ -34,6 +34,7 @@ import com.dialoguebranch.model.execute.command.InputCommand;
 import com.dialoguebranch.model.execute.command.SetCommand;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import nl.rrd.utils.expressions.EvaluationException;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,7 +62,7 @@ import java.util.Set;
  */
 public class Reply {
 	private int replyId;
-	private NodeBody statement = null;
+	private @Nullable NodeBody statement = null;
 	private NodePointer nodePointer;
 	private List<Command> commands = new ArrayList<>();
 
@@ -72,7 +73,7 @@ public class Reply {
 	 * @param statement the statement or null (auto-forward reply)
 	 * @param nodePointer the next node when the reply is chosen
 	 */
-	public Reply(int replyId, NodeBody statement, NodePointer nodePointer) {
+	public Reply(int replyId, @Nullable NodeBody statement, NodePointer nodePointer) {
 		this.replyId = replyId;
 		this.statement = statement;
 		this.nodePointer = nodePointer;
@@ -139,7 +140,7 @@ public class Reply {
 	 *
 	 * @return the statement or null
 	 */
-	public NodeBody getStatement() {
+	public @Nullable NodeBody getStatement() {
 		return statement;
 	}
 
@@ -149,7 +150,7 @@ public class Reply {
 	 *
 	 * @param statement the statement or null
 	 */
-	public void setStatement(NodeBody statement) {
+	public void setStatement(@Nullable NodeBody statement) {
 		this.statement = statement;
 	}
 

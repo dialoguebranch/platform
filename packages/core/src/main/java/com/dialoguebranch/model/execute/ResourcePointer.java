@@ -29,6 +29,7 @@
 package com.dialoguebranch.model.execute;
 
 import com.dialoguebranch.model.common.ResourceType;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Objects;
 
@@ -54,9 +55,9 @@ import java.util.Objects;
  */
 public class ResourcePointer {
 
-	private String language;
-	private String dialogueName;
-	private ResourceType resourceType;
+	private @Nullable String language;
+	private @Nullable String dialogueName;
+	private @Nullable ResourceType resourceType;
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
@@ -94,7 +95,7 @@ public class ResourcePointer {
 	 *
 	 * @return the language of this {@link ResourcePointer}.
 	 */
-	public String getLanguage() {
+	public @Nullable String getLanguage() {
 		return this.language;
 	}
 
@@ -140,7 +141,7 @@ public class ResourcePointer {
 	 *
 	 * @return the type of this {@link ResourcePointer}.
 	 */
-	public ResourceType getResourceType() {
+	public @Nullable ResourceType getResourceType() {
 		return resourceType;
 	}
 
@@ -160,7 +161,7 @@ public class ResourcePointer {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 		if (obj == this)
 			return true;
 		if (obj == null || obj.getClass() != getClass())

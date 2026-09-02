@@ -41,6 +41,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.json.JsonMapper;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -187,7 +188,7 @@ public class DialogueStatement {
 	@JsonSerialize(using=InputSegmentSerializer.class)
 	public static class InputSegment extends Segment {
 		private String inputType;
-		private String description = null;
+		private @Nullable String description = null;
 		private Map<String,?> parameters = new LinkedHashMap<>();
 
 		/** Creates an empty {@link InputSegment}. */
@@ -222,7 +223,7 @@ public class DialogueStatement {
 		 *
 		 * @return the description or null
 		 */
-		public String getDescription() {
+		public @Nullable String getDescription() {
 			return description;
 		}
 
@@ -233,7 +234,7 @@ public class DialogueStatement {
 		 *
 		 * @param description the description or null
 		 */
-		public void setDescription(String description) {
+		public void setDescription(@Nullable String description) {
 			this.description = description;
 		}
 

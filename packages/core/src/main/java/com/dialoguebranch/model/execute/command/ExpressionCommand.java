@@ -36,6 +36,7 @@ import nl.rrd.utils.expressions.ExpressionParser;
 import nl.rrd.utils.expressions.Token;
 import nl.rrd.utils.expressions.Tokenizer;
 import nl.rrd.utils.io.LineColumnNumberReader;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -255,7 +256,7 @@ public abstract class ExpressionCommand extends Command {
 		/** The command name token (e.g. {@code "if"}, {@code "set"}). */
 		public String name;
 		/** The expression following the command name, or {@code null} if none was present. */
-		public Expression expression;
+		public @Nullable Expression expression;
 
 		/** Creates an empty {@link ParseContentResult}. */
 		public ParseContentResult() {

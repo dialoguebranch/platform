@@ -28,6 +28,8 @@
 
 package com.dialoguebranch.model.execute;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -41,11 +43,11 @@ import java.util.Map;
  */
 public class NodeHeader {
 
-	/** The unique title that identifies this node within its dialogue. */
-	private String title;
+	/** The unique title that identifies this node within its dialogue, or {@code null} if not yet set. */
+	private @Nullable String title;
 
 	/** The name of the speaker delivering this node's content, or {@code null} if unspecified. */
-	private String speaker;
+	private @Nullable String speaker;
 
 	/**
 	 * Arbitrary key-value metadata tags declared in the node header beyond the standard
@@ -102,11 +104,12 @@ public class NodeHeader {
 	// ------------------------------------------------- //
 
 	/**
-	 * Returns the title that uniquely identifies this node within its dialogue.
+	 * Returns the title that uniquely identifies this node within its dialogue, or {@code null} if
+	 * this header was created without one and none has been set since.
 	 *
-	 * @return the node title
+	 * @return the node title, or {@code null}
 	 */
-	public String getTitle() {
+	public @Nullable String getTitle() {
 		return title;
 	}
 
@@ -116,7 +119,7 @@ public class NodeHeader {
 	 *
 	 * @return the speaker name, or {@code null}
 	 */
-	public String getSpeaker() {
+	public @Nullable String getSpeaker() {
 		return this.speaker;
 	}
 
@@ -149,7 +152,7 @@ public class NodeHeader {
 	 *
 	 * @param speaker the speaker name, or {@code null}
 	 */
-	public void setSpeaker(String speaker) {
+	public void setSpeaker(@Nullable String speaker) {
 		this.speaker = speaker;
 	}
 

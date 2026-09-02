@@ -29,6 +29,7 @@
 package com.dialoguebranch.model.execute.protocol;
 
 import com.dialoguebranch.model.execute.Node;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,9 +50,9 @@ public class DialogueMessage {
 
 	private String dialogue;
 	private String node;
-	private String loggedDialogueId;
+	private @Nullable String loggedDialogueId;
 	private int loggedInteractionIndex;
-	private String speaker;
+	private @Nullable String speaker;
 	private DialogueStatement statement;
 	private List<ReplyMessage> replies = new ArrayList<>();
 
@@ -91,7 +92,7 @@ public class DialogueMessage {
 	 * Returns the identifier of the logged dialogue session, or {@code null} if not logged.
 	 * @return the logged dialogue session identifier.
 	 */
-	public String getLoggedDialogueId() {
+	public @Nullable String getLoggedDialogueId() {
 		return loggedDialogueId;
 	}
 
@@ -123,7 +124,7 @@ public class DialogueMessage {
 	 * Returns the name of the agent (speaker) delivering this message.
 	 * @return the speaker name.
 	 */
-	public String getSpeaker() {
+	public @Nullable String getSpeaker() {
 		return speaker;
 	}
 
