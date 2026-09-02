@@ -57,12 +57,21 @@ sourceSets {
 }
 
 java {
-	sourceCompatibility = JavaVersion.VERSION_17
-	targetCompatibility = JavaVersion.VERSION_17
+	// Compile and test on a pinned JDK 21 toolchain (auto-provisioned via the
+	// foojay resolver in settings.gradle), regardless of the JDK on PATH. See issue #106.
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
 	if (project.properties['buildEnv'] == null || !project.properties['buildEnv'].equals('dev')) {
 		withJavadocJar()
 		withSourcesJar()
 	}
+}
+
+// Keep the published bytecode / language level at 17 so downstream consumers on JDK 17+
+// are unaffected; `release` cross-compiles against the real 17 API.
+tasks.withType(JavaCompile).configureEach {
+	options.release = 17
 }
 
 javadoc {

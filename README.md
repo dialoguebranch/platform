@@ -21,7 +21,8 @@ platform/
 
 ## Requirements
 
-- JDK 21+
+- JDK 21 — the Gradle build uses a JDK 21 toolchain and auto-provisions one if it is not
+  already installed, so any JDK on your `PATH` that can launch Gradle 9 will do
 - Docker
 - Node.js 22+ (for `apps/studio`)
 

@@ -1,3 +1,10 @@
+plugins {
+	// Resolves and downloads a matching JDK for the Java toolchain (see build.gradle)
+	// when one is not already installed. Applies to this build and the :dlb-core-java
+	// subproject below. See issue #106.
+	id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
 rootProject.name = 'dlb-web-service'
 include ':dlb-core-java'
 project(':dlb-core-java').projectDir = file("../../packages/core")

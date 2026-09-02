@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  jvm:
+    name: jvm (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: core
+            dir: packages/core
+            args: build javadoc
+          - name: api
+            dir: apps/api
+            args: build
+          - name: bff
+            dir: apps/bff
+            args: build
+          - name: mock-variable-service
+            dir: apps/mock-variable-service
+            args: build
+    steps:
+      - uses: actions/checkout@v4
+
+      # Matches the JDK 21 toolchain pinned in each module's build.gradle, so the
+      # toolchain resolves this JDK locally instead of provisioning one.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: ./gradlew ${{ matrix.args }}
+        working-directory: ${{ matrix.dir }}
+        run: ./gradlew ${{ matrix.args }} --no-daemon
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ matrix.name }}
+          path: ${{ matrix.dir }}/build/reports/tests/
+          if-no-files-found: ignore
+
+  studio:
+    name: studio
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/studio/package-lock.json
+
+      - working-directory: apps/studio
+        run: |
+          npm ci
+          npm run build
+          npm run test
+
+  vitepress:
+    name: vitepress
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: documentation/vitepress/package-lock.json
+
+      - working-directory: documentation/vitepress
+        run: |
+          npm ci
+          npm run build
+
+  # Single check to mark "required" in branch protection: green only when every
+  # job above succeeded.
+  all-green:
+    name: all-green
+    runs-on: ubuntu-latest
+    needs: [jvm, studio, vitepress]
+    if: always()
+    steps:
+      - name: Verify all jobs succeeded
+        run: |
+          echo "jvm:       ${{ needs.jvm.result }}"
+          echo "studio:    ${{ needs.studio.result }}"
+          echo "vitepress: ${{ needs.vitepress.result }}"
+          [ "${{ needs.jvm.result }}" = "success" ] \
+            && [ "${{ needs.studio.result }}" = "success" ] \
+            && [ "${{ needs.vitepress.result }}" = "success" ]
