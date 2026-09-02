@@ -29,6 +29,7 @@
 package com.dialoguebranch.model.execute;
 
 import nl.rrd.utils.expressions.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -133,7 +134,7 @@ public class VariableString {
 	 * @param variables the variable map (can be {@code null}).
 	 * @return the processed variable string.
 	 */
-	public VariableString execute(Map<String,Object> variables) {
+	public VariableString execute(@Nullable Map<String,Object> variables) {
 		VariableString result = new VariableString();
 		for (Segment segment : segments) {
 			if (segment instanceof TextSegment) {
@@ -157,7 +158,7 @@ public class VariableString {
 	 * @param variables the variable map (can be {@code null}).
 	 * @return the evaluated string.
 	 */
-	public String evaluate(Map<String,Object> variables) {
+	public String evaluate(@Nullable Map<String,Object> variables) {
 		VariableString variableString = execute(variables);
 		if (variableString.segments.isEmpty())
 			return "";

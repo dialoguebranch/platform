@@ -35,6 +35,7 @@ import com.dialoguebranch.model.execute.NodeBody;
 import nl.rrd.utils.exception.LineNumberParseException;
 import nl.rrd.utils.expressions.EvaluationException;
 import nl.rrd.utils.expressions.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -49,8 +50,8 @@ import java.util.Set;
  */
 public class InputNumericCommand extends InputCommand {
 	private String variableName;
-	private Integer min = null;
-	private Integer max = null;
+	private @Nullable Integer min = null;
+	private @Nullable Integer max = null;
 
 	/**
 	 * Creates an {@link InputNumericCommand} that stores the user's numeric input in
@@ -95,7 +96,7 @@ public class InputNumericCommand extends InputCommand {
 	 * Returns the minimum numeric value allowed, or {@code null} if no minimum is set.
 	 * @return the minimum value, or {@code null}.
 	 */
-	public Integer getMin() {
+	public @Nullable Integer getMin() {
 		return min;
 	}
 
@@ -103,7 +104,7 @@ public class InputNumericCommand extends InputCommand {
 	 * Sets the minimum numeric value allowed, or {@code null} for no minimum.
 	 * @param min the minimum value, or {@code null}.
 	 */
-	public void setMin(Integer min) {
+	public void setMin(@Nullable Integer min) {
 		this.min = min;
 	}
 
@@ -111,7 +112,7 @@ public class InputNumericCommand extends InputCommand {
 	 * Returns the maximum numeric value allowed, or {@code null} if no maximum is set.
 	 * @return the maximum value, or {@code null}.
 	 */
-	public Integer getMax() {
+	public @Nullable Integer getMax() {
 		return max;
 	}
 
@@ -119,7 +120,7 @@ public class InputNumericCommand extends InputCommand {
 	 * Sets the maximum numeric value allowed, or {@code null} for no maximum.
 	 * @param max the maximum value, or {@code null}.
 	 */
-	public void setMax(Integer max) {
+	public void setMax(@Nullable Integer max) {
 		this.max = max;
 	}
 

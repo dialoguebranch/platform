@@ -31,6 +31,7 @@ package com.dialoguebranch.model.execute;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Records a single step in a Dialogue Branch conversation session. Each interaction captures
@@ -45,11 +46,11 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 public class LoggedInteraction {
 
 	private long timestamp;
-	private MessageSource messageSource;
-	private String sourceName;
-	private String dialogueId;
-	private String nodeId;
-	private String statement;
+	private @Nullable MessageSource messageSource;
+	private @Nullable String sourceName;
+	private @Nullable String dialogueId;
+	private @Nullable String nodeId;
+	private @Nullable String statement;
 	private int previousIndex = -1;
 
 	@JsonInclude(Include.NON_NULL)
@@ -137,7 +138,7 @@ public class LoggedInteraction {
 	 * {@link MessageSource#AGENT}.
 	 * @return the message source.
 	 */
-	public MessageSource getMessageSource() {
+	public @Nullable MessageSource getMessageSource() {
 		return messageSource;
 	}
 
@@ -145,7 +146,7 @@ public class LoggedInteraction {
 	 * Returns the name of the agent or user that produced this interaction's message.
 	 * @return the source name.
 	 */
-	public String getSourceName() {
+	public @Nullable String getSourceName() {
 		return sourceName;
 	}
 
@@ -153,7 +154,7 @@ public class LoggedInteraction {
 	 * Returns the identifier of the dialogue that was active when this interaction occurred.
 	 * @return the dialogue identifier.
 	 */
-	public String getDialogueId() {
+	public @Nullable String getDialogueId() {
 		return this.dialogueId;
 	}
 
@@ -161,7 +162,7 @@ public class LoggedInteraction {
 	 * Returns the identifier of the node that produced this interaction.
 	 * @return the node identifier.
 	 */
-	public String getNodeId() {
+	public @Nullable String getNodeId() {
 		return this.nodeId;
 	}
 
@@ -178,7 +179,7 @@ public class LoggedInteraction {
 	 * Returns the text of the statement shown to the user during this interaction.
 	 * @return the statement text.
 	 */
-	public String getStatement() {
+	public @Nullable String getStatement() {
 		return statement;
 	}
 

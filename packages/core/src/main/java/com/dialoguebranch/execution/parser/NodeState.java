@@ -29,6 +29,7 @@
 package com.dialoguebranch.execution.parser;
 
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,8 +46,8 @@ import java.util.List;
  */
 public class NodeState {
 	private final String dialogueName;
-	private String title = null;
-	private String speaker = null;
+	private @Nullable String title = null;
+	private @Nullable String speaker = null;
 	private int speakerLine = 0;
 	private int speakerColumn = 0;
 	private int nextReplyId = 1;
@@ -72,7 +73,7 @@ public class NodeState {
 	 * Returns the title of the node currently being parsed, or {@code null} if not yet set.
 	 * @return the node title, or {@code null}.
 	 */
-	public String getTitle() {
+	public @Nullable String getTitle() {
 		return title;
 	}
 
@@ -88,7 +89,7 @@ public class NodeState {
 	 * Returns the speaker name declared in the node header, or {@code null} if not yet set.
 	 * @return the speaker name, or {@code null}.
 	 */
-	public String getSpeaker() {
+	public @Nullable String getSpeaker() {
 		return speaker;
 	}
 

@@ -32,6 +32,7 @@ import com.dialoguebranch.execution.parser.BodyToken;
 import com.dialoguebranch.model.execute.VariableString;
 import nl.rrd.utils.CurrentIterator;
 import nl.rrd.utils.exception.LineNumberParseException;
+import org.jspecify.annotations.Nullable;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -230,7 +231,7 @@ public abstract class AttributesCommand extends Command {
 	 */
 	protected static Integer readIntAttr(String name,
 										 Map<String, BodyToken> attrs, BodyToken cmdStartToken,
-										 boolean require, Integer min, Integer max)
+										 boolean require, @Nullable Integer min, @Nullable Integer max)
 			throws LineNumberParseException {
 		String s = readPlainTextAttr(name, attrs, cmdStartToken, require);
 		if (s == null)
@@ -271,7 +272,7 @@ public abstract class AttributesCommand extends Command {
 	 */
 	protected static Float readFloatAttr(String name,
 										 Map<String, BodyToken> attrs, BodyToken cmdStartToken,
-										 boolean require, Float min, Float max)
+										 boolean require, @Nullable Float min, @Nullable Float max)
 			throws LineNumberParseException {
 		String s = readPlainTextAttr(name, attrs, cmdStartToken, require);
 		if (s == null)

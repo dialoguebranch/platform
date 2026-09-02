@@ -29,6 +29,7 @@
 package com.dialoguebranch.i18n;
 
 import nl.rrd.utils.exception.ParseException;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,7 +55,7 @@ public class TranslationParserResult {
 	 */
 	public TranslationParserResult() { }
 
-	private Map<Translatable,List<ContextTranslation>> translations = null;
+	private @Nullable Map<Translatable,List<ContextTranslation>> translations = null;
 	private List<ParseException> parseErrors = new ArrayList<>();
 	private List<String> warnings = new ArrayList<>();
 
@@ -65,7 +66,7 @@ public class TranslationParserResult {
 	 *
 	 * @return the translation map, or {@code null} if parsing failed.
 	 */
-	public Map<Translatable,List<ContextTranslation>> getTranslations() {
+	public @Nullable Map<Translatable,List<ContextTranslation>> getTranslations() {
 		return translations;
 	}
 
@@ -75,7 +76,7 @@ public class TranslationParserResult {
 	 * @param translations the translation map, or {@code null} to indicate a failed parse.
 	 */
 	public void setTranslations(
-			Map<Translatable,List<ContextTranslation>> translations) {
+			@Nullable Map<Translatable,List<ContextTranslation>> translations) {
 		this.translations = translations;
 	}
 

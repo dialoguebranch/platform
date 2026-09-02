@@ -38,6 +38,7 @@ import nl.rrd.utils.exception.LineNumberParseException;
 import nl.rrd.utils.expressions.EvaluationException;
 import nl.rrd.utils.expressions.Expression;
 import nl.rrd.utils.expressions.types.AssignExpression;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -90,7 +91,7 @@ public class SetCommand extends ExpressionCommand {
 	}
 
 	@Override
-	public Reply findReplyById(int replyId) {
+	public @Nullable Reply findReplyById(int replyId) {
 		return null;
 	}
 

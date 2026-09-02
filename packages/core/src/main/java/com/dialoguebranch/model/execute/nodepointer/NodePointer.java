@@ -29,6 +29,7 @@
 package com.dialoguebranch.model.execute.nodepointer;
 
 import com.dialoguebranch.model.execute.Node;
+import org.jspecify.annotations.Nullable;
 
 /**
  * An abstract representation of a pointer to another Node, that can either be an {@link
@@ -128,7 +129,7 @@ public abstract class NodePointer implements Cloneable {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(@Nullable Object obj) {
 		if (this == obj)
 			return true;
 		if (obj == null)

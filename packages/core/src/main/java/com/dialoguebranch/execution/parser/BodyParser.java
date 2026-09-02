@@ -34,6 +34,7 @@ import com.dialoguebranch.model.execute.VariableString;
 import com.dialoguebranch.model.execute.command.Command;
 import nl.rrd.utils.CurrentIterator;
 import nl.rrd.utils.exception.LineNumberParseException;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -180,9 +181,9 @@ public class BodyParser {
 		/** The node body parsed up to the command clause or end of tokens. */
 		public NodeBody body;
 		/** The {@link BodyToken} at which the command clause started, or {@code null}. */
-		public BodyToken cmdClauseStartToken = null;
+		public @Nullable BodyToken cmdClauseStartToken = null;
 		/** The name of the command clause that was encountered, or {@code null}. */
-		public String cmdClauseName = null;
+		public @Nullable String cmdClauseName = null;
 	}
 
 	private VariableString parseTextSegment(CurrentIterator<BodyToken> tokens) {

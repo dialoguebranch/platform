@@ -32,6 +32,7 @@ import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.Reply;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import nl.rrd.utils.expressions.EvaluationException;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
 import java.util.Set;
@@ -55,7 +56,7 @@ public abstract class Command implements Cloneable {
 	 * @param replyId the reply ID
 	 * @return the reply or null
 	 */
-	public abstract Reply findReplyById(int replyId);
+	public abstract @Nullable Reply findReplyById(int replyId);
 
 	/**
 	 * Retrieves all variable names that are read in this command and adds them to the specified

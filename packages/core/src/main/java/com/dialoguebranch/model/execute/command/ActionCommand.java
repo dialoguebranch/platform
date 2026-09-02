@@ -37,6 +37,7 @@ import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import nl.rrd.utils.CurrentIterator;
 import nl.rrd.utils.exception.LineNumberParseException;
 import nl.rrd.utils.expressions.EvaluationException;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -205,7 +206,7 @@ public class ActionCommand extends AttributesCommand {
 	}
 
 	@Override
-	public Reply findReplyById(int replyId) {
+	public @Nullable Reply findReplyById(int replyId) {
 		return null;
 	}
 

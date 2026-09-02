@@ -35,6 +35,7 @@ import com.dialoguebranch.i18n.Translator;
 import com.dialoguebranch.model.common.DialogueBranchProject;
 import com.dialoguebranch.model.common.ProjectMetaData;
 import nl.rrd.utils.i18n.I18nLanguageFinder;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
@@ -47,7 +48,7 @@ import java.util.*;
  * @author Harm op den Akker
  */
 public class ExecutableProject implements DialogueBranchProject {
-	private ProjectMetaData metaData;
+	private @Nullable ProjectMetaData metaData;
 	private Map<ResourcePointer, Dialogue> dialogues = new LinkedHashMap<>();
 	private Map<ResourcePointer, Dialogue> sourceDialogues = new LinkedHashMap<>();
 	private Map<ResourcePointer,
@@ -147,7 +148,7 @@ public class ExecutableProject implements DialogueBranchProject {
 	 * {@code null} if no metadata is associated with this project.
 	 * @return the {@link ProjectMetaData} associated with this {@link ExecutableProject}.
 	 */
-	public ProjectMetaData getMetaData() {
+	public @Nullable ProjectMetaData getMetaData() {
 		return metaData;
 	}
 
@@ -205,7 +206,7 @@ public class ExecutableProject implements DialogueBranchProject {
 	 * @param context the translation context
 	 * @return the translated dialogue or null
 	 */
-	public Dialogue getTranslatedDialogue(ResourcePointer dialogueDescription,
+	public @Nullable Dialogue getTranslatedDialogue(ResourcePointer dialogueDescription,
 	                                      TranslationContext context) {
 		Dialogue dialogue = sourceDialogues.get(dialogueDescription);
 		if (dialogue != null)
@@ -226,7 +227,7 @@ public class ExecutableProject implements DialogueBranchProject {
 		return new ArrayList<>(dialogues.keySet());
 	}
 
-	private Dialogue findSourceDialogue(String dialogueName) {
+	private @Nullable Dialogue findSourceDialogue(String dialogueName) {
 		List<ResourcePointer> matches = new ArrayList<>();
 		for (ResourcePointer description : sourceDialogues.keySet()) {
 			if (description.getDialogueName().equals(dialogueName))

@@ -37,6 +37,7 @@ import nl.rrd.utils.exception.LineNumberParseException;
 import nl.rrd.utils.expressions.EvaluationException;
 import nl.rrd.utils.expressions.Value;
 import nl.rrd.utils.json.JsonMapper;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
@@ -200,8 +201,8 @@ public class InputSetCommand extends InputCommand {
 	 * backing Dialogue Branch variable (set to {@code true} when selected) and a display label.
 	 */
 	public static class Option {
-		private String variableName = null;
-		private VariableString text = null;
+		private @Nullable String variableName = null;
+		private @Nullable VariableString text = null;
 
 		/** Creates an empty {@link Option}. */
 		public Option() {
@@ -222,7 +223,7 @@ public class InputSetCommand extends InputCommand {
 		 * Returns the name of the Dialogue Branch variable that stores whether this option was selected.
 		 * @return the variable name.
 		 */
-		public String getVariableName() {
+		public @Nullable String getVariableName() {
 			return variableName;
 		}
 
@@ -238,7 +239,7 @@ public class InputSetCommand extends InputCommand {
 		 * Returns the display label of this option as a {@link VariableString}.
 		 * @return the display label.
 		 */
-		public VariableString getText() {
+		public @Nullable VariableString getText() {
 			return text;
 		}
 

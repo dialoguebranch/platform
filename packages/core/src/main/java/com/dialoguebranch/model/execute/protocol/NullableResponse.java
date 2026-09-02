@@ -29,6 +29,7 @@
 package com.dialoguebranch.model.execute.protocol;
 
 import nl.rrd.utils.json.JsonObject;
+import org.jspecify.annotations.Nullable;
 
 /**
  * This class is used when a web service wants to return a value or {@code null}. This is to ensure
@@ -41,7 +42,7 @@ import nl.rrd.utils.json.JsonObject;
  * @param <T> the value type
  */
 public class NullableResponse<T> extends JsonObject {
-	private T value = null;
+	private @Nullable T value = null;
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
@@ -58,7 +59,7 @@ public class NullableResponse<T> extends JsonObject {
 	 *
 	 * @param value the value or {@code null}
 	 */
-	public NullableResponse(T value) {
+	public NullableResponse(@Nullable T value) {
 		this.value = value;
 	}
 
@@ -71,7 +72,7 @@ public class NullableResponse<T> extends JsonObject {
 	 *
 	 * @return the value or {@code null}
 	 */
-	public T getValue() {
+	public @Nullable T getValue() {
 		return value;
 	}
 
@@ -80,7 +81,7 @@ public class NullableResponse<T> extends JsonObject {
 	 *
 	 * @param value the value or {@code null}
 	 */
-	public void setValue(T value) {
+	public void setValue(@Nullable T value) {
 		this.value = value;
 	}
 }

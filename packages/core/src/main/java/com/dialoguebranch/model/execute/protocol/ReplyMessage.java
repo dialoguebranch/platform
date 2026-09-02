@@ -30,6 +30,7 @@ package com.dialoguebranch.model.execute.protocol;
 
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.Reply;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -64,7 +65,7 @@ public class ReplyMessage {
 	}
 
 	private int replyId;
-	private DialogueStatement statement = null;
+	private @Nullable DialogueStatement statement = null;
 	private List<DialogueAction> actions = new ArrayList<>();
 	private boolean endsDialogue = false;
 
@@ -92,7 +93,7 @@ public class ReplyMessage {
 	 *
 	 * @return the reply statement or null (default)
 	 */
-	public DialogueStatement getStatement() {
+	public @Nullable DialogueStatement getStatement() {
 		return statement;
 	}
 
@@ -102,7 +103,7 @@ public class ReplyMessage {
 	 *
 	 * @param statement the reply statement or null (default)
 	 */
-	public void setStatement(DialogueStatement statement) {
+	public void setStatement(@Nullable DialogueStatement statement) {
 		this.statement = statement;
 	}
 

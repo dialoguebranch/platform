@@ -29,6 +29,7 @@
 package com.dialoguebranch.model.execute;
 
 import com.dialoguebranch.model.common.DialogueBranchConstants;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A {@link Node} represents a single step in a {@link Dialogue} definition.
@@ -37,8 +38,8 @@ import com.dialoguebranch.model.common.DialogueBranchConstants;
  */
 public class Node {
 
-	private NodeHeader header;
-	private NodeBody body;
+	private @Nullable NodeHeader header;
+	private @Nullable NodeBody body;
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
@@ -76,8 +77,10 @@ public class Node {
 	 * @param other the {@link Node} from which to copy its contents into this {@link Node}
 	 */
 	public Node(Node other) {
-		header = new NodeHeader(other.header);
-		body = new NodeBody(other.body);
+		if (other.header != null)
+			header = new NodeHeader(other.header);
+		if (other.body != null)
+			body = new NodeBody(other.body);
 	}
 
 	// ------------------------------------------------- //
@@ -85,20 +88,22 @@ public class Node {
 	// ------------------------------------------------- //
 
 	/**
-	 * Returns the {@link NodeHeader} of this {@link Node}.
+	 * Returns the {@link NodeHeader} of this {@link Node}, or {@code null} if this node was
+	 * created without one and none has been set since.
 	 *
-	 * @return the {@link NodeHeader} of this {@link Node}.
+	 * @return the {@link NodeHeader} of this {@link Node}, or {@code null}.
 	 */
-	public NodeHeader getHeader() {
+	public @Nullable NodeHeader getHeader() {
 		return header;
 	}
 
 	/**
-	 * Returns the {@link NodeBody} of this {@link Node}.
+	 * Returns the {@link NodeBody} of this {@link Node}, or {@code null} if this node was created
+	 * without one and none has been set since.
 	 *
-	 * @return the {@link NodeBody} of this {@link Node}.
+	 * @return the {@link NodeBody} of this {@link Node}, or {@code null}.
 	 */
-	public NodeBody getBody() {
+	public @Nullable NodeBody getBody() {
 		return body;
 	}
 
@@ -137,7 +142,7 @@ public class Node {
 	 * @return the title of this {@link Node} as defined in its
 	 * corresponding {@link NodeHeader}.
 	 */
-	public String getTitle() {
+	public @Nullable String getTitle() {
 		if(header != null)
 			return header.getTitle();
 		else return null;

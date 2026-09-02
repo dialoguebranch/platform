@@ -37,6 +37,7 @@ import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import nl.rrd.utils.CurrentIterator;
 import nl.rrd.utils.exception.LineNumberParseException;
 import nl.rrd.utils.expressions.EvaluationException;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
@@ -94,7 +95,7 @@ public class RandomCommand extends AttributesCommand {
 	}
 
 	@Override
-	public Reply findReplyById(int replyId) {
+	public @Nullable Reply findReplyById(int replyId) {
 		for (Clause clause : clauses) {
 			Reply reply = clause.statement.findReplyById(replyId);
 			if (reply != null)

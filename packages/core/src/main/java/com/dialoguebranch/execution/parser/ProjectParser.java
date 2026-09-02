@@ -43,6 +43,7 @@ import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.i18n.I18nLanguageFinder;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -379,7 +380,7 @@ public class ProjectParser {
 	 * @param dlgName the dialogue name to look up.
 	 * @return the source {@link Dialogue}, or {@code null} if none could be found.
 	 */
-	private Dialogue findSourceDialogue(String dlgName) {
+	private @Nullable Dialogue findSourceDialogue(String dlgName) {
 		List<ResourcePointer> matches = new ArrayList<>();
 		for (ResourcePointer fileDescription : dialogues.keySet()) {
 			if (fileDescription.getDialogueName().equals(dlgName))

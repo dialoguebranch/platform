@@ -35,6 +35,7 @@ import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import nl.rrd.utils.exception.LineNumberParseException;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.io.LineColumnNumberReader;
+import org.jspecify.annotations.Nullable;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -222,7 +223,7 @@ public class DialogueBranchParser implements AutoCloseable {
 	 * @return the result or null
 	 * @throws IOException if a reading error occurs
 	 */
-	private ReadNodeResult readNode() throws IOException {
+	private @Nullable ReadNodeResult readNode() throws IOException {
 		ReadNodeResult result = new ReadNodeResult();
 		NodeState nodeState = new NodeState(dialogueName);
 		try {
@@ -303,7 +304,7 @@ public class DialogueBranchParser implements AutoCloseable {
 	 * @return the NodeParseException
 	 */
 	private NodeParseException createNodeParseException(
-			String nodeTitle, LineNumberParseException ex) {
+			@Nullable String nodeTitle, LineNumberParseException ex) {
 		String msg = "Error in node";
 		if (nodeTitle != null)
 			msg += " " + nodeTitle;
@@ -401,7 +402,7 @@ public class DialogueBranchParser implements AutoCloseable {
 	 * @param s the string or null
 	 * @return the content or null
 	 */
-	private String getContent(String s) {
+	private @Nullable String getContent(@Nullable String s) {
 		if (s == null)
 			return null;
 		int commentIndex = s.indexOf("//");

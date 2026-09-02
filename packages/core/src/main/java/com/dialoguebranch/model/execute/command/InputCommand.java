@@ -37,6 +37,7 @@ import com.dialoguebranch.model.execute.VariableString;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import nl.rrd.utils.CurrentIterator;
 import nl.rrd.utils.exception.LineNumberParseException;
+import org.jspecify.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -67,7 +68,7 @@ public abstract class InputCommand extends AttributesCommand {
 			TYPE_TEXT, TYPE_LONGTEXT, TYPE_NUMERIC, TYPE_SET, TYPE_TIME);
 
 	private String type;
-	private String description = null;
+	private @Nullable String description = null;
 
 	/**
 	 * Creates an {@link InputCommand} of the given {@code type}.
@@ -115,7 +116,7 @@ public abstract class InputCommand extends AttributesCommand {
 	 *
 	 * @return the description or null
 	 */
-	public String getDescription() {
+	public @Nullable String getDescription() {
 		return description;
 	}
 
@@ -126,7 +127,7 @@ public abstract class InputCommand extends AttributesCommand {
 	 *
 	 * @param description the description or null
 	 */
-	public void setDescription(String description) {
+	public void setDescription(@Nullable String description) {
 		this.description = description;
 	}
 
@@ -156,7 +157,7 @@ public abstract class InputCommand extends AttributesCommand {
 	public abstract String getStatementLog(VariableStore varStore);
 
 	@Override
-	public Reply findReplyById(int replyId) {
+	public @Nullable Reply findReplyById(int replyId) {
 		return null;
 	}
 

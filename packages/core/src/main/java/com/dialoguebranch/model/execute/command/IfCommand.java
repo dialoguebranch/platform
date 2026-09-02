@@ -40,6 +40,7 @@ import nl.rrd.utils.expressions.EvaluationException;
 import nl.rrd.utils.expressions.Expression;
 import nl.rrd.utils.expressions.Value;
 import nl.rrd.utils.expressions.types.AssignExpression;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
@@ -51,7 +52,7 @@ import java.util.*;
  */
 public class IfCommand extends ExpressionCommand {
 	private List<Clause> ifClauses = new ArrayList<>();
-	private NodeBody elseClause = null;
+	private @Nullable NodeBody elseClause = null;
 
 	/** Creates an empty {@link IfCommand} with no clauses set. */
 	public IfCommand() {
@@ -109,7 +110,7 @@ public class IfCommand extends ExpressionCommand {
 	 *
 	 * @return the else clause or null
 	 */
-	public NodeBody getElseClause() {
+	public @Nullable NodeBody getElseClause() {
 		return elseClause;
 	}
 
@@ -119,12 +120,12 @@ public class IfCommand extends ExpressionCommand {
 	 *
 	 * @param elseClause the else clause or null
 	 */
-	public void setElseClause(NodeBody elseClause) {
+	public void setElseClause(@Nullable NodeBody elseClause) {
 		this.elseClause = elseClause;
 	}
 
 	@Override
-	public Reply findReplyById(int replyId) {
+	public @Nullable Reply findReplyById(int replyId) {
 		for (Clause clause : ifClauses) {
 			Reply reply = clause.statement.findReplyById(replyId);
 			if (reply != null)

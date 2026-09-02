@@ -30,6 +30,7 @@ package com.dialoguebranch.model.execute;
 
 import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -49,7 +50,7 @@ import java.util.Set;
  */
 public class Dialogue {
 
-	private String dialogueName;
+	private @Nullable String dialogueName;
 	private Map<String, Node> nodes = new LinkedHashMap<>(); // map from lower-case node titles to nodes
 	private Set<String> speakers = new HashSet<>();
 	private Set<String> variablesNeeded = new HashSet<>();
@@ -103,7 +104,7 @@ public class Dialogue {
 	 *
 	 * @return the name of this {@link Dialogue}.
 	 */
-	public String getDialogueName() {
+	public @Nullable String getDialogueName() {
 		return this.dialogueName;
 	}
 
@@ -112,7 +113,7 @@ public class Dialogue {
 	 *
 	 * @return the starting {@link Node} for this {@link Dialogue}.
 	 */
-	public Node getStartNode() {
+	public @Nullable Node getStartNode() {
 		return nodes.get("start");
 	}
 
@@ -246,7 +247,7 @@ public class Dialogue {
 	 * @param nodeId the node ID
 	 * @return the node
 	 */
-	public Node getNodeById(String nodeId) {
+	public @Nullable Node getNodeById(String nodeId) {
 		return nodes.get(nodeId.toLowerCase());
 	}
 
