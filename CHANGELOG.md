@@ -42,6 +42,15 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Core: `dlb-core-java`'s public API now carries a machine-readable nullness contract
+  ([#95](https://github.com/dialoguebranch/platform/issues/95)). Every package is
+  [JSpecify](https://jspecify.dev) `@NullMarked` (via a new `package-info.java` per package, which
+  also adds the previously-missing package-level Javadoc), so unannotated reference types are
+  non-null by default and the genuinely-nullable getters, setters, fields and parameters are
+  marked `@Nullable` — e.g. `Reply.getStatement()`, `ProjectMetaData.getSlug()`,
+  `VariableStore.getVariable()`, `ProjectParserResult.getProject()`. Adds an `org.jspecify:jspecify`
+  dependency (annotations only, no runtime cost). Not a binary-compatible break, but downstream
+  builds with strict null analysis may surface new warnings.
 - Core: `ProjectParser` now detects orphaned nodes — a node that no reply link (internal or
   external) points to, and that isn't its own dialogue's Start node ([#105](https://github.com/dialoguebranch/platform/issues/105)).
   This can never cause a runtime error by design (a dialogue isn't required to link every node it
