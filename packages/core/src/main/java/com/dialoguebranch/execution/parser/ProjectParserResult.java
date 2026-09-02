@@ -34,6 +34,7 @@ import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.ExecutableProject;
 import com.dialoguebranch.model.execute.ResourcePointer;
 import nl.rrd.utils.exception.ParseException;
+import org.jspecify.annotations.Nullable;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -98,7 +99,7 @@ public class ProjectParserResult {
 	 *
 	 * @return the project or null
 	 */
-	public ExecutableProject getProject() {
+	public @Nullable ExecutableProject getProject() {
 		return project;
 	}
 

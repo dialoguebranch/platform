@@ -36,6 +36,7 @@ import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.xml.AbstractSimpleSAXHandler;
 import nl.rrd.utils.xml.SimpleSAXHandler;
 import nl.rrd.utils.xml.SimpleSAXParser;
+import org.jspecify.annotations.Nullable;
 import org.xml.sax.Attributes;
 
 import java.io.File;
@@ -81,7 +82,7 @@ public class ProjectMetaDataParser {
 	 *                    {@code language-map} element.
 	 * @throws ParseException if a language has no code, or two languages share a code.
 	 */
-	private static void validateLanguageMap(LanguageMap languageMap) throws ParseException {
+	private static void validateLanguageMap(@Nullable LanguageMap languageMap) throws ParseException {
 		if (languageMap == null)
 			return;
 		List<Language> languages = new ArrayList<>();

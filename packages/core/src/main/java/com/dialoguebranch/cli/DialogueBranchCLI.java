@@ -49,6 +49,7 @@ import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import nl.rrd.utils.exception.ParseException;
 import nl.rrd.utils.expressions.EvaluationException;
+import org.jspecify.annotations.Nullable;
 
 import java.io.File;
 import java.io.IOException;
@@ -507,7 +508,7 @@ public class DialogueBranchCLI {
 	 * @param scanner        the shared scanner for reading user input
 	 * @return the next {@link Node} to present, or {@code null} if the dialogue has ended
 	 */
-	private static Node advanceDialogue(ActiveDialogue activeDialogue, ExecutableProject project,
+	private static @Nullable Node advanceDialogue(ActiveDialogue activeDialogue, ExecutableProject project,
 										ResourcePointer currentPointer, NodePointer np,
 										Scanner scanner) {
 		if (np instanceof InternalNodePointer internalPointer) {
@@ -552,7 +553,7 @@ public class DialogueBranchCLI {
 	 * @return the matching {@link ResourcePointer}/{@link Dialogue} entry, or {@code null} if no
 	 *         dialogue matches both.
 	 */
-	private static Map.Entry<ResourcePointer, Dialogue> findDialogue(ExecutableProject project,
+	private static Map.@Nullable Entry<ResourcePointer, Dialogue> findDialogue(ExecutableProject project,
 																	 String language,
 																	 String dialogueName) {
 		for (Map.Entry<ResourcePointer, Dialogue> entry : project.getDialogues().entrySet()) {

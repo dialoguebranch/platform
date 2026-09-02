@@ -37,6 +37,7 @@ import com.dialoguebranch.model.execute.command.SetCommand;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import nl.rrd.utils.expressions.EvaluationException;
+import org.jspecify.annotations.Nullable;
 
 import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
@@ -61,7 +62,7 @@ public class ActiveDialogue {
 	private final Dialogue dialogueDefinition;
 
 	/** The node currently being presented to the user, or {@code null} if not yet started. */
-	private Node currentNode;
+	private @Nullable Node currentNode;
 
 	/** The variable store used to read and write Dialogue Branch variables during execution. */
 	private VariableStore variableStore;
@@ -110,7 +111,7 @@ public class ActiveDialogue {
 	 * Returns the "current node" (the current step in the active dialogue) as a {@link Node}.
 	 * @return the current step in the active dialogue as a {@link Node}
 	 */
-	public Node getCurrentNode() {
+	public @Nullable Node getCurrentNode() {
 		return currentNode;
 	}
 
@@ -178,7 +179,7 @@ public class ActiveDialogue {
 	 * @throws ExecutionException if the request is invalid
 	 * @throws EvaluationException if an expression cannot be evaluated during execution of the node
 	 */
-	public Node startDialogue(String startNodeId, ZonedDateTime eventTime)
+	public Node startDialogue(@Nullable String startNodeId, ZonedDateTime eventTime)
 			throws ExecutionException, EvaluationException {
 		Node nextNode;
 		if (startNodeId == null) {
@@ -234,7 +235,7 @@ public class ActiveDialogue {
 	 * @return the next {@link Node} that follows on the selected reply or {@code null}
 	 * @throws EvaluationException if an expression cannot be evaluated
 	 */
-	public Node progressDialogue(InternalNodePointer nodePointer, ZonedDateTime eventTime)
+	public @Nullable Node progressDialogue(InternalNodePointer nodePointer, ZonedDateTime eventTime)
 			throws EvaluationException {
 		Node nextNode = null;
 		if (!nodePointer.getTargetNodeId().equalsIgnoreCase(DialogueBranchConstants.DLB_NODE_END_ID))

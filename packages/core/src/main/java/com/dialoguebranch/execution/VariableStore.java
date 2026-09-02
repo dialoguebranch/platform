@@ -28,6 +28,8 @@
 
 package com.dialoguebranch.execution;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.ZonedDateTime;
 import java.util.*;
 
@@ -137,7 +139,7 @@ public class VariableStore {
 	 * @param name the name of the variable to retrieve.
 	 * @return the {@link Variable} with the given {@code name}, nor {@code null}.
 	 */
-	public Variable getVariable(String name) {
+	public @Nullable Variable getVariable(String name) {
 		synchronized (variables) {
 			return variables.get(name);
 		}
@@ -166,7 +168,7 @@ public class VariableStore {
 	 * @return the value of the variable, null if the variable does not exist or the variable value
 	 *         is {@code null}.
 	 */
-	public Object getValue(String variableName) {
+	public @Nullable Object getValue(String variableName) {
 		Variable variable;
 		synchronized (variables) {
 			variable = variables.get(variableName);
@@ -439,7 +441,7 @@ public class VariableStore {
 		 * @return the previous value associated with {@code key}, or {@code null} if none
 		 */
 		@Override
-		public Object put(String key, Object value) {
+		public @Nullable Object put(String key, @Nullable Object value) {
 			Object result = get(key);
 			setValue(key, value, notifyObservers, eventTime, source);
 			return result;
@@ -453,7 +455,7 @@ public class VariableStore {
 		 * @return the value that was associated with {@code key}, or {@code null} if not present
 		 */
 		@Override
-		public Object remove(Object key) {
+		public @Nullable Object remove(@Nullable Object key) {
 			Variable result = removeByName((String)key, notifyObservers, eventTime, source);
 			if(result != null) return result.getValue();
 			else return null;
@@ -533,7 +535,7 @@ public class VariableStore {
 		 * @return the variable's value, or {@code null}
 		 */
 		@Override
-		public Object get(Object key) {
+		public @Nullable Object get(@Nullable Object key) {
 			synchronized (variables) {
 				if(variables.get(key) != null) {
 					return variables.get(key).getValue();
