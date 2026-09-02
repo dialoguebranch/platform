@@ -58,6 +58,10 @@ dependencies {
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test:3.5.4'
 	testImplementation 'org.springframework.security:spring-security-test:6.4.1'
+
+	// In-memory datasource for the context-load test — the real deployment persists sessions to
+	// MariaDB, which isn't available during a plain unit-test run.
+	testRuntimeOnly 'com.h2database:h2:2.3.232'
 }
 
 test {

@@ -10,3 +10,20 @@ dlb:
     keycloak-realm: dialoguebranch
     api-base-url: http://localhost:8089/dlb-web-service
     web-service-client-id: dlb-web-service
+    # Read via @Value in SecurityConfig (session-max-age) and the server.servlet.session block
+    # in the main application.yml (session-timeout) — must be present for the context to load.
+    session-timeout: 7d
+    session-max-age: 30d
+
+# Point session storage at an in-memory H2 database instead of the MariaDB the real deployment
+# uses, so the context-load test doesn't need a running database. Overrides the dlb.bff.mariadb.*
+# derived spring.datasource block in the main application.yml wholesale.
+spring:
+  datasource:
+    url: jdbc:h2:mem:dlb-bff;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  session:
+    jdbc:
+      platform: h2
