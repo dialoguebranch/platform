@@ -76,6 +76,9 @@ javadoc {
 dependencies {
 	api "nl.rrd:rrd-utils:3.0.3"
 	api 'com.fasterxml.jackson.module:jackson-modules-java8:2.19.0'
+	// JSpecify nullness annotations (@NullMarked / @Nullable). Annotations-only, CLASS retention,
+	// no transitive deps, no runtime cost; `api` so downstream tooling can resolve the contract.
+	api 'org.jspecify:jspecify:1.0.0'
 	testImplementation 'junit:junit:4.13.2'
 	api 'org.slf4j:slf4j-api:2.0.16'
 }
