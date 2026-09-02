@@ -81,7 +81,7 @@ public class TranslatableExtractor {
 	 *         commands and replies.
 	 */
 	public List<SourceTranslatable> extractFromBody(String speaker,
-                                                    String addressee, NodeBody body) {
+													String addressee, NodeBody body) {
 		List<SourceTranslatable> result = new ArrayList<>();
 		List<NodeBody.Segment> current = new ArrayList<>();
 		for (int i = 0; i < body.getSegments().size(); i++) {

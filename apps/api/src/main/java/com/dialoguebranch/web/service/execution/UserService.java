@@ -257,7 +257,7 @@ public class UserService {
 			throw new DatabaseException("The provided sessionId for a new dialogue session is " +
 					"already in use.");
 
-        logger.info("User '{}' is starting dialogue '{}' in project '{}'",
+		logger.info("User '{}' is starting dialogue '{}' in project '{}'",
 				dialogueBranchUser.getId(), dialogueId, projectSlug);
 
 		applicationManager.validateLanguage(projectSlug, language);
@@ -350,14 +350,14 @@ public class UserService {
 	 */
 	public void cancelDialogueSession(String loggedDialogueId)
 			throws DatabaseException, IOException {
-        logger.info("User '{}' cancels dialogue with Id '{}'.",
+		logger.info("User '{}' cancels dialogue with Id '{}'.",
 				dialogueBranchUser.getId(), loggedDialogueId);
 		ServerLoggedDialogue serverLoggedDialogue =
 				loggedDialogueStore.findLoggedDialogue(loggedDialogueId);
 		if(serverLoggedDialogue != null)
 			loggedDialogueStore.setDialogueCancelled(serverLoggedDialogue);
 		else
-            logger.warn("User '{}' attempted to cancel dialogue with Id '{}', but no such " +
+			logger.warn("User '{}' attempted to cancel dialogue with Id '{}', but no such " +
 					"dialogue could be found.", dialogueBranchUser.getId(), loggedDialogueId);
 	}
 
@@ -393,7 +393,7 @@ public class UserService {
 	 *                      updated.
 	 */
 	public void updateVariablesFromExternalService(Set<String> variableNames) {
-        logger.info("Attempting to update values from external service for the following set " +
+		logger.info("Attempting to update values from external service for the following set " +
 				"of variables: {}", variableNames);
 
 		DlbProperties dlbProperties = applicationManager.getDlbProperties();
@@ -407,7 +407,7 @@ public class UserService {
 			for (String variableName : variableNames) {
 				Variable variable = variableStore.getVariable(variableName);
 				if (variable != null) {
-                    logger.info("A Dialogue Branch Variable '{}' exists for User '{}': {}",
+					logger.info("A Dialogue Branch Variable '{}' exists for User '{}': {}",
 							variableName, dialogueBranchUser.getId(), variable);
 					varsToUpdate.add(variable);
 				} else {
@@ -424,7 +424,7 @@ public class UserService {
 					+ "/v" + evs.getApiVersion()
 					+ "/variables/retrieve-updates";
 
-            logger.info("RetrieveUpdatesURL: {}", retrieveUpdatesUrl);
+			logger.info("RetrieveUpdatesURL: {}", retrieveUpdatesUrl);
 
 			LinkedMultiValueMap<String,String> allRequestParams = new LinkedMultiValueMap<>();
 			allRequestParams.put("userId", Collections.singletonList(dialogueBranchUser.getId()));
@@ -675,7 +675,7 @@ public class UserService {
 	 */
 	public List<ServerLoggedDialogue> getDialogueSessionLog(String sessionId)
 			throws IOException, DatabaseException {
-        logger.info("Getting dialogue log session data for user '{}' and sessionId '{}'.",
+		logger.info("Getting dialogue log session data for user '{}' and sessionId '{}'.",
 				dialogueBranchUser.getId(), sessionId);
 		return loggedDialogueStore.readSession(sessionId);
 	}

@@ -37,11 +37,11 @@ package com.dialoguebranch.model.common;
  */
 public interface StorageSource {
 
-    /**
-     * Returns a human-readable descriptor identifying the storage location (e.g. an absolute file
-     * path or a database URL).
-     * @return the storage descriptor.
-     */
-    String getDescriptor();
+	/**
+	 * Returns a human-readable descriptor identifying the storage location (e.g. an absolute file
+	 * path or a database URL).
+	 * @return the storage descriptor.
+	 */
+	String getDescriptor();
 
 }

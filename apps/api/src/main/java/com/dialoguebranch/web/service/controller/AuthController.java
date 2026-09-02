@@ -157,7 +157,7 @@ public class AuthController {
 		}
 
 		// Log this call to the service log
-        logger.info("POST /v{}/auth/validate", version);
+		logger.info("POST /v{}/auth/validate", version);
 
 		synchronized (AUTH_LOCK) {
 			QueryRunner.requireAuthenticatedUser();

@@ -58,91 +58,91 @@ import org.springframework.web.client.RestClient;
 @RestController
 public class ApiProxyController {
 
-    private final RestClient apiRestClient;
-    private final OAuth2AuthorizedClientManager authorizedClientManager;
+	private final RestClient apiRestClient;
+	private final OAuth2AuthorizedClientManager authorizedClientManager;
 
-    /**
-     * Instances of this class are constructed through Spring.
-     *
-     * @param apiRestClient the client used to actually call the Dialogue Branch Web Service.
-     * @param authorizedClientManager fetches (and refreshes) the current session's access token.
-     */
-    public ApiProxyController(RestClient apiRestClient, OAuth2AuthorizedClientManager authorizedClientManager) {
-        this.apiRestClient = apiRestClient;
-        this.authorizedClientManager = authorizedClientManager;
-    }
+	/**
+	 * Instances of this class are constructed through Spring.
+	 *
+	 * @param apiRestClient the client used to actually call the Dialogue Branch Web Service.
+	 * @param authorizedClientManager fetches (and refreshes) the current session's access token.
+	 */
+	public ApiProxyController(RestClient apiRestClient, OAuth2AuthorizedClientManager authorizedClientManager) {
+		this.apiRestClient = apiRestClient;
+		this.authorizedClientManager = authorizedClientManager;
+	}
 
-    /**
-     * Forwards the request to the Dialogue Branch Web Service, relaying its status code,
-     * headers (minus hop-by-hop ones), and body verbatim.
-     *
-     * @param request the incoming request.
-     * @param authentication the current session's authentication, used to look up its
-     *                       authorized client (and access token).
-     * @param body the request body, if any.
-     * @return the downstream response, relayed as-is.
-     */
-    @RequestMapping(value = "/api/**", method = {
-            RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT,
-            RequestMethod.PATCH, RequestMethod.DELETE })
-    public ResponseEntity<byte[]> proxy(HttpServletRequest request, Authentication authentication,
-                                         @RequestBody(required = false) byte[] body) {
-        String accessToken = accessTokenOrNull(authentication);
-        String contextPath = request.getContextPath() == null ? "" : request.getContextPath();
-        String downstreamPath = request.getRequestURI().substring(contextPath.length())
-                .replaceFirst("^/api", "");
+	/**
+	 * Forwards the request to the Dialogue Branch Web Service, relaying its status code,
+	 * headers (minus hop-by-hop ones), and body verbatim.
+	 *
+	 * @param request the incoming request.
+	 * @param authentication the current session's authentication, used to look up its
+	 *                       authorized client (and access token).
+	 * @param body the request body, if any.
+	 * @return the downstream response, relayed as-is.
+	 */
+	@RequestMapping(value = "/api/**", method = {
+			RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT,
+			RequestMethod.PATCH, RequestMethod.DELETE })
+	public ResponseEntity<byte[]> proxy(HttpServletRequest request, Authentication authentication,
+										 @RequestBody(required = false) byte[] body) {
+		String accessToken = accessTokenOrNull(authentication);
+		String contextPath = request.getContextPath() == null ? "" : request.getContextPath();
+		String downstreamPath = request.getRequestURI().substring(contextPath.length())
+				.replaceFirst("^/api", "");
 
-        RestClient.RequestBodySpec requestSpec = apiRestClient
-                .method(HttpMethod.valueOf(request.getMethod()))
-                .uri(uriBuilder -> {
-                    var withPath = uriBuilder.path(downstreamPath);
-                    var withQuery = request.getQueryString() != null
-                            ? withPath.query(request.getQueryString()) : withPath;
-                    return withQuery.build();
-                })
-                .headers(headers -> {
-                    String contentType = request.getHeader(HttpHeaders.CONTENT_TYPE);
-                    if (contentType != null) headers.set(HttpHeaders.CONTENT_TYPE, contentType);
-                    String accept = request.getHeader(HttpHeaders.ACCEPT);
-                    if (accept != null) headers.set(HttpHeaders.ACCEPT, accept);
-                    if (accessToken != null) headers.setBearerAuth(accessToken);
-                });
+		RestClient.RequestBodySpec requestSpec = apiRestClient
+				.method(HttpMethod.valueOf(request.getMethod()))
+				.uri(uriBuilder -> {
+					var withPath = uriBuilder.path(downstreamPath);
+					var withQuery = request.getQueryString() != null
+							? withPath.query(request.getQueryString()) : withPath;
+					return withQuery.build();
+				})
+				.headers(headers -> {
+					String contentType = request.getHeader(HttpHeaders.CONTENT_TYPE);
+					if (contentType != null) headers.set(HttpHeaders.CONTENT_TYPE, contentType);
+					String accept = request.getHeader(HttpHeaders.ACCEPT);
+					if (accept != null) headers.set(HttpHeaders.ACCEPT, accept);
+					if (accessToken != null) headers.setBearerAuth(accessToken);
+				});
 
-        RestClient.RequestHeadersSpec<?> finalSpec =
-                (body != null && body.length > 0) ? requestSpec.body(body) : requestSpec;
+		RestClient.RequestHeadersSpec<?> finalSpec =
+				(body != null && body.length > 0) ? requestSpec.body(body) : requestSpec;
 
-        return finalSpec.exchange((clientRequest, downstreamResponse) -> {
-            HttpHeaders responseHeaders = new HttpHeaders();
-            responseHeaders.addAll(downstreamResponse.getHeaders());
-            responseHeaders.remove(HttpHeaders.TRANSFER_ENCODING);
-            responseHeaders.remove(HttpHeaders.CONNECTION);
-            return ResponseEntity.status(downstreamResponse.getStatusCode())
-                    .headers(responseHeaders)
-                    .body(downstreamResponse.getBody().readAllBytes());
-        });
-    }
+		return finalSpec.exchange((clientRequest, downstreamResponse) -> {
+			HttpHeaders responseHeaders = new HttpHeaders();
+			responseHeaders.addAll(downstreamResponse.getHeaders());
+			responseHeaders.remove(HttpHeaders.TRANSFER_ENCODING);
+			responseHeaders.remove(HttpHeaders.CONNECTION);
+			return ResponseEntity.status(downstreamResponse.getStatusCode())
+					.headers(responseHeaders)
+					.body(downstreamResponse.getBody().readAllBytes());
+		});
+	}
 
-    /**
-     * @param authentication the current request's authentication — an {@link
-     *                        AnonymousAuthenticationToken} for the one {@code permitAll} path
-     *                        this controller serves (see the class Javadoc), a real OAuth2
-     *                        authentication for every other, authenticated-only path.
-     * @return the session's access token, or {@code null} for an anonymous request to the public
-     * path.
-     */
-    private String accessTokenOrNull(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()
-                || authentication instanceof AnonymousAuthenticationToken) {
-            return null;
-        }
-        OAuth2AuthorizeRequest authorizeRequest = OAuth2AuthorizeRequest
-                .withClientRegistrationId("keycloak")
-                .principal(authentication)
-                .build();
-        OAuth2AuthorizedClient authorizedClient = authorizedClientManager.authorize(authorizeRequest);
-        if (authorizedClient == null) {
-            throw new IllegalStateException("No authorized client for the current session");
-        }
-        return authorizedClient.getAccessToken().getTokenValue();
-    }
+	/**
+	 * @param authentication the current request's authentication — an {@link
+	 *                        AnonymousAuthenticationToken} for the one {@code permitAll} path
+	 *                        this controller serves (see the class Javadoc), a real OAuth2
+	 *                        authentication for every other, authenticated-only path.
+	 * @return the session's access token, or {@code null} for an anonymous request to the public
+	 * path.
+	 */
+	private String accessTokenOrNull(Authentication authentication) {
+		if (authentication == null || !authentication.isAuthenticated()
+				|| authentication instanceof AnonymousAuthenticationToken) {
+			return null;
+		}
+		OAuth2AuthorizeRequest authorizeRequest = OAuth2AuthorizeRequest
+				.withClientRegistrationId("keycloak")
+				.principal(authentication)
+				.build();
+		OAuth2AuthorizedClient authorizedClient = authorizedClientManager.authorize(authorizeRequest);
+		if (authorizedClient == null) {
+			throw new IllegalStateException("No authorized client for the current session");
+		}
+		return authorizedClient.getAccessToken().getTokenValue();
+	}
 }

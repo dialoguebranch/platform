@@ -65,7 +65,7 @@ public abstract class AttributesCommand extends Command {
 	 * @throws LineNumberParseException if a parsing error occurs
 	 */
 	protected static Map<String, BodyToken> parseAttributesCommand(
-            BodyToken cmdStartToken, CurrentIterator<BodyToken> tokens)
+			BodyToken cmdStartToken, CurrentIterator<BodyToken> tokens)
 			throws LineNumberParseException {
 		Map<String, BodyToken> result = new LinkedHashMap<>();
 		boolean first = true;
@@ -144,8 +144,8 @@ public abstract class AttributesCommand extends Command {
 	 * @throws LineNumberParseException if the attribute is required but absent.
 	 */
 	protected static VariableString readAttr(String name,
-                                             Map<String, BodyToken> attrs, BodyToken cmdStartToken,
-                                             boolean require) throws LineNumberParseException {
+											 Map<String, BodyToken> attrs, BodyToken cmdStartToken,
+											 boolean require) throws LineNumberParseException {
 		if (!attrs.containsKey(name)) {
 			if (!require)
 				return null;
@@ -169,8 +169,8 @@ public abstract class AttributesCommand extends Command {
 	 *         contains variable references.
 	 */
 	protected static String readPlainTextAttr(String name,
-                                              Map<String, BodyToken> attrs, BodyToken cmdStartToken,
-                                              boolean require) throws LineNumberParseException {
+											  Map<String, BodyToken> attrs, BodyToken cmdStartToken,
+											  boolean require) throws LineNumberParseException {
 		VariableString varStr = readAttr(name, attrs, cmdStartToken,
 				require);
 		if (varStr == null)
@@ -196,8 +196,8 @@ public abstract class AttributesCommand extends Command {
 	 * @throws LineNumberParseException if the value is not a single variable reference.
 	 */
 	protected static String readVariableAttr(String name,
-                                             Map<String, BodyToken> attrs, BodyToken cmdStartToken,
-                                             boolean require) throws LineNumberParseException {
+											 Map<String, BodyToken> attrs, BodyToken cmdStartToken,
+											 boolean require) throws LineNumberParseException {
 		VariableString varStr = readAttr(name, attrs, cmdStartToken,
 				require);
 		if (varStr == null)
@@ -229,8 +229,8 @@ public abstract class AttributesCommand extends Command {
 	 * @throws LineNumberParseException if the value is not a valid integer or is out of range.
 	 */
 	protected static Integer readIntAttr(String name,
-                                         Map<String, BodyToken> attrs, BodyToken cmdStartToken,
-                                         boolean require, Integer min, Integer max)
+										 Map<String, BodyToken> attrs, BodyToken cmdStartToken,
+										 boolean require, Integer min, Integer max)
 			throws LineNumberParseException {
 		String s = readPlainTextAttr(name, attrs, cmdStartToken, require);
 		if (s == null)
@@ -270,8 +270,8 @@ public abstract class AttributesCommand extends Command {
 	 * @throws LineNumberParseException if the value is not a valid float or is out of range.
 	 */
 	protected static Float readFloatAttr(String name,
-                                         Map<String, BodyToken> attrs, BodyToken cmdStartToken,
-                                         boolean require, Float min, Float max)
+										 Map<String, BodyToken> attrs, BodyToken cmdStartToken,
+										 boolean require, Float min, Float max)
 			throws LineNumberParseException {
 		String s = readPlainTextAttr(name, attrs, cmdStartToken, require);
 		if (s == null)
@@ -309,8 +309,8 @@ public abstract class AttributesCommand extends Command {
 	 * @throws LineNumberParseException if the value is neither {@code "true"} nor {@code "false"}.
 	 */
 	protected static Boolean readBooleanAttr(String name,
-                                             Map<String, BodyToken> attrs, BodyToken cmdStartToken,
-                                             boolean require) throws LineNumberParseException {
+											 Map<String, BodyToken> attrs, BodyToken cmdStartToken,
+											 boolean require) throws LineNumberParseException {
 
 		String s = readPlainTextAttr(name, attrs, cmdStartToken, require);
 		if (s == null)

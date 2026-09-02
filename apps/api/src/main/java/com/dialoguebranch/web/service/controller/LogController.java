@@ -131,7 +131,7 @@ public class LogController {
 	}
 
 	private List<ServerLoggedDialogue> doGetSession(String userId, String sessionId)
-            throws DatabaseException, IOException {
+			throws DatabaseException, IOException {
 
 		// Get or create a UserService for the user in the default time zone
 		UserService userService = application.getApplicationManager()

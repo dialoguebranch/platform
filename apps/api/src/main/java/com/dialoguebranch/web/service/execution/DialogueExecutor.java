@@ -93,9 +93,9 @@ public class DialogueExecutor {
 	 * @throws ExecutionException if the request is invalid.
 	 */
 	public ExecuteNodeResult startDialogue(ResourcePointer dialogueDescription,
-                                           Dialogue dialogueDefinition, String nodeId,
-                                           String sessionId, long sessionStartTime,
-                                           String projectSlug)
+										   Dialogue dialogueDefinition, String nodeId,
+										   String sessionId, long sessionStartTime,
+										   String projectSlug)
 			throws DatabaseException, IOException, ExecutionException {
 
 		ActiveDialogue dialogue = new ActiveDialogue(dialogueDescription,

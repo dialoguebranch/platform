@@ -83,7 +83,7 @@ public class Application implements ApplicationListener<ApplicationEvent> {
 	 */
 	public Application() {
 		Thread.setDefaultUncaughtExceptionHandler((t, e) ->
-                logger.error("Uncaught exception: {}", e.getMessage(), e)
+				logger.error("Uncaught exception: {}", e.getMessage(), e)
 		);
 	}
 
@@ -146,11 +146,11 @@ public class Application implements ApplicationListener<ApplicationEvent> {
 			logger.info("========== Dialogue Branch Web Service Startup Info ==========");
 
 			logger.info("=== Version: {}", dlbProperties.getVersion());
-            logger.info("=== API Version: {}", ProtocolVersion.getLatestVersion().versionName());
-            logger.info("=== Build: {}", dlbProperties.getBuildTime());
-            logger.info("=== Spring Version: {}", SpringVersion.getVersion());
-            logger.info("=== JDK Version: {}", System.getProperty("java.version"));
-            logger.info("=== Java Version: {}", JavaVersion.getJavaVersion().toString());
+			logger.info("=== API Version: {}", ProtocolVersion.getLatestVersion().versionName());
+			logger.info("=== Build: {}", dlbProperties.getBuildTime());
+			logger.info("=== Spring Version: {}", SpringVersion.getVersion());
+			logger.info("=== JDK Version: {}", System.getProperty("java.version"));
+			logger.info("=== Java Version: {}", JavaVersion.getJavaVersion().toString());
 
 			DlbProperties.Auth auth = dlbProperties.getAuth();
 			logger.info("=== Authentication: Keycloak");

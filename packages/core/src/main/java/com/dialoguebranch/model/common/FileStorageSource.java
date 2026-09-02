@@ -38,30 +38,30 @@ import java.io.File;
  */
 public class FileStorageSource implements StorageSource {
 
-    File sourceFile;
+	File sourceFile;
 
-    /**
-     * Creates a {@link FileStorageSource} that points to the given file.
-     * @param sourceFile the source file.
-     */
-    public FileStorageSource(File sourceFile) {
-        this.sourceFile = sourceFile;
-    }
+	/**
+	 * Creates a {@link FileStorageSource} that points to the given file.
+	 * @param sourceFile the source file.
+	 */
+	public FileStorageSource(File sourceFile) {
+		this.sourceFile = sourceFile;
+	}
 
-    /**
-     * Returns the source file for this {@link FileStorageSource}.
-     * @return the source file.
-     */
-    public File getSourceFile() {
-        return this.sourceFile;
-    }
+	/**
+	 * Returns the source file for this {@link FileStorageSource}.
+	 * @return the source file.
+	 */
+	public File getSourceFile() {
+		return this.sourceFile;
+	}
 
-    /**
-     * Returns the absolute path of the source file.
-     * @return the absolute file path.
-     */
-    @Override
-    public String getDescriptor() {
-        return this.sourceFile.getAbsolutePath();
-    }
+	/**
+	 * Returns the absolute path of the source file.
+	 * @return the absolute file path.
+	 */
+	@Override
+	public String getDescriptor() {
+		return this.sourceFile.getAbsolutePath();
+	}
 }

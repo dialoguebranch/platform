@@ -50,34 +50,34 @@ import org.springframework.web.client.RestClient;
 @Configuration
 public class ProxyConfig {
 
-    /**
-     * @param clientRegistrationRepository the registered OAuth2 client(s).
-     * @param authorizedClientRepository the store (HTTP session) authorized clients are read
-     *                                   from and written back to after a refresh.
-     * @return a manager that owns token refresh entirely server-side.
-     */
-    @Bean
-    public OAuth2AuthorizedClientManager authorizedClientManager(
-            ClientRegistrationRepository clientRegistrationRepository,
-            OAuth2AuthorizedClientRepository authorizedClientRepository) {
-        OAuth2AuthorizedClientProvider provider = OAuth2AuthorizedClientProviderBuilder.builder()
-                .authorizationCode()
-                .refreshToken()
-                .build();
-        DefaultOAuth2AuthorizedClientManager manager = new DefaultOAuth2AuthorizedClientManager(
-                clientRegistrationRepository, authorizedClientRepository);
-        manager.setAuthorizedClientProvider(provider);
-        return manager;
-    }
+	/**
+	 * @param clientRegistrationRepository the registered OAuth2 client(s).
+	 * @param authorizedClientRepository the store (HTTP session) authorized clients are read
+	 *                                   from and written back to after a refresh.
+	 * @return a manager that owns token refresh entirely server-side.
+	 */
+	@Bean
+	public OAuth2AuthorizedClientManager authorizedClientManager(
+			ClientRegistrationRepository clientRegistrationRepository,
+			OAuth2AuthorizedClientRepository authorizedClientRepository) {
+		OAuth2AuthorizedClientProvider provider = OAuth2AuthorizedClientProviderBuilder.builder()
+				.authorizationCode()
+				.refreshToken()
+				.build();
+		DefaultOAuth2AuthorizedClientManager manager = new DefaultOAuth2AuthorizedClientManager(
+				clientRegistrationRepository, authorizedClientRepository);
+		manager.setAuthorizedClientProvider(provider);
+		return manager;
+	}
 
-    /**
-     * @param baseUrl the internal address of the Dialogue Branch Web Service, e.g.
-     *                {@code http://localhost:8089/dlb-web-service}.
-     * @return the {@link RestClient} {@link ApiProxyController} forwards {@code /api/**} calls
-     * through.
-     */
-    @Bean
-    public RestClient apiRestClient(@Value("${dlb.bff.api-base-url}") String baseUrl) {
-        return RestClient.builder().baseUrl(baseUrl).build();
-    }
+	/**
+	 * @param baseUrl the internal address of the Dialogue Branch Web Service, e.g.
+	 *                {@code http://localhost:8089/dlb-web-service}.
+	 * @return the {@link RestClient} {@link ApiProxyController} forwards {@code /api/**} calls
+	 * through.
+	 */
+	@Bean
+	public RestClient apiRestClient(@Value("${dlb.bff.api-base-url}") String baseUrl) {
+		return RestClient.builder().baseUrl(baseUrl).build();
+	}
 }

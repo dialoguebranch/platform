@@ -76,7 +76,7 @@ public class InfoController {
 	 * without authentication and will return 4 parameters that describe the current version of the
 	 * service:
 	 *
-     * <ul>
+	 * <ul>
 	 *     <li>build - Date &amp; Time when the service was built</li>
 	 * 		<li>protocolVersion - latest supported API Protocol version</li>
 	 * 		<li>serviceVersion - software version of the service</li>

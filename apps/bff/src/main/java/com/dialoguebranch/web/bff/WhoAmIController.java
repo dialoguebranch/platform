@@ -59,62 +59,62 @@ import java.util.Map;
 @RestController
 public class WhoAmIController {
 
-    private final OAuth2AuthorizedClientManager authorizedClientManager;
-    private final String dlbWebServiceClientId;
+	private final OAuth2AuthorizedClientManager authorizedClientManager;
+	private final String dlbWebServiceClientId;
 
-    /**
-     * Instances of this class are constructed through Spring.
-     *
-     * @param authorizedClientManager fetches (and refreshes) the current session's access token.
-     * @param dlbWebServiceClientId the Keycloak client id whose roles to read out of the
-     *                              {@code resource_access} claim — {@code dlb-web-service}, kept
-     *                              configurable only so a differently-realmed deployment isn't
-     *                              stuck with the name hard-coded.
-     */
-    public WhoAmIController(
-            OAuth2AuthorizedClientManager authorizedClientManager,
-            @Value("${dlb.bff.web-service-client-id}") String dlbWebServiceClientId) {
-        this.authorizedClientManager = authorizedClientManager;
-        this.dlbWebServiceClientId = dlbWebServiceClientId;
-    }
+	/**
+	 * Instances of this class are constructed through Spring.
+	 *
+	 * @param authorizedClientManager fetches (and refreshes) the current session's access token.
+	 * @param dlbWebServiceClientId the Keycloak client id whose roles to read out of the
+	 *                              {@code resource_access} claim — {@code dlb-web-service}, kept
+	 *                              configurable only so a differently-realmed deployment isn't
+	 *                              stuck with the name hard-coded.
+	 */
+	public WhoAmIController(
+			OAuth2AuthorizedClientManager authorizedClientManager,
+			@Value("${dlb.bff.web-service-client-id}") String dlbWebServiceClientId) {
+		this.authorizedClientManager = authorizedClientManager;
+		this.dlbWebServiceClientId = dlbWebServiceClientId;
+	}
 
-    /**
-     * @param authentication the current session's authentication, used to look up its
-     *                       authorized client (and access token).
-     * @return {@code { "username": ..., "roles": [...] } }.
-     */
-    @GetMapping("/whoami")
-    public Map<String, Object> whoAmI(Authentication authentication) {
-        OAuth2AuthorizeRequest authorizeRequest = OAuth2AuthorizeRequest
-                .withClientRegistrationId("keycloak")
-                .principal(authentication)
-                .build();
-        OAuth2AuthorizedClient authorizedClient = authorizedClientManager.authorize(authorizeRequest);
-        if (authorizedClient == null) {
-            throw new IllegalStateException("No authorized client for the current session");
-        }
-        String accessTokenValue = authorizedClient.getAccessToken().getTokenValue();
+	/**
+	 * @param authentication the current session's authentication, used to look up its
+	 *                       authorized client (and access token).
+	 * @return {@code { "username": ..., "roles": [...] } }.
+	 */
+	@GetMapping("/whoami")
+	public Map<String, Object> whoAmI(Authentication authentication) {
+		OAuth2AuthorizeRequest authorizeRequest = OAuth2AuthorizeRequest
+				.withClientRegistrationId("keycloak")
+				.principal(authentication)
+				.build();
+		OAuth2AuthorizedClient authorizedClient = authorizedClientManager.authorize(authorizeRequest);
+		if (authorizedClient == null) {
+			throw new IllegalStateException("No authorized client for the current session");
+		}
+		String accessTokenValue = authorizedClient.getAccessToken().getTokenValue();
 
-        JWTClaimsSet claims;
-        try {
-            claims = JWTParser.parse(accessTokenValue).getJWTClaimsSet();
-        } catch (ParseException e) {
-            throw new IllegalStateException("Could not parse the session's access token", e);
-        }
+		JWTClaimsSet claims;
+		try {
+			claims = JWTParser.parse(accessTokenValue).getJWTClaimsSet();
+		} catch (ParseException e) {
+			throw new IllegalStateException("Could not parse the session's access token", e);
+		}
 
-        Object usernameClaim = claims.getClaim("preferred_username");
-        String username = usernameClaim == null ? "" : usernameClaim.toString();
+		Object usernameClaim = claims.getClaim("preferred_username");
+		String username = usernameClaim == null ? "" : usernameClaim.toString();
 
-        List<String> roles = List.of();
-        Object resourceAccess = claims.getClaim("resource_access");
-        if (resourceAccess instanceof Map<?, ?> resourceAccessMap) {
-            Object clientEntry = resourceAccessMap.get(dlbWebServiceClientId);
-            if (clientEntry instanceof Map<?, ?> clientEntryMap
-                    && clientEntryMap.get("roles") instanceof List<?> rawRoles) {
-                roles = rawRoles.stream().map(String::valueOf).toList();
-            }
-        }
+		List<String> roles = List.of();
+		Object resourceAccess = claims.getClaim("resource_access");
+		if (resourceAccess instanceof Map<?, ?> resourceAccessMap) {
+			Object clientEntry = resourceAccessMap.get(dlbWebServiceClientId);
+			if (clientEntry instanceof Map<?, ?> clientEntryMap
+					&& clientEntryMap.get("roles") instanceof List<?> rawRoles) {
+				roles = rawRoles.stream().map(String::valueOf).toList();
+			}
+		}
 
-        return Map.of("username", username, "roles", roles);
-    }
+		return Map.of("username", username, "roles", roles);
+	}
 }

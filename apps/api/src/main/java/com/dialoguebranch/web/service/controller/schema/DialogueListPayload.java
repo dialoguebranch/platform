@@ -41,60 +41,60 @@ import java.util.Arrays;
  */
 public class DialogueListPayload extends JsonObject {
 
-    @Schema(description = "A list of dialogue names, supported by the web service",
-            example = "[dialogue1,dialogue2]")
-    private String[] dialogueNames;
+	@Schema(description = "A list of dialogue names, supported by the web service",
+			example = "[dialogue1,dialogue2]")
+	private String[] dialogueNames;
 
-    // -------------------------------------------------------- //
-    // -------------------- Constructor(s) -------------------- //
-    // -------------------------------------------------------- //
+	// -------------------------------------------------------- //
+	// -------------------- Constructor(s) -------------------- //
+	// -------------------------------------------------------- //
 
-    /**
-     * Creates an empty instance of a {@link DialogueListPayload} object.
-     */
-    public DialogueListPayload() { }
+	/**
+	 * Creates an empty instance of a {@link DialogueListPayload} object.
+	 */
+	public DialogueListPayload() { }
 
-    /**
-     * Creates an instance of a {@link DialogueListPayload} object with a given array of {@code
-     * dialogueNames}.
-     *
-     * @param dialogueNames an array of dialogue names as a {@code String[]}.
-     */
-    public DialogueListPayload(String[] dialogueNames) {
-        this.dialogueNames = sortDialogueNames(dialogueNames);
-    }
+	/**
+	 * Creates an instance of a {@link DialogueListPayload} object with a given array of {@code
+	 * dialogueNames}.
+	 *
+	 * @param dialogueNames an array of dialogue names as a {@code String[]}.
+	 */
+	public DialogueListPayload(String[] dialogueNames) {
+		this.dialogueNames = sortDialogueNames(dialogueNames);
+	}
 
-    // ----------------------------------------------------------- //
-    // -------------------- Getters & Setters -------------------- //
-    // ----------------------------------------------------------- //
+	// ----------------------------------------------------------- //
+	// -------------------- Getters & Setters -------------------- //
+	// ----------------------------------------------------------- //
 
-    /**
-     * Returns an array of dialogue names in this {@link DialogueListPayload}.
-     * @return an array of dialogue names in this {@link DialogueListPayload}.
-     */
-    public String[] getDialogueNames() {
-        return dialogueNames;
-    }
+	/**
+	 * Returns an array of dialogue names in this {@link DialogueListPayload}.
+	 * @return an array of dialogue names in this {@link DialogueListPayload}.
+	 */
+	public String[] getDialogueNames() {
+		return dialogueNames;
+	}
 
-    /**
-     * Sets the array of dialogue names in this {@link DialogueListPayload}.
-     * @param dialogueNames the array of dialogue names in this {@link DialogueListPayload}.
-     */
-    public void setDialogueNames(String[] dialogueNames) {
-        this.dialogueNames = sortDialogueNames(dialogueNames);
-    }
+	/**
+	 * Sets the array of dialogue names in this {@link DialogueListPayload}.
+	 * @param dialogueNames the array of dialogue names in this {@link DialogueListPayload}.
+	 */
+	public void setDialogueNames(String[] dialogueNames) {
+		this.dialogueNames = sortDialogueNames(dialogueNames);
+	}
 
-    /**
-     * Takes a String array of dialogue names and returns a new array sorted "folders first" (see
-     * {@link DialogueNameComparator}). The input array is not modified.
-     *
-     * @param dialogueNames the list of dialogue names to sort.
-     * @return a new, sorted array of dialogue names.
-     */
-    private String[] sortDialogueNames(String[] dialogueNames) {
-        String[] sorted = dialogueNames.clone();
-        Arrays.sort(sorted, DialogueNameComparator.FOLDERS_FIRST);
-        return sorted;
-    }
+	/**
+	 * Takes a String array of dialogue names and returns a new array sorted "folders first" (see
+	 * {@link DialogueNameComparator}). The input array is not modified.
+	 *
+	 * @param dialogueNames the list of dialogue names to sort.
+	 * @return a new, sorted array of dialogue names.
+	 */
+	private String[] sortDialogueNames(String[] dialogueNames) {
+		String[] sorted = dialogueNames.clone();
+		Arrays.sort(sorted, DialogueNameComparator.FOLDERS_FIRST);
+		return sorted;
+	}
 
 }

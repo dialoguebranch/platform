@@ -39,37 +39,37 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
  */
 class DialogueListPayloadTest {
 
-    @Test
-    void foldersSortBeforeLooseDialoguesAtEveryLevel() {
-        String[] input = {
-                "zebra", "intro/welcome", "apple", "intro/setup",
-                "intro/deep/first", "banana", "intro/deep/second",
-        };
-        String[] expected = {
-                "intro/deep/first", "intro/deep/second", "intro/setup", "intro/welcome",
-                "apple", "banana", "zebra",
-        };
-        assertArrayEquals(expected, new DialogueListPayload(input).getDialogueNames());
-    }
+	@Test
+	void foldersSortBeforeLooseDialoguesAtEveryLevel() {
+		String[] input = {
+				"zebra", "intro/welcome", "apple", "intro/setup",
+				"intro/deep/first", "banana", "intro/deep/second",
+		};
+		String[] expected = {
+				"intro/deep/first", "intro/deep/second", "intro/setup", "intro/welcome",
+				"apple", "banana", "zebra",
+		};
+		assertArrayEquals(expected, new DialogueListPayload(input).getDialogueNames());
+	}
 
-    @Test
-    void plainAlphabeticalWhenThereAreNoFolders() {
-        String[] input = { "gamma", "alpha", "Beta" };
-        String[] expected = { "alpha", "Beta", "gamma" };
-        assertArrayEquals(expected, new DialogueListPayload(input).getDialogueNames());
-    }
+	@Test
+	void plainAlphabeticalWhenThereAreNoFolders() {
+		String[] input = { "gamma", "alpha", "Beta" };
+		String[] expected = { "alpha", "Beta", "gamma" };
+		assertArrayEquals(expected, new DialogueListPayload(input).getDialogueNames());
+	}
 
-    @Test
-    void orderingWithinAFolderIsCaseInsensitive() {
-        String[] input = { "menu/zeta", "menu/Alpha" };
-        String[] expected = { "menu/Alpha", "menu/zeta" };
-        assertArrayEquals(expected, new DialogueListPayload(input).getDialogueNames());
-    }
+	@Test
+	void orderingWithinAFolderIsCaseInsensitive() {
+		String[] input = { "menu/zeta", "menu/Alpha" };
+		String[] expected = { "menu/Alpha", "menu/zeta" };
+		assertArrayEquals(expected, new DialogueListPayload(input).getDialogueNames());
+	}
 
-    @Test
-    void doesNotMutateTheCallerArray() {
-        String[] input = { "b", "a" };
-        new DialogueListPayload(input);
-        assertArrayEquals(new String[] { "b", "a" }, input);
-    }
+	@Test
+	void doesNotMutateTheCallerArray() {
+		String[] input = { "b", "a" };
+		new DialogueListPayload(input);
+		assertArrayEquals(new String[] { "b", "a" }, input);
+	}
 }

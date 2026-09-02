@@ -106,8 +106,8 @@ public class VariableString {
 		if (!segments.isEmpty())
 			lastSegment = segments.get(segments.size() - 1);
 		if (lastSegment instanceof TextSegment lastTextSegment &&
-                segment instanceof TextSegment textSegment) {
-            TextSegment mergedSegment = new TextSegment(lastTextSegment.text + textSegment.text);
+				segment instanceof TextSegment textSegment) {
+			TextSegment mergedSegment = new TextSegment(lastTextSegment.text + textSegment.text);
 			segments.remove(segments.size() - 1);
 			segments.add(mergedSegment);
 		} else {
@@ -175,7 +175,7 @@ public class VariableString {
 		for (Segment segment : segments) {
 			if (!(segment instanceof VariableSegment variableSegment))
 				continue;
-            variableNames.add(variableSegment.variableName);
+			variableNames.add(variableSegment.variableName);
 		}
 	}
 
@@ -190,7 +190,7 @@ public class VariableString {
 		for (Segment segment : segments) {
 			if (!(segment instanceof TextSegment textSegment))
 				return true;
-            if (!textSegment.text.trim().isEmpty())
+			if (!textSegment.text.trim().isEmpty())
 				return true;
 		}
 		return false;
@@ -227,7 +227,7 @@ public class VariableString {
 			Segment segment = segments.get(0);
 			if (!(segment instanceof TextSegment textSegment))
 				return;
-            String content = textSegment.getText().replaceAll("^\\s+", "");
+			String content = textSegment.getText().replaceAll("^\\s+", "");
 			textSegment.setText(content);
 			if (!content.isEmpty())
 				return;
@@ -244,7 +244,7 @@ public class VariableString {
 			Segment segment = segments.get(segments.size() - 1);
 			if (!(segment instanceof TextSegment textSegment))
 				return;
-            String content = textSegment.getText().replaceAll("\\s+$", "");
+			String content = textSegment.getText().replaceAll("\\s+$", "");
 			textSegment.setText(content);
 			if (!content.isEmpty())
 				return;

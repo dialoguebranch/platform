@@ -34,44 +34,44 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @ActiveProfiles("test")
 class DialogueProgressPersistenceTest {
 
-    @Autowired
-    private Application application;
+	@Autowired
+	private Application application;
 
-    @Autowired
-    private ProjectService projectService;
+	@Autowired
+	private ProjectService projectService;
 
-    @Autowired
-    private DraftDialogueService draftDialogueService;
+	@Autowired
+	private DraftDialogueService draftDialogueService;
 
-    @Autowired
-    private PublishService publishService;
+	@Autowired
+	private PublishService publishService;
 
-    @Test
-    void reconstructingDialogueStateAfterStartDoesNotThrowLazyInitializationException()
-            throws Exception {
-        String projectSlug = "progress-persistence-test-" + UUID.randomUUID();
-        DBProject project = projectService.createProject(
-                projectSlug, "Progress Persistence Test", "", "en", "English");
-        DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "main");
-        draftDialogueService.createNode(dialogue, "Farewell",
-                "title: Farewell\nspeaker: Agent\nposition: 100,100", "Goodbye.");
-        draftDialogueService.createNode(dialogue, "Start",
-                "title: Start\nspeaker: Agent\nposition: 0,0", "Hello.\n\n[[Continue|Farewell]]");
-        PublishService.PublishResult publish = publishService.publish(project, null);
-        assertTrue(publish.isSuccess(), "publish failed: " + publish.getErrors());
+	@Test
+	void reconstructingDialogueStateAfterStartDoesNotThrowLazyInitializationException()
+			throws Exception {
+		String projectSlug = "progress-persistence-test-" + UUID.randomUUID();
+		DBProject project = projectService.createProject(
+				projectSlug, "Progress Persistence Test", "", "en", "English");
+		DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "main");
+		draftDialogueService.createNode(dialogue, "Farewell",
+				"title: Farewell\nspeaker: Agent\nposition: 100,100", "Goodbye.");
+		draftDialogueService.createNode(dialogue, "Start",
+				"title: Start\nspeaker: Agent\nposition: 0,0", "Hello.\n\n[[Continue|Farewell]]");
+		PublishService.PublishResult publish = publishService.publish(project, null);
+		assertTrue(publish.isSuccess(), "publish failed: " + publish.getErrors());
 
-        ApplicationManager applicationManager = application.getApplicationManager();
-        String userId = "progress-persistence-test-user-" + UUID.randomUUID();
-        UserService userService = applicationManager.getOrCreateActiveUserService(userId);
+		ApplicationManager applicationManager = application.getApplicationManager();
+		String userId = "progress-persistence-test-user-" + UUID.randomUUID();
+		UserService userService = applicationManager.getOrCreateActiveUserService(userId);
 
-        ExecuteNodeResult startResult = userService.startDialogueSession(projectSlug, "main", null,
-                "en", "session-" + UUID.randomUUID(), System.currentTimeMillis());
-        String loggedDialogueId = startResult.loggedDialogue().getId();
+		ExecuteNodeResult startResult = userService.startDialogueSession(projectSlug, "main", null,
+				"en", "session-" + UUID.randomUUID(), System.currentTimeMillis());
+		String loggedDialogueId = startResult.loggedDialogue().getId();
 
-        // Mirrors what /dialogue/progress and /dialogue/continue do: reload the logged dialogue
-        // from storage (a fresh read, in a new transaction) to reconstruct its DialogueState.
-        DialogueState state = userService.getDialogueState(loggedDialogueId, 0);
-        assertNotNull(state);
-    }
+		// Mirrors what /dialogue/progress and /dialogue/continue do: reload the logged dialogue
+		// from storage (a fresh read, in a new transaction) to reconstruct its DialogueState.
+		DialogueState state = userService.getDialogueState(loggedDialogueId, 0);
+		assertNotNull(state);
+	}
 
 }

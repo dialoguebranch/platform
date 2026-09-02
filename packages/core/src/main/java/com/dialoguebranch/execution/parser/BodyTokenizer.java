@@ -244,7 +244,7 @@ public class BodyTokenizer {
 	}
 
 	private VariableString readQuotedString(String line, int lineNum, int start,
-                                            ReferenceParameter<Integer> end)
+											ReferenceParameter<Integer> end)
 			throws LineNumberParseException {
 		VariableString result = new VariableString();
 		StringBuilder textBuffer = new StringBuilder();

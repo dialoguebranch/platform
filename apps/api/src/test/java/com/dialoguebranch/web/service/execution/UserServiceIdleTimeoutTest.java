@@ -23,51 +23,51 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 @ActiveProfiles("test")
 class UserServiceIdleTimeoutTest {
 
-    @Autowired
-    private Application application;
+	@Autowired
+	private Application application;
 
-    @Test
-    void recentlyActiveUserServiceIsNotEvicted() throws Exception {
-        ApplicationManager applicationManager = application.getApplicationManager();
-        String userId = "idle-timeout-test-user-" + UUID.randomUUID();
-        applicationManager.getOrCreateActiveUserService(userId);
+	@Test
+	void recentlyActiveUserServiceIsNotEvicted() throws Exception {
+		ApplicationManager applicationManager = application.getApplicationManager();
+		String userId = "idle-timeout-test-user-" + UUID.randomUUID();
+		applicationManager.getOrCreateActiveUserService(userId);
 
-        // Not asserting on the returned count: other tests sharing this Spring context may have
-        // left their own long-idle UserServices behind for this sweep to legitimately evict.
-        applicationManager.removeIdleUserServices(TimeUnit.HOURS.toMillis(1));
+		// Not asserting on the returned count: other tests sharing this Spring context may have
+		// left their own long-idle UserServices behind for this sweep to legitimately evict.
+		applicationManager.removeIdleUserServices(TimeUnit.HOURS.toMillis(1));
 
-        assertNotNull(applicationManager.getActiveUserService(userId),
-                "a UserService created moments ago should not be evicted by a 1-hour idle timeout");
-    }
+		assertNotNull(applicationManager.getActiveUserService(userId),
+				"a UserService created moments ago should not be evicted by a 1-hour idle timeout");
+	}
 
-    @Test
-    void idleUserServiceIsEvicted() throws Exception {
-        ApplicationManager applicationManager = application.getApplicationManager();
-        String userId = "idle-timeout-test-user-" + UUID.randomUUID();
-        applicationManager.getOrCreateActiveUserService(userId);
+	@Test
+	void idleUserServiceIsEvicted() throws Exception {
+		ApplicationManager applicationManager = application.getApplicationManager();
+		String userId = "idle-timeout-test-user-" + UUID.randomUUID();
+		applicationManager.getOrCreateActiveUserService(userId);
 
-        // A negative timeout makes the cutoff later than "now", so even a UserService whose
-        // activity was just recorded counts as idle — evicts deterministically without needing to
-        // sleep the test thread.
-        applicationManager.removeIdleUserServices(-1);
+		// A negative timeout makes the cutoff later than "now", so even a UserService whose
+		// activity was just recorded counts as idle — evicts deterministically without needing to
+		// sleep the test thread.
+		applicationManager.removeIdleUserServices(-1);
 
-        assertNull(applicationManager.getActiveUserService(userId),
-                "a UserService should be evicted once its last activity predates the cutoff");
-    }
+		assertNull(applicationManager.getActiveUserService(userId),
+				"a UserService should be evicted once its last activity predates the cutoff");
+	}
 
-    @Test
-    void lookupResetsTheIdleTimer() throws Exception {
-        ApplicationManager applicationManager = application.getApplicationManager();
-        String userId = "idle-timeout-test-user-" + UUID.randomUUID();
-        applicationManager.getOrCreateActiveUserService(userId);
+	@Test
+	void lookupResetsTheIdleTimer() throws Exception {
+		ApplicationManager applicationManager = application.getApplicationManager();
+		String userId = "idle-timeout-test-user-" + UUID.randomUUID();
+		applicationManager.getOrCreateActiveUserService(userId);
 
-        // Resolving the UserService again should record fresh activity, so a subsequent eviction
-        // pass with a real (non-negative) timeout must not remove it.
-        applicationManager.getActiveUserService(userId);
-        applicationManager.removeIdleUserServices(TimeUnit.HOURS.toMillis(1));
+		// Resolving the UserService again should record fresh activity, so a subsequent eviction
+		// pass with a real (non-negative) timeout must not remove it.
+		applicationManager.getActiveUserService(userId);
+		applicationManager.removeIdleUserServices(TimeUnit.HOURS.toMillis(1));
 
-        assertNotNull(applicationManager.getActiveUserService(userId),
-                "resolving a UserService should reset its idle timer");
-    }
+		assertNotNull(applicationManager.getActiveUserService(userId),
+				"resolving a UserService should reset its idle timer");
+	}
 
 }

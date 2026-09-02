@@ -79,159 +79,159 @@ import java.util.concurrent.ConcurrentHashMap;
 @Configuration
 public class SecurityConfig {
 
-    private final DlbProperties dlbProperties;
+	private final DlbProperties dlbProperties;
 
-    /**
-     * Instances of this class are constructed through Spring.
-     *
-     * @param dlbProperties the bound {@code dlb.*} configuration, used for the configured CORS
-     *                      allowed origins and Keycloak connection details.
-     */
-    public SecurityConfig(DlbProperties dlbProperties) {
-        this.dlbProperties = dlbProperties;
-    }
+	/**
+	 * Instances of this class are constructed through Spring.
+	 *
+	 * @param dlbProperties the bound {@code dlb.*} configuration, used for the configured CORS
+	 *                      allowed origins and Keycloak connection details.
+	 */
+	public SecurityConfig(DlbProperties dlbProperties) {
+		this.dlbProperties = dlbProperties;
+	}
 
-    /**
-     * Configures the security filter chain for the service: stateless sessions (no server-side
-     * session state, since authentication is via bearer token on every request), CORS using
-     * {@link #corsConfigurationSource()}, CSRF protection disabled (not applicable to a
-     * stateless token-based API), a fixed set of end-points that are publicly accessible without
-     * a token, and OAuth2 JWT validation (via {@link #keycloakAuthenticationManagerResolver()})
-     * for everything else.
-     *
-     * @param http the {@link HttpSecurity} to configure.
-     * @return the configured {@link SecurityFilterChain}.
-     * @throws Exception if the security configuration cannot be built.
-     */
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+	/**
+	 * Configures the security filter chain for the service: stateless sessions (no server-side
+	 * session state, since authentication is via bearer token on every request), CORS using
+	 * {@link #corsConfigurationSource()}, CSRF protection disabled (not applicable to a
+	 * stateless token-based API), a fixed set of end-points that are publicly accessible without
+	 * a token, and OAuth2 JWT validation (via {@link #keycloakAuthenticationManagerResolver()})
+	 * for everything else.
+	 *
+	 * @param http the {@link HttpSecurity} to configure.
+	 * @return the configured {@link SecurityFilterChain}.
+	 * @throws Exception if the security configuration cannot be built.
+	 */
+	@Bean
+	public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+		http
+			.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+			.csrf(AbstractHttpConfigurer::disable)
+			.sessionManagement(session ->
+				session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-        http
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/", "/index.html",
-                    "/info/all", "/v*/info/all",
-                    "/swagger-ui/**", "/swagger-ui.html",
-                    "/v3/api-docs/**", "/api-docs/**",
-                    "/webjars/**",
-                    "/actuator/health", "/actuator/info"
-                ).permitAll()
-                .anyRequest().authenticated()
-            )
-            .oauth2ResourceServer(oauth2 -> oauth2
-                .authenticationManagerResolver(keycloakAuthenticationManagerResolver())
-            );
+		http
+			.authorizeHttpRequests(auth -> auth
+				.requestMatchers(
+					"/", "/index.html",
+					"/info/all", "/v*/info/all",
+					"/swagger-ui/**", "/swagger-ui.html",
+					"/v3/api-docs/**", "/api-docs/**",
+					"/webjars/**",
+					"/actuator/health", "/actuator/info"
+				).permitAll()
+				.anyRequest().authenticated()
+			)
+			.oauth2ResourceServer(oauth2 -> oauth2
+				.authenticationManagerResolver(keycloakAuthenticationManagerResolver())
+			);
 
-        return http.build();
-    }
+		return http.build();
+	}
 
-    /**
-     * Resolves each request's {@link AuthenticationManager} from its own JWT's {@code iss} claim,
-     * rather than validating against one fixed realm: the configured {@code dlb.auth.keycloak.realm}
-     * is trusted, and so is any realm on the same Keycloak instance named
-     * {@code <that realm>-<anything>}, a common convention for a hosting platform that provisions
-     * one Keycloak realm per client or tenant alongside its own base/admin realm. Deliberately not
-     * {@code JwtIssuerAuthenticationManagerResolver.fromTrustedIssuers(Predicate)}, which would do
-     * OIDC discovery against the token's own {@code iss} claim, letting attacker-controlled token
-     * content pick which network address this service calls out to. Instead, only the realm-name
-     * path segment is taken from the (still unverified at this point) issuer claim.
-     *
-     * <p>The realm name is extracted by matching against {@code dlb.auth.keycloak.browser-base-url},
-     * not {@code base-url}: a token's {@code iss} always reflects whichever address the browser
-     * used to reach Keycloak during login, which in a containerized deployment is typically not the
-     * same address this service itself uses to reach Keycloak internally (see
-     * {@link DlbProperties.Auth.Keycloak#getBrowserBaseUrl()}'s own Javadoc). The actual JWKS
-     * network call, by contrast, always goes to this service's own trusted {@code base-url}, with
-     * only the realm name (never a full URL) taken from the token.
-     *
-     * <p>Each per-issuer {@link NimbusJwtDecoder} validates signature, expiry and the exact issuer
-     * ({@link JwtValidators#createDefaultWithIssuer}), plus an {@link AzpClaimValidator} that
-     * matches the token's {@code azp} claim against
-     * {@link DlbProperties.Auth.Keycloak#getEffectiveTrustedClients()} — so being signed by a
-     * trusted realm is necessary but not sufficient; the token must also have been issued to a
-     * client this service is configured to trust. The single {@code AzpClaimValidator} is shared
-     * across every per-issuer decoder (the trusted-client list does not vary by realm).
-     *
-     * <p><strong>What this does not do:</strong> this service has no notion of tenant lifecycle
-     * beyond Keycloak itself, so it cannot tell a realm the hosting platform currently considers
-     * active apart from one it has deactivated elsewhere but not deleted from Keycloak. Any realm
-     * matching the naming convention above stays trusted here for as long as it exists in
-     * Keycloak. A hosting platform that needs to revoke a tenant's access to dialogue features
-     * more strictly than that should also enforce it at whatever layer of its own tracks tenant
-     * lifecycle, upstream of this service.
-     *
-     * @return the per-issuer {@link AuthenticationManagerResolver} used for OAuth2 JWT validation.
-     */
-    @Bean
-    public AuthenticationManagerResolver<HttpServletRequest> keycloakAuthenticationManagerResolver() {
-        DlbProperties.Auth.Keycloak kc = dlbProperties.getAuth().getKeycloak();
-        String internalRealmsBase = normalizeBaseUrl(kc.getBaseUrl()) + "realms/";
-        String issuerRealmsBase = normalizeBaseUrl(kc.getBrowserBaseUrl()) + "realms/";
-        String adminRealm = kc.getRealm();
-        AzpClaimValidator azpValidator = new AzpClaimValidator(kc.getEffectiveTrustedClients());
-        Map<String, AuthenticationManager> managerCache = new ConcurrentHashMap<>();
+	/**
+	 * Resolves each request's {@link AuthenticationManager} from its own JWT's {@code iss} claim,
+	 * rather than validating against one fixed realm: the configured {@code dlb.auth.keycloak.realm}
+	 * is trusted, and so is any realm on the same Keycloak instance named
+	 * {@code <that realm>-<anything>}, a common convention for a hosting platform that provisions
+	 * one Keycloak realm per client or tenant alongside its own base/admin realm. Deliberately not
+	 * {@code JwtIssuerAuthenticationManagerResolver.fromTrustedIssuers(Predicate)}, which would do
+	 * OIDC discovery against the token's own {@code iss} claim, letting attacker-controlled token
+	 * content pick which network address this service calls out to. Instead, only the realm-name
+	 * path segment is taken from the (still unverified at this point) issuer claim.
+	 *
+	 * <p>The realm name is extracted by matching against {@code dlb.auth.keycloak.browser-base-url},
+	 * not {@code base-url}: a token's {@code iss} always reflects whichever address the browser
+	 * used to reach Keycloak during login, which in a containerized deployment is typically not the
+	 * same address this service itself uses to reach Keycloak internally (see
+	 * {@link DlbProperties.Auth.Keycloak#getBrowserBaseUrl()}'s own Javadoc). The actual JWKS
+	 * network call, by contrast, always goes to this service's own trusted {@code base-url}, with
+	 * only the realm name (never a full URL) taken from the token.
+	 *
+	 * <p>Each per-issuer {@link NimbusJwtDecoder} validates signature, expiry and the exact issuer
+	 * ({@link JwtValidators#createDefaultWithIssuer}), plus an {@link AzpClaimValidator} that
+	 * matches the token's {@code azp} claim against
+	 * {@link DlbProperties.Auth.Keycloak#getEffectiveTrustedClients()} — so being signed by a
+	 * trusted realm is necessary but not sufficient; the token must also have been issued to a
+	 * client this service is configured to trust. The single {@code AzpClaimValidator} is shared
+	 * across every per-issuer decoder (the trusted-client list does not vary by realm).
+	 *
+	 * <p><strong>What this does not do:</strong> this service has no notion of tenant lifecycle
+	 * beyond Keycloak itself, so it cannot tell a realm the hosting platform currently considers
+	 * active apart from one it has deactivated elsewhere but not deleted from Keycloak. Any realm
+	 * matching the naming convention above stays trusted here for as long as it exists in
+	 * Keycloak. A hosting platform that needs to revoke a tenant's access to dialogue features
+	 * more strictly than that should also enforce it at whatever layer of its own tracks tenant
+	 * lifecycle, upstream of this service.
+	 *
+	 * @return the per-issuer {@link AuthenticationManagerResolver} used for OAuth2 JWT validation.
+	 */
+	@Bean
+	public AuthenticationManagerResolver<HttpServletRequest> keycloakAuthenticationManagerResolver() {
+		DlbProperties.Auth.Keycloak kc = dlbProperties.getAuth().getKeycloak();
+		String internalRealmsBase = normalizeBaseUrl(kc.getBaseUrl()) + "realms/";
+		String issuerRealmsBase = normalizeBaseUrl(kc.getBrowserBaseUrl()) + "realms/";
+		String adminRealm = kc.getRealm();
+		AzpClaimValidator azpValidator = new AzpClaimValidator(kc.getEffectiveTrustedClients());
+		Map<String, AuthenticationManager> managerCache = new ConcurrentHashMap<>();
 
-        return new JwtIssuerAuthenticationManagerResolver(issuer -> {
-            String realmName = extractRealmName(issuer, issuerRealmsBase);
-            if (realmName == null || !isTrustedRealm(realmName, adminRealm)) {
-                return null;
-            }
-            return managerCache.computeIfAbsent(issuer, iss -> {
-                String jwkSetUri = internalRealmsBase + realmName + "/protocol/openid-connect/certs";
-                NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
-                OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(
-                        JwtValidators.createDefaultWithIssuer(iss), azpValidator);
-                decoder.setJwtValidator(validator);
-                JwtAuthenticationProvider provider = new JwtAuthenticationProvider(decoder);
-                return (AuthenticationManager) authentication -> provider.authenticate(authentication);
-            });
-        });
-    }
+		return new JwtIssuerAuthenticationManagerResolver(issuer -> {
+			String realmName = extractRealmName(issuer, issuerRealmsBase);
+			if (realmName == null || !isTrustedRealm(realmName, adminRealm)) {
+				return null;
+			}
+			return managerCache.computeIfAbsent(issuer, iss -> {
+				String jwkSetUri = internalRealmsBase + realmName + "/protocol/openid-connect/certs";
+				NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
+				OAuth2TokenValidator<Jwt> validator = new DelegatingOAuth2TokenValidator<>(
+						JwtValidators.createDefaultWithIssuer(iss), azpValidator);
+				decoder.setJwtValidator(validator);
+				JwtAuthenticationProvider provider = new JwtAuthenticationProvider(decoder);
+				return (AuthenticationManager) authentication -> provider.authenticate(authentication);
+			});
+		});
+	}
 
-    private static String normalizeBaseUrl(String baseUrl) {
-        return baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
-    }
+	private static String normalizeBaseUrl(String baseUrl) {
+		return baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
+	}
 
-    /**
-     * Extracts the single realm-name path segment from {@code issuer} if it starts with
-     * {@code realmsBase} and names exactly one further segment (no extra {@code /}); {@code null}
-     * otherwise (issuer from an unrelated Keycloak instance, or a malformed value).
-     *
-     * <p>Package-private, not private, so {@code SecurityConfigTest} can exercise the trust
-     * decision directly without needing to construct a signed JWT and a servlet request.
-     */
-    static String extractRealmName(String issuer, String realmsBase) {
-        if (issuer == null || !issuer.startsWith(realmsBase)) {
-            return null;
-        }
-        String remainder = issuer.substring(realmsBase.length());
-        if (remainder.isEmpty() || remainder.contains("/")) {
-            return null;
-        }
-        return remainder;
-    }
+	/**
+	 * Extracts the single realm-name path segment from {@code issuer} if it starts with
+	 * {@code realmsBase} and names exactly one further segment (no extra {@code /}); {@code null}
+	 * otherwise (issuer from an unrelated Keycloak instance, or a malformed value).
+	 *
+	 * <p>Package-private, not private, so {@code SecurityConfigTest} can exercise the trust
+	 * decision directly without needing to construct a signed JWT and a servlet request.
+	 */
+	static String extractRealmName(String issuer, String realmsBase) {
+		if (issuer == null || !issuer.startsWith(realmsBase)) {
+			return null;
+		}
+		String remainder = issuer.substring(realmsBase.length());
+		if (remainder.isEmpty() || remainder.contains("/")) {
+			return null;
+		}
+		return remainder;
+	}
 
-    /** True for {@code adminRealm} itself, or any {@code <adminRealm>-<slug>} tenant realm name. */
-    static boolean isTrustedRealm(String realmName, String adminRealm) {
-        return realmName.equals(adminRealm) || realmName.startsWith(adminRealm + "-");
-    }
+	/** True for {@code adminRealm} itself, or any {@code <adminRealm>-<slug>} tenant realm name. */
+	static boolean isTrustedRealm(String realmName, String adminRealm) {
+		return realmName.equals(adminRealm) || realmName.startsWith(adminRealm + "-");
+	}
 
-    private CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(dlbProperties.getCors().getAllowedOrigins());
-        config.setAllowedMethods(List.of("GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of(
-            "Authorization", "Content-Type", "Accept", "Accept-Language",
-            "X-Requested-With", "ngrok-skip-browser-warning", "User-Agent"
-        ));
-        config.setAllowCredentials(true);
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
-    }
+	private CorsConfigurationSource corsConfigurationSource() {
+		CorsConfiguration config = new CorsConfiguration();
+		config.setAllowedOrigins(dlbProperties.getCors().getAllowedOrigins());
+		config.setAllowedMethods(List.of("GET", "HEAD", "POST", "PUT", "DELETE", "OPTIONS"));
+		config.setAllowedHeaders(List.of(
+			"Authorization", "Content-Type", "Accept", "Accept-Language",
+			"X-Requested-With", "ngrok-skip-browser-warning", "User-Agent"
+		));
+		config.setAllowCredentials(true);
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/**", config);
+		return source;
+	}
 }

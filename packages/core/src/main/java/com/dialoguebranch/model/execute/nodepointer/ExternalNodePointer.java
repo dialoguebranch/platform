@@ -230,8 +230,8 @@ public class ExternalNodePointer extends NodePointer {
 		if (!super.equals(obj))
 			return false;
 		ExternalNodePointer other = (ExternalNodePointer)obj;
-        return absoluteTargetDialogue.equals(other.getAbsoluteTargetDialogue());
-    }
+		return absoluteTargetDialogue.equals(other.getAbsoluteTargetDialogue());
+	}
 
 	@Override
 	public ExternalNodePointer clone() {

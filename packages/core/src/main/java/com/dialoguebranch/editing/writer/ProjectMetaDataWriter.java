@@ -43,62 +43,62 @@ import java.io.IOException;
  */
 public class ProjectMetaDataWriter {
 
-    /** Utility class — no instances. */
-    private ProjectMetaDataWriter() {}
+	/** Utility class — no instances. */
+	private ProjectMetaDataWriter() {}
 
-    /**
-     * Writes the given {@link ProjectMetaData} to an XML file using the supplied {@link XMLWriter}.
-     * The writer is closed when this method returns.
-     *
-     * @param writer the XML writer to write to.
-     * @param projectMetaData the project metadata to serialise.
-     * @throws IOException if a writing error occurs.
-     */
-    public static void writeToXMLFile(XMLWriter writer, ProjectMetaData projectMetaData) throws IOException {
-        writer.writeStartElement("dlb-project");
-        writer.writeAttribute("name",projectMetaData.getName());
-        if (projectMetaData.getSlug() != null) {
-            writer.writeAttribute("slug", projectMetaData.getSlug());
-        }
-        writer.writeAttribute("version",projectMetaData.getVersion());
+	/**
+	 * Writes the given {@link ProjectMetaData} to an XML file using the supplied {@link XMLWriter}.
+	 * The writer is closed when this method returns.
+	 *
+	 * @param writer the XML writer to write to.
+	 * @param projectMetaData the project metadata to serialise.
+	 * @throws IOException if a writing error occurs.
+	 */
+	public static void writeToXMLFile(XMLWriter writer, ProjectMetaData projectMetaData) throws IOException {
+		writer.writeStartElement("dlb-project");
+		writer.writeAttribute("name",projectMetaData.getName());
+		if (projectMetaData.getSlug() != null) {
+			writer.writeAttribute("slug", projectMetaData.getSlug());
+		}
+		writer.writeAttribute("version",projectMetaData.getVersion());
 
-        writer.writeStartElement("description");
-        writer.writeCharacters(projectMetaData.getDescription());
-        writer.writeEndElement(); // description
+		writer.writeStartElement("description");
+		writer.writeCharacters(projectMetaData.getDescription());
+		writer.writeEndElement(); // description
 
-        writeLanguageMapXML(writer,projectMetaData.getLanguageMap());
+		writeLanguageMapXML(writer,projectMetaData.getLanguageMap());
 
-        writer.writeEndElement(); // dlb-project
-        writer.close();
-    }
+		writer.writeEndElement(); // dlb-project
+		writer.close();
+	}
 
-    /**
-     * Writes the given {@link LanguageMap} as a {@code <language-map>} XML element containing a
-     * {@code <source-language>} child and one {@code <translation-language>} child per
-     * translation language.
-     *
-     * @param writer the XML writer to write to.
-     * @param languageMap the language map to serialise.
-     * @throws IOException if a writing error occurs.
-     */
-    public static void writeLanguageMapXML(XMLWriter writer, LanguageMap languageMap) throws IOException {
-        writer.writeStartElement("language-map");
+	/**
+	 * Writes the given {@link LanguageMap} as a {@code <language-map>} XML element containing a
+	 * {@code <source-language>} child and one {@code <translation-language>} child per
+	 * translation language.
+	 *
+	 * @param writer the XML writer to write to.
+	 * @param languageMap the language map to serialise.
+	 * @throws IOException if a writing error occurs.
+	 */
+	public static void writeLanguageMapXML(XMLWriter writer, LanguageMap languageMap) throws IOException {
+		writer.writeStartElement("language-map");
 
-        if(languageMap.getSourceLanguage() != null) {
-            writer.writeStartElement("source-language");
-            writer.writeAttribute("name",languageMap.getSourceLanguage().getName());
-            writer.writeAttribute("code",languageMap.getSourceLanguage().getCode());
-            writer.writeEndElement(); // source-language
-        }
+		if(languageMap.getSourceLanguage() != null) {
+			writer.writeStartElement("source-language");
+			writer.writeAttribute("name",languageMap.getSourceLanguage().getName());
+			writer.writeAttribute("code",languageMap.getSourceLanguage().getCode());
+			writer.writeEndElement(); // source-language
+		}
 
-        for(Language language : languageMap.getTranslationLanguages()) {
-            writer.writeStartElement("translation-language");
-            writer.writeAttribute("name",language.getName());
-            writer.writeAttribute("code",language.getCode());
-            writer.writeEndElement();
-        }
+		for(Language language : languageMap.getTranslationLanguages()) {
+			writer.writeStartElement("translation-language");
+			writer.writeAttribute("name",language.getName());
+			writer.writeAttribute("code",language.getCode());
+			writer.writeEndElement();
+		}
 
-        writer.writeEndElement(); // language-map
-    }
+		writer.writeEndElement(); // language-map
+	}
 
 }

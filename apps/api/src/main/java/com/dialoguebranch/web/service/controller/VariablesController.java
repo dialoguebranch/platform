@@ -234,7 +234,7 @@ public class VariablesController {
 	 * @throws BadRequestException in case of a malformed or unknown {@code timeZone}.
 	 */
 	private List<Variable> doGetVariables(String userId, String variableNames, String timeZone)
-            throws IOException, DatabaseException, BadRequestException {
+			throws IOException, DatabaseException, BadRequestException {
 
 		// Get or create a UserService for the user in the given time zone
 		ZoneId timeZoneId = ControllerFunctions.parseTimeZone(timeZone);
@@ -388,7 +388,7 @@ public class VariablesController {
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy - HH:mm:ss Z");
 
 		if(value == null) {
-            logger.info("Received request to remove Dialogue Branch Variable '{}' at eventTime" +
+			logger.info("Received request to remove Dialogue Branch Variable '{}' at eventTime" +
 					" '{}' in time zone '{}'", name, eventTime.format(formatter), timeZone);
 			userService.getVariableStore().removeByName(name,true,
 					eventTime, VariableUpdatedSource.WEB_SERVICE);

@@ -79,7 +79,7 @@ public class ActiveDialogue {
 	 * @param dialogueDefinition the dialogue definition
 	 */
 	public ActiveDialogue(ResourcePointer dialogueFileDescription,
-                          Dialogue dialogueDefinition) {
+						  Dialogue dialogueDefinition) {
 		this.dialogueFileDescription = dialogueFileDescription;
 		this.dialogueDefinition = dialogueDefinition;
 	}

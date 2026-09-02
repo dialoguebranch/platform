@@ -62,7 +62,7 @@ public abstract class ExpressionCommand extends Command {
 	 * @throws LineNumberParseException if a parsing error occurs
 	 */
 	protected static ReadContentResult readCommandContent(
-            BodyToken cmdStartToken, CurrentIterator<BodyToken> tokens)
+			BodyToken cmdStartToken, CurrentIterator<BodyToken> tokens)
 			throws LineNumberParseException {
 		ReadContentResult result = new ReadContentResult();
 		result.lineNum = tokens.getCurrent().getLineNumber();
@@ -111,7 +111,7 @@ public abstract class ExpressionCommand extends Command {
 	 * @throws LineNumberParseException if a parsing error occurs
 	 */
 	protected static ParseContentResult parseCommandContentName(
-            BodyToken cmdStartToken, ReadContentResult content, String name)
+			BodyToken cmdStartToken, ReadContentResult content, String name)
 			throws LineNumberParseException {
 		ParseContentResult result = parseCommandContent(cmdStartToken, content);
 		if (!result.name.equals(name)) {
@@ -138,7 +138,7 @@ public abstract class ExpressionCommand extends Command {
 	 * @throws LineNumberParseException if a parsing error occurs
 	 */
 	protected static ParseContentResult parseCommandContentExpression(
-            BodyToken cmdStartToken, ReadContentResult content, String name)
+			BodyToken cmdStartToken, ReadContentResult content, String name)
 			throws LineNumberParseException {
 		ParseContentResult result = parseCommandContent(cmdStartToken, content);
 		if (!result.name.equals(name)) {
@@ -165,7 +165,7 @@ public abstract class ExpressionCommand extends Command {
 	 * @throws LineNumberParseException if a parsing error occurs
 	 */
 	protected static ParseContentResult parseCommandContent(
-            BodyToken cmdStartToken, ReadContentResult content)
+			BodyToken cmdStartToken, ReadContentResult content)
 			throws LineNumberParseException {
 		int lineOff = content.lineNum;
 		int colOff = content.colNum;
@@ -188,9 +188,9 @@ public abstract class ExpressionCommand extends Command {
 	}
 
 	private static ParseContentResult parseCommandContent(
-            BodyToken cmdStartToken, ReadContentResult content,
-            Tokenizer tokenizer, ExpressionParser parser, int lineOff,
-            int colOff) throws LineNumberParseException, IOException {
+			BodyToken cmdStartToken, ReadContentResult content,
+			Tokenizer tokenizer, ExpressionParser parser, int lineOff,
+			int colOff) throws LineNumberParseException, IOException {
 		ParseContentResult result = new ParseContentResult();
 		Token nameToken;
 		try {

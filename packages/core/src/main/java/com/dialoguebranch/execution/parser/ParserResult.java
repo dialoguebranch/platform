@@ -43,39 +43,39 @@ import java.util.List;
  */
 public class ParserResult {
 
-    private Dialogue dialogue;
-    private final List<ParseException> parseErrors;
+	private Dialogue dialogue;
+	private final List<ParseException> parseErrors;
 
-    /**
-     * Creates an instance of an empty {@link ParserResult} object.
-     */
-    public ParserResult() {
-        parseErrors = new ArrayList<>();
-    }
+	/**
+	 * Creates an instance of an empty {@link ParserResult} object.
+	 */
+	public ParserResult() {
+		parseErrors = new ArrayList<>();
+	}
 
-    /**
-     * Returns the {@link Dialogue} that is part of this {@link ParserResult}.
-     * @return the {@link Dialogue} that is part of this {@link ParserResult}.
-     */
-    public Dialogue getDialogue() {
-        return dialogue;
-    }
+	/**
+	 * Returns the {@link Dialogue} that is part of this {@link ParserResult}.
+	 * @return the {@link Dialogue} that is part of this {@link ParserResult}.
+	 */
+	public Dialogue getDialogue() {
+		return dialogue;
+	}
 
-    /**
-     * Returns a {@link List} of {@link ParseException}s that have occurred during the parsing of
-     * the .dlb file.
-     * @return a {@link List} of {@link ParseException}s.
-     */
-    public List<ParseException> getParseErrors() {
-        return parseErrors;
-    }
+	/**
+	 * Returns a {@link List} of {@link ParseException}s that have occurred during the parsing of
+	 * the .dlb file.
+	 * @return a {@link List} of {@link ParseException}s.
+	 */
+	public List<ParseException> getParseErrors() {
+		return parseErrors;
+	}
 
-    /**
-     * Sets the {@link Dialogue} that is part of this {@link ParserResult}.
-     * @param dialogue the {@link Dialogue} that is part of this {@link ParserResult}.
-     */
-    public void setDialogue(Dialogue dialogue) {
-        this.dialogue = dialogue;
-    }
+	/**
+	 * Sets the {@link Dialogue} that is part of this {@link ParserResult}.
+	 * @param dialogue the {@link Dialogue} that is part of this {@link ParserResult}.
+	 */
+	public void setDialogue(Dialogue dialogue) {
+		this.dialogue = dialogue;
+	}
 
 }

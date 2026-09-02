@@ -28,39 +28,39 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @ActiveProfiles("test")
 class DraftExecutionServiceLanguageFallbackTest {
 
-    @Autowired
-    private Application application;
+	@Autowired
+	private Application application;
 
-    @Autowired
-    private ProjectService projectService;
+	@Autowired
+	private ProjectService projectService;
 
-    @Autowired
-    private DraftDialogueService draftDialogueService;
+	@Autowired
+	private DraftDialogueService draftDialogueService;
 
-    @Autowired
-    private DraftExecutionService draftExecutionService;
+	@Autowired
+	private DraftExecutionService draftExecutionService;
 
-    @Test
-    void requestingUntranslatedLanguageFallsBackToSourceLanguage() throws Exception {
-        DBProject project = projectService.createProject(
-                "draft-lang-fallback-" + UUID.randomUUID(), "Draft Lang Fallback", "", "en",
-                "English");
-        DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "main");
-        draftDialogueService.createNode(dialogue, "Start",
-                "title: Start\nspeaker: Agent\nposition: 0,0", "Hello.");
+	@Test
+	void requestingUntranslatedLanguageFallsBackToSourceLanguage() throws Exception {
+		DBProject project = projectService.createProject(
+				"draft-lang-fallback-" + UUID.randomUUID(), "Draft Lang Fallback", "", "en",
+				"English");
+		DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "main");
+		draftDialogueService.createNode(dialogue, "Start",
+				"title: Start\nspeaker: Agent\nposition: 0,0", "Hello.");
 
-        ApplicationManager applicationManager = application.getApplicationManager();
-        String userId = "draft-lang-fallback-user-" + UUID.randomUUID();
-        UserService userService = applicationManager.getOrCreateActiveUserService(userId);
+		ApplicationManager applicationManager = application.getApplicationManager();
+		String userId = "draft-lang-fallback-user-" + UUID.randomUUID();
+		UserService userService = applicationManager.getOrCreateActiveUserService(userId);
 
-        DraftExecutionService.StartResult result =
-                draftExecutionService.startSession(userService, project, dialogue, "nl-NL", null);
+		DraftExecutionService.StartResult result =
+				draftExecutionService.startSession(userService, project, dialogue, "nl-NL", null);
 
-        assertNotNull(result);
-        DraftTestSession session = draftExecutionService.getSession(result.sessionId());
-        assertEquals("en", session.getActiveDialogue().getDialogueFileDescription().getLanguage(),
-                "requesting a language this dialogue has no draft translation for should fall " +
-                        "back to the source language rather than failing the request");
-    }
+		assertNotNull(result);
+		DraftTestSession session = draftExecutionService.getSession(result.sessionId());
+		assertEquals("en", session.getActiveDialogue().getDialogueFileDescription().getLanguage(),
+				"requesting a language this dialogue has no draft translation for should fall " +
+						"back to the source language rather than failing the request");
+	}
 
 }

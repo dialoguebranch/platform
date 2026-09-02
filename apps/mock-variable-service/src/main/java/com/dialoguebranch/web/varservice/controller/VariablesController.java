@@ -176,7 +176,7 @@ public class VariablesController {
 		if(version == null) version = ProtocolVersion.getLatestVersion().versionName();
 
 		// Log this call to the service log
-        logger.info("POST /v{}/variables/retrieve-updates?userId={}&timeZone={} " +
+		logger.info("POST /v{}/variables/retrieve-updates?userId={}&timeZone={} " +
 				"with the following variables:", version, userId, timeZone);
 
 		// Execute the request if a userId was provided.
@@ -243,13 +243,13 @@ public class VariablesController {
 				DateTimeFormatter formatter =
 						DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss Z");
 				String readableTimeString = paramZonedDateTime.format(formatter);
-                logger.info("The Dialogue Branch Variable '{}' with value '{}' for user '{}' " +
+				logger.info("The Dialogue Branch Variable '{}' with value '{}' for user '{}' " +
 						"was last updated at '{}', which was '{}' in time zone: '{}'.",
 						parameterToUpdate.getName(), parameterToUpdate.getValue(), userId,
 						parameterToUpdate.getUpdatedTime(), readableTimeString,
 						parameterToUpdate.getUpdatedTimeZone());
 			} else {
-                logger.info("The Dialogue Branch Variable '{}' with value '{}' for user '{}' " +
+				logger.info("The Dialogue Branch Variable '{}' with value '{}' for user '{}' " +
 						"was last updated at an unknown time.", parameterToUpdate.getName(),
 						parameterToUpdate.getValue(), userId);
 			}
@@ -394,7 +394,7 @@ public class VariablesController {
 		if(version == null) version = ProtocolVersion.getLatestVersion().versionName();
 
 		// Log this call to the service log
-        logger.info("POST /v{}/variables/notify-updated?userId={}&timeZone={} " +
+		logger.info("POST /v{}/variables/notify-updated?userId={}&timeZone={} " +
 				"with the following variables:", version, userId, timeZone);
 		for(DLBVariablePayload dlbVariableResultParam : dlbVariables) {
 			logger.info(dlbVariableResultParam.toString());
@@ -435,7 +435,7 @@ public class VariablesController {
 		// Parse the timeZone String into a ZoneId to verify it was given in the right format
 		ControllerFunctions.parseTimeZone(timeZone);
 
-        logger.info("The following parameters, for user '{}' in timeZone '{}' " +
+		logger.info("The following parameters, for user '{}' in timeZone '{}' " +
 				"have been successfully updated: ", userId, timeZone);
 
 		for(DLBVariablePayload dlbVariableResultParam : params) {
@@ -500,7 +500,7 @@ public class VariablesController {
 		if(version == null) version = ProtocolVersion.getLatestVersion().versionName();
 
 		// Log this call to the service log
-        logger.info("POST /v{}/variables/notify-cleared?userId={}&timeZone={}",
+		logger.info("POST /v{}/variables/notify-cleared?userId={}&timeZone={}",
 				version, userId, timeZone);
 
 		// Execute the request if a userId was provided.
@@ -536,7 +536,7 @@ public class VariablesController {
 		// Parse the timeZone String into a ZoneId to verify it was given in the right format
 		ControllerFunctions.parseTimeZone(timeZone);
 
-        logger.info("Variable information for user '{}' in timeZone '{}' " +
+		logger.info("Variable information for user '{}' in timeZone '{}' " +
 				"was successfully cleared.", userId, timeZone);
 
 		return new ResponseEntity<ResponseEntity<?>>(HttpStatus.OK);

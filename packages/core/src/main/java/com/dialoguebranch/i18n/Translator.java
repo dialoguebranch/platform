@@ -190,7 +190,7 @@ public class Translator {
 	}
 
 	private List<ContextTranslation> filterSpeaker(
-            List<ContextTranslation> terms, String speaker) {
+			List<ContextTranslation> terms, String speaker) {
 		List<ContextTranslation> result = new ArrayList<>();
 		String speakerContext = getSpeakerContext(speaker);
 		for (ContextTranslation term : terms) {

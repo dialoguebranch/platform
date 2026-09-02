@@ -70,126 +70,126 @@ import java.util.List;
  */
 public class SpringResourceScriptLoader implements ScriptLoader {
 
-    private final String projectResourcePath;
-    private final PathMatchingResourcePatternResolver resolver;
+	private final String projectResourcePath;
+	private final PathMatchingResourcePatternResolver resolver;
 
-    // -------------------------------------------------------- //
-    // -------------------- Constructor(s) -------------------- //
-    // -------------------------------------------------------- //
+	// -------------------------------------------------------- //
+	// -------------------- Constructor(s) -------------------- //
+	// -------------------------------------------------------- //
 
-    /**
-     * Creates a {@link SpringResourceScriptLoader} for the Dialogue Branch project located at the
-     * given classpath resource path.
-     *
-     * @param projectResourcePath the classpath path of the project folder, without leading or
-     *                            trailing slash (e.g. {@code "dlb-projects/project-test"}).
-     */
-    public SpringResourceScriptLoader(String projectResourcePath) {
-        this.projectResourcePath = projectResourcePath;
-        this.resolver = new PathMatchingResourcePatternResolver(
-                getClass().getClassLoader());
-    }
+	/**
+	 * Creates a {@link SpringResourceScriptLoader} for the Dialogue Branch project located at the
+	 * given classpath resource path.
+	 *
+	 * @param projectResourcePath the classpath path of the project folder, without leading or
+	 *                            trailing slash (e.g. {@code "dlb-projects/project-test"}).
+	 */
+	public SpringResourceScriptLoader(String projectResourcePath) {
+		this.projectResourcePath = projectResourcePath;
+		this.resolver = new PathMatchingResourcePatternResolver(
+				getClass().getClassLoader());
+	}
 
-    // ------------------------------------------------------ //
-    // -------------------- ScriptLoader API ---------------- //
-    // ------------------------------------------------------ //
+	// ------------------------------------------------------ //
+	// -------------------- ScriptLoader API ---------------- //
+	// ------------------------------------------------------ //
 
-    /**
-     * Scans the classpath for all {@code *.dlb} and {@code *.json} files beneath the project
-     * resource root and returns them as {@link ResourcePointer}s. Files that do not sit inside a
-     * language sub-folder (i.e. files at the project root level) are silently skipped.
-     *
-     * @return the list of discovered dialogue and translation file descriptors.
-     * @throws IOException if the classpath scan fails.
-     */
-    @Override
-    public List<ResourcePointer> listDialogueBranchFiles() throws IOException {
-        List<ResourcePointer> result = new ArrayList<>();
+	/**
+	 * Scans the classpath for all {@code *.dlb} and {@code *.json} files beneath the project
+	 * resource root and returns them as {@link ResourcePointer}s. Files that do not sit inside a
+	 * language sub-folder (i.e. files at the project root level) are silently skipped.
+	 *
+	 * @return the list of discovered dialogue and translation file descriptors.
+	 * @throws IOException if the classpath scan fails.
+	 */
+	@Override
+	public List<ResourcePointer> listDialogueBranchFiles() throws IOException {
+		List<ResourcePointer> result = new ArrayList<>();
 
-        String dlbPattern  = "classpath*:" + projectResourcePath + "/**/*"
-                + DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION;
-        String jsonPattern = "classpath*:" + projectResourcePath + "/**/*"
-                + DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION;
+		String dlbPattern  = "classpath*:" + projectResourcePath + "/**/*"
+				+ DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION;
+		String jsonPattern = "classpath*:" + projectResourcePath + "/**/*"
+				+ DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION;
 
-        for (Resource resource : resolver.getResources(dlbPattern)) {
-            ResourcePointer fd = toScriptPointer(resource, ResourceType.SCRIPT);
-            if (fd != null) result.add(fd);
-        }
-        for (Resource resource : resolver.getResources(jsonPattern)) {
-            ResourcePointer fd = toScriptPointer(resource, ResourceType.TRANSLATION);
-            if (fd != null) result.add(fd);
-        }
+		for (Resource resource : resolver.getResources(dlbPattern)) {
+			ResourcePointer fd = toScriptPointer(resource, ResourceType.SCRIPT);
+			if (fd != null) result.add(fd);
+		}
+		for (Resource resource : resolver.getResources(jsonPattern)) {
+			ResourcePointer fd = toScriptPointer(resource, ResourceType.TRANSLATION);
+			if (fd != null) result.add(fd);
+		}
 
-        return result;
-    }
+		return result;
+	}
 
-    /**
-     * Opens the file identified by the given {@link ResourcePointer} as a {@link Reader}.
-     *
-     * @param fileDescriptor the descriptor of the file to open.
-     * @return a {@link Reader} over the file contents.
-     * @throws IOException if the resource cannot be found or opened.
-     */
-    @Override
-    public Reader openFile(ResourcePointer fileDescriptor) throws IOException {
-        String extension = fileDescriptor.getResourceType() == ResourceType.SCRIPT
-                ? DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION
-                : DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION;
-        String path = projectResourcePath + "/" + fileDescriptor.getLanguage()
-                + "/" + fileDescriptor.getDialogueName() + extension;
-        InputStream input = getClass().getClassLoader().getResourceAsStream(path);
-        if (input == null) {
-            throw new IOException("Classpath resource not found: " + path);
-        }
-        return new InputStreamReader(input, StandardCharsets.UTF_8);
-    }
+	/**
+	 * Opens the file identified by the given {@link ResourcePointer} as a {@link Reader}.
+	 *
+	 * @param fileDescriptor the descriptor of the file to open.
+	 * @return a {@link Reader} over the file contents.
+	 * @throws IOException if the resource cannot be found or opened.
+	 */
+	@Override
+	public Reader openFile(ResourcePointer fileDescriptor) throws IOException {
+		String extension = fileDescriptor.getResourceType() == ResourceType.SCRIPT
+				? DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION
+				: DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION;
+		String path = projectResourcePath + "/" + fileDescriptor.getLanguage()
+				+ "/" + fileDescriptor.getDialogueName() + extension;
+		InputStream input = getClass().getClassLoader().getResourceAsStream(path);
+		if (input == null) {
+			throw new IOException("Classpath resource not found: " + path);
+		}
+		return new InputStreamReader(input, StandardCharsets.UTF_8);
+	}
 
-    // ---------------------------------------------------------------- //
-    // -------------------- Private Helper Methods -------------------- //
-    // ---------------------------------------------------------------- //
+	// ---------------------------------------------------------------- //
+	// -------------------- Private Helper Methods -------------------- //
+	// ---------------------------------------------------------------- //
 
-    /**
-     * Derives a {@link ResourcePointer} from a Spring {@link Resource} by extracting the path
-     * segment relative to the project resource root. The first segment of that relative path is
-     * treated as the language code; the remainder is the file path within that language folder.
-     *
-     * <p>Returns {@code null} if the resource does not sit inside a language sub-folder (e.g. a
-     * file at the project root), or if the URI cannot be resolved.</p>
-     *
-     * @param resource     the Spring resource to convert.
-     * @param resourceType the type to assign ({@link ResourceType#SCRIPT} or
-     *                     {@link ResourceType#TRANSLATION}).
-     * @return the {@link ResourcePointer}, or {@code null} if it cannot be derived.
-     */
-    private ResourcePointer toScriptPointer(Resource resource, ResourceType resourceType) {
-        URI uri;
-        try {
-            uri = resource.getURI();
-        } catch (IOException e) {
-            return null;
-        }
+	/**
+	 * Derives a {@link ResourcePointer} from a Spring {@link Resource} by extracting the path
+	 * segment relative to the project resource root. The first segment of that relative path is
+	 * treated as the language code; the remainder is the file path within that language folder.
+	 *
+	 * <p>Returns {@code null} if the resource does not sit inside a language sub-folder (e.g. a
+	 * file at the project root), or if the URI cannot be resolved.</p>
+	 *
+	 * @param resource     the Spring resource to convert.
+	 * @param resourceType the type to assign ({@link ResourceType#SCRIPT} or
+	 *                     {@link ResourceType#TRANSLATION}).
+	 * @return the {@link ResourcePointer}, or {@code null} if it cannot be derived.
+	 */
+	private ResourcePointer toScriptPointer(Resource resource, ResourceType resourceType) {
+		URI uri;
+		try {
+			uri = resource.getURI();
+		} catch (IOException e) {
+			return null;
+		}
 
-        String uriString = uri.toString();
-        String marker = projectResourcePath + "/";
-        int markerIdx = uriString.lastIndexOf(marker);
-        if (markerIdx < 0) return null;
+		String uriString = uri.toString();
+		String marker = projectResourcePath + "/";
+		int markerIdx = uriString.lastIndexOf(marker);
+		if (markerIdx < 0) return null;
 
-        String relative = uriString.substring(markerIdx + marker.length());
+		String relative = uriString.substring(markerIdx + marker.length());
 
-        int slashIdx = relative.indexOf('/');
-        if (slashIdx < 0) return null; // file is at project root, not inside a language folder
+		int slashIdx = relative.indexOf('/');
+		if (slashIdx < 0) return null; // file is at project root, not inside a language folder
 
-        String language = relative.substring(0, slashIdx);
-        String filePath = relative.substring(slashIdx + 1);
+		String language = relative.substring(0, slashIdx);
+		String filePath = relative.substring(slashIdx + 1);
 
-        if (filePath.isEmpty()) return null;
+		if (filePath.isEmpty()) return null;
 
-        String extension = resourceType == ResourceType.SCRIPT
-                ? DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION
-                : DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION;
-        String dialogueName = filePath.substring(0, filePath.length() - extension.length());
+		String extension = resourceType == ResourceType.SCRIPT
+				? DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION
+				: DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION;
+		String dialogueName = filePath.substring(0, filePath.length() - extension.length());
 
-        return new ResourcePointer(language, dialogueName, resourceType);
-    }
+		return new ResourcePointer(language, dialogueName, resourceType);
+	}
 
 }

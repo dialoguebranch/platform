@@ -150,7 +150,7 @@ public class SetCommand extends ExpressionCommand {
 	}
 
 	private static void checkNoAssignment(BodyToken cmdStartToken,
-                                          Expression expression) throws LineNumberParseException {
+										  Expression expression) throws LineNumberParseException {
 		List<Expression> list = new ArrayList<>();
 		list.add(expression);
 		list.addAll(expression.getDescendants());
