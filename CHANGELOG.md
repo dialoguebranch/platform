@@ -148,6 +148,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   the forbidden-query-param check parses the query string directly; and the `HttpError` /
   `HttpFieldError` / `DialogueListPayload` DTOs drop `extends JsonObject` for a plain
   `toString()`. No REST payload, protocol, or behaviour change.
+- Core: `execution.parser.ParserResult` and `ProjectParserResult` are now constructed with their
+  required value (the parsed `Dialogue` / the `ScriptLoader`) instead of a no-arg constructor
+  plus a setter, and `ExpressionCommand`'s internal `ReadContentResult` / `ParseContentResult`
+  likewise ([#121](https://github.com/dialoguebranch/platform/issues/121)) — the fields are now
+  `final` and the `@SuppressWarnings("NullAway.Init")` markers are gone. `ParserResult()` /
+  `ParserResult.setDialogue(...)` and `ProjectParserResult()` / `setScriptLoader(...)` are
+  removed; both types are only ever handed back by the parser, never constructed by callers.
 
 ### Fixed
 

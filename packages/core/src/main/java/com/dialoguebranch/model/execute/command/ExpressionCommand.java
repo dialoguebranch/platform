@@ -66,11 +66,10 @@ public abstract class ExpressionCommand extends Command {
 	protected static ReadContentResult readCommandContent(
 			BodyToken cmdStartToken, CurrentIterator<BodyToken> tokens)
 			throws LineNumberParseException {
-		ReadContentResult result = new ReadContentResult();
 		// The iterator is positioned after the command start token by contract.
 		BodyToken contentStart = Objects.requireNonNull(tokens.getCurrent());
-		result.lineNum = contentStart.getLineNumber();
-		result.colNum = contentStart.getColNumber();
+		int lineNum = contentStart.getLineNumber();
+		int colNum = contentStart.getColNumber();
 		StringBuilder text = new StringBuilder();
 		boolean foundEnd = false;
 		while (!foundEnd && tokens.getCurrent() != null) {
@@ -86,24 +85,29 @@ public abstract class ExpressionCommand extends Command {
 			throw new LineNumberParseException("Command not terminated",
 					cmdStartToken.getLineNumber(), cmdStartToken.getColNumber());
 		}
-		result.content = text.toString();
-		return result;
+		return new ReadContentResult(text.toString(), lineNum, colNum);
 	}
 
 	/** Holds the raw text content read from a command body together with its source position. */
 	protected static class ReadContentResult {
 		/** The raw text content of the command body. */
-		public String content;
+		public final String content;
 		/** The source line number of the first content token. */
-		public int lineNum;
+		public final int lineNum;
 		/** The source column number of the first content token. */
-		public int colNum;
+		public final int colNum;
 
-		/** Creates an empty {@link ReadContentResult}. */
-		// content has no sensible default: the read helper sets it immediately after
-		// construction, before the result is returned.
-		@SuppressWarnings("NullAway.Init")
-		public ReadContentResult() {
+		/**
+		 * Creates a {@link ReadContentResult}.
+		 *
+		 * @param content the raw text content of the command body.
+		 * @param lineNum the source line number of the first content token.
+		 * @param colNum the source column number of the first content token.
+		 */
+		public ReadContentResult(String content, int lineNum, int colNum) {
+			this.content = content;
+			this.lineNum = lineNum;
+			this.colNum = colNum;
 		}
 	}
 
@@ -198,7 +202,6 @@ public abstract class ExpressionCommand extends Command {
 			BodyToken cmdStartToken, ReadContentResult content,
 			Tokenizer tokenizer, ExpressionParser parser, int lineOff,
 			int colOff) throws LineNumberParseException, IOException {
-		ParseContentResult result = new ParseContentResult();
 		Token nameToken;
 		try {
 			nameToken = tokenizer.readToken();
@@ -215,9 +218,10 @@ public abstract class ExpressionCommand extends Command {
 					nameToken.getType(), nameToken.getLineNum(),
 					nameToken.getColNum(), lineOff, colOff);
 		}
-		result.name = Objects.requireNonNull(nameToken.getValue()).toString();
+		String name = Objects.requireNonNull(nameToken.getValue()).toString();
+		@Nullable Expression expression;
 		try {
-			result.expression = parser.readExpression();
+			expression = parser.readExpression();
 		} catch (LineNumberParseException ex) {
 			throw createParseException("Invalid expression in command: " +
 					ex.getError(), ex, lineOff, colOff);
@@ -237,7 +241,7 @@ public abstract class ExpressionCommand extends Command {
 					"Unexpected content after expression in command",
 					postExprLine, postExprCol, lineOff, colOff);
 		}
-		return result;
+		return new ParseContentResult(name, expression);
 	}
 
 	private static LineNumberParseException createParseException(String message,
@@ -260,14 +264,19 @@ public abstract class ExpressionCommand extends Command {
 	/** Holds the parsed command name and optional expression extracted from a command body. */
 	protected static class ParseContentResult {
 		/** The command name token (e.g. {@code "if"}, {@code "set"}). */
-		public String name;
+		public final String name;
 		/** The expression following the command name, or {@code null} if none was present. */
-		public @Nullable Expression expression;
+		public final @Nullable Expression expression;
 
-		/** Creates an empty {@link ParseContentResult}. */
-		// name has no sensible default: the parse helper sets it before the result is returned.
-		@SuppressWarnings("NullAway.Init")
-		public ParseContentResult() {
+		/**
+		 * Creates a {@link ParseContentResult}.
+		 *
+		 * @param name the command name.
+		 * @param expression the expression following the command name, or {@code null}.
+		 */
+		public ParseContentResult(String name, @Nullable Expression expression) {
+			this.name = name;
+			this.expression = expression;
 		}
 	}
 }

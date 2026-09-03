@@ -43,17 +43,19 @@ import java.util.List;
  */
 public class ParserResult {
 
-	// setDialogue() is always called before getDialogue(); readDialogue() exposes the dialogue
-	// built so far even when there are parse errors.
-	@SuppressWarnings("NullAway.Init")
-	private Dialogue dialogue;
+	private final Dialogue dialogue;
 	private final List<ParseException> parseErrors;
 
 	/**
-	 * Creates an instance of an empty {@link ParserResult} object.
+	 * Creates a {@link ParserResult} for the given {@link Dialogue}. The dialogue holds whatever
+	 * was parsed so far and is exposed even when {@link #getParseErrors()} is non-empty (a caller
+	 * that finds parse errors must not execute or publish the dialogue).
+	 *
+	 * @param dialogue the parsed dialogue.
 	 */
-	public ParserResult() {
-		parseErrors = new ArrayList<>();
+	public ParserResult(Dialogue dialogue) {
+		this.dialogue = dialogue;
+		this.parseErrors = new ArrayList<>();
 	}
 
 	/**
@@ -71,14 +73,6 @@ public class ParserResult {
 	 */
 	public List<ParseException> getParseErrors() {
 		return parseErrors;
-	}
-
-	/**
-	 * Sets the {@link Dialogue} that is part of this {@link ParserResult}.
-	 * @param dialogue the {@link Dialogue} that is part of this {@link ParserResult}.
-	 */
-	public void setDialogue(Dialogue dialogue) {
-		this.dialogue = dialogue;
 	}
 
 }
