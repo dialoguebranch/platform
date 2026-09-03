@@ -69,11 +69,15 @@ public class DialogueBranchParser implements AutoCloseable {
 			"/?" + "((..)|(" + NODE_NAME_REGEX + ")/)*" + NODE_NAME_REGEX +
 			"\\." + NODE_NAME_REGEX;
 
+	// dialogueName and reader are set by init(...), called from every constructor.
+	@SuppressWarnings("NullAway.Init")
 	private String dialogueName;
+	@SuppressWarnings("NullAway.Init")
 	private LineColumnNumberReader reader;
 
-	private Dialogue dialogue = null;
-	private List<NodeState.NodePointerToken> nodePointerTokens = null;
+	// Per-call scratch state: non-null only for the duration of a readDialogue() call.
+	private @Nullable Dialogue dialogue = null;
+	private @Nullable List<NodeState.NodePointerToken> nodePointerTokens = null;
 
 	/**
 	 * Creates a {@link DialogueBranchParser} that reads from the file at the given path. The
@@ -184,7 +188,8 @@ public class DialogueBranchParser implements AutoCloseable {
 						"Node with title \"Start\" not found",
 						reader.getLineNum(), reader.getColNum()));
 			}
-			for (NodeState.NodePointerToken pointerToken : nodePointerTokens) {
+			for (NodeState.NodePointerToken pointerToken
+					: Objects.requireNonNull(nodePointerTokens)) {
 				if (!(pointerToken.pointer() instanceof InternalNodePointer pointer))
 					continue;
 				if (dialogue.nodeExists(pointer.getTargetNodeId()))
@@ -208,8 +213,8 @@ public class DialogueBranchParser implements AutoCloseable {
 	}
 
 	private static class ReadNodeResult {
-		public Node node = null;
-		public NodeParseException parseException = null;
+		public @Nullable Node node = null;
+		public @Nullable NodeParseException parseException = null;
 		public boolean readNodeEnd = false;
 	}
 
@@ -273,9 +278,10 @@ public class DialogueBranchParser implements AutoCloseable {
 			BodyParser bodyParser = new BodyParser(nodeState);
 			NodeBody body = bodyParser.parse(bodyTokens, Arrays.asList(
 					"action", "if", "random", "set"));
-			if (header.getTitle().equalsIgnoreCase("end"))
+			if (Objects.requireNonNull(header.getTitle()).equalsIgnoreCase("end"))
 				validateEndNode(header, body, bodyTokens);
-			nodePointerTokens.addAll(nodeState.getNodePointerTokens());
+			Objects.requireNonNull(nodePointerTokens)
+					.addAll(nodeState.getNodePointerTokens());
 			result.node = new Node(header, body);
 			return result;
 		} catch (LineNumberParseException ex) {
@@ -352,7 +358,7 @@ public class DialogueBranchParser implements AutoCloseable {
 				throw new LineNumberParseException(
 						"Invalid node title: " + value, lineNum, valueCol);
 			}
-			if (dialogue.nodeExists(value)) {
+			if (Objects.requireNonNull(dialogue).nodeExists(value)) {
 				throw new LineNumberParseException(
 						"Found duplicate node title: " + value, lineNum, valueCol);
 			}
@@ -376,7 +382,7 @@ public class DialogueBranchParser implements AutoCloseable {
 					lineNum, 1);
 		}
 		String speaker = nodeState.getSpeaker();
-		if (nodeState.getTitle().equalsIgnoreCase("end")) {
+		if (title.equalsIgnoreCase("end")) {
 			speaker = null;
 		} else {
 			if (speaker == null) {
@@ -399,12 +405,10 @@ public class DialogueBranchParser implements AutoCloseable {
 	 * not be used for body lines, because this method does not check whether a comment marker (//)
 	 * is inside a string literal.
 	 *
-	 * @param s the string or null
-	 * @return the content or null
+	 * @param s the string
+	 * @return the content
 	 */
-	private @Nullable String getContent(@Nullable String s) {
-		if (s == null)
-			return null;
+	private String getContent(String s) {
 		int commentIndex = s.indexOf("//");
 		if (commentIndex != -1)
 			s = s.substring(0, commentIndex);
@@ -430,7 +434,7 @@ public class DialogueBranchParser implements AutoCloseable {
 		return result;
 	}
 
-	private String readLine() throws IOException {
+	private @Nullable String readLine() throws IOException {
 		StringBuilder builder = new StringBuilder();
 		boolean foundCR = false;
 		while (true) {

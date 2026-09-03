@@ -43,6 +43,9 @@ import java.util.List;
  */
 public class ParserResult {
 
+	// setDialogue() is always called before getDialogue(); readDialogue() exposes the dialogue
+	// built so far even when there are parse errors.
+	@SuppressWarnings("NullAway.Init")
 	private Dialogue dialogue;
 	private final List<ParseException> parseErrors;
 

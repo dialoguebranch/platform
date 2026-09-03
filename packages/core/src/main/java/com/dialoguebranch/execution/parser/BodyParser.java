@@ -179,6 +179,8 @@ public class BodyParser {
 		public ParseUntilCommandClauseResult() {}
 
 		/** The node body parsed up to the command clause or end of tokens. */
+		// Set by parseUntilCommandClause before the result is returned.
+		@SuppressWarnings("NullAway.Init")
 		public NodeBody body;
 		/** The {@link BodyToken} at which the command clause started, or {@code null}. */
 		public @Nullable BodyToken cmdClauseStartToken = null;

@@ -30,6 +30,7 @@ package com.dialoguebranch.exception;
 
 import nl.rrd.utils.exception.LineNumberParseException;
 import nl.rrd.utils.exception.ParseException;
+import org.jspecify.annotations.Nullable;
 
 import java.io.Serial;
 
@@ -44,8 +45,8 @@ public class NodeParseException extends ParseException {
 	@Serial
 	private static final long serialVersionUID = 1L;
 
-	/** The name of the node from which this error occurred. */
-	private final String nodeTitle;
+	/** The name of the node from which this error occurred, or {@code null} if unknown. */
+	private final @Nullable String nodeTitle;
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
@@ -59,7 +60,8 @@ public class NodeParseException extends ParseException {
 	 * @param nodeTitle the node title or {@code null}
 	 * @param cause the parse error
 	 */
-	public NodeParseException(String message, String nodeTitle, LineNumberParseException cause) {
+	public NodeParseException(String message, @Nullable String nodeTitle,
+			LineNumberParseException cause) {
 		super(message, cause);
 		this.nodeTitle = nodeTitle;
 	}
@@ -73,7 +75,7 @@ public class NodeParseException extends ParseException {
 	 *
 	 * @return the node title or {@code null}
 	 */
-	public String getNodeTitle() {
+	public @Nullable String getNodeTitle() {
 		return nodeTitle;
 	}
 

@@ -39,6 +39,7 @@ import org.jspecify.annotations.Nullable;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * This class contains the result of parsing a Dialogue Branch project with the {@link
@@ -49,8 +50,10 @@ import java.util.Map;
  */
 public class ProjectParserResult {
 
+	// Set by the ScriptLoader constructor or setScriptLoader() before the result is consumed.
+	@SuppressWarnings("NullAway.Init")
 	private ScriptLoader scriptLoader;
-	private ExecutableProject project = null;
+	private @Nullable ExecutableProject project = null;
 	private Map<String,List<ParseException>> parseErrors = new LinkedHashMap<>();
 	private Map<String,List<String>> warnings = new LinkedHashMap<>();
 
@@ -210,7 +213,8 @@ public class ProjectParserResult {
 			}
 		}
 
-		ExecutableProject project = this.getProject();
+		ExecutableProject project = Objects.requireNonNull(this.getProject(),
+				"Cannot summarise a project parse result that has no project");
 		result.append("Project Summary:\n");
 		result.append("Location: ")
 				.append(projectLocationDescription)
@@ -237,7 +241,7 @@ public class ProjectParserResult {
 					.append("\n");
 		}
 
-		Map<ResourcePointer, Dialogue> dialogues = this.getProject().getDialogues();
+		Map<ResourcePointer, Dialogue> dialogues = project.getDialogues();
 
 		for (ResourcePointer dialogue : dialogues.keySet()) {
 			result.append("----------");

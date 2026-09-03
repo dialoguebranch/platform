@@ -36,10 +36,12 @@ import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import nl.rrd.utils.CurrentIterator;
 import nl.rrd.utils.exception.LineNumberParseException;
 import nl.rrd.utils.exception.ParseException;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Parses a single reply construct ({@code [[ ... ]]}) from a Dialogue Branch node body into a
@@ -53,9 +55,11 @@ import java.util.List;
 public class ReplyParser {
 	private NodeState nodeState;
 
-	private ReplySection statementSection;
+	private @Nullable ReplySection statementSection;
+	// Always assigned by parseReply() before parseNodePointer() reads it.
+	@SuppressWarnings("NullAway.Init")
 	private ReplySection nodePointerSection;
-	private ReplySection commandSection;
+	private @Nullable ReplySection commandSection;
 
 	/**
 	 * Creates a {@link ReplyParser} that uses the given node state for reply-ID generation and
@@ -83,7 +87,7 @@ public class ReplyParser {
 		Reply reply = new Reply(nodeState.createNextReplyId(),
 				statement, nodePointer);
 		if (commandSection != null)
-			parseCommands(reply);
+			parseCommands(reply, commandSection);
 		return reply;
 	}
 
@@ -126,7 +130,6 @@ public class ReplyParser {
 					startToken.getLineNumber(), startToken.getColNumber());
 		}
 		statementSection = null;
-		nodePointerSection = null;
 		commandSection = null;
 		if (sections.size() == 1) {
 			nodePointerSection = sections.get(0);
@@ -140,7 +143,7 @@ public class ReplyParser {
 		}
 	}
 
-	private NodeBody parseStatement() throws LineNumberParseException {
+	private @Nullable NodeBody parseStatement() throws LineNumberParseException {
 		if (statementSection == null)
 			return null;
 		BodyParser bodyParser = new BodyParser(nodeState);
@@ -168,16 +171,18 @@ public class ReplyParser {
 					nodePointerToken.getColNumber());
 		}
 		String nodePointerStr = (String)nodePointerToken.getValue();
+		String originNodeId = Objects.requireNonNull(nodeState.getTitle(),
+				"Node title must be set before its replies are parsed");
 		NodePointer result;
 		if (nodePointerStr.matches(DialogueBranchParser.NODE_NAME_REGEX)) {
-			result = new InternalNodePointer(nodeState.getTitle(),nodePointerStr);
+			result = new InternalNodePointer(originNodeId,nodePointerStr);
 		} else if (nodePointerStr.matches(
 				DialogueBranchParser.EXTERNAL_NODE_POINTER_REGEX)) {
 			int sep = nodePointerStr.lastIndexOf('.');
 			try {
 				result = new ExternalNodePointer(
 						nodeState.getDialogueName(),
-						nodeState.getTitle(),
+						originNodeId,
 						nodePointerStr.substring(0, sep),
 						nodePointerStr.substring(sep + 1));
 			} catch (ParseException ex) {
@@ -196,7 +201,8 @@ public class ReplyParser {
 		return result;
 	}
 
-	private void parseCommands(Reply reply) throws LineNumberParseException {
+	private void parseCommands(Reply reply, ReplySection commandSection)
+			throws LineNumberParseException {
 		CurrentIterator<BodyToken> it = new CurrentIterator<>(
 				commandSection.tokens.iterator());
 		it.moveNext();
