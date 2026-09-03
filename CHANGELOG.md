@@ -160,6 +160,11 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   by a mandatory `setVariableStore(...)` call right after construction. The two-argument
   constructor is removed. `setVariableStore(...)` is kept for the one case that genuinely
   re-points the store (re-attaching a persisted `DialogueState` to a fresh user session).
+- Core: internal parser cleanup ([#121](https://github.com/dialoguebranch/platform/issues/121)) —
+  `execution.parser.DialogueBranchParser` sets its `dialogueName` / `reader` in a canonical
+  private constructor (the public constructors are unchanged), and
+  `BodyParser.ParseUntilCommandClauseResult` takes its `body` as a constructor argument. No
+  behaviour change.
 
 ### Fixed
 

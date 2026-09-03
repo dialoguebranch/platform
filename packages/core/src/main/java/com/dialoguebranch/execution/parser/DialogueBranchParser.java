@@ -69,11 +69,8 @@ public class DialogueBranchParser implements AutoCloseable {
 			"/?" + "((..)|(" + NODE_NAME_REGEX + ")/)*" + NODE_NAME_REGEX +
 			"\\." + NODE_NAME_REGEX;
 
-	// dialogueName and reader are set by init(...), called from every constructor.
-	@SuppressWarnings("NullAway.Init")
-	private String dialogueName;
-	@SuppressWarnings("NullAway.Init")
-	private LineColumnNumberReader reader;
+	private final String dialogueName;
+	private final LineColumnNumberReader reader;
 
 	// Per-call scratch state: non-null only for the duration of a readDialogue() call.
 	private @Nullable Dialogue dialogue = null;
@@ -96,7 +93,7 @@ public class DialogueBranchParser implements AutoCloseable {
 	 * @throws FileNotFoundException if the file does not exist.
 	 */
 	public DialogueBranchParser(File file) throws FileNotFoundException {
-		init(file);
+		this(nameFromFile(file), new FileInputStream(file));
 	}
 
 	/**
@@ -106,7 +103,8 @@ public class DialogueBranchParser implements AutoCloseable {
 	 * @param input the input stream to read from.
 	 */
 	public DialogueBranchParser(String dialogueName, InputStream input) {
-		init(dialogueName, input);
+		this(dialogueName, new BufferedReader(
+				new InputStreamReader(input, StandardCharsets.UTF_8)));
 	}
 
 	/**
@@ -116,32 +114,26 @@ public class DialogueBranchParser implements AutoCloseable {
 	 * @param reader the reader to read from.
 	 */
 	public DialogueBranchParser(String dialogueName, Reader reader) {
-		init(dialogueName, new LineColumnNumberReader(reader));
+		this(dialogueName, reader instanceof LineColumnNumberReader lineColumnReader
+				? lineColumnReader : new LineColumnNumberReader(reader));
 	}
 
-	private void init(File file) throws FileNotFoundException {
+	/**
+	 * Canonical constructor that the others delegate to.
+	 *
+	 * @param dialogueName the name to assign to the parsed dialogue.
+	 * @param reader the reader to read the {@code .dlb} content from.
+	 */
+	private DialogueBranchParser(String dialogueName, LineColumnNumberReader reader) {
+		this.dialogueName = dialogueName;
+		this.reader = reader;
+	}
+
+	/** Derives a dialogue name from a file name by stripping its extension. */
+	private static String nameFromFile(File file) {
 		String name = file.getName();
 		int extSep = name.lastIndexOf('.');
-		if (extSep != -1)
-			name = name.substring(0, extSep);
-		init(name, new FileInputStream(file));
-	}
-
-	private void init(String dialogueName, InputStream input) {
-		init(dialogueName, new InputStreamReader(input,
-				StandardCharsets.UTF_8));
-	}
-
-	private void init(String dialogueName, Reader reader) {
-		this.dialogueName = dialogueName;
-		if (reader instanceof LineColumnNumberReader) {
-			this.reader = (LineColumnNumberReader)reader;
-		} else if (reader instanceof BufferedReader) {
-			this.reader = new LineColumnNumberReader(reader);
-		} else {
-			this.reader = new LineColumnNumberReader(
-					new BufferedReader(reader));
-		}
+		return extSep != -1 ? name.substring(0, extSep) : name;
 	}
 
 	/**

@@ -104,8 +104,8 @@ public class BodyParser {
 	public ParseUntilCommandClauseResult parseUntilCommandClause(
 			CurrentIterator<BodyToken> tokens, List<String> validCommands,
 			List<String> validCommandClauses) throws LineNumberParseException {
-		ParseUntilCommandClauseResult result = new ParseUntilCommandClauseResult();
-		result.body = new NodeBody();
+		ParseUntilCommandClauseResult result =
+				new ParseUntilCommandClauseResult(new NodeBody());
 		while (result.cmdClauseStartToken == null && tokens.getCurrent() != null) {
 			BodyToken token = tokens.getCurrent();
 			switch (token.getType()) {
@@ -175,17 +175,22 @@ public class BodyParser {
 	 */
 	public static class ParseUntilCommandClauseResult {
 
-		/** Creates an empty {@link ParseUntilCommandClauseResult}. */
-		public ParseUntilCommandClauseResult() {}
-
 		/** The node body parsed up to the command clause or end of tokens. */
-		// Set by parseUntilCommandClause before the result is returned.
-		@SuppressWarnings("NullAway.Init")
-		public NodeBody body;
+		public final NodeBody body;
 		/** The {@link BodyToken} at which the command clause started, or {@code null}. */
 		public @Nullable BodyToken cmdClauseStartToken = null;
 		/** The name of the command clause that was encountered, or {@code null}. */
 		public @Nullable String cmdClauseName = null;
+
+		/**
+		 * Creates a {@link ParseUntilCommandClauseResult} wrapping the given (initially empty)
+		 * body, which {@code parseUntilCommandClause} then fills in.
+		 *
+		 * @param body the node body to accumulate into.
+		 */
+		public ParseUntilCommandClauseResult(NodeBody body) {
+			this.body = body;
+		}
 	}
 
 	private VariableString parseTextSegment(CurrentIterator<BodyToken> tokens) {
