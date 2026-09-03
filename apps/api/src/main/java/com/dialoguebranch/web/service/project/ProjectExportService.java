@@ -119,11 +119,9 @@ public class ProjectExportService {
 				.orElseThrow(() -> new NotFoundException(
 						"Project version not found: " + project.getLatestVersion().getId()));
 
-		ProjectMetaData metaData = new ProjectMetaData();
+		ProjectMetaData metaData = new ProjectMetaData(version.getDisplayName(),
+				version.getDescription(), String.valueOf(version.getVersionNumber()));
 		metaData.setSlug(project.getSlug());
-		metaData.setName(version.getDisplayName());
-		metaData.setDescription(version.getDescription());
-		metaData.setVersion(String.valueOf(version.getVersionNumber()));
 
 		Language source = new Language(project.getSourceLanguageName(), project.getSourceLanguageCode());
 		LanguageMap languageMap = new LanguageMap(source);
