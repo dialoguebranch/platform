@@ -43,7 +43,6 @@ import com.dialoguebranch.web.service.storage.model.DBProjectVersion;
 import com.dialoguebranch.web.service.storage.model.DBPublishedDialogue;
 import com.dialoguebranch.web.service.storage.model.DBPublishedTranslation;
 import com.dialoguebranch.web.service.storage.model.DBPublishedTranslationLanguage;
-import nl.rrd.utils.xml.XMLWriter;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -180,10 +179,7 @@ public class ProjectExportService {
 	private void writeMetaDataEntry(ZipOutputStream zip, ProjectMetaData metaData)
 			throws IOException {
 		ByteArrayOutputStream xmlBytes = new ByteArrayOutputStream();
-		// ProjectMetaDataWriter.writeToXMLFile closes the XMLWriter (and, transitively, this
-		// ByteArrayOutputStream — a harmless no-op for that class) before returning.
-		XMLWriter writer = new XMLWriter(xmlBytes);
-		ProjectMetaDataWriter.writeToXMLFile(writer, metaData);
+		ProjectMetaDataWriter.writeToXMLFile(xmlBytes, metaData);
 		zip.putNextEntry(new ZipEntry(PROJECT_MARKER_FILE));
 		zip.write(xmlBytes.toByteArray());
 		zip.closeEntry();

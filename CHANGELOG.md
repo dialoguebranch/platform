@@ -112,6 +112,15 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `LineNumberParseException`, must switch to the `com.dialoguebranch.*` equivalents. Project
   metadata (`dlb-project.xml`) is now read with the JDK's StAX parser instead of `rrd-utils`'
   SAX helper, with DTD / external-entity resolution disabled.
+- **Breaking:** Core: dropped the `nl.rrd.utils` `xml`, `io.FileUtils` and `json.JsonObject`
+  usages from `dlb-core-java` (continuing [#102](https://github.com/dialoguebranch/platform/issues/102)).
+  `editing.writer.ProjectMetaDataWriter` now writes `dlb-project.xml` with the JDK's DOM /
+  `Transformer` APIs and its entry point changed from `writeToXMLFile(XMLWriter, ProjectMetaData)`
+  to `writeToXMLFile(OutputStream, ProjectMetaData)` (the caller no longer constructs, or needs,
+  an `nl.rrd.utils.xml.XMLWriter`); `model.execute.protocol.NullableResponse` no longer extends
+  `nl.rrd.utils.json.JsonObject` (its `toString()` output changes, and it no longer has
+  map-based `equals` / `hashCode`). Output formatting of the exported metadata file changes
+  slightly (indentation, XML declaration); it still round-trips through the reader unchanged.
 
 ### Fixed
 

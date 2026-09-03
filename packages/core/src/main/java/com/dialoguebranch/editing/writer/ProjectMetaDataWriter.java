@@ -31,14 +31,25 @@ package com.dialoguebranch.editing.writer;
 import com.dialoguebranch.model.common.ProjectMetaData;
 import com.dialoguebranch.model.execute.Language;
 import com.dialoguebranch.model.execute.LanguageMap;
-import nl.rrd.utils.xml.XMLWriter;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 /**
- * Utility class that serialises a {@link ProjectMetaData} object to XML using an
- * {@link XMLWriter}.
+ * Utility class that serialises a {@link ProjectMetaData} object to a {@code dlb-project.xml}
+ * document, using the JDK's DOM / {@link Transformer} APIs.
  *
  * @author Harm op den Akker
  */
@@ -48,59 +59,83 @@ public class ProjectMetaDataWriter {
 	private ProjectMetaDataWriter() {}
 
 	/**
-	 * Writes the given {@link ProjectMetaData} to an XML file using the supplied {@link XMLWriter}.
-	 * The writer is closed when this method returns.
+	 * Writes the given {@link ProjectMetaData} as an indented, UTF-8 {@code dlb-project.xml}
+	 * document to {@code out}. The stream is written to but not closed.
 	 *
-	 * @param writer the XML writer to write to.
+	 * @param out the stream to write the XML document to.
 	 * @param projectMetaData the project metadata to serialise.
-	 * @throws IOException if a writing error occurs.
+	 * @throws IOException if the document cannot be built or written.
 	 */
-	public static void writeToXMLFile(XMLWriter writer, ProjectMetaData projectMetaData) throws IOException {
-		writer.writeStartElement("dlb-project");
-		writer.writeAttribute("name",projectMetaData.getName());
-		if (projectMetaData.getSlug() != null) {
-			writer.writeAttribute("slug", projectMetaData.getSlug());
-		}
-		writer.writeAttribute("version",projectMetaData.getVersion());
+	public static void writeToXMLFile(OutputStream out, ProjectMetaData projectMetaData)
+			throws IOException {
+		Document document = newDocument();
 
-		writer.writeStartElement("description");
-		writer.writeCharacters(projectMetaData.getDescription());
-		writer.writeEndElement(); // description
+		Element root = document.createElement("dlb-project");
+		document.appendChild(root);
+		root.setAttribute("name", projectMetaData.getName());
+		if (projectMetaData.getSlug() != null)
+			root.setAttribute("slug", projectMetaData.getSlug());
+		root.setAttribute("version", projectMetaData.getVersion());
 
-		writeLanguageMapXML(writer, Objects.requireNonNull(projectMetaData.getLanguageMap(),
+		Element description = document.createElement("description");
+		description.setTextContent(projectMetaData.getDescription());
+		root.appendChild(description);
+
+		appendLanguageMap(document, root, Objects.requireNonNull(
+				projectMetaData.getLanguageMap(),
 				"Cannot write project metadata without a language map"));
 
-		writer.writeEndElement(); // dlb-project
-		writer.close();
+		writeDocument(document, out);
 	}
 
 	/**
-	 * Writes the given {@link LanguageMap} as a {@code <language-map>} XML element containing a
-	 * {@code <source-language>} child and one {@code <translation-language>} child per
-	 * translation language.
-	 *
-	 * @param writer the XML writer to write to.
-	 * @param languageMap the language map to serialise.
-	 * @throws IOException if a writing error occurs.
+	 * Appends a {@code <language-map>} element to {@code parent}, holding a
+	 * {@code <source-language>} child (if the map has one) and one
+	 * {@code <translation-language>} child per translation language.
 	 */
-	public static void writeLanguageMapXML(XMLWriter writer, LanguageMap languageMap) throws IOException {
-		writer.writeStartElement("language-map");
+	private static void appendLanguageMap(Document document, Element parent,
+			LanguageMap languageMap) {
+		Element languageMapElement = document.createElement("language-map");
+		parent.appendChild(languageMapElement);
 
-		if(languageMap.getSourceLanguage() != null) {
-			writer.writeStartElement("source-language");
-			writer.writeAttribute("name",languageMap.getSourceLanguage().getName());
-			writer.writeAttribute("code",languageMap.getSourceLanguage().getCode());
-			writer.writeEndElement(); // source-language
+		Language sourceLanguage = languageMap.getSourceLanguage();
+		if (sourceLanguage != null) {
+			languageMapElement.appendChild(
+					languageElement(document, "source-language", sourceLanguage));
 		}
-
-		for(Language language : languageMap.getTranslationLanguages()) {
-			writer.writeStartElement("translation-language");
-			writer.writeAttribute("name",language.getName());
-			writer.writeAttribute("code",language.getCode());
-			writer.writeEndElement();
+		for (Language language : languageMap.getTranslationLanguages()) {
+			languageMapElement.appendChild(
+					languageElement(document, "translation-language", language));
 		}
+	}
 
-		writer.writeEndElement(); // language-map
+	private static Element languageElement(Document document, String tagName, Language language) {
+		Element element = document.createElement(tagName);
+		if (language.getName() != null)
+			element.setAttribute("name", language.getName());
+		if (language.getCode() != null)
+			element.setAttribute("code", language.getCode());
+		return element;
+	}
+
+	private static Document newDocument() throws IOException {
+		try {
+			return DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+		} catch (ParserConfigurationException ex) {
+			throw new IOException("Cannot create an XML document builder: " + ex.getMessage(), ex);
+		}
+	}
+
+	private static void writeDocument(Document document, OutputStream out) throws IOException {
+		try {
+			Transformer transformer = TransformerFactory.newInstance().newTransformer();
+			transformer.setOutputProperty(OutputKeys.ENCODING, StandardCharsets.UTF_8.name());
+			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+			transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+			transformer.transform(new DOMSource(document), new StreamResult(out));
+		} catch (TransformerException ex) {
+			throw new IOException("Cannot write the XML document: " + ex.getMessage(), ex);
+		}
 	}
 
 }
