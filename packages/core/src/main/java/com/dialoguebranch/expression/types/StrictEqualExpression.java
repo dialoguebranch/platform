@@ -39,7 +39,19 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
+/**
+ * An expression that tests its two operands for equality without type coercion.
+ *
+ * @author Dennis Hofs (RRD)
+ */
 public class StrictEqualExpression extends BinaryExpression {
+
+	/**
+	 * Constructs a new {@code ===} expression.
+	 *
+	 * @param operand1 the left-hand operand.
+	 * @param operand2 the right-hand operand.
+	 */
 	public StrictEqualExpression(Expression operand1, Expression operand2) {
 		super(operand1, operand2);
 	}

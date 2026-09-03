@@ -32,16 +32,34 @@
 
 package com.dialoguebranch.expression;
 
+/**
+ * Thrown when an {@link Expression} cannot be evaluated — for example an operator applied to an
+ * incompatible value type, or an out-of-range index.
+ *
+ * @author Dennis Hofs (RRD)
+ */
 public class EvaluationException extends Exception {
 	private static final long serialVersionUID = 1L;
 
+	/** Constructs a new evaluation exception with no detail message. */
 	public EvaluationException() {
 	}
 
+	/**
+	 * Constructs a new evaluation exception with the given detail message.
+	 *
+	 * @param message the detail message.
+	 */
 	public EvaluationException(String message) {
 		super(message);
 	}
 
+	/**
+	 * Constructs a new evaluation exception with the given detail message and cause.
+	 *
+	 * @param message the detail message.
+	 * @param cause the underlying cause.
+	 */
 	public EvaluationException(String message, Throwable cause) {
 		super(message, cause);
 	}

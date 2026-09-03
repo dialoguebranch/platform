@@ -39,13 +39,29 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
+/**
+ * A list literal expression {@code [ a, b, ... ]}. Evaluating it produces a
+ * {@link java.util.List} of the element values.
+ *
+ * @author Dennis Hofs (RRD)
+ */
 public class ListExpression implements Expression {
 	private List<Expression> elements;
 
+	/**
+	 * Constructs a new list-literal expression.
+	 *
+	 * @param elements the element expressions, in source order.
+	 */
 	public ListExpression(List<Expression> elements) {
 		this.elements = elements;
 	}
 
+	/**
+	 * Returns the element expressions.
+	 *
+	 * @return the elements.
+	 */
 	public List<Expression> getElements() {
 		return elements;
 	}

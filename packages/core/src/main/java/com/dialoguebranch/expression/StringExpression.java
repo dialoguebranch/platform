@@ -52,11 +52,24 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.*;
 
+/**
+ * An expression over a string template: a sequence of literal text segments and embedded
+ * <code>${...}</code> variable/expression segments. Evaluating it concatenates the literal text
+ * with the string forms of the embedded values.
+ *
+ * @author Dennis Hofs (RRD)
+ */
 @JsonSerialize(using=StringExpression.PlainSerializer.class)
 @JsonDeserialize(using=StringExpression.PlainDeserializer.class)
 public class StringExpression implements Expression {
 	private List<Segment> segments;
 
+	/**
+	 * Parses the given string template into a {@code StringExpression}.
+	 *
+	 * @param s the string template.
+	 * @throws ParseException if the template is malformed.
+	 */
 	public StringExpression(String s) throws ParseException {
 		segments = parse(new StringExpressionParser(s));
 	}
@@ -313,8 +326,17 @@ public class StringExpression implements Expression {
 		}
 	}
 
+	/**
+	 * Jackson serializer that writes a {@link StringExpression} as the plain (JSON-decoded)
+	 * string it represents.
+	 */
 	public static class PlainSerializer
 			extends JsonSerializer<StringExpression> {
+
+		/** Constructs a new serializer. */
+		public PlainSerializer() {
+		}
+
 		@Override
 		public void serialize(StringExpression stringExpression,
 				JsonGenerator jsonGenerator,
@@ -331,8 +353,16 @@ public class StringExpression implements Expression {
 		}
 	}
 
+	/**
+	 * Jackson deserializer that parses a {@link StringExpression} from a plain string value.
+	 */
 	public static class PlainDeserializer
 			extends JsonDeserializer<StringExpression> {
+
+		/** Constructs a new deserializer. */
+		public PlainDeserializer() {
+		}
+
 		@Override
 		public StringExpression deserialize(JsonParser jsonParser,
 				DeserializationContext deserializationContext)

@@ -39,13 +39,29 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
+/**
+ * A map/object literal expression <code>{ key: value, ... }</code>. Evaluating it builds a
+ * {@link java.util.LinkedHashMap}; each key must evaluate to a string or number.
+ *
+ * @author Dennis Hofs (RRD)
+ */
 public class ObjectExpression implements Expression {
 	private List<KeyValue> properties;
 
+	/**
+	 * Constructs a new object-literal expression.
+	 *
+	 * @param properties the key/value property expressions, in source order.
+	 */
 	public ObjectExpression(List<KeyValue> properties) {
 		this.properties = properties;
 	}
 
+	/**
+	 * Returns the key/value property expressions.
+	 *
+	 * @return the properties.
+	 */
 	public List<KeyValue> getProperties() {
 		return properties;
 	}
@@ -131,10 +147,17 @@ public class ObjectExpression implements Expression {
 		return "{" + builder + "}";
 	}
 
+	/** One {@code key: value} entry of an {@link ObjectExpression}. */
 	public static class KeyValue {
 		private Expression key;
 		private Expression value;
 
+		/**
+		 * Constructs a new key/value entry.
+		 *
+		 * @param key the key expression.
+		 * @param value the value expression.
+		 */
 		public KeyValue(Expression key, Expression value) {
 			this.key = key;
 			this.value = value;

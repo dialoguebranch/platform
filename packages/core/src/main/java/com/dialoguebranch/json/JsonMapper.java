@@ -50,6 +50,10 @@ import java.io.IOException;
  */
 public class JsonMapper {
 
+	/** This is a utility class — all methods are static, so it is not instantiated. */
+	private JsonMapper() {
+	}
+
 	/**
 	 * Converts the specified JSON string to an object of the specified class.
 	 *

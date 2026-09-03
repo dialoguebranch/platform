@@ -39,7 +39,19 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
+/**
+ * An expression that evaluates to the logical AND of its two operands.
+ *
+ * @author Dennis Hofs (RRD)
+ */
 public class AndExpression extends BinaryExpression {
+
+	/**
+	 * Constructs a new {@code &&} expression.
+	 *
+	 * @param operand1 the left-hand operand.
+	 * @param operand2 the right-hand operand.
+	 */
 	public AndExpression(Expression operand1, Expression operand2) {
 		super(operand1, operand2);
 	}

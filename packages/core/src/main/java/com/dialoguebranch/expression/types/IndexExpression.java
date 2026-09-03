@@ -39,19 +39,41 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
+/**
+ * An index expression {@code parent[index]}. The parent must evaluate to a string, list or map;
+ * the result is the element / character / value at the given index or key.
+ *
+ * @author Dennis Hofs (RRD)
+ */
 public class IndexExpression implements Expression {
 	private Expression parentOperand;
 	private Expression indexOperand;
 
+	/**
+	 * Constructs a new index expression.
+	 *
+	 * @param parentOperand the operand being indexed; must evaluate to a string, list or map.
+	 * @param indexOperand the index or key operand.
+	 */
 	public IndexExpression(Expression parentOperand, Expression indexOperand) {
 		this.parentOperand = parentOperand;
 		this.indexOperand = indexOperand;
 	}
 
+	/**
+	 * Returns the operand being indexed.
+	 *
+	 * @return the parent operand.
+	 */
 	public Expression getParentOperand() {
 		return parentOperand;
 	}
 
+	/**
+	 * Returns the index or key operand.
+	 *
+	 * @return the index operand.
+	 */
 	public Expression getIndexOperand() {
 		return indexOperand;
 	}

@@ -67,6 +67,10 @@ public class ExpressionParser {
 
 	private Object lookAheadState = null;
 
+	/**
+	 * Operator precedence, lowest binding first. Each row is a group of {@link Token.Type}s that
+	 * bind equally tightly and are parsed left-to-right; later rows bind more tightly.
+	 */
 	public static final Token.Type[][] PRECEDENCE = new Token.Type[][] {
 		new Token.Type[] { Token.Type.ASSIGN },
 		new Token.Type[] { Token.Type.OR },
@@ -80,18 +84,40 @@ public class ExpressionParser {
 		new Token.Type[] { Token.Type.MULTIPLY, Token.Type.DIVIDE },
 	};
 
+	/**
+	 * Constructs a parser reading from a string, with the default configuration.
+	 *
+	 * @param input the expression text.
+	 */
 	public ExpressionParser(String input) {
 		this(new StringReader(input));
 	}
 
+	/**
+	 * Constructs a parser reading from a character stream, with the default configuration.
+	 *
+	 * @param reader the input reader.
+	 */
 	public ExpressionParser(Reader reader) {
 		this(new LineColumnNumberReader(reader));
 	}
 
+	/**
+	 * Constructs a parser reading from a {@link LineColumnNumberReader}, which allows rewinding
+	 * the input after each {@link #readExpression()}.
+	 *
+	 * @param reader the input reader.
+	 */
 	public ExpressionParser(LineColumnNumberReader reader) {
 		this(new Tokenizer(reader));
 	}
 
+	/**
+	 * Constructs a parser on top of an existing {@link Tokenizer}, adopting its configuration and
+	 * reader.
+	 *
+	 * @param tokenizer the tokenizer to read tokens from.
+	 */
 	public ExpressionParser(Tokenizer tokenizer) {
 		this.tokenizer = tokenizer;
 		this.config = tokenizer.getConfig();
@@ -107,6 +133,11 @@ public class ExpressionParser {
 		tokenizer.close();
 	}
 
+	/**
+	 * Returns the configuration in effect for this parser.
+	 *
+	 * @return the parser configuration.
+	 */
 	public ExpressionParserConfig getConfig() {
 		return config;
 	}

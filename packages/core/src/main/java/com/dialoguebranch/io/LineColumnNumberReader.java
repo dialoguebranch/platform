@@ -75,6 +75,11 @@ public class LineColumnNumberReader extends Reader {
 	// markStates: state that was saved with mark()
 	private RestoreState markState = null;
 
+	/**
+	 * Constructs a new reader wrapping the given underlying reader.
+	 *
+	 * @param reader the underlying character stream.
+	 */
 	public LineColumnNumberReader(Reader reader) {
 		this.reader = reader;
 		buffer = new char[4096];
@@ -90,14 +95,29 @@ public class LineColumnNumberReader extends Reader {
 		reader.close();
 	}
 
+	/**
+	 * Returns the current position: the zero-based character offset from the start of the input.
+	 *
+	 * @return the current character offset.
+	 */
 	public long getPosition() {
 		return position;
 	}
 
+	/**
+	 * Returns the current one-based line number (the first line is 1).
+	 *
+	 * @return the current line number.
+	 */
 	public int getLineNum() {
 		return state.lineNum;
 	}
 
+	/**
+	 * Returns the current one-based column number within the line (the first character is 1).
+	 *
+	 * @return the current column number.
+	 */
 	public int getColNum() {
 		return state.colNum;
 	}
@@ -209,6 +229,14 @@ public class LineColumnNumberReader extends Reader {
 		markState = null;
 	}
 
+	/**
+	 * Saves the current position (offset, line and column) as a restore point with no read-ahead
+	 * limit, and returns an opaque handle for it. Unlike {@link #mark(int)} / {@link #reset()},
+	 * several restore points can be held at once. Pass the handle to {@link #restoreState(Object)}
+	 * to rewind, or to {@link #clearRestoreState(Object)} to discard it.
+	 *
+	 * @return an opaque restore-state handle.
+	 */
 	public Object getRestoreState() {
 		RestoreDynamicState restoreState = new RestoreDynamicState();
 		restoreState.markPos = position;
@@ -218,6 +246,15 @@ public class LineColumnNumberReader extends Reader {
 		return restoreState;
 	}
 
+	/**
+	 * Saves the current position as a restore point backed by a fixed read-ahead buffer, and
+	 * returns an opaque handle for it. The restore point stays valid only while no more than
+	 * {@code readAheadLimit} characters are read past it.
+	 *
+	 * @param readAheadLimit the maximum number of characters that may be read before the restore
+	 *     point becomes invalid.
+	 * @return an opaque restore-state handle.
+	 */
 	public Object getRestoreState(int readAheadLimit) {
 		RestoreFixedState restoreState = new RestoreFixedState();
 		restoreState.markPos = position;
@@ -228,6 +265,13 @@ public class LineColumnNumberReader extends Reader {
 		return restoreState;
 	}
 
+	/**
+	 * Moves an existing restore-state handle to the current position, reusing it instead of
+	 * allocating a new one.
+	 *
+	 * @param state a handle previously returned by {@link #getRestoreState()} or
+	 *     {@link #getRestoreState(int)}.
+	 */
 	public void reinitRestoreState(Object state) {
 		RestoreState restoreState = (RestoreState)state;
 		restoreState.markPos = position;
@@ -241,10 +285,25 @@ public class LineColumnNumberReader extends Reader {
 		}
 	}
 
+	/**
+	 * Discards a restore-state handle without rewinding. Does nothing if the handle is unknown.
+	 *
+	 * @param savedState a handle previously returned by {@link #getRestoreState()} or
+	 *     {@link #getRestoreState(int)}.
+	 */
 	public void clearRestoreState(Object savedState) {
 		restoreStates.remove(savedState);
 	}
 
+	/**
+	 * Rewinds the reader to the position saved in the given restore-state handle, and discards the
+	 * handle.
+	 *
+	 * @param savedState a handle previously returned by {@link #getRestoreState()} or
+	 *     {@link #getRestoreState(int)}.
+	 * @throws IOException if the handle has already been cleared or restored, or the read-ahead
+	 *     limit of a fixed restore point was exceeded.
+	 */
 	public void restoreState(Object savedState) throws IOException {
 		if (!restoreStates.contains(savedState)) {
 			throw new IOException(
