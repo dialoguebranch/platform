@@ -48,7 +48,7 @@ import java.util.*;
  * @author Dennis Hofs
  */
 public class RandomCommand extends AttributesCommand {
-	private final Random random = new Random();
+	private Random random = new Random();
 
 	private List<Clause> clauses = new ArrayList<>();
 
@@ -92,6 +92,17 @@ public class RandomCommand extends AttributesCommand {
 	 */
 	public void addClause(Clause clause) {
 		clauses.add(clause);
+	}
+
+	/**
+	 * Replaces the source of randomness used by {@link #executeBodyCommand} to pick a clause.
+	 * Package-private — the only intended caller is a test that needs deterministic
+	 * {@code <<random>>} clause selection.
+	 *
+	 * @param random the {@link Random} to use.
+	 */
+	void setRandom(Random random) {
+		this.random = random;
 	}
 
 	@Override
