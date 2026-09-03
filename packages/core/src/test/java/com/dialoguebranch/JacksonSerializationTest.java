@@ -32,6 +32,7 @@ import com.dialoguebranch.execution.Variable;
 import com.dialoguebranch.execution.VariableUpdatedSource;
 import com.dialoguebranch.i18n.TranslationFile;
 import com.dialoguebranch.model.execute.protocol.DialogueAction;
+import com.dialoguebranch.model.execute.protocol.DialogueMessage;
 import com.dialoguebranch.model.execute.protocol.DialogueStatement;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Rule;
@@ -256,5 +257,59 @@ public class JacksonSerializationTest {
 				"{\"type\":\"generic\",\"value\":\"x\"}", DialogueAction.class);
 		assertEquals("generic", restored.getType());
 		assertTrue(restored.getParameters().isEmpty());
+	}
+
+	// --------------------------------------------------------- //
+	// -------------------- DialogueMessage -------------------- //
+	// --------------------------------------------------------- //
+
+	/**
+	 * Verifies that a fully-populated {@link DialogueMessage} serializes to the expected JSON
+	 * shape and round-trips back through the {@code @JsonCreator} constructor.
+	 */
+	@Test
+	public void testDialogueMessageRoundTrip() throws Exception {
+		DialogueStatement.TextSegment text = new DialogueStatement.TextSegment();
+		text.setText("Hello");
+		DialogueStatement statement = new DialogueStatement();
+		statement.getSegments().add(text);
+
+		DialogueMessage message = new DialogueMessage("greeting", "Start", "log-1", 3,
+				"Robin", statement, new java.util.ArrayList<>());
+
+		String json = mapper.writeValueAsString(message);
+		assertTrue(json.contains("\"dialogue\":\"greeting\""));
+		assertTrue(json.contains("\"node\":\"Start\""));
+		assertTrue(json.contains("\"loggedDialogueId\":\"log-1\""));
+		assertTrue(json.contains("\"loggedInteractionIndex\":3"));
+		assertTrue(json.contains("\"speaker\":\"Robin\""));
+
+		DialogueMessage restored = mapper.readValue(json, DialogueMessage.class);
+		assertEquals("greeting", restored.getDialogue());
+		assertEquals("Start", restored.getNode());
+		assertEquals("log-1", restored.getLoggedDialogueId());
+		assertEquals(3, restored.getLoggedInteractionIndex());
+		assertEquals("Robin", restored.getSpeaker());
+		assertEquals("Hello", ((DialogueStatement.TextSegment)
+				restored.getStatement().getSegments().get(0)).getText());
+		assertTrue(restored.getReplies().isEmpty());
+	}
+
+	/**
+	 * Verifies that a {@link DialogueMessage} with null optional fields
+	 * ({@code loggedDialogueId}, {@code speaker}) and no {@code replies} round-trips, with the
+	 * reply list coming back empty rather than null.
+	 */
+	@Test
+	public void testDialogueMessageRoundTripWithNullOptionals() throws Exception {
+		DialogueMessage message = new DialogueMessage("d", "n", null, 0, null,
+				new DialogueStatement(), null);
+
+		DialogueMessage restored = mapper.readValue(
+				mapper.writeValueAsString(message), DialogueMessage.class);
+		assertNull(restored.getLoggedDialogueId());
+		assertNull(restored.getSpeaker());
+		assertNotNull(restored.getReplies());
+		assertTrue(restored.getReplies().isEmpty());
 	}
 }
