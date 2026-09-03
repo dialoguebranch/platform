@@ -30,7 +30,6 @@ package com.dialoguebranch.execution.parser;
 
 import com.dialoguebranch.exception.LineNumberParseException;
 import com.dialoguebranch.model.execute.VariableString;
-import nl.rrd.utils.ReferenceParameter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -194,57 +193,57 @@ public class BodyTokenizer {
 	}
 
 	private int readBodyVariable(List<BodyToken> tokens, String line, int lineNum, int start) {
-		ReferenceParameter<Integer> end = new ReferenceParameter<>();
+		int[] end = new int[1];
 		String varName = readVariableName(line, start + 1, end);
 		if (varName.isEmpty()) {
 			bodyState.textBuffer.append('$');
-			return end.get();
+			return end[0];
 		}
 		finishTextToken(tokens, line, lineNum, start);
 		BodyToken token = new BodyToken(BodyToken.Type.VARIABLE);
-		token.setText(line.substring(start, end.get()));
+		token.setText(line.substring(start, end[0]));
 		token.setValue(varName);
 		token.setLineNumber(lineNum);
 		token.setColNumber(start + 1);
 		tokens.add(token);
-		startBodyTextBuffer(end.get() + 1);
-		return end.get();
+		startBodyTextBuffer(end[0] + 1);
+		return end[0];
 	}
 
-	private String readVariableName(String line, int start, ReferenceParameter<Integer> end) {
+	private String readVariableName(String line, int start, int[] end) {
 		for (int i = start; i < line.length(); i++) {
 			char c = line.charAt(i);
 			if (i == start && (c < 'A' || c > 'Z') &&
 					(c < 'a' || c > 'z') && c != '_') {
-				end.set(i);
+				end[0] = i;
 				return "";
 			} else if (i > start && (c < 'A' || c > 'Z') &&
 					(c < 'a' || c > 'z') && (c < '0' || c > '9') && c != '_') {
-				end.set(i);
+				end[0] = i;
 				return line.substring(start, i);
 			}
 		}
-		end.set(line.length());
+		end[0] = line.length();
 		return line.substring(start);
 	}
 
 	private int readQuotedString(List<BodyToken> tokens, String line, int lineNum, int start)
 			throws LineNumberParseException {
 		finishTextToken(tokens, line, lineNum, start);
-		ReferenceParameter<Integer> end = new ReferenceParameter<>();
+		int[] end = new int[1];
 		VariableString string = readQuotedString(line, lineNum, start, end);
 		BodyToken token = new BodyToken(BodyToken.Type.QUOTED_STRING);
 		token.setLineNumber(lineNum);
 		token.setColNumber(start + 1);
-		token.setText(line.substring(start, end.get()));
+		token.setText(line.substring(start, end[0]));
 		token.setValue(string);
 		tokens.add(token);
-		startBodyTextBuffer(end.get() + 1);
-		return end.get();
+		startBodyTextBuffer(end[0] + 1);
+		return end[0];
 	}
 
 	private VariableString readQuotedString(String line, int lineNum, int start,
-											ReferenceParameter<Integer> end)
+											int[] end)
 			throws LineNumberParseException {
 		VariableString result = new VariableString();
 		StringBuilder textBuffer = new StringBuilder();
@@ -266,8 +265,7 @@ public class BodyTokenizer {
 				i++;
 				break;
 			case '$':
-				ReferenceParameter<Integer> varEnd =
-						new ReferenceParameter<>();
+				int[] varEnd = new int[1];
 				String varName = readVariableName(line, i + 1, varEnd);
 				if (!varName.isEmpty()) {
 					textBuffer.append(line, textStart, i);
@@ -278,7 +276,7 @@ public class BodyTokenizer {
 					result.addSegment(new VariableString.VariableSegment(
 							varName));
 					textBuffer = new StringBuilder();
-					textStart = varEnd.get();
+					textStart = varEnd[0];
 					i = textStart;
 				} else {
 					i++;
@@ -290,7 +288,7 @@ public class BodyTokenizer {
 					result.addSegment(new VariableString.TextSegment(
 							textBuffer.toString()));
 				}
-				end.set(i + 1);
+				end[0] = i + 1;
 				return result;
 			default:
 				i++;

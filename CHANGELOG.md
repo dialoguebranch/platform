@@ -121,6 +121,15 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `nl.rrd.utils.json.JsonObject` (its `toString()` output changes, and it no longer has
   map-based `equals` / `hashCode`). Output formatting of the exported metadata file changes
   slightly (indentation, XML declaration); it still round-trips through the reader unchanged.
+- **Breaking:** `dlb-core-java` no longer depends on `nl.rrd:rrd-utils`
+  ([#102](https://github.com/dialoguebranch/platform/issues/102) — the goal of that issue). The
+  last three uses were vendored or replaced: `CurrentIterator` moved to
+  `com.dialoguebranch.util`, `ReferenceParameter` in the body tokenizer became a plain
+  `int[]` out-parameter, and `BodyToken.toString()` no longer routes through `DataFormatter`.
+  `rrd-utils` is dropped from the published POM — a consumer that was relying on getting it
+  transitively from `dlb-core-java` must now declare it directly. The Web Service, which still
+  uses `rrd-utils`' `DatabaseException` / `DateTimeUtils` / `http` helpers, now declares the
+  dependency itself.
 
 ### Fixed
 

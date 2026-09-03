@@ -30,7 +30,7 @@ package com.dialoguebranch.execution.parser;
 
 import com.dialoguebranch.exception.LineNumberParseException;
 import com.dialoguebranch.model.execute.command.*;
-import nl.rrd.utils.CurrentIterator;
+import com.dialoguebranch.util.CurrentIterator;
 
 import java.util.List;
 

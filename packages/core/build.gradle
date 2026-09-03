@@ -83,15 +83,16 @@ tasks.withType(JavaCompile).configureEach {
 	// Severity is ERROR: the #117 audit is complete, so a new nullness violation must fail
 	// the build.
 	//
-	// com.dialoguebranch.expression / .io are the expression engine and its line/column reader,
-	// vendored verbatim from rrd-utils in #102. They are not written to the JSpecify contract;
-	// null-marking them is tracked as a follow-up. Until then they are excluded from NullAway.
+	// com.dialoguebranch.expression / .io / .util are the expression engine, its line/column
+	// reader and CurrentIterator, all vendored verbatim from rrd-utils in #102. They are not
+	// written to the JSpecify contract; null-marking them is tracked as a follow-up (#121).
+	// Until then they are excluded from NullAway.
 	options.errorprone {
 		disableAllChecks = true
 		check('NullAway', CheckSeverity.ERROR)
 		option('NullAway:AnnotatedPackages', 'com.dialoguebranch')
 		option('NullAway:UnannotatedSubPackages',
-				'com.dialoguebranch.expression,com.dialoguebranch.io')
+				'com.dialoguebranch.expression,com.dialoguebranch.io,com.dialoguebranch.util')
 	}
 }
 
@@ -115,7 +116,6 @@ javadoc {
 }
 
 dependencies {
-	api "nl.rrd:rrd-utils:3.0.3"
 	api 'com.fasterxml.jackson.module:jackson-modules-java8:2.19.0'
 	// JSpecify nullness annotations (@NullMarked / @Nullable). Annotations-only, CLASS retention,
 	// no transitive deps, no runtime cost; `api` so downstream tooling can resolve the contract.

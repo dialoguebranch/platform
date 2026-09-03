@@ -59,6 +59,11 @@ dependencies {
 	// is located at "../../dlb-core-java" (relative to this project).
 	implementation project(':dlb-core-java')
 
+	// RRDUtils — dlb-core-java dropped this dependency in #102, but the web service still uses
+	// its DatabaseException, DateTimeUtils and http helpers directly, so declare it here.
+	// https://mvnrepository.com/artifact/nl.rrd/rrd-utils
+	implementation 'nl.rrd:rrd-utils:3.0.3'
+
 	// Alternatively, import the dlb-core-java library through maven central
 	//implementation 'com.dialoguebranch:dlb-core-java:1.3.1'
 

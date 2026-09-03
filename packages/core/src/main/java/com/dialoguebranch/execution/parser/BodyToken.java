@@ -29,8 +29,7 @@
 package com.dialoguebranch.execution.parser;
 
 import com.dialoguebranch.model.execute.VariableString;
-import nl.rrd.utils.CurrentIterator;
-import nl.rrd.utils.DataFormatter;
+import com.dialoguebranch.util.CurrentIterator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -211,8 +210,8 @@ public class BodyToken {
 
 	@Override
 	public String toString() {
-		DataFormatter formatter = new DataFormatter();
-		return formatter.format(this, true, true);
+		return "BodyToken{type=" + type + ", text=" + text + ", value=" + value
+				+ ", lineNumber=" + lineNumber + ", colNumber=" + colNumber + "}";
 	}
 
 	/**

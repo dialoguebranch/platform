@@ -39,7 +39,7 @@ import com.dialoguebranch.expression.types.AssignExpression;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.Reply;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
-import nl.rrd.utils.CurrentIterator;
+import com.dialoguebranch.util.CurrentIterator;
 import org.jspecify.annotations.Nullable;
 
 import java.util.*;
