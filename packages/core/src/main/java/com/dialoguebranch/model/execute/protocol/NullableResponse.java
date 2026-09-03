@@ -28,7 +28,6 @@
 
 package com.dialoguebranch.model.execute.protocol;
 
-import nl.rrd.utils.json.JsonObject;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -41,7 +40,7 @@ import org.jspecify.annotations.Nullable;
  *
  * @param <T> the value type
  */
-public class NullableResponse<T> extends JsonObject {
+public class NullableResponse<T> {
 	private @Nullable T value = null;
 
 	// -------------------------------------------------------- //
@@ -83,5 +82,10 @@ public class NullableResponse<T> extends JsonObject {
 	 */
 	public void setValue(@Nullable T value) {
 		this.value = value;
+	}
+
+	@Override
+	public String toString() {
+		return "NullableResponse{value=" + value + "}";
 	}
 }

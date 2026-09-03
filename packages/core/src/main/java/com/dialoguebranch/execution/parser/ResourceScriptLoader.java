@@ -34,12 +34,12 @@ import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.model.execute.ResourcePointer;
 import com.fasterxml.jackson.core.type.TypeReference;
-import nl.rrd.utils.io.FileUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -96,7 +96,9 @@ public class ResourceScriptLoader implements ScriptLoader {
 				path);
 		try (Reader reader = new InputStreamReader(input,
 				StandardCharsets.UTF_8)) {
-			String json = FileUtils.readFileString(reader);
+			StringWriter jsonWriter = new StringWriter();
+			reader.transferTo(jsonWriter);
+			String json = jsonWriter.toString();
 			Map<String, ?> map = JsonMapper.parse(json,
 					new TypeReference<Map<String, ?>>() {});
 			for (String language : map.keySet()) {

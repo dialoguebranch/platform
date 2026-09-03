@@ -36,7 +36,6 @@ import com.dialoguebranch.execution.parser.BodyTokenizer;
 import com.dialoguebranch.json.JsonMapper;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.fasterxml.jackson.core.type.TypeReference;
-import nl.rrd.utils.io.FileUtils;
 
 import java.io.*;
 import java.net.URL;
@@ -134,7 +133,9 @@ public class TranslationParser {
 		TranslationParserResult result = new TranslationParserResult();
 		Map<Translatable,List<ContextTranslation>> translations =
 				new LinkedHashMap<>();
-		String json = FileUtils.readFileString(reader);
+		StringWriter jsonWriter = new StringWriter();
+		reader.transferTo(jsonWriter);
+		String json = jsonWriter.toString();
 		if (json.trim().isEmpty()) {
 			result.getWarnings().add("Empty translation file");
 			result.setTranslations(translations);
