@@ -37,7 +37,6 @@ import nl.rrd.utils.exception.LineNumberParseException;
 import nl.rrd.utils.expressions.EvaluationException;
 import nl.rrd.utils.expressions.Value;
 import nl.rrd.utils.json.JsonMapper;
-import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
@@ -102,7 +101,9 @@ public class InputSetCommand extends InputCommand {
 	public String getStatementLog(VariableStore varStore) {
 		List<String> optionTexts = new ArrayList<>();
 		for (Option option : options) {
-			Variable variable = varStore.getVariable(option.getVariableName());
+			Variable variable = Objects.requireNonNull(
+					varStore.getVariable(option.getVariableName()),
+					option.getVariableName());
 			Value value = new Value(variable.getValue());
 			if (value.asBoolean())
 				optionTexts.add(option.getText().evaluate(null));
@@ -187,10 +188,9 @@ public class InputSetCommand extends InputCommand {
 						cmdStartToken.getLineNumber(), cmdStartToken.getColNumber());
 			}
 			Option option = new Option();
-			option.setVariableName(readVariableAttr("value" + index, attrs,
-					cmdStartToken, true));
-			option.setText(readAttr("option" + index, attrs, cmdStartToken,
-					true));
+			option.setVariableName(requireVariableAttr("value" + index, attrs,
+					cmdStartToken));
+			option.setText(requireAttr("option" + index, attrs, cmdStartToken));
 			result.options.add(option);
 			index++;
 		}
@@ -201,10 +201,13 @@ public class InputSetCommand extends InputCommand {
 	 * backing Dialogue Branch variable (set to {@code true} when selected) and a display label.
 	 */
 	public static class Option {
-		private @Nullable String variableName = null;
-		private @Nullable VariableString text = null;
+		private String variableName;
+		private VariableString text;
 
 		/** Creates an empty {@link Option}. */
+		// variableName and text have no sensible default: the parser and executeBodyCommand
+		// both set them (via required attributes) before the option is read.
+		@SuppressWarnings("NullAway.Init")
 		public Option() {
 		}
 
@@ -215,15 +218,14 @@ public class InputSetCommand extends InputCommand {
 		 */
 		public Option(Option other) {
 			this.variableName = other.variableName;
-			if (other.text != null)
-				this.text = new VariableString(other.text);
+			this.text = new VariableString(other.text);
 		}
 
 		/**
 		 * Returns the name of the Dialogue Branch variable that stores whether this option was selected.
 		 * @return the variable name.
 		 */
-		public @Nullable String getVariableName() {
+		public String getVariableName() {
 			return variableName;
 		}
 
@@ -239,7 +241,7 @@ public class InputSetCommand extends InputCommand {
 		 * Returns the display label of this option as a {@link VariableString}.
 		 * @return the display label.
 		 */
-		public @Nullable VariableString getText() {
+		public VariableString getText() {
 			return text;
 		}
 

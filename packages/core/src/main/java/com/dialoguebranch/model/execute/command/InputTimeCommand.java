@@ -43,6 +43,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -186,7 +187,8 @@ public class InputTimeCommand extends InputCommand {
 
 	@Override
 	public String getStatementLog(VariableStore varStore) {
-		Variable variable = varStore.getVariable(variableName);
+		Variable variable = Objects.requireNonNull(
+				varStore.getVariable(variableName), variableName);
 		Value value = new Value(variable.getValue());
 		return value.toString();
 	}
@@ -273,8 +275,7 @@ public class InputTimeCommand extends InputCommand {
 	 */
 	public static InputTimeCommand parse(BodyToken cmdStartToken,
 										 Map<String, BodyToken> attrs) throws LineNumberParseException {
-		String variableName = readVariableAttr("value", attrs, cmdStartToken,
-				true);
+		String variableName = requireVariableAttr("value", attrs, cmdStartToken);
 		InputTimeCommand command = new InputTimeCommand(variableName);
 		Integer granularityMinutes = readIntAttr("granularityMinutes", attrs,
 				cmdStartToken, false, 1, null);
@@ -287,14 +288,14 @@ public class InputTimeCommand extends InputCommand {
 		return command;
 	}
 
-	private static VariableString readTimeAttribute(String attrName,
+	private static @Nullable VariableString readTimeAttribute(String attrName,
 													Map<String, BodyToken> attrs, BodyToken cmdStartToken)
 			throws LineNumberParseException {
 		VariableString result = readAttr(attrName, attrs, cmdStartToken,
 				false);
 		if (result == null || result.containsVariables())
 			return result;
-		BodyToken token = attrs.get(attrName);
+		BodyToken token = presentToken(attrs, attrName);
 		String value = result.evaluate(null);
 		try {
 			return evaluateTime(value);

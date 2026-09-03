@@ -75,8 +75,7 @@ public class InputLongtextCommand extends InputAbstractTextCommand {
 	 */
 	public static InputCommand parse(BodyToken cmdStartToken,
 									 Map<String, BodyToken> attrs) throws LineNumberParseException {
-		String variableName = readVariableAttr("value", attrs, cmdStartToken,
-				true);
+		String variableName = requireVariableAttr("value", attrs, cmdStartToken);
 		InputLongtextCommand command = new InputLongtextCommand(variableName);
 		parseAttributes(command, cmdStartToken,
 				attrs);

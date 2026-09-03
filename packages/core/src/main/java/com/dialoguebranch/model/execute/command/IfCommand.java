@@ -229,13 +229,14 @@ public class IfCommand extends ExpressionCommand {
 						cmdStartToken.getLineNumber(), cmdStartToken.getColNumber());
 			}
 			if (parsedIf.name.equals("if") || parsedIf.name.equals("elseif")) {
-				command.addIfClause(new Clause(parsedIf.expression,
+				command.addIfClause(new Clause(
+						Objects.requireNonNull(parsedIf.expression),
 						bodyParse.body));
 			} else {
 				command.setElseClause(bodyParse.body);
 			}
 			BodyToken clauseStartToken = bodyParse.cmdClauseStartToken;
-			String clauseName = bodyParse.cmdClauseName;
+			String clauseName = Objects.requireNonNull(bodyParse.cmdClauseName);
 			content = readCommandContent(clauseStartToken, tokens);
 			switch (clauseName) {
 			case "elseif":
@@ -268,8 +269,10 @@ public class IfCommand extends ExpressionCommand {
 	}
 
 	private static void checkNoAssignment(BodyToken cmdStartToken,
-										  String name, Expression expression)
+										  String name, @Nullable Expression expression)
 			throws LineNumberParseException {
+		if (expression == null)
+			return;
 		List<Expression> list = new ArrayList<>();
 		list.add(expression);
 		list.addAll(expression.getDescendants());

@@ -97,6 +97,9 @@ public abstract class ExpressionCommand extends Command {
 		public int colNum;
 
 		/** Creates an empty {@link ReadContentResult}. */
+		// content has no sensible default: the read helper sets it immediately after
+		// construction, before the result is returned.
+		@SuppressWarnings("NullAway.Init")
 		public ReadContentResult() {
 		}
 	}
@@ -259,6 +262,8 @@ public abstract class ExpressionCommand extends Command {
 		public @Nullable Expression expression;
 
 		/** Creates an empty {@link ParseContentResult}. */
+		// name has no sensible default: the parse helper sets it before the result is returned.
+		@SuppressWarnings("NullAway.Init")
 		public ParseContentResult() {
 		}
 	}

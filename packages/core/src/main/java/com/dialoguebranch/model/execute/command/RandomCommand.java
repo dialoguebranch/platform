@@ -200,7 +200,7 @@ public class RandomCommand extends AttributesCommand {
 			}
 			command.addClause(new Clause(weight, bodyParse.body));
 			BodyToken clauseStartToken = bodyParse.cmdClauseStartToken;
-			String clauseName = bodyParse.cmdClauseName;
+			String clauseName = Objects.requireNonNull(bodyParse.cmdClauseName);
 			attrs = parseAttributesCommand(clauseStartToken, tokens);
 			switch (clauseName) {
 			case "or":

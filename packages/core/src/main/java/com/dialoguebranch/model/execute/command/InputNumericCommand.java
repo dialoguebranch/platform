@@ -39,6 +39,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -150,7 +151,8 @@ public class InputNumericCommand extends InputCommand {
 
 	@Override
 	public String getStatementLog(VariableStore varStore) {
-		Variable variable = varStore.getVariable(variableName);
+		Variable variable = Objects.requireNonNull(
+				varStore.getVariable(variableName), variableName);
 		Value value = new Value(variable.getValue());
 		return value.toString();
 	}
@@ -183,8 +185,7 @@ public class InputNumericCommand extends InputCommand {
 	 */
 	public static InputCommand parse(BodyToken cmdStartToken,
 									 Map<String, BodyToken> attrs) throws LineNumberParseException {
-		String variableName = readVariableAttr("value", attrs, cmdStartToken,
-				true);
+		String variableName = requireVariableAttr("value", attrs, cmdStartToken);
 		InputNumericCommand command = new InputNumericCommand(
 				variableName);
 		Integer min = readIntAttr("min", attrs, cmdStartToken, false, null,

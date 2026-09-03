@@ -39,6 +39,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -346,7 +347,8 @@ public abstract class InputAbstractTextCommand extends InputCommand {
 
 	@Override
 	public String getStatementLog(VariableStore varStore) {
-		Variable variable = varStore.getVariable(variableName);
+		Variable variable = Objects.requireNonNull(
+				varStore.getVariable(variableName), variableName);
 		Value value = new Value(variable.getValue());
 		return value.toString();
 	}
