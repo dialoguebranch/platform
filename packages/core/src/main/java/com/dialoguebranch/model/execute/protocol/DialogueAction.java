@@ -47,6 +47,9 @@ public class DialogueAction {
 	private Map<String,String> parameters = new LinkedHashMap<>();
 
 	/** Creates an empty {@link DialogueAction}. Required for JSON deserialization. */
+	// type and value have no sensible default: JSON deserialization populates them before
+	// the action is read.
+	@SuppressWarnings("NullAway.Init")
 	public DialogueAction() {
 	}
 

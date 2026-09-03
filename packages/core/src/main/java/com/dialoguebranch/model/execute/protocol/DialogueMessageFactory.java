@@ -31,11 +31,14 @@ package com.dialoguebranch.model.execute.protocol;
 import com.dialoguebranch.execution.ExecuteNodeResult;
 import com.dialoguebranch.model.execute.Node;
 import com.dialoguebranch.model.execute.NodeBody;
+import com.dialoguebranch.model.execute.NodeHeader;
 import com.dialoguebranch.model.execute.Reply;
 import com.dialoguebranch.model.execute.command.ActionCommand;
 import com.dialoguebranch.model.execute.command.Command;
 import com.dialoguebranch.model.execute.command.InputCommand;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
+
+import java.util.Objects;
 
 /**
  * Factory that converts an executed {@link com.dialoguebranch.execution.ExecuteNodeResult} into a
@@ -60,17 +63,24 @@ public class DialogueMessageFactory {
 	public static DialogueMessage generateDialogueMessage(ExecuteNodeResult executedNode) {
 		DialogueMessage dialogueMessage = new DialogueMessage();
 		Node node = executedNode.node();
-		NodeBody body = node.getBody();
-		dialogueMessage.setDialogue(executedNode.dialogue()
-				.getDialogueName());
-		dialogueMessage.setNode(node.getTitle());
+		// An executed node on its way to the client always has a header, a body and a title,
+		// and its dialogue always has a name; fail loudly here rather than downstream if not.
+		NodeBody body = Objects.requireNonNull(node.getBody(),
+				"Executed node has no body");
+		NodeHeader header = Objects.requireNonNull(node.getHeader(),
+				"Executed node has no header");
+		dialogueMessage.setDialogue(Objects.requireNonNull(
+				executedNode.dialogue().getDialogueName(),
+				"Executed dialogue has no name"));
+		dialogueMessage.setNode(Objects.requireNonNull(node.getTitle(),
+				"Executed node has no title"));
 		if (executedNode.loggedDialogue() != null) {
 			dialogueMessage.setLoggedDialogueId(executedNode.loggedDialogue()
 					.getId());
 			dialogueMessage.setLoggedInteractionIndex(
 					executedNode.interactionIndex());
 		}
-		dialogueMessage.setSpeaker(node.getHeader().getSpeaker());
+		dialogueMessage.setSpeaker(header.getSpeaker());
 		dialogueMessage.setStatement(generateDialogueStatement(body));
 		for (Reply reply : body.getReplies()) {
 			dialogueMessage.addReply(generateDialogueReply(reply));
@@ -104,9 +114,9 @@ public class DialogueMessageFactory {
 	private static ReplyMessage generateDialogueReply(Reply reply) {
 		ReplyMessage replyMsg = new ReplyMessage();
 		replyMsg.setReplyId(reply.getReplyId());
-		if (!reply.isAutoForward()) {
-			replyMsg.setStatement(generateDialogueStatement(
-					reply.getStatement()));
+		NodeBody replyStatement = reply.getStatement();
+		if (replyStatement != null) {
+			replyMsg.setStatement(generateDialogueStatement(replyStatement));
 		}
 		if (reply.getNodePointer() instanceof InternalNodePointer) {
 			InternalNodePointer pointer =

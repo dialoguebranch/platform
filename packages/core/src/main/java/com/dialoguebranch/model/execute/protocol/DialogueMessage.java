@@ -45,6 +45,9 @@ import java.util.List;
 public class DialogueMessage {
 
 	/** Creates an empty {@link DialogueMessage}. Required for JSON deserialization. */
+	// dialogue, node and statement have no sensible default: DialogueMessageFactory and JSON
+	// deserialization both populate them before the message is read.
+	@SuppressWarnings("NullAway.Init")
 	public DialogueMessage() {
 	}
 
@@ -130,9 +133,9 @@ public class DialogueMessage {
 
 	/**
 	 * Sets the name of the agent (speaker) delivering this message.
-	 * @param speaker the speaker name.
+	 * @param speaker the speaker name, or {@code null} if this message has no specific speaker.
 	 */
-	public void setSpeaker(String speaker) {
+	public void setSpeaker(@Nullable String speaker) {
 		this.speaker = speaker;
 	}
 
