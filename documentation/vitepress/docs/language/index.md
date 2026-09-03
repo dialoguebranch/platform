@@ -222,6 +222,10 @@ Dialogue Branch allows you to set variables using the `<<set>>` statement.
 
 The example above shows the three most common cases for setting either `String`, `number` or `boolean` variables. However, Dialogue Branch is much more flexible, and allows for example the set-**Statements** below:
 
+::: info Note
+When dialogues run on the Dialogue Branch Web Service, variables are **project-local**: `$points` in one project is a different value from `$points` in another. A variable name is still just an unqualified `$name` in the script — the project scope is the session's project, applied automatically.
+:::
+
 ```text
 <<set $points = $points + 1>>
 <<set $name = $firstname + " " + $lastname>>

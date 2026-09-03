@@ -23,6 +23,21 @@ The External Variable Service integration is enabled through the following `dlb.
 It is worthwhile to make sure that the External Variable Service answers the request for variable updates quickly, because any delay will delay the starting of dialogue execution in the Dialogue Branch Web Service - which will negatively impact your end-user's experience. Apply caching, and make use of the provided `updatedTime` parameter that is passed along with each Variable, to make quick judgements whether a variable needs to be updated at all.
 :::
 
+## Request identity
+
+Every call the Web Service makes to the External Variable Service (`retrieve-updates`, `notify-updated`, `notify-cleared`) carries the same query parameters identifying whose variables, in which project, the request concerns:
+
+| Parameter | Description |
+|---|---|
+| `subject` | The user's stable OIDC `sub` claim — the identifier your service should key on. |
+| `issuer` | The full OIDC issuer URL (`iss`) the user authenticates through. One Web Service instance may trust several Keycloak realms, so `subject` is only unique *within* an issuer; the pair `(issuer, subject)` is the stable user identity. |
+| `projectSlug` | The slug of the Dialogue Branch project the variables belong to. Variables are project-scoped — the same variable name in two projects is two independent values. |
+| `timeZone` | The user's current IANA time zone (e.g. `Europe/Lisbon`). |
+
+::: warning Breaking change
+The earlier single `userId` parameter (a bare username) has been replaced by `subject` + `issuer` + `projectSlug`. Update your External Variable Service implementation accordingly; there is no API-version bump.
+:::
+
 See also [Working with Variables](/web-services/api-service#working-with-variables) on the API Service page, for how Variables are set and retrieved directly through the Web Service's own `/variables/*` end-points.
 
 ::: info Note
