@@ -29,12 +29,12 @@
 package com.dialoguebranch.model.execute;
 
 import com.dialoguebranch.i18n.ContextTranslation;
+import com.dialoguebranch.i18n.LanguageFinder;
 import com.dialoguebranch.i18n.Translatable;
 import com.dialoguebranch.i18n.TranslationContext;
 import com.dialoguebranch.i18n.Translator;
 import com.dialoguebranch.model.common.DialogueBranchProject;
 import com.dialoguebranch.model.common.ProjectMetaData;
-import nl.rrd.utils.i18n.I18nLanguageFinder;
 import org.jspecify.annotations.Nullable;
 
 import java.util.*;
@@ -251,9 +251,7 @@ public class ExecutableProject implements DialogueBranchProject {
 				return dialogues.get(sourceMatch);
 		}
 
-		I18nLanguageFinder finder = new I18nLanguageFinder(new ArrayList<>(lngMap.keySet()));
-		finder.setUserLocale(Locale.ENGLISH);
-		String language = finder.find();
+		String language = LanguageFinder.find(lngMap.keySet(), Locale.ENGLISH);
 		if (language == null)
 			return dialogues.get(matches.get(0));
 		else

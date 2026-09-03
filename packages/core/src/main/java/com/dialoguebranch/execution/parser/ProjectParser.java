@@ -29,6 +29,7 @@
 package com.dialoguebranch.execution.parser;
 
 import com.dialoguebranch.i18n.ContextTranslation;
+import com.dialoguebranch.i18n.LanguageFinder;
 import com.dialoguebranch.i18n.Translatable;
 import com.dialoguebranch.i18n.TranslationContext;
 import com.dialoguebranch.i18n.TranslationParser;
@@ -42,7 +43,6 @@ import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import nl.rrd.utils.exception.ParseException;
-import nl.rrd.utils.i18n.I18nLanguageFinder;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
@@ -379,7 +379,7 @@ public class ProjectParser {
 	 *
 	 * <p>If no metadata is available (e.g. when using a {@link DirectoryScriptLoader}), or its
 	 * source language isn't among the matches found, the method falls back to
-	 * {@link I18nLanguageFinder} with {@link Locale#ENGLISH} to pick the best available source.</p>
+	 * {@link LanguageFinder} with {@link Locale#ENGLISH} to pick the best available source.</p>
 	 *
 	 * @param dlgName the dialogue name to look up.
 	 * @return the source {@link Dialogue}, or {@code null} if none could be found.
@@ -411,10 +411,8 @@ public class ProjectParser {
 			}
 		}
 
-		// Fallback: use I18nLanguageFinder with English locale
-		I18nLanguageFinder finder = new I18nLanguageFinder(new ArrayList<>(lngMap.keySet()));
-		finder.setUserLocale(Locale.ENGLISH);
-		String language = finder.find();
+		// Fallback: match the available languages against English
+		String language = LanguageFinder.find(lngMap.keySet(), Locale.ENGLISH);
 		if (language == null)
 			return dialogues.get(matches.get(0));
 		else
