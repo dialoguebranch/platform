@@ -116,8 +116,7 @@ public class JacksonSerializationTest {
 	 */
 	@Test
 	public void testDialogueStatementTextSegmentRoundTrip() throws Exception {
-		DialogueStatement.TextSegment text = new DialogueStatement.TextSegment();
-		text.setText("Hello, world!");
+		DialogueStatement.TextSegment text = new DialogueStatement.TextSegment("Hello, world!");
 
 		String json = mapper.writeValueAsString(text);
 		DialogueStatement.TextSegment restored =
@@ -134,9 +133,8 @@ public class JacksonSerializationTest {
 	 */
 	@Test
 	public void testDialogueStatementInputSegmentRoundTrip() throws Exception {
-		DialogueStatement.InputSegment input = new DialogueStatement.InputSegment();
-		input.setInputType("text");
-		input.setDescription("Enter your name");
+		DialogueStatement.InputSegment input = new DialogueStatement.InputSegment(
+				"text", "Enter your name", java.util.Map.of());
 
 		String json = mapper.writeValueAsString(input);
 
@@ -160,14 +158,9 @@ public class JacksonSerializationTest {
 	public void testDialogueStatementWithMixedSegmentsRoundTrip() throws Exception {
 		DialogueStatement statement = new DialogueStatement();
 
-		DialogueStatement.TextSegment text = new DialogueStatement.TextSegment();
-		text.setText("What is your name?");
-		statement.getSegments().add(text);
-
-		DialogueStatement.InputSegment input = new DialogueStatement.InputSegment();
-		input.setInputType("text");
-		input.setDescription("Your name");
-		statement.getSegments().add(input);
+		statement.getSegments().add(new DialogueStatement.TextSegment("What is your name?"));
+		statement.getSegments().add(new DialogueStatement.InputSegment(
+				"text", "Your name", java.util.Map.of()));
 
 		String json = mapper.writeValueAsString(statement);
 		DialogueStatement restored = mapper.readValue(json, DialogueStatement.class);
@@ -269,10 +262,8 @@ public class JacksonSerializationTest {
 	 */
 	@Test
 	public void testDialogueMessageRoundTrip() throws Exception {
-		DialogueStatement.TextSegment text = new DialogueStatement.TextSegment();
-		text.setText("Hello");
 		DialogueStatement statement = new DialogueStatement();
-		statement.getSegments().add(text);
+		statement.getSegments().add(new DialogueStatement.TextSegment("Hello"));
 
 		DialogueMessage message = new DialogueMessage("greeting", "Start", "log-1", 3,
 				"Robin", statement, new java.util.ArrayList<>());

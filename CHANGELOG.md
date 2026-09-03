@@ -183,6 +183,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   ([#121](https://github.com/dialoguebranch/platform/issues/121)); its no-arg constructor, seven
   setters and `addReply(...)` are removed and `DialogueMessageFactory` builds the message in one
   step. The `/dialogue/*` response JSON is unchanged.
+- **Breaking:** Core: the three `model.execute.protocol.DialogueStatement` segment classes —
+  `TextSegment`, `InputSegment`, `ActionSegment` — are now built via constructors
+  (`TextSegment(String)` / `ActionSegment(DialogueAction)` are `@JsonCreator`s; `InputSegment`'s
+  is called by its custom deserializer) with `final` fields
+  ([#121](https://github.com/dialoguebranch/platform/issues/121)); their no-arg constructors and
+  `setText` / `setInputType` / `setDescription` / `setParameters` / `setAction` are removed. The
+  statement / segment JSON — including `InputSegment`'s flattened parameter form — is unchanged.
 
 ### Fixed
 
