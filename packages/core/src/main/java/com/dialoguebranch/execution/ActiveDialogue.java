@@ -66,8 +66,8 @@ public class ActiveDialogue {
 	private @Nullable Node currentNode;
 
 	/** The variable store used to read and write Dialogue Branch variables during execution. */
-	// Assigned before any execution begins (startDialogue / setVariableStore).
-	@SuppressWarnings("NullAway.Init")
+	// Set in the constructor; setVariableStore() may re-point it (e.g. when a persisted
+	// DialogueState is re-attached to a fresh user session).
 	private VariableStore variableStore;
 
 	// -------------------------------------------------------- //
@@ -76,16 +76,19 @@ public class ActiveDialogue {
 
 	/**
 	 * Creates an instance of an {@link ActiveDialogue} with a given
-	 * {@link ResourcePointer} and {@link Dialogue}.
+	 * {@link ResourcePointer}, {@link Dialogue} and {@link VariableStore}.
 	 *
 	 * @param dialogueFileDescription the {@link ResourcePointer} containing metadata
 	 *                                of the dialogue file used in this {@link ActiveDialogue}.
 	 * @param dialogueDefinition the dialogue definition
+	 * @param variableStore the {@link VariableStore} used to read and write Dialogue Branch
+	 *                      variables while this dialogue runs.
 	 */
 	public ActiveDialogue(ResourcePointer dialogueFileDescription,
-						  Dialogue dialogueDefinition) {
+						  Dialogue dialogueDefinition, VariableStore variableStore) {
 		this.dialogueFileDescription = dialogueFileDescription;
 		this.dialogueDefinition = dialogueDefinition;
+		this.variableStore = variableStore;
 	}
 
 	// ----------------------------------------------------------- //
@@ -135,10 +138,12 @@ public class ActiveDialogue {
 	}
 
 	/**
-	 * Sets the {@link VariableStore} used to store/retrieve parameters for this
-	 * {@link ActiveDialogue}.
-	 * @param variableStore the {@link VariableStore} used to store/retrieve parameters for
-	 *                         this {@link ActiveDialogue}.
+	 * Re-points the {@link VariableStore} used by this {@link ActiveDialogue}. The store is
+	 * normally supplied to the constructor; this is for the case where a persisted
+	 * {@link com.dialoguebranch.model.execute.DialogueState} is re-attached to a fresh user
+	 * session and its variable store must be swapped for the live one.
+	 *
+	 * @param variableStore the {@link VariableStore} to use from now on.
 	 */
 	public void setVariableStore(VariableStore variableStore) {
 		this.variableStore = variableStore;

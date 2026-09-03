@@ -119,8 +119,7 @@ public class ProjectTest {
 		Dialogue dialogue = findDialogue(language, name);
 		assertNotNull("Dialogue '" + name + "' (" + language + ") not found", dialogue);
 		ResourcePointer rp = new ResourcePointer(language, name, null);
-		ActiveDialogue ad = new ActiveDialogue(rp, dialogue);
-		ad.setVariableStore(new VariableStore(new User("test-user")));
+		ActiveDialogue ad = new ActiveDialogue(rp, dialogue, new VariableStore(new User("test-user")));
 		return ad;
 	}
 

@@ -121,8 +121,7 @@ public class TranslatedDialogueTest {
 		assertNotNull("Dutch translated dialogue not found", dutch);
 
 		ResourcePointer fd = new ResourcePointer("nl", "basic", ResourceType.TRANSLATION);
-		ActiveDialogue ad = new ActiveDialogue(fd, dutch);
-		ad.setVariableStore(new VariableStore(new User("test")));
+		ActiveDialogue ad = new ActiveDialogue(fd, dutch, new VariableStore(new User("test")));
 
 		Node startNode = ad.startDialogue(ZonedDateTime.now());
 		assertNotNull("startDialogue returned null node", startNode);
@@ -144,8 +143,7 @@ public class TranslatedDialogueTest {
 		assertNotNull("English source dialogue not found", english);
 
 		ResourcePointer fd = new ResourcePointer("en", "basic", ResourceType.SCRIPT);
-		ActiveDialogue ad = new ActiveDialogue(fd, english);
-		ad.setVariableStore(new VariableStore(new User("test")));
+		ActiveDialogue ad = new ActiveDialogue(fd, english, new VariableStore(new User("test")));
 
 		Node startNode = ad.startDialogue(ZonedDateTime.now());
 		assertNotNull(startNode);

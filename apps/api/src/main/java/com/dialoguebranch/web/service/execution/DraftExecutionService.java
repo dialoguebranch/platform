@@ -207,9 +207,9 @@ public class DraftExecutionService {
 					"' could not be parsed into a runnable dialogue.");
 		}
 
-		ActiveDialogue activeDialogue = new ActiveDialogue(resolved.pointer(), resolved.definition());
 		VariableStore variableStore = userService.getVariableStore();
-		activeDialogue.setVariableStore(variableStore);
+		ActiveDialogue activeDialogue = new ActiveDialogue(resolved.pointer(), resolved.definition(),
+				variableStore);
 
 		// Snapshot before executing the start node, so any "set" commands it triggers are
 		// included in what gets reverted.
@@ -339,9 +339,8 @@ public class DraftExecutionService {
 						"in this project's draft content.");
 			}
 
-			ActiveDialogue newActiveDialogue =
-					new ActiveDialogue(resolved.pointer(), resolved.definition());
-			newActiveDialogue.setVariableStore(activeDialogue.getVariableStore());
+			ActiveDialogue newActiveDialogue = new ActiveDialogue(resolved.pointer(),
+					resolved.definition(), activeDialogue.getVariableStore());
 
 			Node startNode;
 			try {

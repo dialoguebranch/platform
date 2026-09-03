@@ -99,8 +99,7 @@ public class DialogueExecutor {
 			throws DatabaseException, IOException, ExecutionException {
 
 		ActiveDialogue dialogue = new ActiveDialogue(dialogueDescription,
-				dialogueDefinition);
-		dialogue.setVariableStore(userService.getVariableStore());
+				dialogueDefinition, userService.getVariableStore());
 
 		// Collects all the Dialogue Branch Variables needed to execute this file and update from an
 		// external variable service (if enabled).
