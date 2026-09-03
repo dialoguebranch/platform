@@ -379,9 +379,9 @@ public class BodyTokenizer {
 	private static class BodyState {
 		private boolean inCommand = false;
 		private boolean inReply = false;
-		// Reset to a fresh buffer at the start of each line before any append.
-		@SuppressWarnings("NullAway.Init")
-		private StringBuilder textBuffer;
+		// Replaced with a fresh buffer by startBodyTextBuffer() before any content is appended;
+		// the empty default is never read.
+		private StringBuilder textBuffer = new StringBuilder();
 		private int textStartCol;
 	}
 }
