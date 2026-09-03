@@ -156,6 +156,12 @@ publishing {
 				description = 'Dialogue Branch gives you creative freedom to write engaging interactive conversations...'
 				url = 'https://www.dialoguebranch.com'
 				packaging = 'jar'
+				inceptionYear = '2023'
+
+				organization {
+					name = 'Fruit Tree Labs'
+					url = 'https://www.fruittreelabs.com'
+				}
 
 				licenses {
 					license {

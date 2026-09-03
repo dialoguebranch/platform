@@ -35,7 +35,7 @@ Into `packages/core` (`dlb-core-java`):
 | `com.dialoguebranch.json.JsonMapper` | `nl.rrd.utils.json.JsonMapper` | Re-authored; a thin Jackson `ObjectMapper` wrapper. |
 
 Every vendored file carries the original `Copyright (c) 2022 Roessingh Research and
-Development` notice and a provenance line in its header, alongside the Dialogue Branch
+Development` notice and a provenance line in its header, alongside the Fruit Tree Labs
 copyright. Both projects use the MIT License, so the permission text is shared.
 
 Classes that were written from scratch against the JDK rather than copied — notably

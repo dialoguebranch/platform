@@ -88,7 +88,7 @@ export default withMermaid(defineConfig({
 
     footer: {
       message: 'Released under the MIT License.',
-      copyright: 'Copyright © Fruit Tree Labs'
+      copyright: 'Copyright © 2023-2026 Fruit Tree Labs'
     }
   }
 }))

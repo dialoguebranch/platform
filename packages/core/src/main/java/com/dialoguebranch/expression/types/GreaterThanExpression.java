@@ -1,6 +1,6 @@
 /*
  *
- *                 Copyright (c) 2023-2026 Dialogue Branch (www.dialoguebranch.com)
+ *                 Copyright (c) 2023-2026 Fruit Tree Labs (www.fruittreelabs.com)
  *
  *
  *     This material is part of the Dialogue Branch Platform, and is covered by the MIT License
@@ -12,7 +12,7 @@
  * (https://github.com/RoessinghResearch/rrd-utils), used under the MIT License.
  *
  * Copyright (c) 2022 Roessingh Research and Development
- * Copyright (c) 2023-2026 Dialogue Branch (www.dialoguebranch.com)
+ * Copyright (c) 2023-2026 Fruit Tree Labs (www.fruittreelabs.com)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
  * associated documentation files (the "Software"), to deal in the Software without restriction,
