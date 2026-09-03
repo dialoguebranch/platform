@@ -26,33 +26,32 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.dialoguebranch.web.service;
-
-import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
-import com.dialoguebranch.web.service.exception.HttpException;
+package com.dialoguebranch.web.service.auth;
 
 /**
- * Implementations of this interface can be passed to {@link QueryRunner
- * QueryRunner} to run a query as a resolved Dialogue Branch user.
+ * Identifies the Dialogue Branch user a query runs as: the {@code (issuer, subject)} pair from the
+ * authenticating JWT (issue #128), plus the token's {@code preferred_username} carried alongside
+ * so the {@code users} row's display name can be refreshed.
  *
- * @author Dennis Hofs
+ * <p>Identity is the {@code (issuer, subject)} pair. {@code username} is passenger data — the
+ * last-seen display name — and is {@code null} when the query runs as a delegated user (the
+ * caller's token, not the delegate's, is in hand) or from the External Variable Service callback.
+ * Do not use it as a lookup or equality key.</p>
  *
- * @param <T> the type of the query result
+ * @param issuer the token issuer (the full OIDC {@code iss} URL).
+ * @param subject the OIDC {@code sub} claim, stable within {@code issuer}.
+ * @param username the last-seen {@code preferred_username}, or {@code null} if not in hand.
  */
-public interface AuthQuery<T> {
+public record DialogueBranchUserId(String issuer, String subject, String username) {
 
 	/**
-	 * Runs the query. {@link QueryRunner} has already validated the bearer token and resolved the
-	 * effective user — the authenticated caller, or the delegate they are authorised to act for —
-	 * so {@code user} is always populated by the time this is called.
+	 * Creates an identity with no known username (a delegated user, or the EVS callback).
 	 *
-	 * @param version the protocol version
-	 * @param user the {@code (issuer, subject)} identity the query runs as (see issue #128)
-	 * @return the query result
-	 * @throws HttpException if the query should return an HTTP error status
-	 * @throws Exception if an unexpected error occurs. This results in HTTP
-	 * error status 500 Internal Server Error.
+	 * @param issuer the token issuer.
+	 * @param subject the OIDC {@code sub} claim.
+	 * @return the identity, with a {@code null} username.
 	 */
-	T runQuery(ProtocolVersion version, DialogueBranchUserId user)
-			throws HttpException, Exception;
+	public static DialogueBranchUserId withoutUsername(String issuer, String subject) {
+		return new DialogueBranchUserId(issuer, subject, null);
+	}
 }

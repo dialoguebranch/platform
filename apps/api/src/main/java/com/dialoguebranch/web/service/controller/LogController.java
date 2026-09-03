@@ -31,6 +31,7 @@ package com.dialoguebranch.web.service.controller;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.ProtocolVersion;
 import com.dialoguebranch.web.service.QueryRunner;
+import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.auth.Permission;
 import com.dialoguebranch.web.service.exception.DatabaseException;
 import com.dialoguebranch.web.service.execution.UserService;
@@ -119,18 +120,12 @@ public class LogController {
 			logInfo += "&delegateUser=" + delegateUser;
 		logger.info(logInfo);
 
-		if(delegateUser == null || delegateUser.isEmpty()) {
-			return QueryRunner.runQuery(
-					(protocolVersion, authenticatedUser) -> doGetSession(authenticatedUser, sessionId),
-					version, response, delegateUser, Permission.LOG_READ_OWN);
-		} else {
-			return QueryRunner.runQuery(
-					(protocolVersion, authenticatedUser) -> doGetSession(delegateUser, sessionId),
-					version, response, delegateUser, Permission.LOG_READ_OWN);
-		}
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> doGetSession(user, sessionId),
+				version, response, delegateUser, Permission.LOG_READ_OWN);
 	}
 
-	private List<ServerLoggedDialogue> doGetSession(String userId, String sessionId)
+	private List<ServerLoggedDialogue> doGetSession(DialogueBranchUserId userId, String sessionId)
 			throws DatabaseException, IOException {
 
 		// Get or create a UserService for the user in the default time zone
@@ -194,19 +189,13 @@ public class LogController {
 			logInfo += "&delegateUser=" + delegateUser;
 		logger.info(logInfo);
 
-		if(delegateUser == null || delegateUser.isEmpty()) {
-			return QueryRunner.runQuery(
-					(protocolVersion, authenticatedUser) -> doVerifyId(authenticatedUser, sessionId),
-					version, response, delegateUser, Permission.LOG_READ_OWN);
-		} else {
-			return QueryRunner.runQuery(
-					(protocolVersion, authenticatedUser) -> doVerifyId(delegateUser, sessionId),
-					version, response, delegateUser, Permission.LOG_READ_OWN);
-		}
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> doVerifyId(user, sessionId),
+				version, response, delegateUser, Permission.LOG_READ_OWN);
 
 	}
 
-	private Boolean doVerifyId(String userId, String sessionId)
+	private Boolean doVerifyId(DialogueBranchUserId userId, String sessionId)
 			throws DatabaseException, IOException {
 
 		// Get or create a UserService for the user in the default time zone

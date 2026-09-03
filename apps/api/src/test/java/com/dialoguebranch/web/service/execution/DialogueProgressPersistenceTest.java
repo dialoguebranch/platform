@@ -3,6 +3,7 @@ package com.dialoguebranch.web.service.execution;
 import com.dialoguebranch.execution.ExecuteNodeResult;
 import com.dialoguebranch.model.execute.DialogueState;
 import com.dialoguebranch.web.service.Application;
+import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
 import com.dialoguebranch.web.service.project.ProjectService;
 import com.dialoguebranch.web.service.project.PublishService;
@@ -61,7 +62,8 @@ class DialogueProgressPersistenceTest {
 		assertTrue(publish.isSuccess(), "publish failed: " + publish.getErrors());
 
 		ApplicationManager applicationManager = application.getApplicationManager();
-		String userId = "progress-persistence-test-user-" + UUID.randomUUID();
+		DialogueBranchUserId userId = new DialogueBranchUserId(
+				"https://test/realms/test", "progress-persistence-test-user-" + UUID.randomUUID(), null);
 		UserService userService = applicationManager.getOrCreateActiveUserService(userId);
 
 		ExecuteNodeResult startResult = userService.startDialogueSession(projectSlug, "main", null,

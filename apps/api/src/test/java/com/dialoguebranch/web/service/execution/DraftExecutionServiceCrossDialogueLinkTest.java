@@ -4,6 +4,7 @@ import com.dialoguebranch.execution.ExecuteNodeResult;
 import com.dialoguebranch.model.execute.Reply;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.DateTimeUtils;
+import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
 import com.dialoguebranch.web.service.project.ProjectService;
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
@@ -59,7 +60,8 @@ class DraftExecutionServiceCrossDialogueLinkTest {
 				"You made it to the other dialogue.");
 
 		ApplicationManager applicationManager = application.getApplicationManager();
-		String userId = "draft-cross-dialogue-user-" + UUID.randomUUID();
+		DialogueBranchUserId userId = new DialogueBranchUserId(
+				"https://test/realms/test", "draft-cross-dialogue-user-" + UUID.randomUUID(), null);
 		UserService userService = applicationManager.getOrCreateActiveUserService(userId);
 
 		DraftExecutionService.StartResult startResult =

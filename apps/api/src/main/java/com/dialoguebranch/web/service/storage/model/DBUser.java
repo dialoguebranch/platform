@@ -37,7 +37,10 @@ import java.util.UUID;
 
 /**
  * JPA entity representing a user record in the {@code users} database table. Each user is
- * identified by a UUID primary key and a unique username, and may own a set of
+ * identified by a UUID primary key and, as its stable business key, the pair
+ * {@code (issuer, subject)} taken from the authenticating JWT (the OIDC {@code iss} and
+ * {@code sub} claims — see issue #128). {@code username} is a mutable, non-key display/log
+ * attribute refreshed from the token's {@code preferred_username}. A user may own a set of
  * {@link DBVariable} records.
  *
  * @author Harm op den Akker
@@ -47,8 +50,8 @@ import java.util.UUID;
 	name = "users",
 	uniqueConstraints = {
 		@UniqueConstraint(
-			name = "username",
-			columnNames = "username"
+			name = "uq_users_issuer_subject",
+			columnNames = { "issuer", "subject" }
 		)
 	}
 )
@@ -57,6 +60,15 @@ public class DBUser {
 	@GeneratedValue(strategy = GenerationType.UUID)
 	private UUID id;
 
+	/** The token issuer (the full OIDC {@code iss} URL) this user authenticates through. */
+	@Column(nullable = false)
+	private String issuer;
+
+	/** The stable OIDC {@code sub} claim identifying this user within {@link #issuer}. */
+	@Column(nullable = false)
+	private String subject;
+
+	/** The last-seen {@code preferred_username}; display/log only, not an identity key. */
 	private String username;
 
 	@OneToMany(mappedBy = "user")
@@ -70,11 +82,16 @@ public class DBUser {
 	}
 
 	/**
-	 * Creates an instance of {@link DBUser} with the given {@code username}.
+	 * Creates an instance of {@link DBUser} identified by {@code (issuer, subject)}.
 	 *
-	 * @param username the username of the user.
+	 * @param issuer the token issuer (full OIDC {@code iss} URL).
+	 * @param subject the OIDC {@code sub} claim.
+	 * @param username the last-seen {@code preferred_username}, or {@code null} if not known yet
+	 *                 (e.g. a row created for a delegated user who has not authenticated directly).
 	 */
-	public DBUser(String username) {
+	public DBUser(String issuer, String subject, String username) {
+		this.issuer = issuer;
+		this.subject = subject;
 		this.username = username;
 	}
 
@@ -94,6 +111,42 @@ public class DBUser {
 	 */
 	public void setId(UUID id) {
 		this.id = id;
+	}
+
+	/**
+	 * Returns the token issuer (full OIDC {@code iss} URL) this user authenticates through.
+	 *
+	 * @return the issuer.
+	 */
+	public String getIssuer() {
+		return issuer;
+	}
+
+	/**
+	 * Sets the token issuer (full OIDC {@code iss} URL) this user authenticates through.
+	 *
+	 * @param issuer the issuer.
+	 */
+	public void setIssuer(String issuer) {
+		this.issuer = issuer;
+	}
+
+	/**
+	 * Returns the OIDC {@code sub} claim identifying this user within its {@link #getIssuer() issuer}.
+	 *
+	 * @return the subject.
+	 */
+	public String getSubject() {
+		return subject;
+	}
+
+	/**
+	 * Sets the OIDC {@code sub} claim identifying this user within its issuer.
+	 *
+	 * @param subject the subject.
+	 */
+	public void setSubject(String subject) {
+		this.subject = subject;
 	}
 
 	/**

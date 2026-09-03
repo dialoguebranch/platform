@@ -115,6 +115,8 @@ class SecurityConfigTest {
 				.header("alg", "RS256")
 				.issuedAt(Instant.now())
 				.expiresAt(Instant.now().plusSeconds(300))
+				.subject("alice-sub")
+				.claim("iss", "https://test/realms/test")
 				.claim("preferred_username", "alice")
 				.claim("resource_access", Map.of(clientId, Map.of("roles", List.of(roles))))
 				.build();

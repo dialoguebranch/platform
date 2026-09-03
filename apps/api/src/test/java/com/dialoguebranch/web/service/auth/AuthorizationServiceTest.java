@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AuthorizationServiceTest {
 
 	private static AuthenticationInfo user(String... roles) {
-		return new AuthenticationInfo("alice", roles, new Date(), null);
+		return new AuthenticationInfo("https://test/realms/test", "alice-sub", "alice", roles, new Date(), null);
 	}
 
 	@Test

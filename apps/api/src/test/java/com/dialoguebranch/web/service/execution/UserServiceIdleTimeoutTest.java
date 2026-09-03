@@ -1,6 +1,7 @@
 package com.dialoguebranch.web.service.execution;
 
 import com.dialoguebranch.web.service.Application;
+import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -29,7 +30,8 @@ class UserServiceIdleTimeoutTest {
 	@Test
 	void recentlyActiveUserServiceIsNotEvicted() throws Exception {
 		ApplicationManager applicationManager = application.getApplicationManager();
-		String userId = "idle-timeout-test-user-" + UUID.randomUUID();
+		DialogueBranchUserId userId = new DialogueBranchUserId(
+				"https://test/realms/test", "idle-timeout-test-user-" + UUID.randomUUID(), null);
 		applicationManager.getOrCreateActiveUserService(userId);
 
 		// Not asserting on the returned count: other tests sharing this Spring context may have
@@ -43,7 +45,8 @@ class UserServiceIdleTimeoutTest {
 	@Test
 	void idleUserServiceIsEvicted() throws Exception {
 		ApplicationManager applicationManager = application.getApplicationManager();
-		String userId = "idle-timeout-test-user-" + UUID.randomUUID();
+		DialogueBranchUserId userId = new DialogueBranchUserId(
+				"https://test/realms/test", "idle-timeout-test-user-" + UUID.randomUUID(), null);
 		applicationManager.getOrCreateActiveUserService(userId);
 
 		// A negative timeout makes the cutoff later than "now", so even a UserService whose
@@ -58,7 +61,8 @@ class UserServiceIdleTimeoutTest {
 	@Test
 	void lookupResetsTheIdleTimer() throws Exception {
 		ApplicationManager applicationManager = application.getApplicationManager();
-		String userId = "idle-timeout-test-user-" + UUID.randomUUID();
+		DialogueBranchUserId userId = new DialogueBranchUserId(
+				"https://test/realms/test", "idle-timeout-test-user-" + UUID.randomUUID(), null);
 		applicationManager.getOrCreateActiveUserService(userId);
 
 		// Resolving the UserService again should record fresh activity, so a subsequent eviction

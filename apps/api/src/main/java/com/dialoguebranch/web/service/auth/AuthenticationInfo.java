@@ -48,6 +48,8 @@ public class AuthenticationInfo {
 	/** Role name for an administrator. */
 	public static final String USER_ROLE_ADMIN = "admin";
 
+	private final String issuer;
+	private final String subject;
 	private final String username;
 	private final String[] roles;
 	private final Date issuedAt;
@@ -57,14 +59,19 @@ public class AuthenticationInfo {
 	 * Constructs a new instance of an {@link AuthenticationInfo} object, containing the information
 	 * resulting from a successful authentication of a user to the Dialogue Branch Web Service.
 	 *
-	 * @param username the username of the authenticated user
+	 * @param issuer the token issuer (the full OIDC {@code iss} URL) that signed the token
+	 * @param subject the OIDC {@code sub} claim — the stable user identifier within {@code issuer}
+	 * @param username the {@code preferred_username} of the authenticated user (display/log only)
 	 * @param roles a list of roles associated with this user
 	 * @param issuedAt the date/time when the JWT token was issued, with precision of seconds. Any
 	 *                 milliseconds are discarded.
 	 * @param expiration the date/time when the JWT token expires, with precision of seconds. Any
 	 *                   milliseconds are discarded.
 	 */
-	public AuthenticationInfo(String username, String[] roles, Date issuedAt, Date expiration) {
+	public AuthenticationInfo(String issuer, String subject, String username, String[] roles,
+			Date issuedAt, Date expiration) {
+		this.issuer = issuer;
+		this.subject = subject;
 		this.username = username;
 		this.roles = roles;
 		long seconds = issuedAt.getTime() / 1000;
@@ -78,7 +85,27 @@ public class AuthenticationInfo {
 	}
 
 	/**
-	 * Returns the username of the authenticated user.
+	 * Returns the token issuer (the full OIDC {@code iss} URL) that signed the token.
+	 *
+	 * @return the issuer
+	 */
+	public String getIssuer() {
+		return issuer;
+	}
+
+	/**
+	 * Returns the OIDC {@code sub} claim — the stable identifier of the authenticated user within
+	 * its {@link #getIssuer() issuer}.
+	 *
+	 * @return the subject
+	 */
+	public String getSubject() {
+		return subject;
+	}
+
+	/**
+	 * Returns the {@code preferred_username} of the authenticated user. Display/log only — not a
+	 * stable identity key (see issue #128); use {@link #getIssuer()} + {@link #getSubject()}.
 	 *
 	 * @return the username of the authenticated user
 	 */

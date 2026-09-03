@@ -29,6 +29,7 @@
 package com.dialoguebranch.web.service.execution;
 
 import com.dialoguebranch.execution.User;
+import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.exception.DatabaseException;
 import com.dialoguebranch.web.service.repository.DBLoggedDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBUserRepository;
@@ -108,30 +109,33 @@ public class UserServiceFactory {
 	 * Creates a {@link UserService} instance for the user identified by the given {@code userId},
 	 * located in the given {@code timeZone}.
 	 *
-	 * @param userId the identifier of the user for which to create the {@link UserService}.
+	 * @param userId the {@code (issuer, subject)} identity of the user for which to create the
+	 *               {@link UserService}.
 	 * @param timeZone the time zone (as {@link ZoneId}) in which the user resides.
 	 * @return a {@link UserService} instance for the given user.
 	 * @throws DatabaseException In case of an error loading in the known variables for the User.
 	 * @throws IOException In case of an error loading in the known variables for the User.
 	 */
-	public UserService createUserService(String userId, ZoneId timeZone)
+	public UserService createUserService(DialogueBranchUserId userId, ZoneId timeZone)
 			throws DatabaseException, IOException {
-		return new UserService(new User(userId, timeZone), applicationManager, storageHandler,
-				userRepository, loggedDialogueRepository);
+		return new UserService(userId, new User(userId.subject(), timeZone), applicationManager,
+				storageHandler, userRepository, loggedDialogueRepository);
 	}
 
 	/**
 	 * Creates a {@link UserService} instance for the user identified by the given {@code userId},
 	 * with an assumed default time zone.
 	 *
-	 * @param userId the identifier of the user for which to create the {@link UserService}.
+	 * @param userId the {@code (issuer, subject)} identity of the user for which to create the
+	 *               {@link UserService}.
 	 * @return a {@link UserService} instance for the given user.
 	 * @throws DatabaseException In case of an error loading in the known variables for the User.
 	 * @throws IOException In case of an error loading in the known variables for the User.
 	 */
-	public UserService createUserService(String userId) throws IOException, DatabaseException {
-		return new UserService(new User(userId), applicationManager, storageHandler,
-				userRepository, loggedDialogueRepository);
+	public UserService createUserService(DialogueBranchUserId userId)
+			throws IOException, DatabaseException {
+		return new UserService(userId, new User(userId.subject()), applicationManager,
+				storageHandler, userRepository, loggedDialogueRepository);
 	}
 
 }

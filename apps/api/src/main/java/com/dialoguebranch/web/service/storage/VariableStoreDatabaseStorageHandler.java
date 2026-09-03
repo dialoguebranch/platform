@@ -32,10 +32,9 @@ import com.dialoguebranch.exception.ParseException;
 import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.Variable;
 import com.dialoguebranch.execution.VariableStore;
-import com.dialoguebranch.execution.VariableStoreChange;
-import com.dialoguebranch.execution.VariableStoreOnChangeListener;
 import com.dialoguebranch.execution.VariableUpdatedSource;
 import com.dialoguebranch.json.JsonMapper;
+import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.repository.DBUserRepository;
 import com.dialoguebranch.web.service.repository.DBVariableRepository;
 import com.dialoguebranch.web.service.storage.model.DBUser;
@@ -62,7 +61,7 @@ import java.util.stream.Collectors;
  * @author Harm op den Akker
  */
 @Service
-public class VariableStoreDatabaseStorageHandler implements VariableStoreOnChangeListener {
+public class VariableStoreDatabaseStorageHandler {
 
 	private static final Logger logger =
 			LoggerFactory.getLogger(VariableStoreDatabaseStorageHandler.class);
@@ -89,14 +88,15 @@ public class VariableStoreDatabaseStorageHandler implements VariableStoreOnChang
 	 * Reads all stored Dialogue Branch Variables for the given user from the database and
 	 * returns them as a populated {@link VariableStore}.
 	 *
-	 * @param user the user for whom to load the variable store.
+	 * @param id the identity of the user for whom to load the variable store.
+	 * @param user the core {@link User} the returned store is bound to.
 	 * @return a {@link VariableStore} populated with the user's variables.
 	 * @throws ParseException if a variable value cannot be deserialized from its stored JSON
 	 * representation.
 	 */
 	@Transactional
-	public VariableStore read(User user) throws ParseException {
-		DBUser dbUser = getOrCreateUser(user.getId());
+	public VariableStore read(DialogueBranchUserId id, User user) throws ParseException {
+		DBUser dbUser = getOrCreateUser(id);
 		List<DBVariable> dbVariables = variableRepository.findByUser(dbUser);
 
 		List<Variable> variables = new ArrayList<>();
@@ -118,12 +118,13 @@ public class VariableStoreDatabaseStorageHandler implements VariableStoreOnChang
 	 * existing rows for variables no longer present in the store and creating or updating a row
 	 * for each current variable.
 	 *
+	 * @param id the identity of the user who owns the variable store.
 	 * @param variableStore the variable store to persist.
 	 * @throws IOException if a variable value cannot be serialized to JSON for storage.
 	 */
 	@Transactional
-	public void write(VariableStore variableStore) throws IOException {
-		DBUser dbUser = getOrCreateUser(variableStore.getUser().getId());
+	public void write(DialogueBranchUserId id, VariableStore variableStore) throws IOException {
+		DBUser dbUser = getOrCreateUser(id);
 		List<DBVariable> existingVars = variableRepository.findByUser(dbUser);
 
 		Set<String> newVarNames = Arrays.stream(variableStore.getVariables())
@@ -151,23 +152,22 @@ public class VariableStoreDatabaseStorageHandler implements VariableStoreOnChang
 	}
 
 	/**
-	 * Called when the variable store changes; immediately persists the full updated store to
-	 * the database by delegating to {@link #write(VariableStore)}.
-	 *
-	 * @param variableStore the variable store that has changed.
-	 * @param changes the list of changes that were applied.
+	 * Resolves the {@link DBUser} row for {@code id}, creating it on first access. When the row
+	 * exists and the token carried a {@code preferred_username} that differs from the stored one,
+	 * the stored value is refreshed (a rename). Paths with no user token in hand — a delegated
+	 * user, the External Variable Service callback — pass a {@code null} username and never
+	 * trigger a refresh.
 	 */
-	@Override
-	public void onChange(VariableStore variableStore, List<VariableStoreChange> changes) {
-		try {
-			write(variableStore);
-		} catch (IOException e) {
-			logger.error("Failed to write variable store changes: {}", e.getMessage(), e);
-		}
-	}
-
-	private DBUser getOrCreateUser(String username) {
-		return userRepository.findByUsername(username)
-				.orElseGet(() -> userRepository.save(new DBUser(username)));
+	private DBUser getOrCreateUser(DialogueBranchUserId id) {
+		return userRepository.findByIssuerAndSubject(id.issuer(), id.subject())
+				.map(existing -> {
+					if (id.username() != null && !id.username().equals(existing.getUsername())) {
+						existing.setUsername(id.username());
+						return userRepository.save(existing);
+					}
+					return existing;
+				})
+				.orElseGet(() -> userRepository.save(
+						new DBUser(id.issuer(), id.subject(), id.username())));
 	}
 }

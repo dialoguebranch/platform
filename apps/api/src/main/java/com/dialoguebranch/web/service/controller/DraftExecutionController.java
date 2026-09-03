@@ -38,6 +38,7 @@ import com.dialoguebranch.model.execute.protocol.NullableResponse;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.DateTimeUtils;
 import com.dialoguebranch.web.service.QueryRunner;
+import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.auth.Permission;
 import com.dialoguebranch.web.service.controller.schema.DraftDialogueMessage;
 import com.dialoguebranch.web.service.exception.BadRequestException;
@@ -356,9 +357,10 @@ public class DraftExecutionController {
 	 * @param user the authenticated user making the request.
 	 * @throws ForbiddenException if the session belongs to a different user.
 	 */
-	private static void checkSessionOwner(DraftTestSession session, String user)
+	private static void checkSessionOwner(DraftTestSession session, DialogueBranchUserId user)
 			throws ForbiddenException {
-		if (!session.getUserId().equals(user)) {
+		// A draft-test session is ephemeral in-memory state keyed on the owner's subject.
+		if (!session.getUserId().equals(user.subject())) {
 			throw new ForbiddenException();
 		}
 	}

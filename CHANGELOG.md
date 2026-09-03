@@ -97,6 +97,20 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- **Breaking:** Web Service: a Dialogue Branch user is now identified by the JWT's
+  `(issuer, subject)` pair instead of `preferred_username`
+  ([#128](https://github.com/dialoguebranch/platform/issues/128)). `preferred_username` is not
+  realm-qualified (one instance trusts tokens from multiple Keycloak realms) and is
+  mutable/reusable, so two people could collapse onto one variable store + dialogue history, or
+  have their data orphaned on a rename. The `users` table gains `issuer` and `subject` columns
+  (`UNIQUE(issuer, subject)`); `username` becomes a mutable display attribute, refreshed from the
+  token on each login. **The `delegateUser` request parameter (`/dialogue/*`, `/variables/*`,
+  `/log/*`) now takes the delegate's OIDC `subject` within the caller's realm, not a bare
+  username** — there is deliberately no cross-realm delegation. Flyway migration `V5` adds the
+  columns and, since `sub` was never stored, wipes the existing user-scoped tables (`users`,
+  `variables`, `logged_dialogues`) — dev-only data, no deployment exists on this schema. The
+  External Variable Service request contract is unchanged in this step; it gains `issuer` +
+  `subject` together with the project slug from #86 in a single following revision.
 - Core: `execution.parser.ProjectScriptLoader` now validates a project's on-disk layout when it
   is constructed ([#109](https://github.com/dialoguebranch/platform/issues/109)): the metadata
   must declare a source language, the source-language folder may hold only `.dlb` files, and each

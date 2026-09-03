@@ -42,12 +42,12 @@ import java.util.UUID;
 public interface DBUserRepository extends JpaRepository<DBUser, UUID> {
 
 	/**
-	 * Finds the user with the given unique username.
+	 * Finds the user identified by the given {@code (issuer, subject)} business key.
 	 *
-	 * @param username the username to search for.
-	 * @return an {@link Optional} containing the matching {@link DBUser}, or empty if no user
-	 * with the given username exists.
+	 * @param issuer the token issuer (full OIDC {@code iss} URL).
+	 * @param subject the OIDC {@code sub} claim.
+	 * @return an {@link Optional} containing the matching {@link DBUser}, or empty if none exists.
 	 */
-	Optional<DBUser> findByUsername(String username);
+	Optional<DBUser> findByIssuerAndSubject(String issuer, String subject);
 
 }

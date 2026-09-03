@@ -35,6 +35,7 @@ import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.DateTimeUtils;
 import com.dialoguebranch.web.service.ProtocolVersion;
 import com.dialoguebranch.web.service.QueryRunner;
+import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.auth.Permission;
 import com.dialoguebranch.web.service.controller.schema.ProjectVariableInfo;
 import com.dialoguebranch.web.service.exception.BadRequestException;
@@ -160,15 +161,11 @@ public class VariablesController {
 		// Make sure the passed on String is not null
 		String variableNameList = Objects.requireNonNullElse(variableNames, "");
 
-		if(delegateUser == null || delegateUser.isEmpty()) {
-			return QueryRunner.runQuery(
-				(protocolVersion, authenticatedUser) -> doGetVariables(authenticatedUser, variableNameList, timeZone),
-				version, response, delegateUser, Permission.VARIABLE_READ_OWN);
-		} else {
-			return QueryRunner.runQuery(
-				(protocolVersion, authenticatedUser) -> doGetVariables(delegateUser, variableNameList, timeZone),
-				version, response, delegateUser, Permission.VARIABLE_READ_OWN);
-		}
+		// QueryRunner resolves the effective user (authenticated caller or authorised delegate)
+		// and passes it as the lambda argument.
+		return QueryRunner.runQuery(
+			(protocolVersion, user) -> doGetVariables(user, variableNameList, timeZone),
+			version, response, delegateUser, Permission.VARIABLE_READ_OWN);
 	}
 
 	// ------------------------------------------------------------------------------ //
@@ -233,7 +230,7 @@ public class VariablesController {
 	 * @throws DatabaseException in case of an error in generating the UserService.
 	 * @throws BadRequestException in case of a malformed or unknown {@code timeZone}.
 	 */
-	private List<Variable> doGetVariables(String userId, String variableNames, String timeZone)
+	private List<Variable> doGetVariables(DialogueBranchUserId userId, String variableNames, String timeZone)
 			throws IOException, DatabaseException, BadRequestException {
 
 		// Get or create a UserService for the user in the given time zone
@@ -344,15 +341,9 @@ public class VariablesController {
 		if(!(timeZone == null)) logInfo += "&timeZone=" + timeZone;
 		logger.info(logInfo);
 
-		if(delegateUser == null || delegateUser.isEmpty()) {
-			QueryRunner.runQuery((protocolVersion, authenticatedUser) ->
-				doSetVariable(authenticatedUser, name, value, timeZone),
-				version, response, delegateUser, Permission.VARIABLE_WRITE_OWN);
-		} else {
-			QueryRunner.runQuery((protocolVersion, authenticatedUser) ->
-				doSetVariable(delegateUser, name, value, timeZone),
-				version, response, delegateUser, Permission.VARIABLE_WRITE_OWN);
-		}
+		QueryRunner.runQuery((protocolVersion, user) ->
+			doSetVariable(user, name, value, timeZone),
+			version, response, delegateUser, Permission.VARIABLE_WRITE_OWN);
 	}
 
 	/**
@@ -367,7 +358,7 @@ public class VariablesController {
 	 * @throws Exception in case of an invalid variable name, invalid timezone, or an error
 	 * 					 accessing the variable store.
 	 */
-	private Object doSetVariable(String userId, String name, String value,
+	private Object doSetVariable(DialogueBranchUserId userId, String name, String value,
 								 String timeZone) throws Exception {
 		List<HttpFieldError> errors = new ArrayList<>();
 
@@ -461,15 +452,9 @@ public class VariablesController {
 			logInfo += "?delegateUser=" + delegateUser;
 		logger.info(logInfo);
 
-		if(delegateUser == null || delegateUser.isEmpty()) {
-			QueryRunner.runQuery((protocolVersion, authenticatedUser) ->
-							doSetVariables(authenticatedUser, variables, timeZone),
-				version, response, delegateUser, Permission.VARIABLE_WRITE_OWN);
-		} else {
-			QueryRunner.runQuery((protocolVersion, authenticatedUser) ->
-							doSetVariables(delegateUser, variables, timeZone),
-				version, response, delegateUser, Permission.VARIABLE_WRITE_OWN);
-		}
+		QueryRunner.runQuery((protocolVersion, user) ->
+						doSetVariables(user, variables, timeZone),
+			version, response, delegateUser, Permission.VARIABLE_WRITE_OWN);
 	}
 
 	/**
@@ -484,7 +469,7 @@ public class VariablesController {
 	 * @throws Exception in case of an invalid variable name, or an error writing variables to the
 	 * 					 database.
 	 */
-	private Object doSetVariables(String userId, Map<String,Object> variables,
+	private Object doSetVariables(DialogueBranchUserId userId, Map<String,Object> variables,
 								  String timeZone) throws Exception {
 
 		List<String> invalidNames = new ArrayList<>();

@@ -2,6 +2,7 @@ package com.dialoguebranch.web.service.execution;
 
 import com.dialoguebranch.model.execute.ResourcePointer;
 import com.dialoguebranch.web.service.Application;
+import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -49,7 +50,8 @@ class UserServiceLanguageMatchingTest {
 
 	private ResourcePointer resolveMenuDialogue(String language) throws Exception {
 		ApplicationManager applicationManager = application.getApplicationManager();
-		String userId = "language-matching-test-user-" + UUID.randomUUID();
+		DialogueBranchUserId userId = new DialogueBranchUserId(
+				"https://test/realms/test", "language-matching-test-user-" + UUID.randomUUID(), null);
 		UserService userService = applicationManager.getOrCreateActiveUserService(userId);
 		return userService.getDialogueDescriptionFromProject("default-test", "menu", language);
 	}

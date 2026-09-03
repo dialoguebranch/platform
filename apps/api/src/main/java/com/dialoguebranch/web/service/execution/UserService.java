@@ -35,6 +35,7 @@ import com.dialoguebranch.execution.*;
 import com.dialoguebranch.i18n.TranslationContext;
 import com.dialoguebranch.model.execute.*;
 import com.dialoguebranch.web.service.DlbProperties;
+import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.exception.DatabaseException;
 import com.dialoguebranch.web.service.repository.DBLoggedDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBUserRepository;
@@ -66,6 +67,7 @@ import java.util.*;
 public class UserService {
 
 	/** The dialogue branch user associated with this UserService */
+	private final DialogueBranchUserId userId;
 	private final User dialogueBranchUser;
 
 	/** The general ApplicationManager object that governs this UserService */
@@ -94,6 +96,7 @@ public class UserService {
 	 * Instantiates a {@link UserService} for a given {@link User}. The UserService creates a {@link
 	 * VariableStore} instance and loads in all known variables for the user.
 	 *
+	 * @param userId the {@code (issuer, subject)} identity of the user this service serves.
 	 * @param dialogueBranchUser The {@link User} for which this {@link UserService} is handling the
 	 *                           interactions.
 	 * @param applicationManager the server's {@link ApplicationManager} instance.
@@ -107,25 +110,34 @@ public class UserService {
 	 * @throws DatabaseException if an error occurs reading existing variables from the database.
 	 * @throws IOException if an error occurs initialising the logged dialogue store.
 	 */
-	public UserService(User dialogueBranchUser, ApplicationManager applicationManager,
+	public UserService(DialogueBranchUserId userId, User dialogueBranchUser,
+					   ApplicationManager applicationManager,
 					   VariableStoreDatabaseStorageHandler storageHandler,
 					   DBUserRepository userRepository,
 					   DBLoggedDialogueRepository loggedDialogueRepository)
 			throws DatabaseException, IOException {
 
+		this.userId = userId;
 		this.dialogueBranchUser = dialogueBranchUser;
 		this.applicationManager = applicationManager;
 
 		try {
-			this.variableStore = storageHandler.read(dialogueBranchUser);
+			this.variableStore = storageHandler.read(userId, dialogueBranchUser);
 		} catch (ParseException ex) {
 			throw new DatabaseException("Failed to read initial variables for user '"
-					+ dialogueBranchUser.getId() + "': " + ex.getMessage(), ex);
+					+ userId.subject() + "': " + ex.getMessage(), ex);
 		}
 
 		DlbProperties dlbProperties = applicationManager.getDlbProperties();
 
-		this.variableStore.addOnChangeListener(storageHandler);
+		this.variableStore.addOnChangeListener((store, changes) -> {
+			try {
+				storageHandler.write(userId, store);
+			} catch (IOException e) {
+				logger.error("Failed to persist variable store changes for user '{}': {}",
+						userId.subject(), e.getMessage(), e);
+			}
+		});
 
 		if (dlbProperties.getExternalVariableService().isEnabled()) {
 			this.variableStore.addOnChangeListener(
@@ -135,7 +147,7 @@ public class UserService {
 		dialogueExecutor = new DialogueExecutor(this);
 
 		loggedDialogueStore = new LoggedDialogueStore(
-				dialogueBranchUser.getId(), this, userRepository, loggedDialogueRepository);
+				userId, this, userRepository, loggedDialogueRepository);
 
 		this.lastActivityTime = System.currentTimeMillis();
 	}
@@ -151,6 +163,15 @@ public class UserService {
 	 */
 	public User getDialogueBranchUser() {
 		return dialogueBranchUser;
+	}
+
+	/**
+	 * Returns the {@code (issuer, subject)} identity of the user this service serves.
+	 *
+	 * @return the user identity.
+	 */
+	public DialogueBranchUserId getUserId() {
+		return userId;
 	}
 
 	/**

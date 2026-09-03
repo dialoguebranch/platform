@@ -1,6 +1,7 @@
 package com.dialoguebranch.web.service.execution;
 
 import com.dialoguebranch.web.service.Application;
+import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
 import com.dialoguebranch.web.service.project.ProjectService;
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
@@ -50,7 +51,8 @@ class DraftExecutionServiceLanguageFallbackTest {
 				"title: Start\nspeaker: Agent\nposition: 0,0", "Hello.");
 
 		ApplicationManager applicationManager = application.getApplicationManager();
-		String userId = "draft-lang-fallback-user-" + UUID.randomUUID();
+		DialogueBranchUserId userId = new DialogueBranchUserId(
+				"https://test/realms/test", "draft-lang-fallback-user-" + UUID.randomUUID(), null);
 		UserService userService = applicationManager.getOrCreateActiveUserService(userId);
 
 		DraftExecutionService.StartResult result =

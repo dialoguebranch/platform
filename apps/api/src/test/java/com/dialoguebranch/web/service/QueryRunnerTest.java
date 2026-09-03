@@ -64,10 +64,10 @@ class QueryRunnerTest {
 		SecurityContextHolder.getContext().setAuthentication(
 				new JwtAuthenticationToken(keycloakJwt("participant")));
 
-		String result = QueryRunner.runQuery((version, user) -> "ran for " + user,
+		String result = QueryRunner.runQuery((version, user) -> "ran for " + user.subject(),
 				"1", new MockHttpServletResponse(), "", Permission.DIALOGUE_RUN);
 
-		assertEquals("ran for alice", result);
+		assertEquals("ran for alice-sub", result);
 	}
 
 	@Test
@@ -119,6 +119,8 @@ class QueryRunnerTest {
 				.header("alg", "RS256")
 				.issuedAt(Instant.now())
 				.expiresAt(Instant.now().plusSeconds(300))
+				.subject("alice-sub")
+				.claim("iss", "https://test/realms/test")
 				.claim("preferred_username", "alice")
 				.claim("resource_access",
 						Map.of(resourceAccessClient, Map.of("roles", List.of(roles))))
