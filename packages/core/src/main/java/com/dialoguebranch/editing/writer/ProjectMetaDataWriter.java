@@ -34,6 +34,7 @@ import com.dialoguebranch.model.execute.LanguageMap;
 import nl.rrd.utils.xml.XMLWriter;
 
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  * Utility class that serialises a {@link ProjectMetaData} object to XML using an
@@ -66,7 +67,8 @@ public class ProjectMetaDataWriter {
 		writer.writeCharacters(projectMetaData.getDescription());
 		writer.writeEndElement(); // description
 
-		writeLanguageMapXML(writer,projectMetaData.getLanguageMap());
+		writeLanguageMapXML(writer, Objects.requireNonNull(projectMetaData.getLanguageMap(),
+				"Cannot write project metadata without a language map"));
 
 		writer.writeEndElement(); // dlb-project
 		writer.close();

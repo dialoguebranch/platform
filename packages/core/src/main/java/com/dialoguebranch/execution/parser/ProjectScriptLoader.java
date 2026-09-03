@@ -38,6 +38,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A {@link ScriptLoader} implementation that discovers and opens Dialogue Branch resource files
@@ -102,7 +103,7 @@ public class ProjectScriptLoader implements ScriptLoader {
 		// Get a list of all the language folders
 		List<String> supportedLanguages = projectMetaData.getSupportedLanguageCodes();
 
-		File rootDirectory = new File(projectMetaData.getBasePath());
+		File rootDirectory = baseDirectory();
 
 		File[] children = rootDirectory.listFiles();
 		if(children != null) {
@@ -123,10 +124,19 @@ public class ProjectScriptLoader implements ScriptLoader {
 		String extension = fileDescription.getResourceType() == ResourceType.SCRIPT
 				? DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION
 				: DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION;
-		File file = new File(new File(projectMetaData.getBasePath()),
+		File file = new File(baseDirectory(),
 				fileDescription.getLanguage() + File.separator +
 						fileDescription.getDialogueName() + extension);
 		return new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8);
+	}
+
+	/**
+	 * Returns the project's base directory. A {@link ProjectScriptLoader} is always built from a
+	 * metadata file on disk, so its {@link ProjectMetaData} always carries a base path.
+	 */
+	private File baseDirectory() {
+		return new File(Objects.requireNonNull(projectMetaData.getBasePath(),
+				"Project metadata loaded from a file has no base path"));
 	}
 
 	// --------------------------------------------------------- //

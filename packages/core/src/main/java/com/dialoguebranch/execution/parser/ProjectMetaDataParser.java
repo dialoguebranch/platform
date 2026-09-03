@@ -112,10 +112,12 @@ public class ProjectMetaDataParser {
 	private static class ProjectMetaDataXMLHandler
 			extends AbstractSimpleSAXHandler<ProjectMetaData> {
 
+		// Populated by startElement once the <dlb-project> root is seen, before getObject() runs.
+		@SuppressWarnings("NullAway.Init")
 		private ProjectMetaData result;
 		private int rootLevel = 0;
 		private boolean inDescription = false;
-		private SimpleSAXHandler<LanguageMap> languageMapHandler = null;
+		private @Nullable SimpleSAXHandler<LanguageMap> languageMapHandler = null;
 
 		@Override
 		public void startElement(String name, Attributes attributes, List<String> parents) throws ParseException {
@@ -183,8 +185,10 @@ public class ProjectMetaDataParser {
 
 	private static class LanguageMapXMLHandler extends AbstractSimpleSAXHandler<LanguageMap> {
 
-		private LanguageMap result = null;
-		private SimpleSAXHandler<Language> languageHandler = null;
+		// Populated by startElement once the <language-map> element is seen, before getObject() runs.
+		@SuppressWarnings("NullAway.Init")
+		private LanguageMap result;
+		private @Nullable SimpleSAXHandler<Language> languageHandler = null;
 
 		@Override
 		public void startElement(String name, Attributes attributes, List<String> parents)
@@ -223,6 +227,8 @@ public class ProjectMetaDataParser {
 
 	private static class LanguageXMLHandler extends AbstractSimpleSAXHandler<Language> {
 
+		// Populated by startElement once the language element is seen, before getObject() runs.
+		@SuppressWarnings("NullAway.Init")
 		private Language result;
 
 		@Override

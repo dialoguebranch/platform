@@ -37,6 +37,7 @@ import org.jspecify.annotations.Nullable;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * The {@link ProjectMetaData} class is the object representation of a Dialogue Branch metadata
@@ -81,6 +82,9 @@ public class ProjectMetaData {
 	/**
 	 * Creates an instance of an empty {@link ProjectMetaData} object.
 	 */
+	// name, description, version and storageSource have no sensible default: a caller building
+	// metadata this way sets them through the setters before the object is used.
+	@SuppressWarnings("NullAway.Init")
 	public ProjectMetaData() { }
 
 	/**
@@ -93,6 +97,8 @@ public class ProjectMetaData {
 	 * @param version free-form version information (e.g. v0.1.0).
 	 * @param languageMap contains all the languages supported by this Dialogue Branch project.
 	 */
+	// storageSource is left for the six-argument constructor / setStorageSource; see #121.
+	@SuppressWarnings("NullAway.Init")
 	public ProjectMetaData(String name, String basePath, String description, String version,
 						   LanguageMap languageMap) {
 		this.name = name;
@@ -285,7 +291,8 @@ public class ProjectMetaData {
 			throw new DuplicateLanguageCodeException("A language with the given language " +
 					"code '"+code+"' is already defined in this Dialogue Branch project.",code);
 
-		languageMap.setSourceLanguage(new Language(name,code));
+		Objects.requireNonNull(languageMap, "This Dialogue Branch project has no language map")
+				.setSourceLanguage(new Language(name,code));
 	}
 
 	/**
@@ -305,7 +312,8 @@ public class ProjectMetaData {
 			throw new DuplicateLanguageCodeException("A language with the given language " +
 					"code '"+code+"' is already defined in this Dialogue Branch project.",code);
 
-		languageMap.addTranslationLanguage(new Language(name,code));
+		Objects.requireNonNull(languageMap, "This Dialogue Branch project has no language map")
+				.addTranslationLanguage(new Language(name,code));
 	}
 
 	/**
@@ -316,11 +324,13 @@ public class ProjectMetaData {
 	 * @return true if the given {@code languageCode} exists, false otherwise
 	 */
 	public boolean languageExists(String languageCode) {
-		if(languageMap.getSourceLanguage() != null
-				&& languageMap.getSourceLanguage().getCode().equals(languageCode))
+		if(languageMap == null)
+			return false;
+		Language sourceLanguage = languageMap.getSourceLanguage();
+		if(sourceLanguage != null && languageCode.equals(sourceLanguage.getCode()))
 			return true;
 		for(Language translationLanguage : languageMap.getTranslationLanguages()) {
-			if(translationLanguage.getCode().equals(languageCode)) return true;
+			if(languageCode.equals(translationLanguage.getCode())) return true;
 		}
 		return false;
 	}
