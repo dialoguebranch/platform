@@ -97,6 +97,10 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- Studio: the Variable Browser "Values" tab now shows only the currently selected project's
+  variables, not a cross-project dump
+  ([#86](https://github.com/dialoguebranch/platform/issues/86)). The client's `getVariables` /
+  `setVariable` calls pass the project slug; with no project selected the tab is empty.
 - **Breaking:** External Variable Service: the `retrieve-updates`, `notify-updated` and
   `notify-cleared` requests now identify the user and project with `subject` + `issuer` +
   `projectSlug` instead of a single bare `userId`

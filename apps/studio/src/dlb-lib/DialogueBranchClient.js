@@ -581,10 +581,11 @@ export class DialogueBranchClient {
         .then((data) => Array.isArray(data) ? data : []);
     }
 
-    getVariables() {
+    getVariables(projectSlug) {
         var url = this._baseUrl + "/variables/get";
 
-        url += "?timeZone="+this._timeZone;
+        url += "?projectSlug="+encodeURIComponent(projectSlug);
+        url += "&timeZone="+this._timeZone;
         url += this._delegateParam;
 
         return this._fetch(url, {
@@ -627,10 +628,11 @@ export class DialogueBranchClient {
         .then((data) => data?.value ?? null);
     }
 
-    setVariable(variableName, variableValue) {
+    setVariable(projectSlug, variableName, variableValue) {
         var url = this._baseUrl + "/variables/set-single";
 
-        url += "?name="+variableName;
+        url += "?projectSlug="+encodeURIComponent(projectSlug);
+        url += "&name="+variableName;
         if(variableValue != null) url += "&value="+variableValue;
         url += "&timeZone="+this._timeZone;
         url += this._delegateParam;

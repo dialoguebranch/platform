@@ -58,7 +58,8 @@ const emit = defineEmits([
 const client = useClient();
 
 // Two distinct things, one panel, one at a time (see `mode`):
-//   'values'  — this logged-in user's stored variable values; mutable runtime state.
+//   'values'  — this logged-in user's stored variable values for the current project; mutable
+//               runtime state. Variables are project-scoped (#86).
 //   'project' — every variable name the project's dialogues reference (read/written);
 //               static authoring info, read-only (GET /variables/list-project).
 const mode = ref('values');
@@ -95,8 +96,14 @@ const { next: nextLoadRequest, isCurrent: isCurrentLoadRequest } = useLatestRequ
 
 const loadVariables = () => {
     dismissError();
+    // Variables are project-scoped (#86): the "Values" list is this project's stored values only.
+    const slug = state.value.selectedProject?.slug;
+    if (!slug) {
+        variables.value = [];
+        return;
+    }
     const requestId = nextLoadRequest();
-    client.getVariables()
+    client.getVariables(slug)
     .then((vars) => {
         if (!isCurrentLoadRequest(requestId)) return;
         variables.value = vars;
@@ -141,7 +148,7 @@ function deleteVariable(name) {
     const next = new Set(deletingVariables.value);
     next.add(name);
     deletingVariables.value = next;
-    client.setVariable(name, null)
+    client.setVariable(state.value.selectedProject?.slug, name, null)
     .then(() => {
         emit('changeVariable');
         return loadVariables();
@@ -166,7 +173,7 @@ function submitVariable(variable) {
     if (!dirtyVariables.value.has(variable.name)) return;
     dismissError();
     logEvent('variable', 'Variable $1 updated to $2', variable.name, variable.value);
-    client.setVariable(variable.name, variable.value)
+    client.setVariable(state.value.selectedProject?.slug, variable.name, variable.value)
     .then(() => {
         const next = new Set(dirtyVariables.value);
         next.delete(variable.name);
@@ -192,7 +199,7 @@ onMounted(() => {
                         type="button"
                         class="px-2 h-7.5 cursor-pointer"
                         :class="mode === 'values' ? 'bg-orange-dark text-white' : 'bg-white text-grey-dark hover:bg-grey-lighter'"
-                        title="This user's current variable values"
+                        title="This user's stored variable values for the current project"
                         @click="mode = 'values'"
                     >Values</button>
                     <button
