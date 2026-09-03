@@ -35,6 +35,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * An {@link ExternalNodePointer} is a pointer to a node in another dialogue. An {@link
@@ -230,7 +231,8 @@ public class ExternalNodePointer extends NodePointer {
 	public boolean equals(@Nullable Object obj) {
 		if (!super.equals(obj))
 			return false;
-		ExternalNodePointer other = (ExternalNodePointer)obj;
+		// super.equals() returned true, so obj is a non-null ExternalNodePointer.
+		ExternalNodePointer other = (ExternalNodePointer)Objects.requireNonNull(obj);
 		return absoluteTargetDialogue.equals(other.getAbsoluteTargetDialogue());
 	}
 

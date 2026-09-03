@@ -31,6 +31,7 @@ package com.dialoguebranch.execution;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.jspecify.annotations.Nullable;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -55,14 +56,14 @@ public class Variable {
 	/** The name or 'identifier' of the variable */
 	private final String name;
 
-	/** The value of the variable */
-	private final Object value;
+	/** The value of the variable, or {@code null} if it has never been set. */
+	private final @Nullable Object value;
 
-	/** The last time this variable was updated (epoch time in milliseconds). */
-	private final Long updatedTime;
+	/** The last time this variable was updated (epoch time in milliseconds), or {@code null}. */
+	private final @Nullable Long updatedTime;
 
-	/** The time zone in which this variable was last updated (as IANA string). */
-	private final String updatedTimeZone;
+	/** The time zone in which this variable was last updated (as IANA string), or {@code null}. */
+	private final @Nullable String updatedTimeZone;
 
 	/** The source of the last update to this variable. */
 	private final VariableUpdatedSource updatedSource;
@@ -89,11 +90,11 @@ public class Variable {
 			@JsonProperty("name")
 			String name,
 			@JsonProperty("value")
-			Object value,
+			@Nullable Object value,
 			@JsonProperty("updatedTime")
-			Long updatedTime,
+			@Nullable Long updatedTime,
 			@JsonProperty("updatedTimeZone")
-			String updatedTimeZone,
+			@Nullable String updatedTimeZone,
 			@JsonProperty("updatedSource")
 			VariableUpdatedSource updatedSource) {
 		this.name = name;
@@ -114,7 +115,7 @@ public class Variable {
 	 * @param updatedSource the {@link VariableUpdatedSource} indicating what caused this update.
 	 */
 	@JsonIgnore
-	public Variable(String name, Object value, ZonedDateTime lastUpdated,
+	public Variable(String name, @Nullable Object value, ZonedDateTime lastUpdated,
 					VariableUpdatedSource updatedSource) {
 		this.name = name;
 		this.value = value;
@@ -158,7 +159,7 @@ public class Variable {
 	 *
 	 * @return the value of this {@link Variable} as an {@link Object}.
 	 */
-	public Object getValue() {
+	public @Nullable Object getValue() {
 		return value;
 	}
 
@@ -169,7 +170,7 @@ public class Variable {
 	 * @return the UTC timestamp of when this {@link Variable} was last updated (as epoch time
 	 *         in milliseconds).
 	 */
-	public Long getUpdatedTime() {
+	public @Nullable Long getUpdatedTime() {
 		return updatedTime;
 	}
 
@@ -180,7 +181,7 @@ public class Variable {
 	 * @return the time zone in which this {@link Variable} was last updated (as IANA Code String,
 	 *         e.g. "Europe/Lisbon").
 	 */
-	public String getUpdatedTimeZone() {
+	public @Nullable String getUpdatedTimeZone() {
 		return updatedTimeZone;
 	}
 

@@ -33,6 +33,7 @@ import nl.rrd.utils.exception.ParseException;
 import org.jspecify.annotations.Nullable;
 
 import java.io.Serial;
+import java.util.Objects;
 
 /**
  * This exception indicates a parse error within a Dialogue Branch node.
@@ -86,7 +87,8 @@ public class NodeParseException extends ParseException {
 	 * @return the {@link LineNumberParseException} that caused this {@link NodeParseException}
 	 */
 	public LineNumberParseException getLineNumberParseException() {
-		return (LineNumberParseException)getCause();
+		// The constructor always requires a non-null LineNumberParseException cause.
+		return (LineNumberParseException)Objects.requireNonNull(getCause());
 	}
 
 }

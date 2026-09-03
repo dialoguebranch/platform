@@ -38,6 +38,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -134,13 +135,17 @@ public class Dialogue {
 	 * @param node the {@link Node} to add.
 	 */
 	public void addNode(Node node) {
-		nodes.put(node.getTitle().toLowerCase(), node);
-		if (node.getHeader().getSpeaker() != null)
-			speakers.add(node.getHeader().getSpeaker());
-		node.getBody().getReadVariableNames(variablesNeeded);
-		node.getBody().getWriteVariableNames(variablesWritten);
+		NodeHeader header = Objects.requireNonNull(node.getHeader(), "Node has no header");
+		NodeBody body = Objects.requireNonNull(node.getBody(), "Node has no body");
+		nodes.put(Objects.requireNonNull(node.getTitle(), "Node has no title").toLowerCase(),
+				node);
+		String speaker = header.getSpeaker();
+		if (speaker != null)
+			speakers.add(speaker);
+		body.getReadVariableNames(variablesNeeded);
+		body.getWriteVariableNames(variablesWritten);
 		Set<NodePointer> nodePointers = new HashSet<>();
-		node.getBody().getNodePointers(nodePointers);
+		body.getNodePointers(nodePointers);
 		for (NodePointer nodePointer : nodePointers) {
 			if (!(nodePointer instanceof ExternalNodePointer))
 				continue;
