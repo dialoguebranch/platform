@@ -1,0 +1,35 @@
+# Dialogue Branch — External Variable Service integration overlay.
+#
+# Wires the Dockerised API (`dlb-web-service`) to the Dockerised mock External Variable
+# Service so the EVS round-trip (retrieve-updates / notify-updated / notify-cleared) can be
+# exercised end to end. Without this overlay, `mock-variable-service` only starts under its
+# own `--profile variable-service` and the API is not configured to call it.
+#
+# Combine it with the base file explicitly (it is NOT auto-loaded like compose.override.yml):
+#
+#   docker compose -f compose.yml -f compose.variable-service.yml --profile api up -d
+#
+# That brings up the full `--profile api` stack (MariaDB, Keycloak, API, BFF) plus
+# `mock-variable-service`, with the API pointed at it. Run Studio separately (`npm run dev`
+# in apps/studio) as in setup #2 in compose.yml's header.
+#
+# All values here are dev-only and match the mock's own `DLB_AUTH_API_KEY: dev`.
+
+services:
+
+  dlb-web-service:
+    environment:
+      DLB_EXTERNAL_VARIABLE_SERVICE_ENABLED: "true"
+      DLB_EXTERNAL_VARIABLE_SERVICE_URL: http://mock-variable-service:8090
+      DLB_EXTERNAL_VARIABLE_SERVICE_API_VERSION: "1"
+      DLB_EXTERNAL_VARIABLE_SERVICE_API_KEY: dev
+    depends_on:
+      mock-variable-service:
+        condition: service_started
+
+  # Also make the mock part of the `api` profile, so the single `--profile api` above starts
+  # it alongside everything else (its base definition only lists `variable-service`).
+  mock-variable-service:
+    profiles:
+      - api
+      - variable-service
