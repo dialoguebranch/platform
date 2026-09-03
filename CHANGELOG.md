@@ -172,6 +172,12 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `getValue()` is now `@Nullable` (it is `null` for the token types that carry no value).
   `ReplyParser` threads its statement / node-pointer / command sections through as method
   arguments instead of scratch fields. Tokenisation and reply parsing are unchanged.
+- **Breaking:** Core: `model.execute.protocol.DialogueAction` is now built via an all-args
+  `@JsonCreator` constructor (`type`, `value`, optional `parameters`) with `final` fields, instead
+  of a no-arg constructor plus setters ([#121](https://github.com/dialoguebranch/platform/issues/121)).
+  `DialogueAction()`, `setType(...)`, `setValue(...)` and `setParameters(...)` are removed. The
+  JSON wire format — `{"type":…,"value":…,"parameters":{…}}` — is unchanged and still
+  round-trips (a JSON document with no `parameters` field deserializes to an empty map).
 
 ### Fixed
 

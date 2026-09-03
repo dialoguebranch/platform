@@ -30,6 +30,9 @@ package com.dialoguebranch.model.execute.protocol;
 
 import com.dialoguebranch.model.execute.VariableString;
 import com.dialoguebranch.model.execute.command.ActionCommand;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.jspecify.annotations.Nullable;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -42,15 +45,25 @@ import java.util.Map;
  * @author Dennis Hofs
  */
 public class DialogueAction {
-	private String type;
-	private String value;
-	private Map<String,String> parameters = new LinkedHashMap<>();
+	private final String type;
+	private final String value;
+	private final Map<String,String> parameters;
 
-	/** Creates an empty {@link DialogueAction}. Required for JSON deserialization. */
-	// type and value have no sensible default: JSON deserialization populates them before
-	// the action is read.
-	@SuppressWarnings("NullAway.Init")
-	public DialogueAction() {
+	/**
+	 * Creates a {@link DialogueAction}. This is also the JSON deserialization entry point.
+	 *
+	 * @param type the action type.
+	 * @param value the resolved action value.
+	 * @param parameters the optional parameters map, or {@code null} for none.
+	 */
+	@JsonCreator
+	public DialogueAction(
+			@JsonProperty("type") String type,
+			@JsonProperty("value") String value,
+			@JsonProperty("parameters") @Nullable Map<String,String> parameters) {
+		this.type = type;
+		this.value = value;
+		this.parameters = parameters != null ? parameters : new LinkedHashMap<>();
 	}
 
 	/**
@@ -60,14 +73,17 @@ public class DialogueAction {
 	 * @param actionCommand the action command with variables already resolved.
 	 */
 	public DialogueAction(ActionCommand actionCommand) {
-		type = actionCommand.getType();
-		value = actionCommand.getValue().evaluate(null);
-		Map<String, VariableString> cmdParams =
-				actionCommand.getParameters();
+		this(actionCommand.getType(), actionCommand.getValue().evaluate(null),
+				resolveParameters(actionCommand));
+	}
+
+	private static Map<String,String> resolveParameters(ActionCommand actionCommand) {
+		Map<String,String> result = new LinkedHashMap<>();
+		Map<String, VariableString> cmdParams = actionCommand.getParameters();
 		for (String key : cmdParams.keySet()) {
-			String paramVal = cmdParams.get(key).evaluate(null);
-			parameters.put(key, paramVal);
+			result.put(key, cmdParams.get(key).evaluate(null));
 		}
+		return result;
 	}
 
 	/**
@@ -80,14 +96,6 @@ public class DialogueAction {
 	}
 
 	/**
-	 * Sets the action type.
-	 * @param type the action type.
-	 */
-	public void setType(String type) {
-		this.type = type;
-	}
-
-	/**
 	 * Returns the resolved value of this action (e.g. a URL for a link action).
 	 * @return the action value.
 	 */
@@ -96,26 +104,10 @@ public class DialogueAction {
 	}
 
 	/**
-	 * Sets the resolved value of this action.
-	 * @param value the action value.
-	 */
-	public void setValue(String value) {
-		this.value = value;
-	}
-
-	/**
 	 * Returns the map of optional parameters for this action (key → resolved string value).
 	 * @return the parameters map.
 	 */
 	public Map<String,String> getParameters() {
 		return parameters;
-	}
-
-	/**
-	 * Sets the optional parameters for this action.
-	 * @param parameters the parameters map.
-	 */
-	public void setParameters(Map<String,String> parameters) {
-		this.parameters = parameters;
 	}
 }

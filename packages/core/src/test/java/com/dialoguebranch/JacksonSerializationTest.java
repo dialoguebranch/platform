@@ -31,6 +31,7 @@ package com.dialoguebranch;
 import com.dialoguebranch.execution.Variable;
 import com.dialoguebranch.execution.VariableUpdatedSource;
 import com.dialoguebranch.i18n.TranslationFile;
+import com.dialoguebranch.model.execute.protocol.DialogueAction;
 import com.dialoguebranch.model.execute.protocol.DialogueStatement;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Rule;
@@ -218,5 +219,42 @@ public class JacksonSerializationTest {
 
 		assertEquals("score", restored.getName());
 		assertEquals(42, ((Number) restored.getValue()).intValue());
+	}
+
+	// -------------------------------------------------------- //
+	// -------------------- DialogueAction -------------------- //
+	// -------------------------------------------------------- //
+
+	/**
+	 * Verifies that a {@link DialogueAction} serializes to the expected JSON shape
+	 * ({@code type} / {@code value} / {@code parameters}) and round-trips back through the
+	 * {@code @JsonCreator} constructor.
+	 */
+	@Test
+	public void testDialogueActionRoundTrip() throws Exception {
+		DialogueAction action = new DialogueAction("link", "https://example.org",
+				new java.util.LinkedHashMap<>(java.util.Map.of("target", "_blank")));
+
+		String json = mapper.writeValueAsString(action);
+		assertTrue(json.contains("\"type\":\"link\""));
+		assertTrue(json.contains("\"value\":\"https://example.org\""));
+		assertTrue(json.contains("\"parameters\":{\"target\":\"_blank\"}"));
+
+		DialogueAction restored = mapper.readValue(json, DialogueAction.class);
+		assertEquals("link", restored.getType());
+		assertEquals("https://example.org", restored.getValue());
+		assertEquals("_blank", restored.getParameters().get("target"));
+	}
+
+	/**
+	 * Verifies that a {@link DialogueAction} with no {@code parameters} field in the JSON
+	 * deserializes to an empty (non-null) parameters map.
+	 */
+	@Test
+	public void testDialogueActionDeserializesWithoutParameters() throws Exception {
+		DialogueAction restored = mapper.readValue(
+				"{\"type\":\"generic\",\"value\":\"x\"}", DialogueAction.class);
+		assertEquals("generic", restored.getType());
+		assertTrue(restored.getParameters().isEmpty());
 	}
 }
