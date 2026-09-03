@@ -1,3 +1,5 @@
+import net.ltgt.gradle.errorprone.CheckSeverity
+
 plugins {
 	id 'base'
 	id 'java'
@@ -11,6 +13,9 @@ plugins {
 	id 'com.gradleup.nmcp' version '1.5.0'
 	id 'com.gradleup.nmcp.aggregation' version '1.5.0'
 	id 'com.diffplug.spotless' version '8.10.1'
+	// Runs NullAway (see below) as an error-prone check to enforce the JSpecify
+	// nullness contract adopted in #95. See issue #117.
+	id 'net.ltgt.errorprone' version '5.1.1'
 }
 
 group = 'com.dialoguebranch'
@@ -72,6 +77,24 @@ java {
 // are unaffected; `release` cross-compiles against the real 17 API.
 tasks.withType(JavaCompile).configureEach {
 	options.release = 17
+
+	// NullAway checks the JSpecify nullness contract (#95) on our own code only. The rest
+	// of error-prone's bug patterns are out of scope for #117, so everything else is off.
+	//
+	// Severity is WARN for now: the initial audit surfaced ~100 findings (a mix of the
+	// data-flow spots #95 deferred and framework-populated bean fields). They are being
+	// worked down in follow-up passes; flip this to ERROR once the count reaches zero so
+	// CI blocks regressions.
+	options.errorprone {
+		disableAllChecks = true
+		check('NullAway', CheckSeverity.WARN)
+		option('NullAway:AnnotatedPackages', 'com.dialoguebranch')
+	}
+}
+
+// src/test is deliberately not @NullMarked (see #95) — don't run NullAway over it.
+tasks.named('compileTestJava') {
+	options.errorprone.enabled = false
 }
 
 javadoc {
@@ -90,6 +113,11 @@ dependencies {
 	api 'org.jspecify:jspecify:1.0.0'
 	testImplementation 'junit:junit:4.13.2'
 	api 'org.slf4j:slf4j-api:2.0.16'
+
+	// Compile-only nullness checker (see the errorprone config above). Not on any
+	// runtime or published classpath.
+	errorprone 'com.google.errorprone:error_prone_core:2.50.0'
+	errorprone 'com.uber.nullaway:nullaway:0.14.1'
 }
 
 jar {
