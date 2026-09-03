@@ -116,7 +116,7 @@ public class VariablesController {
 	 * @param request the {@link HttpServletRequest} that generated the request.
 	 * @param response the {@link HttpServletResponse} that generated the request.
 	 * @param version the API Version to use, e.g. '1'.
-	 * @param userId the userId of the Dialogue Branch user.
+	 * @param subject the subject of the Dialogue Branch user.
 	 * @param timeZone the current time zone of the Dialogue Branch user (e.g. "Europe/Lisbon").
 	 * @param dlbVariables the List of Dialogue Branch Variables for which to check for updates.
 	 * @return A list of {@link DLBVariablePayload}s representing all updated variables.
@@ -157,9 +157,17 @@ public class VariablesController {
 		@PathVariable(value = "version")
 		String version,
 
-		@Parameter(description = "The userId of the Dialogue Branch user")
-		@RequestParam(value="userId")
-		String userId,
+		@Parameter(description = "The OIDC subject of the Dialogue Branch user")
+		@RequestParam(value="subject")
+		String subject,
+
+		@Parameter(description = "The token issuer (OIDC iss URL) of the Dialogue Branch user")
+		@RequestParam(value="issuer", required=false, defaultValue="")
+		String issuer,
+
+		@Parameter(description = "The slug of the project the variables are scoped to")
+		@RequestParam(value="projectSlug", required=false, defaultValue="")
+		String projectSlug,
 
 		@Parameter(description = "The current time zone of the Dialogue Branch user")
 		@RequestParam(value="timeZone")
@@ -176,16 +184,16 @@ public class VariablesController {
 		if(version == null) version = ProtocolVersion.getLatestVersion().versionName();
 
 		// Log this call to the service log
-		logger.info("POST /v{}/variables/retrieve-updates?userId={}&timeZone={} " +
-				"with the following variables:", version, userId, timeZone);
+		logger.info("POST /v{}/variables/retrieve-updates?subject={}&issuer={}&projectSlug={}&timeZone={} " +
+				"with the following variables:", version, subject, issuer, projectSlug, timeZone);
 
-		// Execute the request if a userId was provided.
-		if(userId.isEmpty()) {
-			throw new BadRequestException("Missing 'userId' in request.");
+		// Execute the request if a subject was provided.
+		if(subject.isEmpty()) {
+			throw new BadRequestException("Missing 'subject' in request.");
 		} else {
 			String providedAPIKey = ControllerFunctions.extractAPIKey(request);
 			if(properties.getAuth().getApiKey().equals(providedAPIKey)) {
-				return executeRetrieveUpdates(userId, timeZone, dlbVariables);
+				return executeRetrieveUpdates(subject, timeZone, dlbVariables);
 			} else {
 				throw new UnauthorizedException(ErrorCode.ACCESS_TOKEN_INVALID,
 						"Invalid API Key provided.");
@@ -209,7 +217,7 @@ public class VariablesController {
 	 * chance that this variable will be included in the result set with a lastUpdated timestamp of
 	 * "now" (in the provided time zone of the user), without changing its value.</p>
 	 *
-	 * @param userId the {@code String} identifier of the user who's variable updates are requested.
+	 * @param subject the {@code String} identifier of the user who's variable updates are requested.
 	 * @param timeZone the time zone of the user as one of {@code TimeZone.getAvailableIDs()}
 	 *                 (IANA Codes)
 	 * @param parameters the {@code List} of {@link DLBVariablePayload}s for which it should be
@@ -217,7 +225,7 @@ public class VariablesController {
 	 * @return a {@code List} of {@link DLBVariablePayload}s with each of the parameters for which
 	 * an updated value has been found (note that this may be an empty list).
 	 */
-	private List<DLBVariablePayload> executeRetrieveUpdates (String userId, String timeZone,
+	private List<DLBVariablePayload> executeRetrieveUpdates (String subject, String timeZone,
 															 List<DLBVariablePayload> parameters)
 			throws BadRequestException {
 
@@ -245,13 +253,13 @@ public class VariablesController {
 				String readableTimeString = paramZonedDateTime.format(formatter);
 				logger.info("The Dialogue Branch Variable '{}' with value '{}' for user '{}' " +
 						"was last updated at '{}', which was '{}' in time zone: '{}'.",
-						parameterToUpdate.getName(), parameterToUpdate.getValue(), userId,
+						parameterToUpdate.getName(), parameterToUpdate.getValue(), subject,
 						parameterToUpdate.getUpdatedTime(), readableTimeString,
 						parameterToUpdate.getUpdatedTimeZone());
 			} else {
 				logger.info("The Dialogue Branch Variable '{}' with value '{}' for user '{}' " +
 						"was last updated at an unknown time.", parameterToUpdate.getName(),
-						parameterToUpdate.getValue(), userId);
+						parameterToUpdate.getValue(), subject);
 			}
 
 			// Handle the 'currentDate' case
@@ -342,7 +350,7 @@ public class VariablesController {
 	 * @param request the {@link HttpServletRequest} that generated the request.
 	 * @param response the {@link HttpServletResponse} that generated the request.
 	 * @param version the API Version to use, e.g. '1'.
-	 * @param userId the userId of the Dialogue Branch user.
+	 * @param subject the subject of the Dialogue Branch user.
 	 * @param timeZone the current time zone of the Dialogue Branch user (e.g. "Europe/Lisbon").
 	 * @param dlbVariables the List of Dialogue Branch Variables for which to check for updates.
 	 * @return A status code of 200 (OK).
@@ -369,9 +377,17 @@ public class VariablesController {
 		@PathVariable(value = "version")
 		String version,
 
-		@Parameter(description = "The userId of the Dialogue Branch user")
-		@RequestParam(value="userId")
-		String userId,
+		@Parameter(description = "The OIDC subject of the Dialogue Branch user")
+		@RequestParam(value="subject")
+		String subject,
+
+		@Parameter(description = "The token issuer (OIDC iss URL) of the Dialogue Branch user")
+		@RequestParam(value="issuer", required=false, defaultValue="")
+		String issuer,
+
+		@Parameter(description = "The slug of the project the variables are scoped to")
+		@RequestParam(value="projectSlug", required=false, defaultValue="")
+		String projectSlug,
 
 		@Parameter(description = "The current time zone of the Dialogue Branch user")
 		@RequestParam(value="timeZone")
@@ -394,19 +410,19 @@ public class VariablesController {
 		if(version == null) version = ProtocolVersion.getLatestVersion().versionName();
 
 		// Log this call to the service log
-		logger.info("POST /v{}/variables/notify-updated?userId={}&timeZone={} " +
-				"with the following variables:", version, userId, timeZone);
+		logger.info("POST /v{}/variables/notify-updated?subject={}&issuer={}&projectSlug={}&timeZone={} " +
+				"with the following variables:", version, subject, issuer, projectSlug, timeZone);
 		for(DLBVariablePayload dlbVariableResultParam : dlbVariables) {
 			logger.info(dlbVariableResultParam.toString());
 		}
 
-		// Execute the request if a userId was provided.
-		if(userId.isEmpty()) {
-			throw new BadRequestException("Missing 'userId' in request.");
+		// Execute the request if a subject was provided.
+		if(subject.isEmpty()) {
+			throw new BadRequestException("Missing 'subject' in request.");
 		} else {
 			String providedAPIKey = ControllerFunctions.extractAPIKey(request);
 			if(properties.getAuth().getApiKey().equals(providedAPIKey)) {
-				return executeNotifyUpdated(userId, timeZone, dlbVariables);
+				return executeNotifyUpdated(subject, timeZone, dlbVariables);
 			} else {
 				throw new UnauthorizedException(ErrorCode.ACCESS_TOKEN_INVALID,
 						"Invalid API Key provided.");
@@ -420,7 +436,7 @@ public class VariablesController {
 	 * external service. As this is a dummy implementation and there is no real external service,
 	 * the implementation is simply to return "OK", without doing anything.
 	 *
-	 * @param userId the {@code String} identifier of the user for whom variable updates are
+	 * @param subject the {@code String} identifier of the user for whom variable updates are
 	 *               available.
 	 * @param timeZone the timeZone of the user as one of {@code TimeZone.getAvailableIDs()} (IANA
 	 *                 Codes)
@@ -428,7 +444,7 @@ public class VariablesController {
 	 *               to be processed in the external service.
 	 * @return a {@link ResponseEntity} to indicate whether the update was executed successfully.
 	 */
-	private ResponseEntity<?> executeNotifyUpdated(String userId, String timeZone,
+	private ResponseEntity<?> executeNotifyUpdated(String subject, String timeZone,
 												   List<DLBVariablePayload> params)
 			throws BadRequestException {
 
@@ -436,7 +452,7 @@ public class VariablesController {
 		ControllerFunctions.parseTimeZone(timeZone);
 
 		logger.info("The following parameters, for user '{}' in timeZone '{}' " +
-				"have been successfully updated: ", userId, timeZone);
+				"have been successfully updated: ", subject, timeZone);
 
 		for(DLBVariablePayload dlbVariableResultParam : params) {
 			logger.info(dlbVariableResultParam.toString());
@@ -463,7 +479,7 @@ public class VariablesController {
 	 * @param request the {@link HttpServletRequest} that generated the request.
 	 * @param response the {@link HttpServletResponse} that generated the request.
 	 * @param version the API Version to use, e.g. '1'.
-	 * @param userId the userId of the Dialogue Branch user.
+	 * @param subject the subject of the Dialogue Branch user.
 	 * @param timeZone the current time zone of the Dialogue Branch user (e.g. "Europe/Lisbon").
 	 * @return A status code of 200 (OK).
 	 * @throws Exception in case of a network or service error.
@@ -487,9 +503,17 @@ public class VariablesController {
 		@PathVariable(value = "version")
 		String version,
 
-		@Parameter(description = "The userId of the Dialogue Branch user")
-		@RequestParam(value="userId")
-		String userId,
+		@Parameter(description = "The OIDC subject of the Dialogue Branch user")
+		@RequestParam(value="subject")
+		String subject,
+
+		@Parameter(description = "The token issuer (OIDC iss URL) of the Dialogue Branch user")
+		@RequestParam(value="issuer", required=false, defaultValue="")
+		String issuer,
+
+		@Parameter(description = "The slug of the project the variables are scoped to")
+		@RequestParam(value="projectSlug", required=false, defaultValue="")
+		String projectSlug,
 
 		@Parameter(description = "The current time zone of the Dialogue Branch user")
 		@RequestParam(value="timeZone")
@@ -500,16 +524,16 @@ public class VariablesController {
 		if(version == null) version = ProtocolVersion.getLatestVersion().versionName();
 
 		// Log this call to the service log
-		logger.info("POST /v{}/variables/notify-cleared?userId={}&timeZone={}",
-				version, userId, timeZone);
+		logger.info("POST /v{}/variables/notify-cleared?subject={}&issuer={}&projectSlug={}&timeZone={}",
+				version, subject, issuer, projectSlug, timeZone);
 
-		// Execute the request if a userId was provided.
-		if(userId.isEmpty()) {
-			throw new BadRequestException("Missing 'userId' in request.");
+		// Execute the request if a subject was provided.
+		if(subject.isEmpty()) {
+			throw new BadRequestException("Missing 'subject' in request.");
 		} else {
 			String providedAPIKey = ControllerFunctions.extractAPIKey(request);
 			if(properties.getAuth().getApiKey().equals(providedAPIKey)) {
-				return executeNotifyCleared(userId, timeZone);
+				return executeNotifyCleared(subject, timeZone);
 			} else {
 				throw new UnauthorizedException(ErrorCode.ACCESS_TOKEN_INVALID,
 						"Invalid API Key provided.");
@@ -524,20 +548,20 @@ public class VariablesController {
 	 * and there is no real external service, the implementation is simply to return "OK", without
 	 * doing anything.
 	 *
-	 * @param userId the {@code String} identifier of the user for whom variable updates are
+	 * @param subject the {@code String} identifier of the user for whom variable updates are
 	 *               available.
 	 * @param timeZone the timeZone of the user as one of {@code TimeZone.getAvailableIDs()} (IANA
 	 *                 Codes)
 	 * @return a {@link ResponseEntity} to indicate whether the update was executed successfully.
 	 */
-	private ResponseEntity<?> executeNotifyCleared(String userId, String timeZone)
+	private ResponseEntity<?> executeNotifyCleared(String subject, String timeZone)
 			throws BadRequestException {
 
 		// Parse the timeZone String into a ZoneId to verify it was given in the right format
 		ControllerFunctions.parseTimeZone(timeZone);
 
 		logger.info("Variable information for user '{}' in timeZone '{}' " +
-				"was successfully cleared.", userId, timeZone);
+				"was successfully cleared.", subject, timeZone);
 
 		return new ResponseEntity<ResponseEntity<?>>(HttpStatus.OK);
 	}

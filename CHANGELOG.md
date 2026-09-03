@@ -97,6 +97,15 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- **Breaking:** External Variable Service: the `retrieve-updates`, `notify-updated` and
+  `notify-cleared` requests now identify the user and project with `subject` + `issuer` +
+  `projectSlug` instead of a single bare `userId`
+  ([#128](https://github.com/dialoguebranch/platform/issues/128) +
+  [#86](https://github.com/dialoguebranch/platform/issues/86)). `subject` is the stable OIDC
+  `sub`, `issuer` the realm URL (needed because one instance may trust several realms), and
+  `projectSlug` scopes the variables. No `DLB_EXTERNAL_VARIABLE_SERVICE_API_VERSION` bump — the
+  bundled `apps/mock-variable-service` and the docs are updated in lockstep; a real external
+  service must be updated to match.
 - **Breaking:** Web Service: Dialogue Branch Variables are now scoped to the project
   ([#86](https://github.com/dialoguebranch/platform/issues/86)). Projects on one Web Service
   instance are isolated tenants, so a user who runs dialogues in two projects no longer shares

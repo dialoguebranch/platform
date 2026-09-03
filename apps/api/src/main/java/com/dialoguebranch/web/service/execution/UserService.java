@@ -216,7 +216,8 @@ public class UserService {
 		});
 		if (applicationManager.getDlbProperties().getExternalVariableService().isEnabled()) {
 			store.addOnChangeListener(new ExternalVariableServiceUpdater(
-					applicationManager.getDlbProperties()));
+					applicationManager.getDlbProperties(), userId.issuer(), userId.subject(),
+					projectSlug));
 		}
 		return store;
 	}
@@ -459,7 +460,9 @@ public class UserService {
 			logger.info("RetrieveUpdatesURL: {}", retrieveUpdatesUrl);
 
 			LinkedMultiValueMap<String,String> allRequestParams = new LinkedMultiValueMap<>();
-			allRequestParams.put("userId", Collections.singletonList(dialogueBranchUser.getId()));
+			allRequestParams.put("issuer", Collections.singletonList(userId.issuer()));
+			allRequestParams.put("subject", Collections.singletonList(userId.subject()));
+			allRequestParams.put("projectSlug", Collections.singletonList(projectSlug));
 			allRequestParams.put("timeZone", Collections.singletonList(
 					dialogueBranchUser.getTimeZone().toString()));
 

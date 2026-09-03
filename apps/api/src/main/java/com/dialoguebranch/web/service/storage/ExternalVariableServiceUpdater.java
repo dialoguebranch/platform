@@ -57,15 +57,34 @@ public class ExternalVariableServiceUpdater implements VariableStoreOnChangeList
 	private static final Logger logger =
 			LoggerFactory.getLogger(ExternalVariableServiceUpdater.class);
 	private final DlbProperties dlbProperties;
+	private final String issuer;
+	private final String subject;
+	private final String projectSlug;
 
 	/**
-	 * Creates an instance of {@link ExternalVariableServiceUpdater} using the given application
-	 * configuration properties to determine the external service URL and credentials.
+	 * Creates an instance of {@link ExternalVariableServiceUpdater} scoped to one user's variable
+	 * store within one project.
 	 *
-	 * @param dlbProperties the application configuration properties.
+	 * @param dlbProperties the application configuration properties (external service URL + credentials).
+	 * @param issuer the token issuer (full OIDC {@code iss} URL) of the user who owns the store.
+	 * @param subject the OIDC {@code sub} of that user.
+	 * @param projectSlug the slug of the project the variable store is scoped to.
 	 */
-	public ExternalVariableServiceUpdater(DlbProperties dlbProperties) {
+	public ExternalVariableServiceUpdater(DlbProperties dlbProperties, String issuer,
+			String subject, String projectSlug) {
 		this.dlbProperties = dlbProperties;
+		this.issuer = issuer;
+		this.subject = subject;
+		this.projectSlug = projectSlug;
+	}
+
+	/** Adds the {@code (issuer, subject, projectSlug)} identity parameters to an EVS request. */
+	private void addIdentityParams(LinkedMultiValueMap<String, String> params,
+			String userTimeZoneString) {
+		params.put("issuer", Arrays.asList(issuer));
+		params.put("subject", Arrays.asList(subject));
+		params.put("projectSlug", Arrays.asList(projectSlug));
+		params.put("timeZone", Arrays.asList(userTimeZoneString));
 	}
 
 	/**
@@ -79,7 +98,6 @@ public class ExternalVariableServiceUpdater implements VariableStoreOnChangeList
 	public void onChange(VariableStore variableStore, List<VariableStoreChange> changes) {
 
 		DlbProperties.ExternalVariableService evs = dlbProperties.getExternalVariableService();
-		String userId = variableStore.getUser().getId();
 		String userTimeZoneString = variableStore.getUser().getTimeZone().toString();
 
 		List<Variable> variablesToUpdate = new ArrayList<>();
@@ -104,8 +122,7 @@ public class ExternalVariableServiceUpdater implements VariableStoreOnChangeList
 
 						LinkedMultiValueMap<String, String> allRequestParams =
 								new LinkedMultiValueMap<>();
-						allRequestParams.put("userId", Arrays.asList(userId));
-						allRequestParams.put("timeZone", Arrays.asList(userTimeZoneString));
+						addIdentityParams(allRequestParams, userTimeZoneString);
 
 						HttpEntity<?> entity = new HttpEntity<>(requestHeaders);
 						UriComponentsBuilder builder =
@@ -158,8 +175,7 @@ public class ExternalVariableServiceUpdater implements VariableStoreOnChangeList
 					+ "/variables/notify-updated";
 
 			LinkedMultiValueMap<String, String> allRequestParams = new LinkedMultiValueMap<>();
-			allRequestParams.put("userId", Arrays.asList(userId));
-			allRequestParams.put("timeZone", Arrays.asList(userTimeZoneString));
+			addIdentityParams(allRequestParams, userTimeZoneString);
 
 			HttpEntity<?> entity = new HttpEntity<>(variablesToUpdate, requestHeaders);
 			UriComponentsBuilder builder =

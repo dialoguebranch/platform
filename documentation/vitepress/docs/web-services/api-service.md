@@ -49,6 +49,8 @@ Using these, you can inform Dialogue Branch about Variables whose values are gen
 
 * `/variables/get` — allows you to ask for all known Variables for a user, or a space-separated list of specific Variables (via the `variableNames` parameter).
 
+Variables are **scoped to the project**: the same variable name in two different projects holds two independent values. All three end-points above therefore take a required `projectSlug` parameter identifying which project's variables to read or write.
+
 Another way of making sure that Dialogue Branch has up-to-date values for Variables, is by using an [External Variable Service](/web-services/external-variable-service).
 
 ::: info Note
