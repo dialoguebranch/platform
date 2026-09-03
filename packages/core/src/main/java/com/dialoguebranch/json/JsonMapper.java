@@ -8,6 +8,10 @@
  *
  *                                            ----------
  *
+ * Portions of this file are vendored from the rrd-utils library
+ * (https://github.com/RoessinghResearch/rrd-utils), used under the MIT License.
+ *
+ * Copyright (c) 2022 Roessingh Research and Development
  * Copyright (c) 2023-2026 Dialogue Branch (www.dialoguebranch.com)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
@@ -42,7 +46,7 @@ import java.io.IOException;
  * onto {@link ParseException} (for malformed / unmappable input) or {@link RuntimeException} (for
  * conversion errors that indicate a programming mistake). Vendored from {@code rrd-utils} in #102.
  *
- * @author Dennis Hofs
+ * @author Dennis Hofs (RRD)
  */
 public class JsonMapper {
 
