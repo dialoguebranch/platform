@@ -16,7 +16,7 @@ The `com.dialoguebranch` package is organised as follows:
 
 * `model/common` — Shared types used by the execution model, e.g. `ProjectMetaData`, `StorageSource`.
 * `model/execute` — The immutable *runtime* model (`ExecutableProject`, `Dialogue`, `Node`, `NodeBody`, `Reply`, `VariableString`, `LoggedDialogue`, `DialogueState`), the command types executed within a node body (`SetCommand`, `IfCommand`, `RandomCommand`, `ActionCommand`, the `InputCommand` variants), and the API protocol types used to serialise dialogue state (`DialogueMessage`, `DialogueStatement`, `ReplyMessage`).
-* `execution` — The runtime engine itself: `ActiveDialogue` drives a single live dialogue session, `VariableStore` holds session variables, and `parser/` contains the parsers used at execution time (`DialogueBranchParser`, `BodyParser`, `CommandParser`, `ProjectParser`, `DirectoryScriptLoader`, and others).
+* `execution` — The runtime engine itself: `ActiveDialogue` drives a single live dialogue session, `VariableStore` holds session variables, and `parser/` contains the parsers used at execution time (`DialogueBranchParser`, `BodyParser`, `CommandParser`, `ProjectParser`, `ProjectScriptLoader`, and others).
 * `editing` — `ProjectMetaDataWriter`, used to export a project's metadata.
 * `i18n` — Translation support: `Translator` applies a `.json` translation file to a `Dialogue`, and `TranslatableExtractor` walks a node's body to extract translatable segments.
 * `exception` — Typed exceptions used throughout the library (`NodeParseException`, `ExecutionException`, and others).

@@ -59,15 +59,19 @@ public class ProjectScriptLoader implements ScriptLoader {
 
 	/**
 	 * Creates an instance of a {@link ProjectScriptLoader} with a given pointer to a project metadata
-	 * xml file, which is immediately parsed into a {@link ProjectMetaData} object.
+	 * xml file, which is immediately parsed into a {@link ProjectMetaData} object. The on-disk
+	 * layout of the project is then validated against that metadata (see
+	 * {@link #validateProjectLayout()}).
 	 *
 	 * @param projectMetadataFile the Dialogue Branch project metadata .xml file
 	 * @throws IOException in case of a read error when parsing the project metadata file.
-	 * @throws ParseException in case of a parse error when parsing the project metadata file.
+	 * @throws ParseException in case of a parse error when parsing the project metadata file, or
+	 *     if the project's on-disk layout is invalid.
 	 */
 	public ProjectScriptLoader(File projectMetadataFile) throws IOException, ParseException {
 		this.projectMetadataFile = projectMetadataFile;
 		this.projectMetaData = loadProjectMetaDataFile(projectMetadataFile);
+		validateProjectLayout();
 	}
 
 	// ----------------------------------------------------------- //
@@ -157,12 +161,76 @@ public class ProjectScriptLoader implements ScriptLoader {
 	}
 
 	/**
+	 * Validates the project's on-disk layout against its metadata: the metadata must declare a
+	 * single source language, the source-language folder may contain only {@code .dlb} script
+	 * files, and every translation-language folder may contain only {@code .json} translation
+	 * files (checked recursively). Entries at the project root that are not a declared language
+	 * folder are ignored, as are dot-files anywhere.
+	 *
+	 * @throws ParseException if no source language is declared, or a language folder contains a
+	 *     file of the wrong type.
+	 */
+	private void validateProjectLayout() throws ParseException {
+		String sourceLanguage = projectMetaData.getSourceLanguageCode();
+		if (sourceLanguage == null) {
+			throw new ParseException("Dialogue Branch project \"" + projectMetaData.getName() +
+					"\" does not define a source language in its metadata.");
+		}
+		List<String> supportedLanguages = projectMetaData.getSupportedLanguageCodes();
+		File[] children = baseDirectory().listFiles();
+		if (children == null)
+			return;
+		for (File child : children) {
+			if (!child.isDirectory() || child.getName().startsWith("."))
+				continue;
+			String language = child.getName();
+			if (language.equals(sourceLanguage)) {
+				validateFolderFileTypes(child, language,
+						DialogueBranchConstants.DLB_SCRIPT_FILE_EXTENSION);
+			} else if (supportedLanguages.contains(language)) {
+				validateFolderFileTypes(child, language,
+						DialogueBranchConstants.DLB_TRANSLATION_FILE_EXTENSION);
+			}
+			// any other top-level directory is not a declared language folder — ignored
+		}
+	}
+
+	/**
+	 * Recursively verifies that every regular file under {@code directory} (dot-files excepted)
+	 * ends with {@code allowedExtension}.
+	 *
+	 * @param directory a language folder, or a sub-folder of one.
+	 * @param language the language code the folder belongs to (for the error message).
+	 * @param allowedExtension the only file extension permitted here ({@code .dlb} for the source
+	 *     language, {@code .json} for a translation language).
+	 * @throws ParseException if a file with any other extension is found.
+	 */
+	private void validateFolderFileTypes(File directory, String language, String allowedExtension)
+			throws ParseException {
+		File[] children = directory.listFiles();
+		if (children == null)
+			return;
+		for (File child : children) {
+			if (child.getName().startsWith("."))
+				continue;
+			if (child.isDirectory()) {
+				validateFolderFileTypes(child, language, allowedExtension);
+			} else if (child.isFile() && !child.getName().endsWith(allowedExtension)) {
+				throw new ParseException(String.format(
+						"Unexpected file \"%s\" in the \"%s\" language folder of Dialogue Branch " +
+						"project \"%s\": only %s files are allowed there.",
+						child.getName(), language, projectMetaData.getName(), allowedExtension));
+			}
+		}
+	}
+
+	/**
 	 * Recursively generates a list of {@link ResourcePointer} objects from all .dlb
 	 * and/or .json files in the given {@code directory} (and all its subdirectories), under the
-	 * given relative {@code pathName} (relative to the {@code rootDirectory} of this
-	 * {@link DirectoryScriptLoader}). Each {@link ResourcePointer} will have its
+	 * given relative {@code pathName} (relative to the project base directory of this
+	 * {@link ProjectScriptLoader}). Each {@link ResourcePointer} will have its
 	 * language attribute set to the given {@code language} parameter, which is the direct
-	 * sub-folder of the {@code rootDirectory} under which it was found.
+	 * sub-folder of the base directory under which it was found.
 	 *
 	 * @param language the language code, or name of the main folder.
 	 * @param pathName the relative pathName in which the given {@code directory} can be found.

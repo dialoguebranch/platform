@@ -9,7 +9,15 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Removed
 
-- **Breaking:** Removed the dead editable-model layer from `dlb-core-java`
+- **Breaking:** Core: retired the pre-flattening multi-source-language handling in
+  `dlb-core-java` ([#109](https://github.com/dialoguebranch/platform/issues/109)). Since a
+  project has exactly one source language, the code path for a dialogue name resolving to
+  several `.dlb` scripts (one per language folder) was dead except on a malformed project.
+  Removed: `execution.parser.DirectoryScriptLoader` (its metadata-less "every sub-folder is a
+  language" scan is exactly the retired model — use `ProjectScriptLoader` with a
+  `dlb-project.xml`), the unused `execution.parser.ResourceScriptLoader`, and
+  `i18n.LanguageFinder` (its only callers were the multi-variant source-language fallback).
+  `ProjectParser` / `ExecutableProject` now do a single by-name lookup for a dialogue's source.
   ([#87](https://github.com/dialoguebranch/platform/issues/87)): the `com.dialoguebranch.model.edit`
   package (`Editable`, `EditableBody`, `EditableHeader`, `EditableNode`, `EditableProject`,
   `EditableScript`, `EditableTranslation`, `EditableTranslationSet`), the
@@ -89,6 +97,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- Core: `execution.parser.ProjectScriptLoader` now validates a project's on-disk layout when it
+  is constructed ([#109](https://github.com/dialoguebranch/platform/issues/109)): the metadata
+  must declare a source language, the source-language folder may hold only `.dlb` files, and each
+  translation-language folder may hold only `.json` files (checked recursively; dot-files and
+  non-language entries at the project root are ignored). A violation is a `ParseException`.
+  `ProjectParser` additionally reports a dialogue name defined by more than one script file as a
+  parse error, regardless of the `ScriptLoader` in use. Both were previously accepted silently.
 - Renamed `cli.ProjectTool` to `cli.DialogueBranchCLI`
   ([#105](https://github.com/dialoguebranch/platform/issues/105)) — the old name dated back to
   when it was one of several overlapping CLI entry points (see #87/#94); now that it's the
@@ -108,10 +123,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 - Core: replaced `rrd-utils`' `I18nLanguageFinder` with a small native
   `com.dialoguebranch.i18n.LanguageFinder` built on `java.util.Locale` RFC 4647 lookup, as the
   first step of dropping the `nl.rrd:rrd-utils` dependency from `dlb-core-java`
-  ([#102](https://github.com/dialoguebranch/platform/issues/102)). Picking the source language
-  for a multi-language project when the project metadata doesn't name one now also accepts a
-  region-qualified tag for a generic request (a project shipping only `en-US` satisfies the
-  English fallback where before it did not); exact-match and no-match behaviour is unchanged.
+  ([#102](https://github.com/dialoguebranch/platform/issues/102)). (Subsequently removed again in
+  [#109](https://github.com/dialoguebranch/platform/issues/109) — its only callers were the
+  now-retired multi-source-language fallback.)
 - **Breaking:** Core: vendored the `.dlb` `<<if>>` / `<<set>>` expression engine into
   `com.dialoguebranch.expression` (+ `.types`), and moved the two parser exceptions it shares
   with the rest of the library — `ParseException` and `LineNumberParseException` — into

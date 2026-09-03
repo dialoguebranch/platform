@@ -29,7 +29,6 @@
 package com.dialoguebranch.model.execute;
 
 import com.dialoguebranch.i18n.ContextTranslation;
-import com.dialoguebranch.i18n.LanguageFinder;
 import com.dialoguebranch.i18n.Translatable;
 import com.dialoguebranch.i18n.TranslationContext;
 import com.dialoguebranch.i18n.Translator;
@@ -228,33 +227,10 @@ public class ExecutableProject implements DialogueBranchProject {
 	}
 
 	private @Nullable Dialogue findSourceDialogue(String dialogueName) {
-		List<ResourcePointer> matches = new ArrayList<>();
 		for (ResourcePointer description : sourceDialogues.keySet()) {
 			if (description.getDialogueName().equals(dialogueName))
-				matches.add(description);
+				return dialogues.get(description);
 		}
-		if (matches.isEmpty())
-			return null;
-		if (matches.size() == 1)
-			return dialogues.get(matches.get(0));
-		Map<String, ResourcePointer> lngMap = new HashMap<>();
-		for (ResourcePointer match : matches) {
-			lngMap.put(match.getLanguage(), match);
-		}
-
-		// Prefer the source language defined in the project metadata, if any
-		if (metaData != null && metaData.getLanguageMap() != null
-				&& metaData.getLanguageMap().getSourceLanguage() != null) {
-			ResourcePointer sourceMatch = lngMap.get(
-					metaData.getLanguageMap().getSourceLanguage().getCode());
-			if (sourceMatch != null)
-				return dialogues.get(sourceMatch);
-		}
-
-		String language = LanguageFinder.find(lngMap.keySet(), Locale.ENGLISH);
-		if (language == null)
-			return dialogues.get(matches.get(0));
-		else
-			return dialogues.get(lngMap.get(language));
+		return null;
 	}
 }

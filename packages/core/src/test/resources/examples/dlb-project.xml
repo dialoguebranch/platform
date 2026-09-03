@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<dlb-project name="Translated Dialogue Test" version="1">
+	<description>Minimal fixture for TranslatedDialogueTest: one English source dialogue and its Dutch translation.</description>
+	<language-map>
+		<source-language name="English" code="en" />
+		<translation-language name="Dutch" code="nl" />
+	</language-map>
+</dlb-project>
