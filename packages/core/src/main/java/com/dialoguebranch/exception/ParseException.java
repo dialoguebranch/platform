@@ -8,6 +8,10 @@
  *
  *                                            ----------
  *
+ * Portions of this file are vendored from the rrd-utils library
+ * (https://github.com/RoessinghResearch/rrd-utils), used under the MIT License.
+ *
+ * Copyright (c) 2022 Roessingh Research and Development
  * Copyright (c) 2023-2026 Dialogue Branch (www.dialoguebranch.com)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
@@ -39,7 +43,7 @@ import java.io.Serial;
  * refines it with a line and column number, and {@link NodeParseException} attaches the offending
  * node title.
  *
- * @author Dennis Hofs
+ * @author Dennis Hofs (RRD)
  * @author Harm op den Akker
  */
 public class ParseException extends DialogueBranchException {

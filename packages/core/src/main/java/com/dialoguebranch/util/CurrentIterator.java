@@ -8,6 +8,10 @@
  *
  *                                            ----------
  *
+ * Portions of this file are vendored from the rrd-utils library
+ * (https://github.com/RoessinghResearch/rrd-utils), used under the MIT License.
+ *
+ * Copyright (c) 2022 Roessingh Research and Development
  * Copyright (c) 2023-2026 Dialogue Branch (www.dialoguebranch.com)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
@@ -37,7 +41,7 @@ import java.util.Iterator;
  * times as needed with {@link #getCurrent() getCurrent()}, and you can move to the next element
  * with {@link #moveNext() moveNext()}.
  *
- * @author Dennis Hofs
+ * @author Dennis Hofs (RRD)
  *
  * @param <T> the type of elements in the iterator
  */
