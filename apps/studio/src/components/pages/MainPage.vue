@@ -275,11 +275,13 @@ function onSetDelegateUserClick() {
     showDelegateModal.value = true;
 }
 
-function onDelegateApply(username) {
+// payload: { subject, label } — subject is sent to the API, label is what we show.
+function onDelegateApply(payload) {
     showDelegateModal.value = false;
+    const subject = payload?.subject || null;
     delegateConfirmAction.value = () => {
-        client.delegateUser = username || null;
-        activeDelegateUser.value = client.delegateUser;
+        client.delegateUser = subject;
+        activeDelegateUser.value = subject ? (payload.label || subject) : null;
         variableBrowser.value?.loadVariables();
     };
 }

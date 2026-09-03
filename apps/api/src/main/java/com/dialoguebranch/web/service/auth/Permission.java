@@ -112,6 +112,13 @@ public enum Permission {
 	/** Read the service's technical/deployment information: {@code /info/technical}. */
 	SERVICE_INFO_TECHNICAL,
 
+	/**
+	 * List the Dialogue Branch users known to this service (those who have run a dialogue):
+	 * {@code /users}. Distinct from {@link #USER_DELEGATE} — seeing who is known and impersonating
+	 * a specific user are different capabilities.
+	 */
+	USER_LIST,
+
 	/** Act on behalf of another Dialogue Branch user (pass a {@code delegateUser} other than self). */
 	USER_DELEGATE
 

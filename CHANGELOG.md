@@ -94,6 +94,14 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 - Permission-based access control for the Web Service ([#28](https://github.com/dialoguebranch/platform/issues/28)):
   a `Permission` catalogue, a `Role` → permission mapping (`participant` ⊂ `editor` ⊂ `admin`),
   and an `AuthorizationService` that decides whether a caller may perform an operation.
+- Web Service + Studio: pick a delegate user by name instead of typing a raw subject
+  ([#130](https://github.com/dialoguebranch/platform/issues/130)). New `GET /v1/users` endpoint —
+  a read-only, realm-scoped listing of the users this service has run a dialogue for
+  (`{ username, subject }` entries, optional `username` substring filter, paginated), gated on a
+  new admin-only `USER_LIST` permission. Studio's "Set Delegate User" dialog is now a typeahead
+  against that endpoint: the admin types a username, picks from the results, and Studio sends the
+  resolved `subject` to the dialogue endpoints; a raw-`subject` field remains for users not yet
+  known to the service.
 
 ### Changed
 
