@@ -50,7 +50,7 @@ import java.util.Objects;
 public class ProjectMetaData {
 
 	/** The name of the Dialogue Branch project */
-	private String name;
+	private final String name;
 
 	/**
 	 * The unique slug identifying this Dialogue Branch project (e.g. in a web service's database),
@@ -64,70 +64,38 @@ public class ProjectMetaData {
 	private @Nullable String basePath;
 
 	/** A free-form description of the Dialogue Branch project */
-	private String description;
+	private final String description;
 
 	/** A free-form version indicator of the Dialogue Branch project */
-	private String version;
+	private final String version;
 
 	/** The mapping object of source- and translation languages available in this project */
 	private @Nullable LanguageMap languageMap;
 
-	/** An object that contains information on where/how this ProjectMetaData is stored */
-	private StorageSource storageSource;
+	/**
+	 * How/where this metadata is stored. Set only on metadata that was read from a store (the XML
+	 * parser fills it in); {@code null} for metadata assembled in memory to be written out.
+	 */
+	private @Nullable StorageSource storageSource;
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
 
 	/**
-	 * Creates an instance of an empty {@link ProjectMetaData} object.
-	 */
-	// name, description, version and storageSource have no sensible default: a caller building
-	// metadata this way sets them through the setters before the object is used.
-	@SuppressWarnings("NullAway.Init")
-	public ProjectMetaData() { }
-
-	/**
-	 * Creates an instance of a {@link ProjectMetaData} object with the given parameters.
+	 * Creates a {@link ProjectMetaData} with the always-present values. The optional members —
+	 * {@link #getSlug() slug}, {@link #getBasePath() basePath}, {@link #getLanguageMap()
+	 * languageMap} and {@link #getStorageSource() storageSource} — are set afterwards through
+	 * their setters where applicable.
 	 *
 	 * @param name a descriptive name of the Dialogue Branch project.
-	 * @param basePath the base path of this Dialogue Branch project, always ending in a file
-	 *                 separator character.
 	 * @param description a textual description of this Dialogue Branch project.
-	 * @param version free-form version information (e.g. v0.1.0).
-	 * @param languageMap contains all the languages supported by this Dialogue Branch project.
+	 * @param version free-form version information (e.g. {@code v0.1.0}).
 	 */
-	// storageSource is left for the six-argument constructor / setStorageSource; see #121.
-	@SuppressWarnings("NullAway.Init")
-	public ProjectMetaData(String name, String basePath, String description, String version,
-						   LanguageMap languageMap) {
+	public ProjectMetaData(String name, String description, String version) {
 		this.name = name;
-		if(basePath != null && !basePath.endsWith(File.separator)) {
-			this.basePath = basePath + File.separator;
-		} else {
-			this.basePath = basePath;
-		}
 		this.description = description;
 		this.version = version;
-		this.languageMap = languageMap;
-	}
-
-	/**
-	 * Creates an instance of a {@link ProjectMetaData} object with the given parameters.
-	 *
-	 * @param name a descriptive name of the Dialogue Branch project.
-	 * @param basePath the base path of this Dialogue Branch project, always ending in a file
-	 *                 separator character.
-	 * @param description a textual description of this Dialogue Branch project.
-	 * @param version free-form version information (e.g. v0.1.0).
-	 * @param languageMap contains all the languages supported by this Dialogue Branch project.
-	 * @param storageSource the object that contains information on where/how this ProjectMetaData
-	 *                      is stored.
-	 */
-	public ProjectMetaData(String name, String basePath, String description, String version,
-						   LanguageMap languageMap, StorageSource storageSource) {
-		this(name,basePath,description,version,languageMap);
-		this.storageSource = storageSource;
 	}
 
 	// ----------------------------------------------------------- //
@@ -141,15 +109,6 @@ public class ProjectMetaData {
 	 */
 	public String getName() {
 		return name;
-	}
-
-	/**
-	 * Sets the name of this Dialogue Branch project.
-	 *
-	 * @param name the name of this Dialogue Branch project.
-	 */
-	public void setName(String name) {
-		this.name = name;
 	}
 
 	/**
@@ -205,30 +164,12 @@ public class ProjectMetaData {
 	}
 
 	/**
-	 * Sets the free-form description of this Dialogue Branch project.
-	 *
-	 * @param description the free-form description of this Dialogue Branch project.
-	 */
-	public void setDescription(String description) {
-		this.description = description;
-	}
-
-	/**
 	 * Returns the free-form version indicator of this Dialogue Branch project.
 	 *
 	 * @return the free-form version indicator of this Dialogue Branch project.
 	 */
 	public String getVersion() {
 		return version;
-	}
-
-	/**
-	 * Sets the free-form version indicator of this Dialogue Branch project.
-	 *
-	 * @param version the free-form version indicator of this Dialogue Branch project.
-	 */
-	public void setVersion(String version) {
-		this.version = version;
 	}
 
 	/**
@@ -252,11 +193,12 @@ public class ProjectMetaData {
 	}
 
 	/**
-	 * Returns the object that contains information on where/how this ProjectMetaData is stored.
+	 * Returns how/where this metadata is stored, or {@code null} if it was assembled in memory
+	 * rather than read from a store.
 	 *
-	 * @return the object that contains information on where/how this ProjectMetaData is stored.
+	 * @return the storage source, or {@code null}.
 	 */
-	public StorageSource getStorageSource() {
+	public @Nullable StorageSource getStorageSource() {
 		return this.storageSource;
 	}
 

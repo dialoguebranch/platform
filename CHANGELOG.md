@@ -190,6 +190,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   ([#121](https://github.com/dialoguebranch/platform/issues/121)); their no-arg constructors and
   `setText` / `setInputType` / `setDescription` / `setParameters` / `setAction` are removed. The
   statement / segment JSON — including `InputSegment`'s flattened parameter form — is unchanged.
+- **Breaking:** Core: `model.common.ProjectMetaData` is now built via a
+  `ProjectMetaData(name, description, version)` constructor with `final` `name` / `description` /
+  `version` ([#121](https://github.com/dialoguebranch/platform/issues/121)); the no-arg and
+  five/six-arg constructors and `setName` / `setDescription` / `setVersion` are removed, and
+  `getStorageSource()` is now `@Nullable` (only metadata read from a store carries one). The XML
+  parser now yields `""` rather than `null` from `getDescription()` for a project whose metadata
+  has no `<description>` element.
 
 ### Fixed
 

@@ -113,24 +113,18 @@ public class ProjectMetaDataParser {
 					"Branch project metadata, found '" + reader.getLocalName() + "'.");
 		}
 
-		ProjectMetaData result = new ProjectMetaData();
-
 		String name = reader.getAttributeValue(null, "name");
 		if (name == null) {
 			throw new ParseException("Missing attribute 'name' in element 'dlb-project' while " +
 					"parsing Dialogue Branch project metadata.");
 		}
-		result.setName(name);
-
-		// Optional — only present in metadata produced by the web service's Export Project
-		// feature; absent from hand-authored or classpath seed metadata.
+		// Optional — 'slug' is only present in metadata produced by the web service's Export
+		// Project feature; absent from hand-authored or classpath seed metadata.
 		String slug = reader.getAttributeValue(null, "slug");
-		if (slug != null)
-			result.setSlug(slug);
-
 		String version = reader.getAttributeValue(null, "version");
-		result.setVersion(version != null ? version : "");
 
+		String description = "";
+		@Nullable LanguageMap languageMap = null;
 		while (reader.hasNext()) {
 			int event = reader.next();
 			if (event == XMLStreamConstants.END_ELEMENT)
@@ -138,16 +132,22 @@ public class ProjectMetaDataParser {
 			if (event != XMLStreamConstants.START_ELEMENT)
 				continue;
 			switch (reader.getLocalName()) {
-				case "description" -> result.setDescription(reader.getElementText());
+				case "description" -> description = reader.getElementText();
 				case "language-map" -> {
-					LanguageMap languageMap = readLanguageMap(reader);
-					result.setLanguageMap(languageMap);
+					languageMap = readLanguageMap(reader);
 					validateLanguageMap(languageMap);
 				}
 				default -> throw new ParseException("Unexpected element while parsing Dialogue " +
 						"Branch project metadata: '" + reader.getLocalName() + "'");
 			}
 		}
+
+		ProjectMetaData result = new ProjectMetaData(name, description,
+				version != null ? version : "");
+		if (slug != null)
+			result.setSlug(slug);
+		if (languageMap != null)
+			result.setLanguageMap(languageMap);
 		return result;
 	}
 
