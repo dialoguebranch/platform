@@ -28,6 +28,8 @@
 
 package com.dialoguebranch.model.execute.protocol;
 
+import com.dialoguebranch.exception.ParseException;
+import com.dialoguebranch.json.JsonMapper;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.command.ActionCommand;
 import com.dialoguebranch.model.execute.command.InputCommand;
@@ -39,8 +41,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import nl.rrd.utils.exception.ParseException;
-import nl.rrd.utils.json.JsonMapper;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;

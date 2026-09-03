@@ -28,6 +28,7 @@
 
 package com.dialoguebranch.web.service.project;
 
+import com.dialoguebranch.exception.ParseException;
 import com.dialoguebranch.execution.parser.ProjectMetaDataParser;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;
@@ -38,7 +39,6 @@ import com.dialoguebranch.web.service.exception.HttpException;
 import com.dialoguebranch.web.service.exception.InternalServerErrorException;
 import com.dialoguebranch.web.service.execution.FileSystemScriptLoader;
 import com.dialoguebranch.web.service.storage.model.DBProject;
-import nl.rrd.utils.exception.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

@@ -28,23 +28,26 @@
 
 package com.dialoguebranch.execution.parser;
 
+import com.dialoguebranch.exception.ParseException;
 import com.dialoguebranch.model.common.FileStorageSource;
 import com.dialoguebranch.model.common.ProjectMetaData;
 import com.dialoguebranch.model.execute.Language;
 import com.dialoguebranch.model.execute.LanguageMap;
-import nl.rrd.utils.exception.ParseException;
-import nl.rrd.utils.xml.AbstractSimpleSAXHandler;
-import nl.rrd.utils.xml.SimpleSAXHandler;
-import nl.rrd.utils.xml.SimpleSAXParser;
 import org.jspecify.annotations.Nullable;
-import org.xml.sax.Attributes;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
 
 /**
  * Utility class that parses a Dialogue Branch project metadata XML file into a
@@ -65,12 +68,142 @@ public class ProjectMetaDataParser {
 	 * @throws IOException if the file cannot be read.
 	 */
 	public static ProjectMetaData parse(File metaDataFile) throws ParseException, IOException {
-		SimpleSAXHandler<ProjectMetaData> xmlHandler = new ProjectMetaDataXMLHandler();
-		SimpleSAXParser<ProjectMetaData> parser = new SimpleSAXParser<>(xmlHandler);
-		ProjectMetaData projectMetaData = parser.parse(metaDataFile);
+		ProjectMetaData projectMetaData;
+		try (InputStream input = new BufferedInputStream(new FileInputStream(metaDataFile))) {
+			XMLStreamReader reader = newInputFactory().createXMLStreamReader(input);
+			try {
+				projectMetaData = readProject(reader);
+			} finally {
+				reader.close();
+			}
+		} catch (XMLStreamException ex) {
+			throw new ParseException("Invalid XML while parsing Dialogue Branch project " +
+					"metadata: " + ex.getMessage(), ex);
+		}
 		projectMetaData.setBasePath(metaDataFile.getParent());
 		projectMetaData.setStorageSource(new FileStorageSource(metaDataFile));
 		return projectMetaData;
+	}
+
+	/**
+	 * Returns an {@link XMLInputFactory} with DTD processing and external entity resolution
+	 * disabled (there is no legitimate DTD in project metadata, and disabling them closes off
+	 * XXE / entity-expansion attacks).
+	 */
+	private static XMLInputFactory newInputFactory() {
+		XMLInputFactory factory = XMLInputFactory.newFactory();
+		factory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
+		factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
+		factory.setProperty(XMLInputFactory.IS_COALESCING, true);
+		return factory;
+	}
+
+	/**
+	 * Reads the {@code dlb-project} root element and its {@code description} / {@code language-map}
+	 * children.
+	 */
+	private static ProjectMetaData readProject(XMLStreamReader reader)
+			throws XMLStreamException, ParseException {
+		if (!nextStartElement(reader)) {
+			throw new ParseException("Expected element 'dlb-project' while parsing Dialogue " +
+					"Branch project metadata, found no element.");
+		}
+		if (!reader.getLocalName().equals("dlb-project")) {
+			throw new ParseException("Expected element 'dlb-project' while parsing Dialogue " +
+					"Branch project metadata, found '" + reader.getLocalName() + "'.");
+		}
+
+		ProjectMetaData result = new ProjectMetaData();
+
+		String name = reader.getAttributeValue(null, "name");
+		if (name == null) {
+			throw new ParseException("Missing attribute 'name' in element 'dlb-project' while " +
+					"parsing Dialogue Branch project metadata.");
+		}
+		result.setName(name);
+
+		// Optional — only present in metadata produced by the web service's Export Project
+		// feature; absent from hand-authored or classpath seed metadata.
+		String slug = reader.getAttributeValue(null, "slug");
+		if (slug != null)
+			result.setSlug(slug);
+
+		String version = reader.getAttributeValue(null, "version");
+		result.setVersion(version != null ? version : "");
+
+		while (reader.hasNext()) {
+			int event = reader.next();
+			if (event == XMLStreamConstants.END_ELEMENT)
+				break;
+			if (event != XMLStreamConstants.START_ELEMENT)
+				continue;
+			switch (reader.getLocalName()) {
+				case "description" -> result.setDescription(reader.getElementText());
+				case "language-map" -> {
+					LanguageMap languageMap = readLanguageMap(reader);
+					result.setLanguageMap(languageMap);
+					validateLanguageMap(languageMap);
+				}
+				default -> throw new ParseException("Unexpected element while parsing Dialogue " +
+						"Branch project metadata: '" + reader.getLocalName() + "'");
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * Reads a {@code language-map} element (the reader is positioned on its start tag) and its
+	 * {@code source-language} / {@code translation-language} children.
+	 */
+	private static LanguageMap readLanguageMap(XMLStreamReader reader) throws XMLStreamException {
+		LanguageMap result = new LanguageMap();
+		while (reader.hasNext()) {
+			int event = reader.next();
+			if (event == XMLStreamConstants.END_ELEMENT)
+				break;
+			if (event != XMLStreamConstants.START_ELEMENT)
+				continue;
+			switch (reader.getLocalName()) {
+				case "source-language" -> result.setSourceLanguage(readLanguage(reader));
+				case "translation-language" ->
+						result.addTranslationLanguage(readLanguage(reader));
+				default -> skipElement(reader);
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * Reads a {@code source-language} / {@code translation-language} element (the reader is
+	 * positioned on its start tag) into a {@link Language}, then advances past its end tag.
+	 */
+	private static Language readLanguage(XMLStreamReader reader) throws XMLStreamException {
+		Language result = new Language();
+		result.setCode(reader.getAttributeValue(null, "code"));
+		result.setName(reader.getAttributeValue(null, "name"));
+		skipElement(reader);
+		return result;
+	}
+
+	/** Consumes the current element (positioned on its start tag) up to and including its end tag. */
+	private static void skipElement(XMLStreamReader reader) throws XMLStreamException {
+		int depth = 1;
+		while (depth > 0 && reader.hasNext()) {
+			int event = reader.next();
+			if (event == XMLStreamConstants.START_ELEMENT)
+				depth++;
+			else if (event == XMLStreamConstants.END_ELEMENT)
+				depth--;
+		}
+	}
+
+	/** Advances to the next {@code START_ELEMENT}, returning {@code false} at end of document. */
+	private static boolean nextStartElement(XMLStreamReader reader) throws XMLStreamException {
+		while (reader.hasNext()) {
+			if (reader.next() == XMLStreamConstants.START_ELEMENT)
+				return true;
+		}
+		return false;
 	}
 
 	/**
@@ -102,153 +235,6 @@ public class ProjectMetaDataParser {
 						"Dialogue Branch project metadata's language-map: each source and " +
 						"translation language must have a distinct code.");
 			}
-		}
-	}
-
-	/**
-	 * SAX handler for the top-level {@code dlb-project} element and its {@code description} and
-	 * {@code language-map} children.
-	 */
-	private static class ProjectMetaDataXMLHandler
-			extends AbstractSimpleSAXHandler<ProjectMetaData> {
-
-		// Populated by startElement once the <dlb-project> root is seen, before getObject() runs.
-		@SuppressWarnings("NullAway.Init")
-		private ProjectMetaData result;
-		private int rootLevel = 0;
-		private boolean inDescription = false;
-		private @Nullable SimpleSAXHandler<LanguageMap> languageMapHandler = null;
-
-		@Override
-		public void startElement(String name, Attributes attributes, List<String> parents) throws ParseException {
-
-			if(rootLevel == 0) {
-				if(!name.equals("dlb-project")) {
-					throw new ParseException("Expected element 'dlb-project' while parsing Dialogue Branch project metadata, found '"+name+"'.");
-				} else {
-					result = new ProjectMetaData();
-					if(attributes.getValue("name") == null) {
-						throw new ParseException("Missing attribute 'name' in element 'dlb-project' while parsing Dialogue Branch project metadata.");
-					} else {
-						result.setName(attributes.getValue("name"));
-					}
-					// Optional — only present in metadata produced by the web service's Export
-					// Project feature; absent from hand-authored or classpath seed metadata.
-					result.setSlug(attributes.getValue("slug"));
-					if(attributes.getValue("version") != null) {
-						result.setVersion(attributes.getValue("version"));
-					} else {
-						result.setVersion("");
-					}
-					rootLevel++;
-				}
-			} else if(rootLevel == 1) {
-				if(name.equals("description")) {
-					inDescription = true;
-				} else if(name.equals("language-map")) {
-					languageMapHandler = new LanguageMapXMLHandler();
-					languageMapHandler.startElement(name,attributes,parents);
-				} else {
-					if(languageMapHandler != null) {
-						languageMapHandler.startElement(name,attributes,parents);
-					} else {
-						throw new ParseException("Unexpected element while parsing Dialogue Branch project metadata: '"+name+"'");
-					}
-				}
-			}
-		}
-
-		@Override
-		public void endElement(String name, List<String> parents) throws ParseException {
-			if(languageMapHandler != null) {
-				languageMapHandler.endElement(name,parents);
-			} else if (name.equals("description")) inDescription = false;
-
-			if(name.equals("language-map") && languageMapHandler != null) {
-				result.setLanguageMap(languageMapHandler.getObject());
-				validateLanguageMap(result.getLanguageMap());
-			}
-		}
-
-		@Override
-		public void characters(String ch, List<String> parents) {
-			if(inDescription) {
-				result.setDescription(ch);
-			}
-		}
-
-		@Override
-		public ProjectMetaData getObject() {
-			return result;
-		}
-	}
-
-	private static class LanguageMapXMLHandler extends AbstractSimpleSAXHandler<LanguageMap> {
-
-		// Populated by startElement once the <language-map> element is seen, before getObject() runs.
-		@SuppressWarnings("NullAway.Init")
-		private LanguageMap result;
-		private @Nullable SimpleSAXHandler<Language> languageHandler = null;
-
-		@Override
-		public void startElement(String name, Attributes attributes, List<String> parents)
-				throws ParseException {
-			if(name.equals("language-map")) {
-				result = new LanguageMap();
-			} else if(name.equals("source-language") || name.equals("translation-language")) {
-				languageHandler = new LanguageXMLHandler();
-				languageHandler.startElement(name,attributes,parents);
-			} else {
-				if(languageHandler != null)
-					languageHandler.startElement(name,attributes,parents);
-			}
-		}
-
-		@Override
-		public void endElement(String name, List<String> parents) throws ParseException {
-			if(languageHandler != null) languageHandler.endElement(name,parents);
-			if(name.equals("source-language") && languageHandler != null) {
-				result.setSourceLanguage(languageHandler.getObject());
-				languageHandler = null;
-			} else if(name.equals("translation-language") && languageHandler != null) {
-				result.addTranslationLanguage(languageHandler.getObject());
-				languageHandler = null;
-			}
-		}
-
-		@Override
-		public void characters(String ch, List<String> parents) { }
-
-		@Override
-		public LanguageMap getObject() {
-			return result;
-		}
-	}
-
-	private static class LanguageXMLHandler extends AbstractSimpleSAXHandler<Language> {
-
-		// Populated by startElement once the language element is seen, before getObject() runs.
-		@SuppressWarnings("NullAway.Init")
-		private Language result;
-
-		@Override
-		public void startElement(String name, Attributes attributes, List<String> parents) {
-			if(name.equals("source-language") || name.equals("translation-language")) {
-				result = new Language();
-				result.setCode(attributes.getValue("code"));
-				result.setName(attributes.getValue("name"));
-			}
-		}
-
-		@Override
-		public void endElement(String name, List<String> parents) { }
-
-		@Override
-		public void characters(String ch, List<String> parents) { }
-
-		@Override
-		public Language getObject() {
-			return result;
 		}
 	}
 

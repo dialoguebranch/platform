@@ -28,14 +28,14 @@
 
 package com.dialoguebranch.execution.parser;
 
+import com.dialoguebranch.exception.LineNumberParseException;
+import com.dialoguebranch.exception.ParseException;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.Reply;
 import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import nl.rrd.utils.CurrentIterator;
-import nl.rrd.utils.exception.LineNumberParseException;
-import nl.rrd.utils.exception.ParseException;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;

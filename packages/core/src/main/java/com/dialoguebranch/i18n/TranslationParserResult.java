@@ -28,7 +28,7 @@
 
 package com.dialoguebranch.i18n;
 
-import nl.rrd.utils.exception.ParseException;
+import com.dialoguebranch.exception.ParseException;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;

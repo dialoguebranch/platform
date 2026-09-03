@@ -28,14 +28,14 @@
 
 package com.dialoguebranch.model.execute.command;
 
+import com.dialoguebranch.exception.LineNumberParseException;
 import com.dialoguebranch.execution.Variable;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.parser.BodyToken;
+import com.dialoguebranch.expression.EvaluationException;
+import com.dialoguebranch.expression.Value;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.VariableString;
-import nl.rrd.utils.exception.LineNumberParseException;
-import nl.rrd.utils.expressions.EvaluationException;
-import nl.rrd.utils.expressions.Value;
 import org.jspecify.annotations.Nullable;
 
 import java.time.LocalTime;

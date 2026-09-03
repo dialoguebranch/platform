@@ -37,6 +37,7 @@ import com.dialoguebranch.execution.VariableUpdatedSource;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;
 import com.dialoguebranch.execution.parser.ScriptLoader;
+import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.ExecutableProject;
@@ -53,7 +54,6 @@ import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslation;
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import nl.rrd.utils.datetime.DateTimeUtils;
-import nl.rrd.utils.expressions.EvaluationException;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;

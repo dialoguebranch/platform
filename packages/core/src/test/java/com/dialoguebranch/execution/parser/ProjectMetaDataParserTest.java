@@ -28,9 +28,9 @@
 
 package com.dialoguebranch.execution.parser;
 
+import com.dialoguebranch.exception.ParseException;
 import com.dialoguebranch.model.common.ProjectMetaData;
 import com.dialoguebranch.model.execute.LanguageMap;
-import nl.rrd.utils.exception.ParseException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;

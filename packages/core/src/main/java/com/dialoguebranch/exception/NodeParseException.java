@@ -28,8 +28,6 @@
 
 package com.dialoguebranch.exception;
 
-import nl.rrd.utils.exception.LineNumberParseException;
-import nl.rrd.utils.exception.ParseException;
 import org.jspecify.annotations.Nullable;
 
 import java.io.Serial;

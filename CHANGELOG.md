@@ -102,6 +102,16 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   for a multi-language project when the project metadata doesn't name one now also accepts a
   region-qualified tag for a generic request (a project shipping only `en-US` satisfies the
   English fallback where before it did not); exact-match and no-match behaviour is unchanged.
+- **Breaking:** Core: vendored the `.dlb` `<<if>>` / `<<set>>` expression engine into
+  `com.dialoguebranch.expression` (+ `.types`), and moved the two parser exceptions it shares
+  with the rest of the library — `ParseException` and `LineNumberParseException` — into
+  `com.dialoguebranch.exception` (folded under `DialogueBranchException`), continuing #102's
+  removal of the `nl.rrd:rrd-utils` dependency. Evaluation semantics, `.dlb` syntax and the wire
+  format are unchanged, but a direct `dlb-core-java` consumer that referenced
+  `nl.rrd.utils.expressions.*` types, or caught `nl.rrd.utils.exception.ParseException` /
+  `LineNumberParseException`, must switch to the `com.dialoguebranch.*` equivalents. Project
+  metadata (`dlb-project.xml`) is now read with the JDK's StAX parser instead of `rrd-utils`'
+  SAX helper, with DTD / external-entity resolution disabled.
 
 ### Fixed
 

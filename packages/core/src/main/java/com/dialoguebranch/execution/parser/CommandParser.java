@@ -28,9 +28,9 @@
 
 package com.dialoguebranch.execution.parser;
 
+import com.dialoguebranch.exception.LineNumberParseException;
 import com.dialoguebranch.model.execute.command.*;
 import nl.rrd.utils.CurrentIterator;
-import nl.rrd.utils.exception.LineNumberParseException;
 
 import java.util.List;
 

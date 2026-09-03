@@ -364,7 +364,7 @@ public class VariableStore {
 	 *
 	 * <p>This "modifiable map" is used in the execution of Dialogue Branch Dialogues containing
 	 * Variables, as the implementation relies on the
-	 * {@link nl.rrd.utils.expressions.Expression} interface.</p>
+	 * {@link com.dialoguebranch.expression.Expression} interface.</p>
 	 *
 	 * <p>In other words, if you are thinking "Man, I wish VariableStore was just a simple
 	 * mapping of variable names to values", use this method, and you can pretend that that is the

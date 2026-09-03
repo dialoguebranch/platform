@@ -82,10 +82,16 @@ tasks.withType(JavaCompile).configureEach {
 	// of error-prone's bug patterns are out of scope for #117, so everything else is off.
 	// Severity is ERROR: the #117 audit is complete, so a new nullness violation must fail
 	// the build.
+	//
+	// com.dialoguebranch.expression / .io are the expression engine and its line/column reader,
+	// vendored verbatim from rrd-utils in #102. They are not written to the JSpecify contract;
+	// null-marking them is tracked as a follow-up. Until then they are excluded from NullAway.
 	options.errorprone {
 		disableAllChecks = true
 		check('NullAway', CheckSeverity.ERROR)
 		option('NullAway:AnnotatedPackages', 'com.dialoguebranch')
+		option('NullAway:UnannotatedSubPackages',
+				'com.dialoguebranch.expression,com.dialoguebranch.io')
 	}
 }
 

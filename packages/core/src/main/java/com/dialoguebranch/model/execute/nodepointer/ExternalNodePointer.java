@@ -28,9 +28,9 @@
 
 package com.dialoguebranch.model.execute.nodepointer;
 
+import com.dialoguebranch.exception.ParseException;
 import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.execute.Dialogue;
-import nl.rrd.utils.exception.ParseException;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;

@@ -28,12 +28,12 @@
 
 package com.dialoguebranch.model.execute;
 
+import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.model.execute.command.ActionCommand;
 import com.dialoguebranch.model.execute.command.Command;
 import com.dialoguebranch.model.execute.command.InputCommand;
 import com.dialoguebranch.model.execute.command.SetCommand;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
-import nl.rrd.utils.expressions.EvaluationException;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;

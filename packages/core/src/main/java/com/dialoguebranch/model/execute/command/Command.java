@@ -28,10 +28,10 @@
 
 package com.dialoguebranch.model.execute.command;
 
+import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.Reply;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
-import nl.rrd.utils.expressions.EvaluationException;
 import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
