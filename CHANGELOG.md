@@ -98,6 +98,14 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Web Service: role extraction now honours `dlb.auth.keycloak.client-id`
+  ([#104](https://github.com/dialoguebranch/platform/issues/104)). A deployment that set a
+  non-default client id received tokens whose roles live under `resource_access.<that-id>.roles`,
+  but role extraction always looked under a hardcoded `dlb-web-service` key — so every
+  authenticated user resolved to no roles and got `403 INSUFFICIENT_PRIVILEGES` on every
+  permission-gated endpoint. `azp` validation already respected the setting; the two now agree.
+  The "user has no roles" warning also names the configured client id and lists the
+  `resource_access` keys the token did carry.
 - Core: updated the interactive banner and entry-point Javadoc to use "Dialogue Branch CLI"
   instead of the old "Dialogue Branch Project Tool" name
   ([#110](https://github.com/dialoguebranch/platform/issues/110)).
