@@ -222,7 +222,7 @@ public class VariableStore {
 	 * @param eventTime the time (in the time zone of the user) of the event that triggered the
 	 *                  update of this variable.
 	 */
-	public void setValue(String name, Object value, boolean notifyObservers,
+	public void setValue(String name, @Nullable Object value, boolean notifyObservers,
 						 ZonedDateTime eventTime) {
 		setValue(name,value,notifyObservers,eventTime, VariableUpdatedSource.UNKNOWN);
 	}
@@ -239,7 +239,7 @@ public class VariableStore {
 	 *                  update of this variable.
 	 * @param source the source of the update to this {@link VariableStore}.
 	 */
-	public void setValue(String name, Object value, boolean notifyObservers,
+	public void setValue(String name, @Nullable Object value, boolean notifyObservers,
 						 ZonedDateTime eventTime, VariableUpdatedSource source) {
 		synchronized (variables) {
 			Variable Variable = new Variable(name, value, eventTime, source);
@@ -262,7 +262,7 @@ public class VariableStore {
 	 *                  removal of this variable
 	 * @return the {@link Variable} that was removed, or {@code null}.
 	 */
-	public Variable removeByName(String name, boolean notifyObservers,
+	public @Nullable Variable removeByName(String name, boolean notifyObservers,
 								 ZonedDateTime eventTime) {
 		return removeByName(name,notifyObservers,eventTime, VariableUpdatedSource.UNKNOWN);
 	}
@@ -280,7 +280,7 @@ public class VariableStore {
 	 * @param source the source of the update to this {@link VariableStore}.
 	 * @return the {@link Variable} that was removed, or {@code null}.
 	 */
-	public Variable removeByName(String name, boolean notifyObservers,
+	public @Nullable Variable removeByName(String name, boolean notifyObservers,
 								 ZonedDateTime eventTime,
 								 VariableUpdatedSource source) {
 		Variable result;
@@ -456,7 +456,9 @@ public class VariableStore {
 		 */
 		@Override
 		public @Nullable Object remove(@Nullable Object key) {
-			Variable result = removeByName((String)key, notifyObservers, eventTime, source);
+			if (!(key instanceof String stringKey))
+				return null;
+			Variable result = removeByName(stringKey, notifyObservers, eventTime, source);
 			if(result != null) return result.getValue();
 			else return null;
 		}
@@ -554,7 +556,7 @@ public class VariableStore {
 		public boolean containsValue(Object value) {
 			synchronized (variables) {
 				for (Map.Entry<String, Variable> entry : variables.entrySet()) {
-					if(entry.getValue().getValue().equals(value)) return true;
+					if(Objects.equals(entry.getValue().getValue(), value)) return true;
 				}
 				return false;
 			}

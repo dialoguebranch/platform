@@ -43,6 +43,7 @@ import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * An {@link ActiveDialogue} is a wrapper around a {@link Dialogue}, which contains a static
@@ -65,6 +66,8 @@ public class ActiveDialogue {
 	private @Nullable Node currentNode;
 
 	/** The variable store used to read and write Dialogue Branch variables during execution. */
+	// Assigned before any execution begins (startDialogue / setVariableStore).
+	@SuppressWarnings("NullAway.Init")
 	private VariableStore variableStore;
 
 	// -------------------------------------------------------- //
@@ -184,6 +187,11 @@ public class ActiveDialogue {
 		Node nextNode;
 		if (startNodeId == null) {
 			nextNode = dialogueDefinition.getStartNode();
+			if (nextNode == null) {
+				throw new ExecutionException(ExecutionException.Type.NODE_NOT_FOUND,
+						String.format("Dialogue \"%s\" has no start node",
+								dialogueDefinition.getDialogueName()));
+			}
 		} else {
 			nextNode = dialogueDefinition.getNodeById(startNodeId);
 			if (nextNode == null) {
@@ -209,7 +217,12 @@ public class ActiveDialogue {
 	 */
 	public NodePointer processReplyAndGetNodePointer(int replyId, ZonedDateTime eventTime)
 			throws EvaluationException {
-		Reply selectedReply = currentNode.getBody().findReplyById(replyId);
+		Node current = Objects.requireNonNull(currentNode,
+				"Dialogue has not been started");
+		NodeBody currentBody = Objects.requireNonNull(current.getBody(),
+				"Current node has no body");
+		Reply selectedReply = Objects.requireNonNull(currentBody.findReplyById(replyId),
+				"No reply with id " + replyId + " in the current node");
 		Map<String,Object> variableMap =
 				variableStore.getModifiableMap(true, eventTime,
 					VariableUpdatedSource.DLB_SCRIPT);
@@ -280,17 +293,21 @@ public class ActiveDialogue {
 	 * @throws ExecutionException if no reply with the specified {@code replyId} is found
 	 */
 	public String getUserStatementFromReplyId(int replyId) throws ExecutionException {
-		Reply selectedReply = currentNode.getBody().findReplyById(replyId);
+		Node current = Objects.requireNonNull(currentNode,
+				"Dialogue has not been started");
+		NodeBody currentBody = Objects.requireNonNull(current.getBody(),
+				"Current node has no body");
+		Reply selectedReply = currentBody.findReplyById(replyId);
 		if (selectedReply == null) {
 			throw new ExecutionException(ExecutionException.Type.REPLY_NOT_FOUND,
 					String.format("Reply with ID %s not found in dialogue \"%s\", node \"%s\"",
-					replyId, dialogueDefinition.getDialogueName(), currentNode.getTitle()));
+					replyId, dialogueDefinition.getDialogueName(), current.getTitle()));
 		}
 		if (selectedReply.isAutoForward())
 			return DialogueBranchConstants.DLB_REPLY_STATEMENT_AUTOFORWARD;
 		StringBuilder result = new StringBuilder();
-		List<NodeBody.Segment> segments = selectedReply.getStatement()
-				.getSegments();
+		List<NodeBody.Segment> segments = Objects.requireNonNull(
+				selectedReply.getStatement()).getSegments();
 		for (NodeBody.Segment segment : segments) {
 			if (segment instanceof NodeBody.TextSegment textSegment) {
 				result.append(textSegment.getText().evaluate(null));
@@ -320,12 +337,14 @@ public class ActiveDialogue {
 	 */
 	public Node executeNode(Node node, ZonedDateTime eventTime) throws EvaluationException {
 		Node processedNode = new Node();
-		processedNode.setHeader(node.getHeader());
+		processedNode.setHeader(Objects.requireNonNull(node.getHeader(),
+				"Node has no header"));
 		NodeBody processedBody = new NodeBody();
 		Map<String,Object> variables =
 				variableStore.getModifiableMap(true, eventTime,
 						VariableUpdatedSource.DLB_SCRIPT);
-		node.getBody().execute(variables, true, processedBody);
+		Objects.requireNonNull(node.getBody(), "Node has no body")
+				.execute(variables, true, processedBody);
 		processedNode.setBody(processedBody);
 		return processedNode;
 	}
@@ -348,11 +367,13 @@ public class ActiveDialogue {
 	public Node executeNodeStateless(Node node, ZonedDateTime eventTime)
 			throws EvaluationException {
 		Node processedNode = new Node();
-		processedNode.setHeader(node.getHeader());
+		processedNode.setHeader(Objects.requireNonNull(node.getHeader(),
+				"Node has no header"));
 		NodeBody processedBody = new NodeBody();
 		Map<String,Object> variables = new LinkedHashMap<>(
 				variableStore.getModifiableMap(false,eventTime));
-		node.getBody().execute(variables, true, processedBody);
+		Objects.requireNonNull(node.getBody(), "Node has no body")
+				.execute(variables, true, processedBody);
 		processedNode.setBody(processedBody);
 		return processedNode;
 	}
