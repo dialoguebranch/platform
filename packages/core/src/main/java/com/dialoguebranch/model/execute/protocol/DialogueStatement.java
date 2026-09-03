@@ -33,6 +33,8 @@ import com.dialoguebranch.json.JsonMapper;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.command.ActionCommand;
 import com.dialoguebranch.model.execute.command.InputCommand;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonParser;
@@ -97,9 +99,7 @@ public class DialogueStatement {
 	 * @param text the text content.
 	 */
 	public void addTextSegment(String text) {
-		TextSegment segment = new TextSegment();
-		segment.setText(text);
-		segments.add(segment);
+		segments.add(new TextSegment(text));
 	}
 
 	/**
@@ -107,11 +107,8 @@ public class DialogueStatement {
 	 * @param inputCommand the resolved input command.
 	 */
 	public void addInputSegment(InputCommand inputCommand) {
-		InputSegment segment = new InputSegment();
-		segment.setInputType(inputCommand.getType());
-		segment.setDescription(inputCommand.getDescription());
-		segment.setParameters(inputCommand.getParameters());
-		segments.add(segment);
+		segments.add(new InputSegment(inputCommand.getType(),
+				inputCommand.getDescription(), inputCommand.getParameters()));
 	}
 
 	/**
@@ -119,9 +116,7 @@ public class DialogueStatement {
 	 * @param actionCommand the resolved action command.
 	 */
 	public void addActionSegment(ActionCommand actionCommand) {
-		ActionSegment segment = new ActionSegment();
-		segment.setAction(new DialogueAction(actionCommand));
-		segments.add(segment);
+		segments.add(new ActionSegment(new DialogueAction(actionCommand)));
 	}
 
 	/** Distinguishes the three kinds of segment that a {@link DialogueStatement} may contain. */
@@ -159,14 +154,16 @@ public class DialogueStatement {
 	/** A segment containing plain text (with all variables already resolved). */
 	@JsonDeserialize(using=JsonDeserializer.None.class)
 	public static class TextSegment extends Segment {
-		private String text;
+		private final String text;
 
-		/** Creates an empty {@link TextSegment}. */
-		// text has no sensible default: addTextSegment / setText / JSON deserialization
-		// populate it before the segment is read.
-		@SuppressWarnings("NullAway.Init")
-		public TextSegment() {
+		/**
+		 * Creates a {@link TextSegment}. This is also the JSON deserialization entry point.
+		 * @param text the plain-text content.
+		 */
+		@JsonCreator
+		public TextSegment(@JsonProperty("text") String text) {
 			super(SegmentType.TEXT);
+			this.text = text;
 		}
 
 		/**
@@ -176,30 +173,32 @@ public class DialogueStatement {
 		public String getText() {
 			return text;
 		}
-
-		/**
-		 * Sets the plain-text content of this segment.
-		 * @param text the text content.
-		 */
-		public void setText(String text) {
-			this.text = text;
-		}
 	}
 
 	/** A segment representing an input command whose parameters have already been resolved. */
 	@JsonDeserialize(using=InputSegmentDeserializer.class)
 	@JsonSerialize(using=InputSegmentSerializer.class)
 	public static class InputSegment extends Segment {
-		private String inputType;
-		private @Nullable String description = null;
-		private Map<String,?> parameters = new LinkedHashMap<>();
+		private final String inputType;
+		private final @Nullable String description;
+		private final Map<String,?> parameters;
 
-		/** Creates an empty {@link InputSegment}. */
-		// inputType has no sensible default: addInputSegment / setInputType / JSON
-		// deserialization populate it before the segment is read.
-		@SuppressWarnings("NullAway.Init")
-		public InputSegment() {
+		/**
+		 * Creates an {@link InputSegment}. The JSON form is handled by
+		 * {@link InputSegmentDeserializer}, which calls this constructor.
+		 *
+		 * @param inputType the input type (one of the {@code TYPE_*} constants in
+		 *                  {@link InputCommand}).
+		 * @param description an optional description a client can use in validation messages, or
+		 *                    {@code null}.
+		 * @param parameters the resolved parameters (name → JSON value).
+		 */
+		public InputSegment(String inputType, @Nullable String description,
+				Map<String,?> parameters) {
 			super(SegmentType.INPUT);
+			this.inputType = inputType;
+			this.description = description;
+			this.parameters = parameters;
 		}
 
 		/**
@@ -210,16 +209,6 @@ public class DialogueStatement {
 		 */
 		public String getInputType() {
 			return inputType;
-		}
-
-		/**
-		 * Sets the input type. This should be one of the TYPE_* constants
-		 * defined in {@link InputCommand}.
-		 *
-		 * @param inputType the input type
-		 */
-		public void setInputType(String inputType) {
-			this.inputType = inputType;
 		}
 
 		/**
@@ -234,17 +223,6 @@ public class DialogueStatement {
 		}
 
 		/**
-		 * Sets the description of this input command. For example a client can use
-		 * this in input validation messages ("You did not fill in [your name].").
-		 * The description is optional and may be null.
-		 *
-		 * @param description the description or null
-		 */
-		public void setDescription(@Nullable String description) {
-			this.description = description;
-		}
-
-		/**
 		 * Returns the parameters. This is a map from parameter names to values.
 		 * A value can be any JSON type. Any variables in parameter values have
 		 * already been resolved.
@@ -254,30 +232,21 @@ public class DialogueStatement {
 		public Map<String, ?> getParameters() {
 			return parameters;
 		}
-
-		/**
-		 * Sets the parameters. This is a map from parameter names to values. A
-		 * value can be any JSON type. Any variables in parameter values have
-		 * already been resolved.
-		 *
-		 * @param parameters the parameters
-		 */
-		public void setParameters(Map<String, ?> parameters) {
-			this.parameters = parameters;
-		}
 	}
 
 	/** A segment containing a resolved {@link DialogueAction}. */
 	@JsonDeserialize(using=JsonDeserializer.None.class)
 	public static class ActionSegment extends Segment {
-		private DialogueAction action;
+		private final DialogueAction action;
 
-		/** Creates an empty {@link ActionSegment}. */
-		// action has no sensible default: addActionSegment / setAction / JSON deserialization
-		// populate it before the segment is read.
-		@SuppressWarnings("NullAway.Init")
-		public ActionSegment() {
+		/**
+		 * Creates an {@link ActionSegment}. This is also the JSON deserialization entry point.
+		 * @param action the {@link DialogueAction} contained in this segment.
+		 */
+		@JsonCreator
+		public ActionSegment(@JsonProperty("action") DialogueAction action) {
 			super(SegmentType.ACTION);
+			this.action = action;
 		}
 
 		/**
@@ -286,14 +255,6 @@ public class DialogueStatement {
 		 */
 		public DialogueAction getAction() {
 			return action;
-		}
-
-		/**
-		 * Sets the {@link DialogueAction} for this segment.
-		 * @param action the dialogue action.
-		 */
-		public void setAction(DialogueAction action) {
-			this.action = action;
 		}
 	}
 
@@ -386,30 +347,27 @@ public class DialogueStatement {
 				throw new JsonParseException(p, "Object keys are not strings");
 			}
 			map.remove("segmentType");
-			InputSegment segment = new InputSegment();
 			if (!map.containsKey("inputType")) {
 				throw new JsonParseException(p,
 						"Property \"inputType\" not found");
 			}
 			Object typeObj = map.remove("inputType");
-			if (!(typeObj instanceof String)) {
+			if (!(typeObj instanceof String typeStr)) {
 				throw new JsonParseException(p,
 						"Invalid value of property \"inputType\": " +
 						typeObj);
 			}
-			String typeStr = (String)typeObj;
-			segment.setInputType(typeStr);
+			String description = null;
 			Object descrObj = map.remove("description");
 			if (descrObj != null) {
-				if (!(descrObj instanceof String)) {
+				if (!(descrObj instanceof String descrStr)) {
 					throw new JsonParseException(p,
 							"Invalid value of property \"description\": " +
 							descrObj);
 				}
-				segment.setDescription((String)descrObj);
+				description = descrStr;
 			}
-			segment.setParameters(map);
-			return segment;
+			return new InputSegment(typeStr, description, map);
 		}
 	}
 }
