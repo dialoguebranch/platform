@@ -10,6 +10,10 @@
 #                                                      # Studio, and a proxy in front, mirroring
 #                                                      # a real deployment (see issue #81)
 #
+#   docker compose -f compose.yml -f compose.variable-service.yml --profile api up -d
+#       # the --profile api stack, plus the mock variable service, with the API wired to it
+#       # (see compose.variable-service.yml) — for testing the EVS integration end to end
+#
 # Three local development setups, matching what a given change actually needs:
 #
 #   1. Web service only: this file with no profile, run the API separately (e.g. `./gradlew
@@ -290,13 +294,16 @@ services:
   #
   # A dummy implementation of the "External Variable Service" protocol, used to
   # test the dlb-web-service's integration with an external variable back-end.
-  # To point dlb-web-service at it (e.g. when running the API via ./gradlew
-  # bootRun locally, outside this compose stack), set:
+  #
+  # To run the Dockerised API wired to this service, add the compose.variable-service.yml
+  # overlay (see its header) rather than setting the variables by hand:
+  #   docker compose -f compose.yml -f compose.variable-service.yml --profile api up -d
+  #
+  # To point an API running OUTSIDE this stack (e.g. ./gradlew bootRun) at it, set:
   #   DLB_EXTERNAL_VARIABLE_SERVICE_ENABLED=true
   #   DLB_EXTERNAL_VARIABLE_SERVICE_URL=http://localhost:8090
   #   DLB_EXTERNAL_VARIABLE_SERVICE_API_KEY=dev
-  # (matching the DLB_AUTH_API_KEY set below). If dlb-web-service runs inside
-  # this compose stack instead, use DLB_EXTERNAL_VARIABLE_SERVICE_URL=http://mock-variable-service:8090.
+  # (matching the DLB_AUTH_API_KEY set below).
   # ---------------------------------------------------------------------------
 
   mock-variable-service:

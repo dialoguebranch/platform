@@ -90,6 +90,14 @@ docker compose -f infrastructure/docker/compose.yml up               # MariaDB +
 docker compose -f infrastructure/docker/compose.yml --profile api up # also builds/runs the API and the BFF
 ```
 
+To exercise the External Variable Service integration end to end, add the
+`compose.variable-service.yml` overlay — it starts `mock-variable-service` alongside the
+`api` profile and wires the API to it:
+
+```bash
+docker compose -f infrastructure/docker/compose.yml -f infrastructure/docker/compose.variable-service.yml --profile api up
+```
+
 Service URLs:
 - API: `http://localhost:8089/dlb-web-service`
 - BFF: `http://localhost:8082`
