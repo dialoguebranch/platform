@@ -29,6 +29,8 @@
 package com.dialoguebranch.web.service.repository;
 
 import com.dialoguebranch.web.service.storage.model.DBUser;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
@@ -49,5 +51,18 @@ public interface DBUserRepository extends JpaRepository<DBUser, UUID> {
 	 * @return an {@link Optional} containing the matching {@link DBUser}, or empty if none exists.
 	 */
 	Optional<DBUser> findByIssuerAndSubject(String issuer, String subject);
+
+	/**
+	 * Lists the users of the given issuer (realm) whose {@code username} contains the given
+	 * fragment, case-insensitively, ordered by username. Rows with no known username (a delegate
+	 * target that has never authenticated directly) are excluded.
+	 *
+	 * @param issuer the token issuer to scope the listing to.
+	 * @param usernameFragment the substring to match (an empty string matches every named user).
+	 * @param pageable the page request.
+	 * @return the matching page of users.
+	 */
+	Page<DBUser> findByIssuerAndUsernameContainingIgnoreCaseOrderByUsernameAsc(
+			String issuer, String usernameFragment, Pageable pageable);
 
 }

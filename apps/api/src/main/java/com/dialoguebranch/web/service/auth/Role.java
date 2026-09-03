@@ -86,6 +86,7 @@ public final class Role {
 				Permission.PROJECT_MANAGE_LANGUAGES,
 				Permission.PUBLISH_CREATE,
 				Permission.SERVICE_INFO_TECHNICAL,
+				Permission.USER_LIST,
 				Permission.USER_DELEGATE));
 
 		PARTICIPANT = new Role(AuthenticationInfo.USER_ROLE_PARTICIPANT, participant);

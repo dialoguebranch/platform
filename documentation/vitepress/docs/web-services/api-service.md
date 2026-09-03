@@ -53,6 +53,12 @@ Variables are **scoped to the project**: the same variable name in two different
 
 Another way of making sure that Dialogue Branch has up-to-date values for Variables, is by using an [External Variable Service](/web-services/external-variable-service).
 
+## Known Users
+
+Most execution and variable end-points accept an optional `delegateUser` parameter (admin only) so an operator can act on behalf of another user; the value is that user's OIDC `subject`. To let an operator pick that user by a memorable name instead, the Web Service offers:
+
+* `/users` — a read-only listing of the users this service has run a dialogue for, as `{ username, subject }` entries ordered by username, with an optional `username` substring filter and pagination (`page`, `pageSize`). It requires the admin-only `USER_LIST` permission and is scoped to the caller's own token issuer (realm), matching delegation being realm-scoped. The `username` is the last value the service saw and may be stale after a rename in Keycloak; the `subject` is stable and is what to pass as `delegateUser`.
+
 ::: info Note
 If you found errors or have questions about this page, please consider reporting an issue at https://github.com/dialoguebranch/platform or sending an email to info@dialoguebranch.com.
 :::

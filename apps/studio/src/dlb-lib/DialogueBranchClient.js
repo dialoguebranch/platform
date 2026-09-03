@@ -567,6 +567,22 @@ export class DialogueBranchClient {
         }).then((response) => this._handleResponse(response));
     }
 
+    // Returns known Dialogue Branch users in the caller's realm whose username contains the given
+    // fragment, as [{ username, subject }] ordered by username. Used to resolve a username to the
+    // `subject` that delegated dialogue execution needs. Empty fragment lists all named users
+    // (first page only).
+    listUsers(usernameFragment) {
+        const url = this._baseUrl + "/users?username="
+            + encodeURIComponent(usernameFragment ?? "");
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" }
+        })
+        .then((response) => this._handleResponse(response))
+        .then((data) => Array.isArray(data) ? data : []);
+    }
+
     // Returns the sorted list of variable names referenced anywhere in the given project's
     // dialogues (read or written), regardless of whether a value is stored for them.
     listProjectVariables(projectSlug) {

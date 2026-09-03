@@ -105,4 +105,20 @@ class RbacIntegrationTest {
 				.andExpect(status().isForbidden())
 				.andExpect(jsonPath("$.code").value("INSUFFICIENT_PRIVILEGES"));
 	}
+
+	// Listing known users (GET /users, #130) needs the dedicated USER_LIST permission — admin
+	// only, and distinct from USER_DELEGATE.
+
+	@Test
+	void listUsersIsAllowedForAnAdmin() throws Exception {
+		mockMvc.perform(withRoles(get("/v1/users"), "admin"))
+				.andExpect(status().isOk());
+	}
+
+	@Test
+	void listUsersIsForbiddenForAnEditor() throws Exception {
+		mockMvc.perform(withRoles(get("/v1/users"), "editor"))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.code").value("INSUFFICIENT_PRIVILEGES"));
+	}
 }
