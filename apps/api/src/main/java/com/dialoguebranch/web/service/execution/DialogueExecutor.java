@@ -31,6 +31,7 @@ package com.dialoguebranch.web.service.execution;
 import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.execution.ActiveDialogue;
 import com.dialoguebranch.execution.ExecuteNodeResult;
+import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.model.execute.*;
 import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
@@ -38,7 +39,6 @@ import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import com.dialoguebranch.web.service.storage.ServerLoggedDialogue;
 import nl.rrd.utils.datetime.DateTimeUtils;
 import nl.rrd.utils.exception.DatabaseException;
-import nl.rrd.utils.expressions.EvaluationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

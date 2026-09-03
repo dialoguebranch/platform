@@ -28,6 +28,7 @@
 
 package com.dialoguebranch.execution.parser;
 
+import com.dialoguebranch.exception.ParseException;
 import com.dialoguebranch.i18n.ContextTranslation;
 import com.dialoguebranch.i18n.LanguageFinder;
 import com.dialoguebranch.i18n.Translatable;
@@ -42,7 +43,6 @@ import com.dialoguebranch.model.execute.*;
 import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
-import nl.rrd.utils.exception.ParseException;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;

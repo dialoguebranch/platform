@@ -28,18 +28,18 @@
 
 package com.dialoguebranch.web.service.storage;
 
+import com.dialoguebranch.exception.ParseException;
 import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.Variable;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.VariableStoreChange;
 import com.dialoguebranch.execution.VariableStoreOnChangeListener;
 import com.dialoguebranch.execution.VariableUpdatedSource;
+import com.dialoguebranch.json.JsonMapper;
 import com.dialoguebranch.web.service.repository.DBUserRepository;
 import com.dialoguebranch.web.service.repository.DBVariableRepository;
 import com.dialoguebranch.web.service.storage.model.DBUser;
 import com.dialoguebranch.web.service.storage.model.DBVariable;
-import nl.rrd.utils.exception.ParseException;
-import nl.rrd.utils.json.JsonMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

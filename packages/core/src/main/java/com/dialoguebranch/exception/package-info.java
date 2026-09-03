@@ -29,9 +29,12 @@
 /**
  * The typed exceptions thrown across {@code dlb-core-java}.
  * {@link com.dialoguebranch.exception.DialogueBranchException} is the common checked supertype;
- * {@link com.dialoguebranch.exception.NodeParseException} reports a malformed {@code .dlb} node,
- * {@link com.dialoguebranch.exception.ExecutionException} a failure while running a dialogue, and
- * the remaining types cover invalid input and unknown / duplicate translation languages.
+ * {@link com.dialoguebranch.exception.ParseException} covers invalid parser input, refined by
+ * {@link com.dialoguebranch.exception.LineNumberParseException} (with a line / column number) and
+ * {@link com.dialoguebranch.exception.NodeParseException} (a malformed {@code .dlb} node);
+ * {@link com.dialoguebranch.exception.ExecutionException} reports a failure while running a
+ * dialogue, and the remaining types cover invalid input and unknown / duplicate translation
+ * languages.
  */
 @NullMarked
 package com.dialoguebranch.exception;

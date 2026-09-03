@@ -28,6 +28,7 @@
 
 package com.dialoguebranch.web.service.project;
 
+import com.dialoguebranch.exception.ParseException;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;
 import com.dialoguebranch.execution.parser.ScriptLoader;
@@ -46,7 +47,6 @@ import com.dialoguebranch.web.service.storage.model.DBPublishedDialogue;
 import com.dialoguebranch.web.service.storage.model.DBPublishedTranslation;
 import com.dialoguebranch.web.service.storage.model.DBPublishedTranslationLanguage;
 import com.dialoguebranch.web.service.storage.model.DBUser;
-import nl.rrd.utils.exception.ParseException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

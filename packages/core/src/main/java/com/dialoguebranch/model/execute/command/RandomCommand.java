@@ -28,15 +28,15 @@
 
 package com.dialoguebranch.model.execute.command;
 
+import com.dialoguebranch.exception.LineNumberParseException;
 import com.dialoguebranch.execution.parser.BodyParser;
 import com.dialoguebranch.execution.parser.BodyToken;
 import com.dialoguebranch.execution.parser.NodeState;
+import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.Reply;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import nl.rrd.utils.CurrentIterator;
-import nl.rrd.utils.exception.LineNumberParseException;
-import nl.rrd.utils.expressions.EvaluationException;
 import org.jspecify.annotations.Nullable;
 
 import java.util.*;

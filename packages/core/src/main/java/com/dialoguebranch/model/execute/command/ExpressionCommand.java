@@ -28,14 +28,14 @@
 
 package com.dialoguebranch.model.execute.command;
 
+import com.dialoguebranch.exception.LineNumberParseException;
 import com.dialoguebranch.execution.parser.BodyToken;
+import com.dialoguebranch.expression.Expression;
+import com.dialoguebranch.expression.ExpressionParser;
+import com.dialoguebranch.expression.Token;
+import com.dialoguebranch.expression.Tokenizer;
+import com.dialoguebranch.io.LineColumnNumberReader;
 import nl.rrd.utils.CurrentIterator;
-import nl.rrd.utils.exception.LineNumberParseException;
-import nl.rrd.utils.expressions.Expression;
-import nl.rrd.utils.expressions.ExpressionParser;
-import nl.rrd.utils.expressions.Token;
-import nl.rrd.utils.expressions.Tokenizer;
-import nl.rrd.utils.io.LineColumnNumberReader;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;

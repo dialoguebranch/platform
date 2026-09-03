@@ -28,10 +28,10 @@
 
 package com.dialoguebranch.model.execute.command;
 
+import com.dialoguebranch.exception.LineNumberParseException;
 import com.dialoguebranch.execution.parser.BodyToken;
 import com.dialoguebranch.model.execute.VariableString;
 import nl.rrd.utils.CurrentIterator;
-import nl.rrd.utils.exception.LineNumberParseException;
 import org.jspecify.annotations.Nullable;
 
 import java.util.LinkedHashMap;

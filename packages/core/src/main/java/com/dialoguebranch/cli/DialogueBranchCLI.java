@@ -30,12 +30,14 @@ package com.dialoguebranch.cli;
 
 import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.exception.InvalidInputException;
+import com.dialoguebranch.exception.ParseException;
 import com.dialoguebranch.execution.ActiveDialogue;
 import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;
 import com.dialoguebranch.execution.parser.ProjectScriptLoader;
+import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.common.ProjectMetaData;
 import com.dialoguebranch.model.execute.Dialogue;
@@ -47,8 +49,6 @@ import com.dialoguebranch.model.execute.ResourcePointer;
 import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
-import nl.rrd.utils.exception.ParseException;
-import nl.rrd.utils.expressions.EvaluationException;
 import org.jspecify.annotations.Nullable;
 
 import java.io.File;

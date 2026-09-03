@@ -28,6 +28,8 @@
 
 package com.dialoguebranch.exception;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * An abstract representation of an {@link Exception} specifically for the Dialogue Branch context.
  * A {@link DialogueBranchException} does not add anything to the default {@link Exception} type,
@@ -57,9 +59,9 @@ public abstract class DialogueBranchException extends Exception {
 	 * explaining the cause of the exception, and the nested {@code cause}.
 	 *
 	 * @param message the message explaining the cause of the exception.
-	 * @param cause the actual nested {@link Throwable} cause of the exception.
+	 * @param cause the actual nested {@link Throwable} cause of the exception, or {@code null}.
 	 */
-	public DialogueBranchException(String message, Throwable cause) {
+	public DialogueBranchException(String message, @Nullable Throwable cause) {
 		super(message,cause);
 	}
 

@@ -28,11 +28,11 @@
 
 package com.dialoguebranch.model.execute;
 
+import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.model.execute.command.*;
 import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
-import nl.rrd.utils.expressions.EvaluationException;
 import org.jspecify.annotations.Nullable;
 
 import java.util.*;

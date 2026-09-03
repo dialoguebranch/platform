@@ -28,7 +28,7 @@
 
 package com.dialoguebranch.model.execute;
 
-import nl.rrd.utils.expressions.Value;
+import com.dialoguebranch.expression.Value;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;

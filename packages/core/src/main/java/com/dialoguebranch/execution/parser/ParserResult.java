@@ -28,8 +28,8 @@
 
 package com.dialoguebranch.execution.parser;
 
+import com.dialoguebranch.exception.ParseException;
 import com.dialoguebranch.model.execute.Dialogue;
-import nl.rrd.utils.exception.ParseException;
 
 import java.util.ArrayList;
 import java.util.List;
