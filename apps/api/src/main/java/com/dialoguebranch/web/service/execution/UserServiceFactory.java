@@ -29,10 +29,10 @@
 package com.dialoguebranch.web.service.execution;
 
 import com.dialoguebranch.execution.User;
+import com.dialoguebranch.web.service.exception.DatabaseException;
 import com.dialoguebranch.web.service.repository.DBLoggedDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBUserRepository;
 import com.dialoguebranch.web.service.storage.VariableStoreDatabaseStorageHandler;
-import nl.rrd.utils.exception.DatabaseException;
 
 import java.io.IOException;
 import java.time.ZoneId;

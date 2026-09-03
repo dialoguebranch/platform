@@ -36,6 +36,7 @@ import com.dialoguebranch.model.execute.protocol.DialogueMessage;
 import com.dialoguebranch.model.execute.protocol.DialogueMessageFactory;
 import com.dialoguebranch.model.execute.protocol.NullableResponse;
 import com.dialoguebranch.web.service.Application;
+import com.dialoguebranch.web.service.DateTimeUtils;
 import com.dialoguebranch.web.service.QueryRunner;
 import com.dialoguebranch.web.service.auth.Permission;
 import com.dialoguebranch.web.service.controller.schema.DraftDialogueMessage;
@@ -57,8 +58,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import nl.rrd.utils.datetime.DateTimeUtils;
-import nl.rrd.utils.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,6 +65,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
@@ -227,7 +227,7 @@ public class DraftExecutionController {
 
 					String body;
 					try (InputStream input = request.getInputStream()) {
-						body = FileUtils.readFileString(input);
+						body = new String(input.readAllBytes(), StandardCharsets.UTF_8);
 					}
 					Map<String, ?> variables = new LinkedHashMap<>();
 					if (!body.trim().isEmpty()) {

@@ -127,9 +127,17 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `com.dialoguebranch.util`, `ReferenceParameter` in the body tokenizer became a plain
   `int[]` out-parameter, and `BodyToken.toString()` no longer routes through `DataFormatter`.
   `rrd-utils` is dropped from the published POM — a consumer that was relying on getting it
-  transitively from `dlb-core-java` must now declare it directly. The Web Service, which still
-  uses `rrd-utils`' `DatabaseException` / `DateTimeUtils` / `http` helpers, now declares the
-  dependency itself.
+  transitively from `dlb-core-java` must now declare it directly.
+- The Web Service (`apps/api`) and the External Variable Service (`apps/mock-variable-service`)
+  no longer depend on `nl.rrd:rrd-utils` either
+  ([#136](https://github.com/dialoguebranch/platform/issues/136)) — the platform now has no
+  `rrd-utils` dependency anywhere. `DatabaseException` moves to the existing
+  `com.dialoguebranch.web.service.exception.DatabaseException`; `DateTimeUtils.nowMs(zone)`
+  becomes a two-line local helper over `ZonedDateTime.now(zone).truncatedTo(MILLIS)`; the
+  request-body reads use `InputStream.readAllBytes`; the base-path parse uses `java.net.URI`;
+  the forbidden-query-param check parses the query string directly; and the `HttpError` /
+  `HttpFieldError` / `DialogueListPayload` DTOs drop `extends JsonObject` for a plain
+  `toString()`. No REST payload, protocol, or behaviour change.
 
 ### Fixed
 

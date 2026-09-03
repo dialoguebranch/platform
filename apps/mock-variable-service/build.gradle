@@ -52,10 +52,6 @@ tasks.withType(JavaCompile).configureEach {
 dependencies {
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:3.5.4'
 
-	// RRDUtils is an Open Source library of utility features developed by RRD
-	// https://mvnrepository.com/artifact/nl.rrd/rrd-utils
-	implementation 'nl.rrd:rrd-utils:3.0.3'
-
 	// https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-api
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
 	implementation 'io.jsonwebtoken:jjwt-jackson:0.12.6'

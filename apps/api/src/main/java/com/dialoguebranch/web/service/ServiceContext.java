@@ -28,10 +28,11 @@
 
 package com.dialoguebranch.web.service;
 
-import nl.rrd.utils.exception.ParseException;
-import nl.rrd.utils.http.HttpURL;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.net.URI;
+import java.net.URISyntaxException;
 
 /**
  * Provides static access to a small number of shared service-context values. Initialized by Spring
@@ -70,13 +71,11 @@ public class ServiceContext {
 	 */
 	public static String getBasePath() {
 		String url = getBaseUrl();
-		HttpURL httpUrl;
 		try {
-			httpUrl = HttpURL.parse(url);
-		} catch (ParseException ex) {
+			return new URI(url).getPath();
+		} catch (URISyntaxException ex) {
 			throw new RuntimeException("Invalid base URL: " + url + ": " + ex.getMessage(), ex);
 		}
-		return httpUrl.getPath();
 	}
 
 	/**

@@ -28,14 +28,13 @@
 
 package com.dialoguebranch.web.varservice.exception;
 
-import nl.rrd.utils.json.JsonObject;
 
 /**
  * This class defines an error in the user input for a specified field.
  *
  * @author Dennis Hofs
  */
-public class HttpFieldError extends JsonObject {
+public class HttpFieldError {
 	private String field = null;
 	private String message = null;
 
@@ -107,6 +106,11 @@ public class HttpFieldError extends JsonObject {
 	 */
 	public void setMessage(String message) {
 		this.message = message;
+	}
+
+	@Override
+	public String toString() {
+		return "HttpFieldError{field=" + field + ", message=" + message + "}";
 	}
 
 }

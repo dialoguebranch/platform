@@ -28,7 +28,6 @@
 
 package com.dialoguebranch.web.varservice.exception;
 
-import nl.rrd.utils.json.JsonObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +38,7 @@ import java.util.List;
  *
  * @author Dennis Hofs
  */
-public class HttpError extends JsonObject {
+public class HttpError {
 	private String code = null;
 	private String message = "";
 	private List<HttpFieldError> fieldErrors = new ArrayList<>();
@@ -142,6 +141,12 @@ public class HttpError extends JsonObject {
 	 */
 	public void addFieldError(HttpFieldError error) {
 		fieldErrors.add(error);
+	}
+
+	@Override
+	public String toString() {
+		return "HttpError{code=" + code + ", message=" + message
+				+ ", fieldErrors=" + fieldErrors + "}";
 	}
 
 }

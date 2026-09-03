@@ -41,10 +41,10 @@ import com.dialoguebranch.model.execute.ExecutableProject;
 import com.dialoguebranch.model.execute.ResourcePointer;
 import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.controller.schema.ProjectVariableInfo;
+import com.dialoguebranch.web.service.exception.DatabaseException;
 import com.dialoguebranch.web.service.repository.DBLoggedDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBUserRepository;
 import com.dialoguebranch.web.service.storage.VariableStoreDatabaseStorageHandler;
-import nl.rrd.utils.exception.DatabaseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

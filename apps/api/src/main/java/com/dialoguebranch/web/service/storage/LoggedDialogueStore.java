@@ -29,6 +29,7 @@
 package com.dialoguebranch.web.service.storage;
 
 import com.dialoguebranch.model.execute.LoggedInteraction;
+import com.dialoguebranch.web.service.exception.DatabaseException;
 import com.dialoguebranch.web.service.execution.UserService;
 import com.dialoguebranch.web.service.repository.DBLoggedDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBUserRepository;
@@ -37,7 +38,6 @@ import com.dialoguebranch.web.service.storage.model.DBUser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import nl.rrd.utils.exception.DatabaseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
