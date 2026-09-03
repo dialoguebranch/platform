@@ -1,0 +1,66 @@
+title: Start
+tags:
+speaker: Martin McOwl
+colorId: 2
+position: 0,0
+---
+This lesson is about the "action" statement, which couples a client-side event to a line of dialogue. Every action has a type and a value.
+
+[[Show me a link.|Link]]
+===
+title: Link
+tags:
+speaker: Martin McOwl
+colorId: 0
+position: 320,0
+---
+An action of type "link" points at a URL.
+
+<<action type="link" value="https://www.dialoguebranch.com/">>
+
+[[Show me image and video.|Media]]
+===
+title: Media
+tags:
+speaker: Martin McOwl
+colorId: 0
+position: 640,0
+---
+The "image" and "video" types point at a resource.
+
+<<action type="image" value="dog.png">>
+<<action type="video" value="https://www.youtube.com/watch?v=dQw4w9WgXcQ">>
+
+[[Show me a generic action.|Generic]]
+===
+title: Generic
+tags:
+speaker: Martin McOwl
+colorId: 0
+position: 960,0
+---
+A "generic" action carries whatever your client wants to handle, plus any extra parameters.
+
+<<action type="generic" value="OPEN_RECIPE_BOOK" delay="2000" page="42">>
+
+[[Can an action sit in a reply?|Reply]]
+===
+title: Reply
+tags:
+speaker: Martin McOwl
+colorId: 0
+position: 1280,0
+---
+Yes. An action can also hang off a reply, and a link action can carry display text.
+
+[[Open the book, please.|End|<<action type="generic" value="OPEN_RECIPE_BOOK">>]]
+[[Visit the website.|End|<<action type="link" value="https://www.dialoguebranch.com/" text="website">>]]
+===
+title: End
+tags:
+speaker:
+colorId: 5
+position: 800,220
+---
+
+===

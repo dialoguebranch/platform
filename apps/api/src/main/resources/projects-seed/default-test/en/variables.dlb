@@ -34,6 +34,47 @@ position: 1167,90
 
 These variables contained string values, so they can be injected in statements (this can also be done with numbers, like so: $aNumber).
 
+[[Show me some arithmetic.|Arithmetic]]
+===
+title: Arithmetic
+tags:
+speaker: Martin McOwl
+colorID: 0
+position: 1167,300
+---
+<<set $first = "Ada">>
+<<set $last = "Lovelace">>
+<<set $full = $first + " " + $last>>
+
+Expressions can combine variables. Here $full became "$full".
+
+[[Increment]]
+===
+title: Increment
+tags:
+speaker: Martin McOwl
+colorID: 0
+position: 1167,510
+---
+<<set $count = 0>>
+<<set $count = $count + 1>>
+<<set $count = $count + 1>>
+
+A variable can refer to itself, so $count is now $count.
+
+[[Coercion]]
+===
+title: Coercion
+tags:
+speaker: Martin McOwl
+colorID: 0
+position: 1167,720
+---
+<<set $leftToRight = 1 + 2 + "3">>
+<<set $grouped = 1 + (2 + "3")>>
+
+Mixing numbers and strings coerces to a string, evaluated left to right: 1 + 2 + "3" gives "$leftToRight", while 1 + (2 + "3") gives "$grouped".
+
 [[Variables3]]
 ===
 title: Variables3

@@ -1,0 +1,42 @@
+title: Start // the entry node of this lesson
+tags:
+speaker: Martin McOwl
+colorId: 2
+position: 0,0
+---
+<<set $playerName = "Robin">>
+
+// Everything after a double slash is a comment, in the header or the body.
+This lesson is about statements. A variable is injected into text with a $-sign, like your name: $playerName.
+
+[[Show me escaping.|Escaping]]
+===
+title: Escaping
+tags:
+speaker: Martin McOwl
+colorId: 0
+position: 320,0
+---
+To print a literal dollar sign you escape it: \$5. A literal backslash is written \\. Any character can be escaped this way, so a link keeps both its slashes: https:\//www.dialoguebranch.com
+
+[[What about markup?|Markup]]
+===
+title: Markup
+tags:
+speaker: Martin McOwl
+colorID: 0
+note: this node keeps the legacy colorID spelling and a custom tag on purpose
+position: 640,0
+---
+Dialogue Branch does not interpret markup. Tags such as <b>bold</b> are passed straight through to your client, untouched.
+
+[[That is all.|End]]
+===
+title: End
+tags:
+speaker:
+colorId: 5
+position: 320,220
+---
+
+===

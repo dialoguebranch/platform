@@ -1,0 +1,12 @@
+{
+    "Martin McOwl": {
+        "This lesson is about statements. A variable is injected into text with a \\$-sign, like your name: $playerName.": "Esta lição é sobre afirmações. Uma variável é inserida no texto com o símbolo \\$, como o teu nome: $playerName.",
+        "To print a literal dollar sign you escape it: \\$5. A literal backslash is written \\\\. Any character can be escaped this way, so a link keeps both its slashes: https://www.dialoguebranch.com": "Para mostrar um cifrão literal, escapa-o: \\$5. Uma barra invertida literal escreve-se \\\\. Qualquer caráter pode ser escapado assim, por isso um link mantém as duas barras: https://www.dialoguebranch.com",
+        "Dialogue Branch does not interpret markup. Tags such as <b>bold</b> are passed straight through to your client, untouched.": "O Dialogue Branch não interpreta marcação. Etiquetas como <b>negrito</b> são passadas diretamente para o teu cliente, sem alterações."
+    },
+    "_user": {
+        "Show me escaping.": "Mostra-me o escape.",
+        "What about markup?": "E a marcação?",
+        "That is all.": "É tudo."
+    }
+}

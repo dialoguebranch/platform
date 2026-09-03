@@ -1,0 +1,12 @@
+{
+    "Martin McOwl": {
+        "This lesson is about statements. A variable is injected into text with a \\$-sign, like your name: $playerName.": "Deze les gaat over uitspraken. Een variabele wordt in tekst ingevoegd met een \\$-teken, zoals je naam: $playerName.",
+        "To print a literal dollar sign you escape it: \\$5. A literal backslash is written \\\\. Any character can be escaped this way, so a link keeps both its slashes: https://www.dialoguebranch.com": "Om een letterlijk dollarteken te tonen, escape je het: \\$5. Een letterlijke backslash schrijf je als \\\\. Elk teken kan zo ge-escaped worden, zodat een link beide schuine strepen behoudt: https://www.dialoguebranch.com",
+        "Dialogue Branch does not interpret markup. Tags such as <b>bold</b> are passed straight through to your client, untouched.": "Dialogue Branch interpreteert geen opmaak. Tags zoals <b>vet</b> worden ongewijzigd doorgegeven aan je client."
+    },
+    "_user": {
+        "Show me escaping.": "Laat me escapen zien.",
+        "What about markup?": "En opmaak dan?",
+        "That is all.": "Dat is alles."
+    }
+}

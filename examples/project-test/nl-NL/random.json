@@ -1,0 +1,20 @@
+{
+    "Martin McOwl": {
+        "This lesson is about the \"random\" statement, which varies a node's output from one run to the next.": "Deze les gaat over de \"random\"-uitspraak, die de uitvoer van een knooppunt van keer tot keer laat variëren.",
+        "Hey there!": "Hallo daar!",
+        "Hi, good to see you!": "Hoi, goed je te zien!",
+        "Hello again!": "Hallo, daar ben je weer!",
+        "Each clause can carry a weight. This one is picked about twice as often as the others.": "Elke clausule kan een gewicht dragen. Deze wordt ongeveer twee keer zo vaak gekozen als de andere.",
+        "This is the heavy clause.": "Dit is de zware clausule.",
+        "This is a light clause.": "Dit is een lichte clausule.",
+        "This clause uses the default weight of 1.": "Deze clausule gebruikt het standaardgewicht van 1.",
+        "A clause may contain other statements. One of the two branches below sets a variable and shows a conditional line.": "Een clausule mag andere uitspraken bevatten. Een van de twee onderstaande takken stelt een variabele in en toont een conditionele regel.",
+        "Today I am feeling cheerful.": "Vandaag voel ik me opgewekt.",
+        "Today I am feeling $mood.": "Vandaag voel ik me $mood."
+    },
+    "_user": {
+        "Show me weights.": "Laat me gewichten zien.",
+        "Can a clause do more than text?": "Kan een clausule meer dan tekst?",
+        "That is all.": "Dat is alles."
+    }
+}

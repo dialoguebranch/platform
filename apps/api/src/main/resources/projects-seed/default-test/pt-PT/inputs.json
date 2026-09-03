@@ -1,0 +1,18 @@
+{
+    "Martin McOwl": {
+        "This lesson is about input replies. An \"input\" command inside a reply collects a value from the user and stores it in a variable.\n\nWhat is your first name?": "Esta lição é sobre respostas de entrada. Um comando \"input\" dentro de uma resposta recolhe um valor do utilizador e guarda-o numa variável.\n\nQual é o teu primeiro nome?",
+        "Thank you, $inName. The \"longtext\" type is meant for multi-line answers.": "Obrigado, $inName. O tipo \"longtext\" destina-se a respostas de várias linhas.",
+        "The \"email\" type collects an address.": "O tipo \"email\" recolhe um endereço.",
+        "The \"numeric\" type collects a number and accepts a range.": "O tipo \"numeric\" recolhe um número e aceita um intervalo.",
+        "The \"time\" type collects a time of day, with an optional step and range.": "O tipo \"time\" recolhe uma hora do dia, com um passo e um intervalo opcionais.",
+        "The \"set\" type shows a group of labelled options, each toggling its own boolean variable.": "O tipo \"set\" mostra um grupo de opções com etiqueta, cada uma alternando a sua própria variável booleana."
+    },
+    "_user": {
+        "My name is <<input type=\"text\" description=\"your first name\" value=\"$inName\" min=\"2\" max=\"30\">>.": "O meu nome é <<input type=\"text\" description=\"your first name\" value=\"$inName\" min=\"2\" max=\"30\">>.",
+        "<<input type=\"longtext\" description=\"a short bio\" value=\"$inBio\">>": "<<input type=\"longtext\" description=\"a short bio\" value=\"$inBio\">>",
+        "My address is <<input type=\"email\" value=\"$inEmail\">>.": "O meu endereço é <<input type=\"email\" value=\"$inEmail\">>.",
+        "I am <<input type=\"numeric\" value=\"$inAge\" min=\"0\" max=\"120\">> years old.": "Tenho <<input type=\"numeric\" value=\"$inAge\" min=\"0\" max=\"120\">> anos.",
+        "I woke up at <<input type=\"time\" value=\"$inWakeTime\" granularityMinutes=\"15\" startTime=\"07:00\" minTime=\"04:00\" maxTime=\"12:00\">> today.": "Acordei às <<input type=\"time\" value=\"$inWakeTime\" granularityMinutes=\"15\" startTime=\"07:00\" minTime=\"04:00\" maxTime=\"12:00\">> hoje.",
+        "I would like <<input type=\"set\" value1=\"$inCheese\" option1=\"Cheese\" value2=\"$inOlives\" option2=\"Olives\" value3=\"$inHam\" option3=\"Ham\">> on it.": "Queria <<input type=\"set\" value1=\"$inCheese\" option1=\"Cheese\" value2=\"$inOlives\" option2=\"Olives\" value3=\"$inHam\" option3=\"Ham\">> por cima."
+    }
+}

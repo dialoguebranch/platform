@@ -1,0 +1,17 @@
+{
+    "Martin McOwl": {
+        "This lesson is about the \"action\" statement, which couples a client-side event to a line of dialogue. Every action has a type and a value.": "Esta lição é sobre a afirmação \"action\", que liga um evento do lado do cliente a uma linha de diálogo. Cada ação tem um tipo e um valor.",
+        "An action of type \"link\" points at a URL.": "Uma ação do tipo \"link\" aponta para um URL.",
+        "The \"image\" and \"video\" types point at a resource.": "Os tipos \"image\" e \"video\" apontam para um recurso.",
+        "A \"generic\" action carries whatever your client wants to handle, plus any extra parameters.": "Uma ação \"generic\" transporta o que o teu cliente quiser tratar, mais quaisquer parâmetros extra.",
+        "Yes. An action can also hang off a reply, and a link action can carry display text.": "Sim. Uma ação também pode estar ligada a uma resposta, e uma ação de link pode transportar texto a apresentar."
+    },
+    "_user": {
+        "Show me a link.": "Mostra-me um link.",
+        "Show me image and video.": "Mostra-me imagem e vídeo.",
+        "Show me a generic action.": "Mostra-me uma ação genérica.",
+        "Can an action sit in a reply?": "Uma ação pode estar numa resposta?",
+        "Open the book, please.": "Abre o livro, por favor.",
+        "Visit the website.": "Visita o site."
+    }
+}

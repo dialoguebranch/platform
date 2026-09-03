@@ -3,6 +3,9 @@
         "In this example we look at $subjectToday.": "Neste exemplo analisamos $subjectToday.",
         "In this node we have set some variables: $variableOne, $variable2, and $variable_three using a \"set\" statement.": "Neste nó definimos algumas variáveis: $variableOne, $variable2 e $variable_three usando uma instrução \"set\".",
         "These variables contained string values, so they can be injected in statements (this can also be done with numbers, like so: $aNumber).": "Estas variáveis continham valores de texto, pelo que podem ser inseridas em declarações (isto também pode ser feito com números, como: $aNumber).",
+        "Expressions can combine variables. Here $full became \"$full\".": "As expressões podem combinar variáveis. Aqui $full passou a ser \"$full\".",
+        "A variable can refer to itself, so $count is now $count.": "Uma variável pode referir-se a si própria, por isso $count é agora $count.",
+        "Mixing numbers and strings coerces to a string, evaluated left to right: 1 + 2 + \"3\" gives \"$leftToRight\", while 1 + (2 + \"3\") gives \"$grouped\".": "Misturar números e texto resulta em texto, avaliado da esquerda para a direita: 1 + 2 + \"3\" dá \"$leftToRight\", enquanto 1 + (2 + \"3\") dá \"$grouped\".",
         "Variables must start with a $-sign and then any small or capital letter ([a-z] or [A-Z]). Besides that you can use any combination of letters, numbers and underscores to define your variable name.": "As variáveis devem começar com o símbolo $ seguido de uma letra minúscula ou maiúscula ([a-z] ou [A-Z]). Além disso, pode usar qualquer combinação de letras, números e underscores para definir o nome da variável.",
         "Variables can be set at various places in the dialogue. For example, attached to replies:": "As variáveis podem ser definidas em vários pontos do diálogo. Por exemplo, associadas a respostas:",
         "So, your variable now has the value \"$replyVariable\" (without the quotes).": "Portanto, a sua variável tem agora o valor \"$replyVariable\" (sem as aspas).",
@@ -14,6 +17,7 @@
     },
     "_user": {
         "Okay, let's go.": "Está bem, vamos lá.",
+        "Show me some arithmetic.": "Mostra-me alguma aritmética.",
         "Let it be \"Four!\"": "Que seja \"Quatro!\"",
         "I'm going for \"Pizza.\"": "Vou escolher \"Pizza.\"",
         "I'll make it the number 8.": "Farei com que seja o número 8.",

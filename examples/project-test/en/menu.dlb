@@ -1,19 +1,27 @@
 title: Start
-tags: 
+tags:
 speaker: Martin McOwl
 colorID: 2
 position: 758,-148
 ---
-This is a menu dialogue that allows you to start other dialogues.
+This is the Default Dialogue Branch Test project. Each lesson below demonstrates one part of the language. The showcases are longer, real-feeling conversations.
 
-[[Tutorials: Basic|basic.Start]]
-[[Baldur's Gate 1: Imoen Introduction|/bg1/bg1-candlekeep-imoen.Start]]
-[[Baldur's Gate 1: Winthrop Introduction|/bg1/bg1-candlekeep-winthrop.Start]]
+[[Lesson: Dialogue flow|basic.Start]]
+[[Lesson: Statements, escaping and markup|statements.Start]]
+[[Lesson: Variables and expressions|variables.Start]]
+[[Lesson: Conditionals|conditionals.Start]]
+[[Lesson: Random variation|random.Start]]
+[[Lesson: Actions|actions.Start]]
+[[Lesson: Input replies|inputs.Start]]
+[[Lesson: External Variable Service|external-variable-service.Start]]
+[[Showcase: Pillars of Eternity intro|poe.Start]]
+[[Showcase: Baldur's Gate 1 (Imoen)|/bg1/bg1-candlekeep-imoen.Start]]
+[[Showcase: Baldur's Gate 1 (Winthrop)|/bg1/bg1-candlekeep-winthrop.Start]]
 [[Goodbye.|End]]
 ===
 title: End
-tags: 
-speaker: 
+tags:
+speaker:
 colorID: 5
 position: 752,255
 ---

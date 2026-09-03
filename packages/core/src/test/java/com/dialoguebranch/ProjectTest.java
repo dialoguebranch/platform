@@ -71,7 +71,7 @@ public class ProjectTest {
 	private static final String LANG_NL    = "nl-NL";
 	private static final String LANG_PT    = "pt-PT";
 
-	private static final int SOURCE_DIALOGUE_COUNT = 10;
+	private static final int SOURCE_DIALOGUE_COUNT = 14;
 
 	/** Shared parsed project loaded once for all tests in this class. */
 	private static ProjectParserResult parseResult;

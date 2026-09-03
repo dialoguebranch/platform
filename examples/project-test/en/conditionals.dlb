@@ -45,6 +45,81 @@ position: 240,116
   You can write the shorthand "if variableName" to check for true (without the "== true" part).
 <<endif>>
 
+[[Show me elseif.|ElseIf]]
+[[Goodbye.|End]]
+===
+title: ElseIf
+tags:
+speaker: Martin McOwl
+colorID: 0
+position: 240,320
+---
+<<set $count = 2>>
+
+<<if $count == 1>>
+  There is exactly one.
+<<elseif $count == 2>>
+  There are two of them.
+<<else>>
+  There are more than two.
+<<endif>>
+
+[[Comparisons]]
+===
+title: Comparisons
+tags:
+speaker: Martin McOwl
+colorID: 0
+position: 240,520
+---
+<<if $count != 1>>
+  "not equals" works: $count is not 1.
+<<endif>>
+<<if $count > 1 >>
+  "greater than" works.
+<<endif>>
+<<if $count < 5 >>
+  "less than" works.
+<<endif>>
+<<if $count >= 2 >>
+  "greater or equal" works.
+<<endif>>
+<<if $count <= 2 >>
+  "less or equal" works.
+<<endif>>
+
+[[BooleanOps]]
+===
+title: BooleanOps
+tags:
+speaker: Martin McOwl
+colorID: 0
+position: 240,720
+---
+<<if $variableThatIsTrue && $count == 2>>
+  "and" requires both sides to hold.
+<<endif>>
+<<if $variableThatIsFalse || $count == 2>>
+  "or" requires just one side to hold.
+<<endif>>
+
+[[Unset]]
+===
+title: Unset
+tags:
+speaker: Martin McOwl
+colorID: 0
+position: 240,920
+---
+<<if $neverAssigned>>
+  You will not see this: the shorthand form treats an unset variable as false.
+<<else>>
+  The variable $neverAssigned was never assigned, so the shorthand check is false...
+<<endif>>
+<<if $neverAssigned == false>>
+  ...and comparing it to false also matches an unset variable, which can be surprising.
+<<endif>>
+
 [[Okay, that is clear.|Conditionals4]]
 [[Goodbye.|End]]
 ===

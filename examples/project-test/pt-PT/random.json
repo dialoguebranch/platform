@@ -1,0 +1,20 @@
+{
+    "Martin McOwl": {
+        "This lesson is about the \"random\" statement, which varies a node's output from one run to the next.": "Esta lição é sobre a afirmação \"random\", que faz variar o resultado de um nó de uma execução para a seguinte.",
+        "Hey there!": "Olá!",
+        "Hi, good to see you!": "Olá, que bom ver-te!",
+        "Hello again!": "Olá outra vez!",
+        "Each clause can carry a weight. This one is picked about twice as often as the others.": "Cada cláusula pode ter um peso. Esta é escolhida cerca de duas vezes mais do que as outras.",
+        "This is the heavy clause.": "Esta é a cláusula pesada.",
+        "This is a light clause.": "Esta é uma cláusula leve.",
+        "This clause uses the default weight of 1.": "Esta cláusula usa o peso predefinido de 1.",
+        "A clause may contain other statements. One of the two branches below sets a variable and shows a conditional line.": "Uma cláusula pode conter outras afirmações. Um dos dois ramos abaixo define uma variável e mostra uma linha condicional.",
+        "Today I am feeling cheerful.": "Hoje sinto-me alegre.",
+        "Today I am feeling $mood.": "Hoje sinto-me $mood."
+    },
+    "_user": {
+        "Show me weights.": "Mostra-me os pesos.",
+        "Can a clause do more than text?": "Uma cláusula pode fazer mais do que texto?",
+        "That is all.": "É tudo."
+    }
+}

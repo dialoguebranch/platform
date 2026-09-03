@@ -105,6 +105,14 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- The bundled `default-test` seed project (and the mirrored `examples/project-test`) has been
+  reworked into a guided tour that exercises every `.dlb` language feature
+  ([#173](https://github.com/dialoguebranch/platform/issues/173)): new lesson dialogues for
+  statements/escaping, `random`, `action` (all four types), and `input` (all six types), plus
+  expanded `variables` (arithmetic, string coercion) and `conditionals` (`elseif`, comparison and
+  boolean operators) lessons, all linked from `menu.dlb` and fully translated into `nl-NL` and
+  `pt-PT`. Project version bumped to `2`. A new `packages/core` `FeatureCoverageTest` fails if the
+  project stops demonstrating any construct.
 - Studio: the Variable Browser "Values" tab now shows only the currently selected project's
   variables, not a cross-project dump
   ([#86](https://github.com/dialoguebranch/platform/issues/86)). The client's `getVariables` /

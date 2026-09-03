@@ -1,9 +1,10 @@
-title: Start
-tags: 
+title: Start // every dialogue needs a node titled "Start"
+tags:
 speaker: Martin McOwl
 colorID: 2
 position: 758,-148
 ---
+// The line below is the statement; the [[...]] lines are the replies.
 Hi, my name is Martin McOwl, and this is the Default Dialogue Branch Test dialogue.
 
 [[Nice to meet you Martin McOwl.|Continue]]

@@ -1,11 +1,19 @@
 {
     "Martin McOwl": {
-        "This is a menu dialogue that allows you to start other dialogues.": "Este é um diálogo de menu que lhe permite iniciar outros diálogos."
+        "This is the Default Dialogue Branch Test project. Each lesson below demonstrates one part of the language. The showcases are longer, real-feeling conversations.": "Este é o projeto de teste predefinido do Dialogue Branch. Cada lição abaixo demonstra uma parte da linguagem. Os showcases são conversas mais longas e realistas."
     },
     "_user": {
-        "Tutorials: Basic": "Tutoriais: Básico",
-        "Baldur's Gate 1: Imoen Introduction": "Baldur's Gate 1: Introdução de Imoen",
-        "Baldur's Gate 1: Winthrop Introduction": "Baldur's Gate 1: Introdução de Winthrop",
+        "Lesson: Dialogue flow": "Lição: Fluxo de diálogo",
+        "Lesson: Statements, escaping and markup": "Lição: Afirmações, escape e marcação",
+        "Lesson: Variables and expressions": "Lição: Variáveis e expressões",
+        "Lesson: Conditionals": "Lição: Condicionais",
+        "Lesson: Random variation": "Lição: Variação aleatória",
+        "Lesson: Actions": "Lição: Ações",
+        "Lesson: Input replies": "Lição: Respostas de entrada",
+        "Lesson: External Variable Service": "Lição: External Variable Service",
+        "Showcase: Pillars of Eternity intro": "Showcase: Introdução de Pillars of Eternity",
+        "Showcase: Baldur's Gate 1 (Imoen)": "Showcase: Baldur's Gate 1 (Imoen)",
+        "Showcase: Baldur's Gate 1 (Winthrop)": "Showcase: Baldur's Gate 1 (Winthrop)",
         "Goodbye.": "Adeus."
     }
 }
