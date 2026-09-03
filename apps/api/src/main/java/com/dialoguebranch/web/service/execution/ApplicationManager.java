@@ -40,6 +40,7 @@ import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.ExecutableProject;
 import com.dialoguebranch.model.execute.ResourcePointer;
 import com.dialoguebranch.web.service.DlbProperties;
+import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.controller.schema.ProjectVariableInfo;
 import com.dialoguebranch.web.service.exception.DatabaseException;
 import com.dialoguebranch.web.service.repository.DBLoggedDialogueRepository;
@@ -154,13 +155,14 @@ public class ApplicationManager {
 	 * {@code timeZone}. Retrieves from an internal list of active {@link UserService}s, or
 	 * instantiates a new one if none is active for the given user.
 	 *
-	 * @param userId   the identifier of the user for which to retrieve a {@link UserService}.
+	 * @param userId   the {@code (issuer, subject)} identity of the user for which to retrieve a
+	 *                 {@link UserService}.
 	 * @param timeZone the time zone as {@link ZoneId} in which the user resides.
 	 * @return a {@link UserService} object that can handle the communication with the user.
 	 * @throws IOException       in case of an error loading the known variables for the User.
 	 * @throws DatabaseException in case of an error loading the known variables for the User.
 	 */
-	public UserService getOrCreateActiveUserService(String userId, ZoneId timeZone)
+	public UserService getOrCreateActiveUserService(DialogueBranchUserId userId, ZoneId timeZone)
 			throws IOException, DatabaseException {
 		UserService result = getActiveUserService(userId);
 		if (result != null) return result;
@@ -172,12 +174,13 @@ public class ApplicationManager {
 	 * default time zone. Retrieves from an internal list of active {@link UserService}s, or
 	 * instantiates a new one if none is active for the given user.
 	 *
-	 * @param userId the identifier of the user for which to retrieve a {@link UserService}.
+	 * @param userId the {@code (issuer, subject)} identity of the user for which to retrieve a
+	 *               {@link UserService}.
 	 * @return a {@link UserService} object that can handle the communication with the user.
 	 * @throws IOException       in case of an error loading the known variables for the User.
 	 * @throws DatabaseException in case of an error loading the known variables for the User.
 	 */
-	public UserService getOrCreateActiveUserService(String userId)
+	public UserService getOrCreateActiveUserService(DialogueBranchUserId userId)
 			throws IOException, DatabaseException {
 		UserService result = getActiveUserService(userId);
 		if (result != null) return result;
@@ -190,12 +193,14 @@ public class ApplicationManager {
 	 * returned {@link UserService} (see {@link UserService#recordActivity()}), so any endpoint
 	 * resolving an existing {@link UserService} resets its idle-eviction timer.
 	 *
-	 * @param userId the identifier of the user for which to retrieve a {@link UserService}.
+	 * @param userId the {@code (issuer, subject)} identity of the user for which to retrieve a
+	 *               {@link UserService}.
 	 * @return a {@link UserService} object, or {@code null} if none exists.
 	 */
-	public UserService getActiveUserService(String userId) {
+	public UserService getActiveUserService(DialogueBranchUserId userId) {
 		for (UserService userService : activeUserServices) {
-			if (userService.getDialogueBranchUser().getId().equals(userId)) {
+			if (userService.getUserId().issuer().equals(userId.issuer())
+					&& userService.getUserId().subject().equals(userId.subject())) {
 				userService.recordActivity();
 				return userService;
 			}
@@ -216,13 +221,14 @@ public class ApplicationManager {
 	 * Creates a new {@link UserService} object for a new user with the given {@code userId} in the
 	 * given {@code timeZone}. If successfully created, keeps a record of this active user service.
 	 *
-	 * @param userId   the identifier of the user for which to create a {@link UserService}.
+	 * @param userId   the {@code (issuer, subject)} identity of the user for which to create a
+	 *                 {@link UserService}.
 	 * @param timeZone the time zone as {@link ZoneId} in which the user resides.
 	 * @return the newly created {@link UserService} object.
 	 * @throws IOException       in case of an error loading the known variables for the User.
 	 * @throws DatabaseException in case of an error loading the known variables for the User.
 	 */
-	private UserService createActiveUserService(String userId, ZoneId timeZone)
+	private UserService createActiveUserService(DialogueBranchUserId userId, ZoneId timeZone)
 			throws IOException, DatabaseException {
 		UserService newUserService;
 		if (timeZone == null) {
@@ -231,8 +237,8 @@ public class ApplicationManager {
 			newUserService = userServiceFactory.createUserService(userId, timeZone);
 		}
 		activeUserServices.add(newUserService);
-		logger.info("Created a new UserService for userId '{}' (total active users: {}).",
-				userId, activeUserServices.size());
+		logger.info("Created a new UserService for user '{}' (total active users: {}).",
+				userId.subject(), activeUserServices.size());
 		return newUserService;
 	}
 

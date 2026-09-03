@@ -29,6 +29,7 @@
 package com.dialoguebranch.web.service.storage;
 
 import com.dialoguebranch.model.execute.LoggedInteraction;
+import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.exception.DatabaseException;
 import com.dialoguebranch.web.service.execution.UserService;
 import com.dialoguebranch.web.service.repository.DBLoggedDialogueRepository;
@@ -60,7 +61,7 @@ public class LoggedDialogueStore {
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
 	private final UserService userService;
-	private final String userId;
+	private final DialogueBranchUserId userId;
 	private final DBUserRepository userRepository;
 	private final DBLoggedDialogueRepository loggedDialogueRepository;
 	private final DBUser dbUser;
@@ -73,18 +74,18 @@ public class LoggedDialogueStore {
 	 * Creates an instance of a {@link LoggedDialogueStore} for the user identified by the given
 	 * {@code userId}, with a reference to that user's {@link UserService}.
 	 *
-	 * @param userId the identifier of the Dialogue Branch User for which to instantiate this
-	 *               {@link LoggedDialogueStore}.
+	 * @param userId the {@code (issuer, subject)} identity of the Dialogue Branch User for which to
+	 *               instantiate this {@link LoggedDialogueStore}.
 	 * @param userService the {@link UserService} associated with this LoggedDialogueStore.
 	 * @param userRepository repository used to look up or create the {@link DBUser} that owns the
 	 *                        logged dialogues being read or written.
 	 * @param loggedDialogueRepository repository used to read, create, and update {@link
 	 *                                 DBLoggedDialogue} rows.
 	 */
-	public LoggedDialogueStore(String userId, UserService userService,
+	public LoggedDialogueStore(DialogueBranchUserId userId, UserService userService,
 							   DBUserRepository userRepository,
 							   DBLoggedDialogueRepository loggedDialogueRepository) {
-		logger.info("Initializing LoggedDialogueStore for user '" + userId + "'.");
+		logger.info("Initializing LoggedDialogueStore for user '" + userId.subject() + "'.");
 
 		this.userService = userService;
 		this.userId = userId;
@@ -227,9 +228,17 @@ public class LoggedDialogueStore {
 	// -------------------- Private Conversion Methods ----------------------- //
 	// ---------------------------------------------------------------------- //
 
-	private DBUser getOrCreateUser(String username) {
-		return userRepository.findByUsername(username)
-				.orElseGet(() -> userRepository.save(new DBUser(username)));
+	private DBUser getOrCreateUser(DialogueBranchUserId id) {
+		return userRepository.findByIssuerAndSubject(id.issuer(), id.subject())
+				.map(existing -> {
+					if (id.username() != null && !id.username().equals(existing.getUsername())) {
+						existing.setUsername(id.username());
+						return userRepository.save(existing);
+					}
+					return existing;
+				})
+				.orElseGet(() -> userRepository.save(
+						new DBUser(id.issuer(), id.subject(), id.username())));
 	}
 
 	private ServerLoggedDialogue toServerLoggedDialogue(DBLoggedDialogue db)
@@ -243,7 +252,7 @@ public class LoggedDialogueStore {
 		// all scoped to dbUser) — read that directly rather than db.getUser().getUsername(), which
 		// would try to lazily initialize the user association outside its fetch transaction
 		// (open-in-view is disabled) and throw LazyInitializationException.
-		dialogue.setUser(userId);
+		dialogue.setUser(userId.subject());
 		dialogue.setLocalTime(db.getLocalTime());
 		dialogue.setUtcTime(db.getUtcTime());
 		dialogue.setTimezone(db.getTimezone());

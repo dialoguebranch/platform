@@ -1,6 +1,7 @@
 package com.dialoguebranch.web.service.execution;
 
 import com.dialoguebranch.web.service.Application;
+import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
 import com.dialoguebranch.web.service.project.ProjectService;
 import com.dialoguebranch.web.service.project.PublishService;
@@ -66,7 +67,8 @@ class DialogueVersionStalenessTest {
 		assertTrue(firstPublish.isSuccess(), "publish failed: " + firstPublish.getErrors());
 
 		ApplicationManager applicationManager = application.getApplicationManager();
-		String userId = "staleness-test-user-" + UUID.randomUUID();
+		DialogueBranchUserId userId = new DialogueBranchUserId(
+				"https://test/realms/test", "staleness-test-user-" + UUID.randomUUID(), null);
 		UserService userService = applicationManager.getOrCreateActiveUserService(userId);
 
 		userService.startDialogueSession(projectSlug, "main", null, "en",

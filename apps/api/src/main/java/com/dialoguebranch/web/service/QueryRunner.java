@@ -30,6 +30,7 @@ package com.dialoguebranch.web.service;
 
 import com.dialoguebranch.web.service.auth.AuthenticationInfo;
 import com.dialoguebranch.web.service.auth.AuthorizationService;
+import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.auth.Permission;
 import com.dialoguebranch.web.service.exception.*;
 import jakarta.servlet.http.HttpServletResponse;
@@ -127,29 +128,40 @@ public class QueryRunner {
 			AuthorizationService.require(authenticationInfo, requiredPermission);
 
 			// authenticationInfo is non-null past the guard above.
-			String authenticatedUser = authenticationInfo.getUsername();
+			String callerIssuer = authenticationInfo.getIssuer();
+			String callerSubject = authenticationInfo.getSubject();
+
+			// The delegateUser parameter, when present, is the *subject* of the delegate within
+			// the caller's own realm (#128) — there is no cross-realm delegation, so the effective
+			// issuer is always the caller's.
+			DialogueBranchUserId runAs;
 
 			// If the request was made for "this" (authenticated) user
 			if (delegateUser == null || delegateUser.isEmpty()) {
-				return query.runQuery(version, authenticatedUser);
+				runAs = new DialogueBranchUserId(callerIssuer, callerSubject,
+						authenticationInfo.getUsername());
 
-			// If the request was made for a specific delegateUser that happens to be "this"
-			// (authenticated) user
-			} else if (delegateUser.equals(authenticatedUser)) {
-				return query.runQuery(version, delegateUser);
+			// If the request names a delegate subject that is in fact "this" user
+			} else if (delegateUser.equals(callerSubject)) {
+				runAs = new DialogueBranchUserId(callerIssuer, callerSubject,
+						authenticationInfo.getUsername());
 
-			// If "this" user is allowed to act on behalf of another user
+			// If "this" user is allowed to act on behalf of another user in the same realm
 			} else if (AuthorizationService.hasPermission(authenticationInfo,
 					Permission.USER_DELEGATE)) {
-				return query.runQuery(version, delegateUser);
+				// The delegate's token is not in hand, so its username cannot be refreshed here.
+				runAs = DialogueBranchUserId.withoutUsername(callerIssuer, delegateUser);
 
 			// Otherwise the caller is trying to act on behalf of another user without the
 			// USER_DELEGATE permission.
 			} else {
 				throw new ForbiddenException(ErrorCode.INSUFFICIENT_PRIVILEGES,
-					"User '" + authenticatedUser + "' does not have the '" + Permission.USER_DELEGATE +
-					"' permission required to run a query for delegateUser '" + delegateUser + "'.");
+					"User '" + callerSubject + "' does not have the '" + Permission.USER_DELEGATE +
+					"' permission required to run a query for delegate subject '" + delegateUser +
+					"'.");
 			}
+
+			return query.runQuery(version, runAs);
 		} catch (UnauthorizedException ex) {
 			response.addHeader("WWW-Authenticate", "None");
 			throw ex;
@@ -189,11 +201,16 @@ public class QueryRunner {
 	 * @return the corresponding {@link AuthenticationInfo}
 	 */
 	public static AuthenticationInfo authenticationInfoFromKeycloakJwt(Jwt jwt) {
+		// Identity is (iss, sub) — see #128. iss is the full validated issuer URL; sub is the
+		// stable per-realm user id. preferred_username is kept for display/logging only.
+		String issuer = jwt.getIssuer() != null ? jwt.getIssuer().toString()
+				: jwt.getClaimAsString("iss");
+		String subject = jwt.getSubject();
 		String username = jwt.getClaimAsString("preferred_username");
 		String[] roles = extractKeycloakRoles(jwt);
 		Date issuedAt = jwt.getIssuedAt() != null ? Date.from(jwt.getIssuedAt()) : new Date();
 		Date expiration = jwt.getExpiresAt() != null ? Date.from(jwt.getExpiresAt()) : null;
-		return new AuthenticationInfo(username, roles, issuedAt, expiration);
+		return new AuthenticationInfo(issuer, subject, username, roles, issuedAt, expiration);
 	}
 
 	private static String[] extractKeycloakRoles(Jwt jwt) {

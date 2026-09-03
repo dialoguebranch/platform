@@ -31,6 +31,8 @@ package com.dialoguebranch.web.service.controller;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.ProtocolVersion;
 import com.dialoguebranch.web.service.QueryRunner;
+import com.dialoguebranch.web.service.auth.AuthenticationInfo;
+import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.exception.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -108,17 +110,19 @@ public class AuthController {
 
 		logger.info("POST /v{}/auth/logout", version);
 
-		doLogout(QueryRunner.requireAuthenticatedUser().getUsername());
+		AuthenticationInfo auth = QueryRunner.requireAuthenticatedUser();
+		doLogout(new DialogueBranchUserId(auth.getIssuer(), auth.getSubject(), auth.getUsername()));
 	}
 
-	private void doLogout(String userId) {
+	private void doLogout(DialogueBranchUserId userId) {
 		com.dialoguebranch.web.service.execution.UserService userService =
 				application.getApplicationManager().getActiveUserService(userId);
 		if (userService != null) {
 			application.getApplicationManager().removeUserService(userService);
-			logger.info("UserService for user '{}' removed on logout.", userId);
+			logger.info("UserService for user '{}' removed on logout.", userId.subject());
 		} else {
-			logger.info("Logout called for user '{}' but no active UserService found.", userId);
+			logger.info("Logout called for user '{}' but no active UserService found.",
+					userId.subject());
 		}
 	}
 

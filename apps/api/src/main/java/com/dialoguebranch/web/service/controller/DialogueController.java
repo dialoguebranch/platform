@@ -45,6 +45,7 @@ import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.DateTimeUtils;
 import com.dialoguebranch.web.service.ProtocolVersion;
 import com.dialoguebranch.web.service.QueryRunner;
+import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.auth.Permission;
 import com.dialoguebranch.web.service.controller.schema.DialogueListPayload;
 import com.dialoguebranch.web.service.controller.schema.OngoingDialoguePayload;
@@ -204,17 +205,10 @@ public class DialogueController {
 		if(startNodeId != null && !startNodeId.isEmpty()) logInfo += "&startNodeId=" + startNodeId;
 		logger.info(logInfo);
 
-		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
-					(protocolVersion, authenticatedUser) -> doStartDialogue(authenticatedUser,
+					(protocolVersion, user) -> doStartDialogue(user,
 							projectSlug, dialogueName, language, timeZone, sessionId, startNodeId),
 					version, response, delegateUser, Permission.DIALOGUE_RUN);
-		} else {
-			return QueryRunner.runQuery(
-					(protocolVersion, authenticatedUser) -> doStartDialogue(delegateUser,
-							projectSlug, dialogueName, language, timeZone, sessionId, startNodeId),
-					version, response, delegateUser, Permission.DIALOGUE_RUN);
-		}
 	}
 
 	/**
@@ -234,7 +228,7 @@ public class DialogueController {
 	 * @throws DatabaseException in case of an error in retrieving the current active user.
 	 * @throws IOException in case of any network error.
 	 */
-	private DialogueMessage doStartDialogue(String userId, String projectSlug, String dialogueName,
+	private DialogueMessage doStartDialogue(DialogueBranchUserId userId, String projectSlug, String dialogueName,
 			String language, String timeZone, String sessionId, String startNodeId)
 			throws HttpException, IOException, DatabaseException {
 
@@ -255,7 +249,7 @@ public class DialogueController {
 			if(userService.existsSessionId(sessionId)) {
 				throw new BadRequestException("The provided sessionId is already in use. When " +
 					"starting a new dialogue session with a predefined sessionId, this " +
-					"identifier has to be unique for this user ('"+userId+"').");
+					"identifier has to be unique for this user ('"+userId.subject()+"').");
 			}
 		}
 
@@ -346,17 +340,10 @@ public class DialogueController {
 			logInfo += "&delegateUser="+delegateUser;
 		logger.info(logInfo);
 
-		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
-				(protocolVersion, authenticatedUser) -> doProgressDialogue(authenticatedUser, request,
+				(protocolVersion, user) -> doProgressDialogue(user, request,
 						loggedDialogueId, loggedInteractionIndex, replyId),
 				version, response, delegateUser, Permission.DIALOGUE_RUN);
-		} else {
-			return QueryRunner.runQuery(
-				(protocolVersion, authenticatedUser) -> doProgressDialogue(delegateUser, request,
-					loggedDialogueId, loggedInteractionIndex, replyId),
-				version, response, delegateUser, Permission.DIALOGUE_RUN);
-		}
 	}
 
 	/**
@@ -376,7 +363,7 @@ public class DialogueController {
 	 * @throws DatabaseException in case of an error retrieving the current dialogue state.
 	 * @throws IOException in case of a network error.
 	 */
-	private NullableResponse<DialogueMessage> doProgressDialogue(String userId,
+	private NullableResponse<DialogueMessage> doProgressDialogue(DialogueBranchUserId userId,
 			HttpServletRequest request, String loggedDialogueId,
 			int loggedInteractionIndex, int replyId) throws HttpException, DatabaseException,
 			IOException {
@@ -401,7 +388,7 @@ public class DialogueController {
 					= application.getApplicationManager().getActiveUserService(userId);
 			if(userService == null) {
 				throw new BadRequestException("Attempting to progress a dialogue for a user ('" +
-					userId + "') that isn't active. A session of interaction should start with a " +
+					userId.subject() + "') that isn't active. A session of interaction should start with a " +
 					"call to the 'start' or 'continue' end-points.");
 			}
 
@@ -497,17 +484,10 @@ public class DialogueController {
 			logInfo += "&delegateUser="+delegateUser;
 		logger.info(logInfo);
 
-		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
-					(protocolVersion, authenticatedUser) -> doContinueDialogue(authenticatedUser,
+					(protocolVersion, user) -> doContinueDialogue(user,
 							projectSlug, dialogueName, timeZone),
 					version, response, delegateUser, Permission.DIALOGUE_RUN);
-		} else {
-			return QueryRunner.runQuery(
-					(protocolVersion, authenticatedUser) ->
-							doContinueDialogue(delegateUser, projectSlug, dialogueName, timeZone),
-					version, response, delegateUser, Permission.DIALOGUE_RUN);
-		}
 	}
 
 	/**
@@ -525,7 +505,7 @@ public class DialogueController {
 	 *                           database.
 	 * @throws IOException in case of a file io error.
 	 */
-	private NullableResponse<DialogueMessage> doContinueDialogue(String userId, String projectSlug,
+	private NullableResponse<DialogueMessage> doContinueDialogue(DialogueBranchUserId userId, String projectSlug,
 			String dialogueName, String timeZone)
 			throws HttpException, DatabaseException, IOException {
 
@@ -636,13 +616,8 @@ public class DialogueController {
 				+ delegateUser;
 		logger.info(logInfo);
 
-		if(delegateUser == null || delegateUser.isEmpty()) {
-			QueryRunner.runQuery((protocolVersion, authenticatedUser) -> doCancelDialogue(authenticatedUser,
+			QueryRunner.runQuery((protocolVersion, user) -> doCancelDialogue(user,
 				loggedDialogueId), version, response, delegateUser, Permission.DIALOGUE_RUN);
-		} else {
-			QueryRunner.runQuery((protocolVersion, authenticatedUser) -> doCancelDialogue(delegateUser,
-				loggedDialogueId), version, response, delegateUser, Permission.DIALOGUE_RUN);
-		}
 	}
 
 	/**
@@ -656,14 +631,14 @@ public class DialogueController {
 	 * @throws IOException in case of any network error.
 	 * @throws BadRequestException if attempting to cancel a dialogue for a user that isn't active
 	 */
-	private Object doCancelDialogue(String userId, String loggedDialogueId)
+	private Object doCancelDialogue(DialogueBranchUserId userId, String loggedDialogueId)
 			throws DatabaseException, IOException, BadRequestException {
 
 		UserService userService
 				= application.getApplicationManager().getActiveUserService(userId);
 		if(userService == null) {
 			throw new BadRequestException("Attempting to cancel a dialogue for a user ('" +
-					userId + "') that isn't active. A session of interaction should start with a " +
+					userId.subject() + "') that isn't active. A session of interaction should start with a " +
 					"call to the 'start' or 'continue' end-points.");
 		}
 
@@ -750,17 +725,10 @@ public class DialogueController {
 				+ delegateUser;
 		logger.info(logInfo);
 
-		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
-				(protocolVersion, authenticatedUser) -> doBackDialogue(authenticatedUser, loggedDialogueId,
+				(protocolVersion, user) -> doBackDialogue(user, loggedDialogueId,
 						loggedInteractionIndex),
 				version, response, delegateUser, Permission.DIALOGUE_RUN);
-		} else {
-			return QueryRunner.runQuery(
-				(protocolVersion, authenticatedUser) -> doBackDialogue(delegateUser, loggedDialogueId,
-						loggedInteractionIndex),
-				version, response, delegateUser, Permission.DIALOGUE_RUN);
-		}
 	}
 
 	/**
@@ -778,7 +746,7 @@ public class DialogueController {
 	 *                           database.
 	 * @throws IOException in case of a file IO error.
 	 */
-	private DialogueMessage doBackDialogue(String userId, String loggedDialogueId,
+	private DialogueMessage doBackDialogue(DialogueBranchUserId userId, String loggedDialogueId,
 										   int loggedInteractionIndex)
 			throws HttpException, DatabaseException, IOException {
 
@@ -787,7 +755,8 @@ public class DialogueController {
 					= application.getApplicationManager().getActiveUserService(userId);
 			if(userService == null) {
 				throw new BadRequestException("Attempting to take a step back a dialogue for a " +
-					"user ('" + userId + "') that isn't active. A session of interaction should " +
+					"user ('" +
+					userId.subject() + "') that isn't active. A session of interaction should " +
 					"start with a call to the 'start' or 'continue' end-points.");
 			}
 
@@ -878,15 +847,9 @@ public class DialogueController {
 				+ delegateUser;
 		logger.info(logInfo);
 
-		if(delegateUser == null || delegateUser.isEmpty()) {
 			return QueryRunner.runQuery(
-					(protocolVersion, authenticatedUser) -> doGetOngoingDialogue(authenticatedUser, projectSlug, timeZone),
+					(protocolVersion, user) -> doGetOngoingDialogue(user, projectSlug, timeZone),
 					version, response, delegateUser, Permission.DIALOGUE_RUN);
-		} else {
-			return QueryRunner.runQuery(
-					(protocolVersion, authenticatedUser) -> doGetOngoingDialogue(delegateUser, projectSlug, timeZone),
-					version, response, delegateUser, Permission.DIALOGUE_RUN);
-		}
 	}
 
 	/**
@@ -902,7 +865,7 @@ public class DialogueController {
 	 * @throws IOException in case of any network error.
 	 * @throws BadRequestException in case of a malformed or unknown {@code timeZone}
 	 */
-	private NullableResponse<OngoingDialoguePayload> doGetOngoingDialogue(String userId,
+	private NullableResponse<OngoingDialoguePayload> doGetOngoingDialogue(DialogueBranchUserId userId,
 																		  String projectSlug,
 																		  String timeZone)
 			throws DatabaseException, IOException, BadRequestException {
