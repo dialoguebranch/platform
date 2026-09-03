@@ -37,6 +37,7 @@ import org.jspecify.annotations.Nullable;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Base class for Dialogue Branch commands that specify key="value" attribute pairs between
@@ -144,7 +145,7 @@ public abstract class AttributesCommand extends Command {
 	 * @return the attribute value, or {@code null} if absent and {@code require} is {@code false}.
 	 * @throws LineNumberParseException if the attribute is required but absent.
 	 */
-	protected static VariableString readAttr(String name,
+	protected static @Nullable VariableString readAttr(String name,
 											 Map<String, BodyToken> attrs, BodyToken cmdStartToken,
 											 boolean require) throws LineNumberParseException {
 		if (!attrs.containsKey(name)) {
@@ -154,8 +155,25 @@ public abstract class AttributesCommand extends Command {
 					"Required attribute \"%s\" not found", name),
 					cmdStartToken.getLineNumber(), cmdStartToken.getColNumber());
 		}
-		BodyToken token = attrs.get(name);
+		BodyToken token = presentToken(attrs, name);
 		return (VariableString)token.getValue();
+	}
+
+	/**
+	 * Reads a mandatory attribute value as a {@link VariableString} — like
+	 * {@link #readAttr} with {@code require = true}, but with a non-null return type.
+	 *
+	 * @param name the attribute name to look up.
+	 * @param attrs the parsed attribute map produced by {@link #parseAttributesCommand}.
+	 * @param cmdStartToken the command-start token, used for error location.
+	 * @return the attribute value.
+	 * @throws LineNumberParseException if the attribute is absent.
+	 */
+	protected static VariableString requireAttr(String name,
+			Map<String, BodyToken> attrs, BodyToken cmdStartToken)
+			throws LineNumberParseException {
+		return Objects.requireNonNull(
+				readAttr(name, attrs, cmdStartToken, true));
 	}
 
 	/**
@@ -169,14 +187,14 @@ public abstract class AttributesCommand extends Command {
 	 * @throws LineNumberParseException if the attribute is required but absent, or if its value
 	 *         contains variable references.
 	 */
-	protected static String readPlainTextAttr(String name,
+	protected static @Nullable String readPlainTextAttr(String name,
 											  Map<String, BodyToken> attrs, BodyToken cmdStartToken,
 											  boolean require) throws LineNumberParseException {
 		VariableString varStr = readAttr(name, attrs, cmdStartToken,
 				require);
 		if (varStr == null)
 			return null;
-		BodyToken token = attrs.get(name);
+		BodyToken token = presentToken(attrs, name);
 		if (varStr.containsVariables()) {
 			throw new LineNumberParseException(String.format(
 					"Value for attribute \"%s\" is not plain text", name) +
@@ -184,6 +202,23 @@ public abstract class AttributesCommand extends Command {
 					token.getColNumber());
 		}
 		return varStr.evaluate(null);
+	}
+
+	/**
+	 * Reads a mandatory plain-text attribute value — like {@link #readPlainTextAttr} with
+	 * {@code require = true}, but with a non-null return type.
+	 *
+	 * @param name the attribute name to look up.
+	 * @param attrs the parsed attribute map produced by {@link #parseAttributesCommand}.
+	 * @param cmdStartToken the command-start token, used for error location.
+	 * @return the plain-text value.
+	 * @throws LineNumberParseException if the attribute is absent or contains variable references.
+	 */
+	protected static String requirePlainTextAttr(String name,
+			Map<String, BodyToken> attrs, BodyToken cmdStartToken)
+			throws LineNumberParseException {
+		return Objects.requireNonNull(
+				readPlainTextAttr(name, attrs, cmdStartToken, true));
 	}
 
 	/**
@@ -196,14 +231,14 @@ public abstract class AttributesCommand extends Command {
 	 * @return the variable name, or {@code null} if absent and {@code require} is {@code false}.
 	 * @throws LineNumberParseException if the value is not a single variable reference.
 	 */
-	protected static String readVariableAttr(String name,
+	protected static @Nullable String readVariableAttr(String name,
 											 Map<String, BodyToken> attrs, BodyToken cmdStartToken,
 											 boolean require) throws LineNumberParseException {
 		VariableString varStr = readAttr(name, attrs, cmdStartToken,
 				require);
 		if (varStr == null)
 			return null;
-		BodyToken token = attrs.get(name);
+		BodyToken token = presentToken(attrs, name);
 		List<VariableString.Segment> segments = varStr.getSegments();
 		if (segments.size() != 1 || !(segments.get(0) instanceof
 				VariableString.VariableSegment)) {
@@ -218,6 +253,24 @@ public abstract class AttributesCommand extends Command {
 	}
 
 	/**
+	 * Reads a mandatory single-variable-reference attribute — like {@link #readVariableAttr}
+	 * with {@code require = true}, but with a non-null return type.
+	 *
+	 * @param name the attribute name to look up.
+	 * @param attrs the parsed attribute map produced by {@link #parseAttributesCommand}.
+	 * @param cmdStartToken the command-start token, used for error location.
+	 * @return the variable name.
+	 * @throws LineNumberParseException if the attribute is absent or is not a single variable
+	 *         reference.
+	 */
+	protected static String requireVariableAttr(String name,
+			Map<String, BodyToken> attrs, BodyToken cmdStartToken)
+			throws LineNumberParseException {
+		return Objects.requireNonNull(
+				readVariableAttr(name, attrs, cmdStartToken, true));
+	}
+
+	/**
 	 * Reads an attribute value as an {@link Integer}, with optional range validation.
 	 *
 	 * @param name the attribute name to look up.
@@ -229,14 +282,14 @@ public abstract class AttributesCommand extends Command {
 	 * @return the integer value, or {@code null} if absent and {@code require} is {@code false}.
 	 * @throws LineNumberParseException if the value is not a valid integer or is out of range.
 	 */
-	protected static Integer readIntAttr(String name,
+	protected static @Nullable Integer readIntAttr(String name,
 										 Map<String, BodyToken> attrs, BodyToken cmdStartToken,
 										 boolean require, @Nullable Integer min, @Nullable Integer max)
 			throws LineNumberParseException {
 		String s = readPlainTextAttr(name, attrs, cmdStartToken, require);
 		if (s == null)
 			return null;
-		BodyToken token = attrs.get(name);
+		BodyToken token = presentToken(attrs, name);
 		int result;
 		try {
 			result = Integer.parseInt(s);
@@ -270,14 +323,14 @@ public abstract class AttributesCommand extends Command {
 	 * @return the float value, or {@code null} if absent and {@code require} is {@code false}.
 	 * @throws LineNumberParseException if the value is not a valid float or is out of range.
 	 */
-	protected static Float readFloatAttr(String name,
+	protected static @Nullable Float readFloatAttr(String name,
 										 Map<String, BodyToken> attrs, BodyToken cmdStartToken,
 										 boolean require, @Nullable Float min, @Nullable Float max)
 			throws LineNumberParseException {
 		String s = readPlainTextAttr(name, attrs, cmdStartToken, require);
 		if (s == null)
 			return null;
-		BodyToken token = attrs.get(name);
+		BodyToken token = presentToken(attrs, name);
 		float result;
 		try {
 			result = Float.parseFloat(s);
@@ -309,7 +362,7 @@ public abstract class AttributesCommand extends Command {
 	 * @return the boolean value, or {@code null} if absent and {@code require} is {@code false}.
 	 * @throws LineNumberParseException if the value is neither {@code "true"} nor {@code "false"}.
 	 */
-	protected static Boolean readBooleanAttr(String name,
+	protected static @Nullable Boolean readBooleanAttr(String name,
 											 Map<String, BodyToken> attrs, BodyToken cmdStartToken,
 											 boolean require) throws LineNumberParseException {
 
@@ -317,7 +370,7 @@ public abstract class AttributesCommand extends Command {
 		if (s == null)
 			return null;
 
-		BodyToken token = attrs.get(name);
+		BodyToken token = presentToken(attrs, name);
 
 		if(s.toLowerCase().equals("true") || s.toLowerCase().equals("false")) {
 			return Boolean.parseBoolean(s.toLowerCase());
@@ -327,5 +380,20 @@ public abstract class AttributesCommand extends Command {
 					token.getLineNumber(), token.getColNumber());
 		}
 
+	}
+
+	/**
+	 * Returns the token that {@code attrs} holds for {@code name}. Callers use this only after a
+	 * {@code read*} helper has confirmed the attribute is present (a non-null value from any of
+	 * them implies {@code attrs.containsKey(name)}), so a missing entry here is an internal
+	 * invariant violation rather than a parse error.
+	 */
+	protected static BodyToken presentToken(Map<String, BodyToken> attrs, String name) {
+		BodyToken token = attrs.get(name);
+		if (token == null) {
+			throw new IllegalStateException(String.format(
+					"Attribute \"%s\" expected to be present", name));
+		}
+		return token;
 	}
 }

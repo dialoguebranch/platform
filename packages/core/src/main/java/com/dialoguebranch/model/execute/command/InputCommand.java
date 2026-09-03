@@ -180,8 +180,8 @@ public abstract class InputCommand extends AttributesCommand {
 			throws LineNumberParseException {
 		Map<String, BodyToken> attrs = parseAttributesCommand(cmdStartToken,
 				tokens);
-		String type = readPlainTextAttr("type", attrs, cmdStartToken, true);
-		BodyToken token = attrs.get("type");
+		String type = requirePlainTextAttr("type", attrs, cmdStartToken);
+		BodyToken token = presentToken(attrs, "type");
 		if (!VALID_TYPES.contains(type)) {
 			throw new LineNumberParseException(
 					"Invalid value for attribute \"type\": " + type,

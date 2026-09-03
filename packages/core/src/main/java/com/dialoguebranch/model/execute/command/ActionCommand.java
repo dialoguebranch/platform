@@ -281,15 +281,15 @@ public class ActionCommand extends AttributesCommand {
 									  CurrentIterator<BodyToken> tokens, NodeState nodeState)
 			throws LineNumberParseException {
 		Map<String, BodyToken> attrs = parseAttributesCommand(cmdStartToken, tokens);
-		String type = readPlainTextAttr("type", attrs, cmdStartToken, true);
-		BodyToken token = attrs.get("type");
+		String type = requirePlainTextAttr("type", attrs, cmdStartToken);
+		BodyToken token = presentToken(attrs, "type");
 		if (!VALID_TYPES.contains(type)) {
 			throw new LineNumberParseException(
 					"Invalid value for attribute \"type\": " + type,
 					token.getLineNumber(), token.getColNumber());
 		}
 		attrs.remove("type");
-		VariableString value = readAttr("value", attrs, cmdStartToken, true);
+		VariableString value = requireAttr("value", attrs, cmdStartToken);
 		attrs.remove("value");
 		ActionCommand command = new ActionCommand(type, value);
 		for (String attr : attrs.keySet()) {
