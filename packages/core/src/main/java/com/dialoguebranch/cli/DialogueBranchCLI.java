@@ -57,6 +57,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Scanner;
 
 /**
@@ -255,7 +256,8 @@ public class DialogueBranchCLI {
 						errors.forEach(e -> System.err.println("  [" + file + "] " + e.getMessage())));
 				return EXIT_PARSE_ERROR;
 			}
-			execProject = result.getProject();
+			execProject = Objects.requireNonNull(result.getProject(),
+					"A project that parsed without errors has no ExecutableProject");
 		} catch (IOException | ParseException e) {
 			System.err.println("ERROR: Failed to load project for execution: " + e.getMessage());
 			return EXIT_PARSE_ERROR;
@@ -333,7 +335,8 @@ public class DialogueBranchCLI {
 						errors.forEach(e -> System.err.println("  [" + file + "] " + e.getMessage())));
 				return;
 			}
-			execProject = result.getProject();
+			execProject = Objects.requireNonNull(result.getProject(),
+					"A project that parsed without errors has no ExecutableProject");
 		} catch (IOException | ParseException e) {
 			System.err.println("Failed to load project for execution: " + e.getMessage() + "\n");
 			return;
@@ -375,7 +378,7 @@ public class DialogueBranchCLI {
 		// Collect dialogues available for the selected language
 		List<String> dialogueNames = new ArrayList<>();
 		for (ResourcePointer rp : execProject.getDialogues().keySet()) {
-			if (rp.getLanguage().equals(selectedLanguage))
+			if (selectedLanguage.equals(rp.getLanguage()))
 				dialogueNames.add(rp.getDialogueName());
 		}
 
@@ -442,8 +445,10 @@ public class DialogueBranchCLI {
 		}
 
 		while (currentNode != null) {
-			printAgentStatement(currentNode.getBody());
-			List<Reply> replies = currentNode.getBody().getReplies();
+			NodeBody body = Objects.requireNonNull(currentNode.getBody(),
+					"An executing node has no body");
+			printAgentStatement(body);
+			List<Reply> replies = body.getReplies();
 
 			if (replies.isEmpty()) {
 				System.out.println("\n[Dialogue ended — no reply options.]\n");
@@ -527,7 +532,8 @@ public class DialogueBranchCLI {
 
 		if (np instanceof ExternalNodePointer externalPointer) {
 			String targetDialogueName = externalPointer.getAbsoluteTargetDialogue();
-			String targetLanguage = currentPointer.getLanguage();
+			String targetLanguage = Objects.requireNonNull(currentPointer.getLanguage(),
+					"External node pointer has no language");
 			Map.Entry<ResourcePointer, Dialogue> found =
 					findDialogue(project, targetLanguage, targetDialogueName);
 			if (found == null) {
@@ -558,7 +564,7 @@ public class DialogueBranchCLI {
 																	 String dialogueName) {
 		for (Map.Entry<ResourcePointer, Dialogue> entry : project.getDialogues().entrySet()) {
 			ResourcePointer rp = entry.getKey();
-			if (rp.getLanguage().equals(language) && rp.getDialogueName().equals(dialogueName))
+			if (language.equals(rp.getLanguage()) && dialogueName.equals(rp.getDialogueName()))
 				return entry;
 		}
 		return null;
@@ -589,7 +595,7 @@ public class DialogueBranchCLI {
 			Reply reply = replies.get(i);
 			String label = reply.isAutoForward()
 					? "(continue)"
-					: reply.getStatement().toString().trim();
+					: Objects.requireNonNull(reply.getStatement()).toString().trim();
 			System.out.println("  " + (i + 1) + ". " + label);
 		}
 		System.out.println("-----------------------");
@@ -633,8 +639,10 @@ public class DialogueBranchCLI {
 			return;
 		}
 
-		ExecutableProject project = result.getProject();
-		ProjectMetaData meta = project.getMetaData();
+		ExecutableProject project = Objects.requireNonNull(result.getProject(),
+				"A project that parsed without errors has no ExecutableProject");
+		ProjectMetaData meta = Objects.requireNonNull(project.getMetaData(),
+				"A project loaded from a metadata file has no ProjectMetaData");
 		System.out.println("\nLoaded project: " + meta.getName() + " (v" + meta.getVersion() + ")\n");
 
 		boolean inProject = true;
