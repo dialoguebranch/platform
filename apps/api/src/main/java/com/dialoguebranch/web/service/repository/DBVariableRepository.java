@@ -28,6 +28,7 @@
 
 package com.dialoguebranch.web.service.repository;
 
+import com.dialoguebranch.web.service.storage.model.DBProject;
 import com.dialoguebranch.web.service.storage.model.DBUser;
 import com.dialoguebranch.web.service.storage.model.DBVariable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -44,21 +45,22 @@ import java.util.UUID;
 public interface DBVariableRepository extends JpaRepository<DBVariable, UUID> {
 
 	/**
-	 * Finds all variables belonging to the given user.
+	 * Finds all variables belonging to the given user within the given project.
 	 *
 	 * @param user the user whose variables should be retrieved.
-	 * @return the list of variables belonging to {@code user}.
+	 * @param project the project the variables are scoped to.
+	 * @return the list of matching variables.
 	 */
-	List<DBVariable> findByUser(DBUser user);
+	List<DBVariable> findByUserAndProject(DBUser user, DBProject project);
 
 	/**
-	 * Finds the variable with the given name belonging to the given user.
+	 * Finds the variable with the given name belonging to the given user within the given project.
 	 *
 	 * @param user the user the variable belongs to.
+	 * @param project the project the variable is scoped to.
 	 * @param name the name of the variable.
-	 * @return an {@link Optional} containing the matching {@link DBVariable}, or empty if the
-	 * user has no variable with the given name.
+	 * @return an {@link Optional} containing the matching {@link DBVariable}, or empty if none exists.
 	 */
-	Optional<DBVariable> findByUserAndName(DBUser user, String name);
+	Optional<DBVariable> findByUserAndProjectAndName(DBUser user, DBProject project, String name);
 
 }

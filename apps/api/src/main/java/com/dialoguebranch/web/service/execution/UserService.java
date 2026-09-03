@@ -56,6 +56,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A {@link UserService} is a service class that handles all communication with the Dialogue Branch
@@ -72,7 +73,12 @@ public class UserService {
 
 	/** The general ApplicationManager object that governs this UserService */
 	private final ApplicationManager applicationManager;
-	private final VariableStore variableStore;
+
+	/** Variable stores held by this service, one per project slug — variables are project-scoped (#86). */
+	private final Map<String, VariableStore> variableStoresByProject = new ConcurrentHashMap<>();
+
+	private final VariableStoreDatabaseStorageHandler storageHandler;
+
 	private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 	private final LoggedDialogueStore loggedDialogueStore;
 	private final DialogueExecutor dialogueExecutor;
@@ -120,29 +126,7 @@ public class UserService {
 		this.userId = userId;
 		this.dialogueBranchUser = dialogueBranchUser;
 		this.applicationManager = applicationManager;
-
-		try {
-			this.variableStore = storageHandler.read(userId, dialogueBranchUser);
-		} catch (ParseException ex) {
-			throw new DatabaseException("Failed to read initial variables for user '"
-					+ userId.subject() + "': " + ex.getMessage(), ex);
-		}
-
-		DlbProperties dlbProperties = applicationManager.getDlbProperties();
-
-		this.variableStore.addOnChangeListener((store, changes) -> {
-			try {
-				storageHandler.write(userId, store);
-			} catch (IOException e) {
-				logger.error("Failed to persist variable store changes for user '{}': {}",
-						userId.subject(), e.getMessage(), e);
-			}
-		});
-
-		if (dlbProperties.getExternalVariableService().isEnabled()) {
-			this.variableStore.addOnChangeListener(
-					new ExternalVariableServiceUpdater(dlbProperties));
-		}
+		this.storageHandler = storageHandler;
 
 		dialogueExecutor = new DialogueExecutor(this);
 
@@ -203,13 +187,38 @@ public class UserService {
 	}
 
 	/**
-	 * Returns the {@link VariableStore} for the {@link User} governed by this
-	 * {@link UserService}.
-	 * @return the {@link VariableStore} for the {@link User} governed by this
-	 *         {@link UserService}.
+	 * Returns this user's {@link VariableStore} for the given project, loading it from storage on
+	 * first access. Variables are project-scoped (#86): a user who runs dialogues in two projects
+	 * has two independent stores.
+	 *
+	 * @param projectSlug the slug of the project whose variable store to return.
+	 * @return the {@link VariableStore} for {@code (this user, projectSlug)}.
 	 */
-	public VariableStore getVariableStore() {
-		return variableStore;
+	public VariableStore getVariableStore(String projectSlug) {
+		return variableStoresByProject.computeIfAbsent(projectSlug, this::loadVariableStore);
+	}
+
+	private VariableStore loadVariableStore(String projectSlug) {
+		VariableStore store;
+		try {
+			store = storageHandler.read(userId, projectSlug, dialogueBranchUser);
+		} catch (ParseException ex) {
+			throw new RuntimeException("Failed to read variables for user '" + userId.subject()
+					+ "' in project '" + projectSlug + "': " + ex.getMessage(), ex);
+		}
+		store.addOnChangeListener((changed, changes) -> {
+			try {
+				storageHandler.write(userId, projectSlug, changed);
+			} catch (IOException e) {
+				logger.error("Failed to persist variable store changes for user '{}' in "
+						+ "project '{}': {}", userId.subject(), projectSlug, e.getMessage(), e);
+			}
+		});
+		if (applicationManager.getDlbProperties().getExternalVariableService().isEnabled()) {
+			store.addOnChangeListener(new ExternalVariableServiceUpdater(
+					applicationManager.getDlbProperties()));
+		}
+		return store;
 	}
 
 	/**
@@ -390,14 +399,15 @@ public class UserService {
 	 * Stores a given set of variables that have been set as part of a user's reply in a dialogue in
 	 * the variable store.
 	 *
+	 * @param projectSlug the slug of the project the dialogue belongs to.
 	 * @param variables the set of variables
 	 * @param eventTime the timestamp (in the time zone of the user) of the event that triggered
 	 *                  this change of Dialogue Branch Variables
 	 * @throws ExecutionException if the variables cannot be stored.
 	 */
-	public void storeReplyInput(Map<String,?> variables, ZonedDateTime eventTime)
-			throws ExecutionException {
-		variableStore.addAll(variables,true,eventTime,
+	public void storeReplyInput(String projectSlug, Map<String,?> variables,
+			ZonedDateTime eventTime) throws ExecutionException {
+		getVariableStore(projectSlug).addAll(variables, true, eventTime,
 				VariableUpdatedSource.INPUT_REPLY);
 	}
 
@@ -410,10 +420,11 @@ public class UserService {
 	 * config.getExternalVariableServiceEnabled() == false} this method will cause no changes to
 	 * occur.
 	 *
+	 * @param projectSlug the slug of the project whose variable store to update.
 	 * @param variableNames the set of Dialogue Branch Variables that need to have their values
 	 *                      updated.
 	 */
-	public void updateVariablesFromExternalService(Set<String> variableNames) {
+	public void updateVariablesFromExternalService(String projectSlug, Set<String> variableNames) {
 		logger.info("Attempting to update values from external service for the following set " +
 				"of variables: {}", variableNames);
 
@@ -426,7 +437,7 @@ public class UserService {
 
 			List<Variable> varsToUpdate = new ArrayList<>();
 			for (String variableName : variableNames) {
-				Variable variable = variableStore.getVariable(variableName);
+				Variable variable = getVariableStore(projectSlug).getVariable(variableName);
 				if (variable != null) {
 					logger.info("A Dialogue Branch Variable '{}' exists for User '{}': {}",
 							variableName, dialogueBranchUser.getId(), variable);
@@ -495,12 +506,12 @@ public class UserService {
 						ZonedDateTime varUpdated = variable.getZonedUpdatedTime();
 
 						if(varValue != null) {
-							variableStore.setValue(varName, varValue, true,
+							getVariableStore(projectSlug).setValue(varName, varValue, true,
 									varUpdated,
 									VariableUpdatedSource.EXTERNAL);
 						// If a 'null' value is received, we delete the variable
 						} else {
-							variableStore.removeByName(varName, true, varUpdated,
+							getVariableStore(projectSlug).removeByName(varName, true, varUpdated,
 									VariableUpdatedSource.EXTERNAL);
 						}
 					}
@@ -667,7 +678,7 @@ public class UserService {
 							nodeId, dialogueName));
 		}
 		ActiveDialogue activeDialogue = new ActiveDialogue(
-				dialogueDescription, dialogueDefinition, variableStore);
+				dialogueDescription, dialogueDefinition, getVariableStore(projectSlug));
 		activeDialogue.setCurrentNode(node);
 		return new DialogueState(dialogueDescription, dialogueDefinition,
 				loggedDialogue, loggedInteractionIndex, activeDialogue);

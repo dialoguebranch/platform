@@ -47,8 +47,8 @@ import java.util.UUID;
 	name = "variables",
 	uniqueConstraints = {
 		@UniqueConstraint(
-			name = "user_name",
-			columnNames = { "user_id", "name" }
+			name = "uq_variables_user_project_name",
+			columnNames = { "user_id", "project_id", "name" }
 		)
 	})
 public class DBVariable {
@@ -59,6 +59,11 @@ public class DBVariable {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JsonIgnore
 	private DBUser user;
+
+	/** The project this variable is scoped to — variables never cross a project boundary (#86). */
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JsonIgnore
+	private DBProject project;
 
 	private String name;
 
@@ -123,6 +128,24 @@ public class DBVariable {
 	 *
 	 * @param user the owning user.
 	 */
+	/**
+	 * Returns the project this variable is scoped to.
+	 *
+	 * @return the project.
+	 */
+	public DBProject getProject() {
+		return project;
+	}
+
+	/**
+	 * Sets the project this variable is scoped to.
+	 *
+	 * @param project the project.
+	 */
+	public void setProject(DBProject project) {
+		this.project = project;
+	}
+
 	public void setUser(DBUser user) {
 		this.user = user;
 	}

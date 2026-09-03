@@ -35,8 +35,10 @@ import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.VariableUpdatedSource;
 import com.dialoguebranch.json.JsonMapper;
 import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
+import com.dialoguebranch.web.service.repository.DBProjectRepository;
 import com.dialoguebranch.web.service.repository.DBUserRepository;
 import com.dialoguebranch.web.service.repository.DBVariableRepository;
+import com.dialoguebranch.web.service.storage.model.DBProject;
 import com.dialoguebranch.web.service.storage.model.DBUser;
 import com.dialoguebranch.web.service.storage.model.DBVariable;
 import org.slf4j.Logger;
@@ -68,6 +70,7 @@ public class VariableStoreDatabaseStorageHandler {
 
 	private final DBUserRepository userRepository;
 	private final DBVariableRepository variableRepository;
+	private final DBProjectRepository projectRepository;
 
 	/**
 	 * Creates an instance of a {@link VariableStoreDatabaseStorageHandler} that reads and writes
@@ -77,27 +80,34 @@ public class VariableStoreDatabaseStorageHandler {
 	 *                        the variables being read or written.
 	 * @param variableRepository repository used to read, create, update, and delete
 	 *                            {@link DBVariable} rows.
+	 * @param projectRepository repository used to resolve the {@link DBProject} a variable store
+	 *                          is scoped to.
 	 */
 	public VariableStoreDatabaseStorageHandler(DBUserRepository userRepository,
-											   DBVariableRepository variableRepository) {
+											   DBVariableRepository variableRepository,
+											   DBProjectRepository projectRepository) {
 		this.userRepository = userRepository;
 		this.variableRepository = variableRepository;
+		this.projectRepository = projectRepository;
 	}
 
 	/**
-	 * Reads all stored Dialogue Branch Variables for the given user from the database and
+	 * Reads the stored Dialogue Branch Variables for the given user within the given project and
 	 * returns them as a populated {@link VariableStore}.
 	 *
 	 * @param id the identity of the user for whom to load the variable store.
+	 * @param projectSlug the slug of the project the variables are scoped to.
 	 * @param user the core {@link User} the returned store is bound to.
-	 * @return a {@link VariableStore} populated with the user's variables.
+	 * @return a {@link VariableStore} populated with the user's project variables.
 	 * @throws ParseException if a variable value cannot be deserialized from its stored JSON
 	 * representation.
 	 */
 	@Transactional
-	public VariableStore read(DialogueBranchUserId id, User user) throws ParseException {
+	public VariableStore read(DialogueBranchUserId id, String projectSlug, User user)
+			throws ParseException {
 		DBUser dbUser = getOrCreateUser(id);
-		List<DBVariable> dbVariables = variableRepository.findByUser(dbUser);
+		DBProject dbProject = getProject(projectSlug);
+		List<DBVariable> dbVariables = variableRepository.findByUserAndProject(dbUser, dbProject);
 
 		List<Variable> variables = new ArrayList<>();
 		for (DBVariable dbVariable : dbVariables) {
@@ -119,13 +129,16 @@ public class VariableStoreDatabaseStorageHandler {
 	 * for each current variable.
 	 *
 	 * @param id the identity of the user who owns the variable store.
+	 * @param projectSlug the slug of the project the variable store is scoped to.
 	 * @param variableStore the variable store to persist.
 	 * @throws IOException if a variable value cannot be serialized to JSON for storage.
 	 */
 	@Transactional
-	public void write(DialogueBranchUserId id, VariableStore variableStore) throws IOException {
+	public void write(DialogueBranchUserId id, String projectSlug, VariableStore variableStore)
+			throws IOException {
 		DBUser dbUser = getOrCreateUser(id);
-		List<DBVariable> existingVars = variableRepository.findByUser(dbUser);
+		DBProject dbProject = getProject(projectSlug);
+		List<DBVariable> existingVars = variableRepository.findByUserAndProject(dbUser, dbProject);
 
 		Set<String> newVarNames = Arrays.stream(variableStore.getVariables())
 				.map(Variable::getName)
@@ -139,9 +152,10 @@ public class VariableStoreDatabaseStorageHandler {
 		// create or update current variables
 		for (Variable variable : variableStore.getVariables()) {
 			DBVariable dbVariable = variableRepository
-					.findByUserAndName(dbUser, variable.getName())
+					.findByUserAndProjectAndName(dbUser, dbProject, variable.getName())
 					.orElse(new DBVariable(variable.getName(), null));
 			dbVariable.setUser(dbUser);
+			dbVariable.setProject(dbProject);
 			dbVariable.setValue(JsonMapper.generate(variable.getValue()));
 			dbVariable.setUpdatedTime(variable.getUpdatedTime());
 			dbVariable.setUpdatedTimeZone(variable.getUpdatedTimeZone());
@@ -158,6 +172,19 @@ public class VariableStoreDatabaseStorageHandler {
 	 * user, the External Variable Service callback — pass a {@code null} username and never
 	 * trigger a refresh.
 	 */
+	/**
+	 * Resolves the {@link DBProject} a variable store is scoped to.
+	 *
+	 * @param projectSlug the project slug.
+	 * @return the project.
+	 * @throws IllegalStateException if no project with that slug exists (the caller has already
+	 *     validated the slug against a loaded project by this point).
+	 */
+	private DBProject getProject(String projectSlug) {
+		return projectRepository.findBySlug(projectSlug).orElseThrow(() ->
+				new IllegalStateException("No project with slug '" + projectSlug + "'"));
+	}
+
 	private DBUser getOrCreateUser(DialogueBranchUserId id) {
 		return userRepository.findByIssuerAndSubject(id.issuer(), id.subject())
 				.map(existing -> {

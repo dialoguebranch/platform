@@ -144,7 +144,11 @@ public class VariablesController {
 		@Parameter(description = "The user for which to request Dialogue Branch variable info " +
 			"(leave empty if executing for the currently authenticated user)")
 		@RequestParam(value="delegateUser", required=false)
-		String delegateUser) throws Exception {
+		String delegateUser,
+
+		@Parameter(description = "The slug of the project the variables are scoped to")
+		@RequestParam(value = "projectSlug")
+		String projectSlug) throws Exception {
 
 		// If no versionName is provided, or versionName is empty, assume the latest version
 		if (version == null || version.isEmpty()) {
@@ -164,7 +168,7 @@ public class VariablesController {
 		// QueryRunner resolves the effective user (authenticated caller or authorised delegate)
 		// and passes it as the lambda argument.
 		return QueryRunner.runQuery(
-			(protocolVersion, user) -> doGetVariables(user, variableNameList, timeZone),
+			(protocolVersion, user) -> doGetVariables(user, projectSlug, variableNameList, timeZone),
 			version, response, delegateUser, Permission.VARIABLE_READ_OWN);
 	}
 
@@ -230,7 +234,8 @@ public class VariablesController {
 	 * @throws DatabaseException in case of an error in generating the UserService.
 	 * @throws BadRequestException in case of a malformed or unknown {@code timeZone}.
 	 */
-	private List<Variable> doGetVariables(DialogueBranchUserId userId, String variableNames, String timeZone)
+	private List<Variable> doGetVariables(DialogueBranchUserId userId, String projectSlug,
+			String variableNames, String timeZone)
 			throws IOException, DatabaseException, BadRequestException {
 
 		// Get or create a UserService for the user in the given time zone
@@ -239,7 +244,7 @@ public class VariablesController {
 				.getOrCreateActiveUserService(userId,timeZoneId);
 		userService.getDialogueBranchUser().setTimeZone(timeZoneId);
 
-		VariableStore variableStore = userService.getVariableStore();
+		VariableStore variableStore = userService.getVariableStore(projectSlug);
 
 		variableNames = variableNames.trim();
 
@@ -325,7 +330,11 @@ public class VariablesController {
 		@Parameter(description = "The current time zone of the Dialogue Branch user (as IANA, " +
 			"e.g. 'Europe/Lisbon')")
 		@RequestParam(value="timeZone")
-		String timeZone
+		String timeZone,
+
+		@Parameter(description = "The slug of the project the variables are scoped to")
+		@RequestParam(value = "projectSlug")
+		String projectSlug
 	) throws Exception {
 
 		// If no versionName is provided, or versionName is empty, assume the latest version
@@ -342,7 +351,7 @@ public class VariablesController {
 		logger.info(logInfo);
 
 		QueryRunner.runQuery((protocolVersion, user) ->
-			doSetVariable(user, name, value, timeZone),
+			doSetVariable(user, projectSlug, name, value, timeZone),
 			version, response, delegateUser, Permission.VARIABLE_WRITE_OWN);
 	}
 
@@ -358,8 +367,8 @@ public class VariablesController {
 	 * @throws Exception in case of an invalid variable name, invalid timezone, or an error
 	 * 					 accessing the variable store.
 	 */
-	private Object doSetVariable(DialogueBranchUserId userId, String name, String value,
-								 String timeZone) throws Exception {
+	private Object doSetVariable(DialogueBranchUserId userId, String projectSlug, String name,
+								 String value, String timeZone) throws Exception {
 		List<HttpFieldError> errors = new ArrayList<>();
 
 		if (!name.matches("[A-Za-z]\\w*")) {
@@ -381,10 +390,10 @@ public class VariablesController {
 		if(value == null) {
 			logger.info("Received request to remove Dialogue Branch Variable '{}' at eventTime" +
 					" '{}' in time zone '{}'", name, eventTime.format(formatter), timeZone);
-			userService.getVariableStore().removeByName(name,true,
+			userService.getVariableStore(projectSlug).removeByName(name,true,
 					eventTime, VariableUpdatedSource.WEB_SERVICE);
 		} else {
-			userService.getVariableStore().setValue(name, value, true, eventTime,
+			userService.getVariableStore(projectSlug).setValue(name, value, true, eventTime,
 					VariableUpdatedSource.WEB_SERVICE);
 		}
 		return null;
@@ -437,6 +446,10 @@ public class VariablesController {
 			@RequestParam(value="timeZone")
 			String timeZone,
 
+			@Parameter(description = "The slug of the project the variables are scoped to")
+			@RequestParam(value = "projectSlug")
+			String projectSlug,
+
 			@Parameter(description = "A JSON mapping of Dialogue Branch Variable names to values")
 			@RequestBody
 			Map<String,Object> variables) throws Exception {
@@ -453,7 +466,7 @@ public class VariablesController {
 		logger.info(logInfo);
 
 		QueryRunner.runQuery((protocolVersion, user) ->
-						doSetVariables(user, variables, timeZone),
+						doSetVariables(user, projectSlug, variables, timeZone),
 			version, response, delegateUser, Permission.VARIABLE_WRITE_OWN);
 	}
 
@@ -469,8 +482,8 @@ public class VariablesController {
 	 * @throws Exception in case of an invalid variable name, or an error writing variables to the
 	 * 					 database.
 	 */
-	private Object doSetVariables(DialogueBranchUserId userId, Map<String,Object> variables,
-								  String timeZone) throws Exception {
+	private Object doSetVariables(DialogueBranchUserId userId, String projectSlug,
+								  Map<String,Object> variables, String timeZone) throws Exception {
 
 		List<String> invalidNames = new ArrayList<>();
 		for (String name : variables.keySet()) {
@@ -490,7 +503,7 @@ public class VariablesController {
 				.getOrCreateActiveUserService(userId,timeZoneId);
 		userService.getDialogueBranchUser().setTimeZone(timeZoneId);
 
-		VariableStore variableStore = userService.getVariableStore();
+		VariableStore variableStore = userService.getVariableStore(projectSlug);
 		for(Map.Entry<String, Object> entry : variables.entrySet()) {
 			variableStore.setValue(
 					entry.getKey(),

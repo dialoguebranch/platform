@@ -47,6 +47,7 @@ public class DraftTestSession {
 
 	private final String id;
 	private final String userId;
+	private final String projectSlug;
 	private volatile ActiveDialogue activeDialogue;
 	private volatile Dialogue dialogueDefinition;
 
@@ -79,6 +80,7 @@ public class DraftTestSession {
 	 * Creates a new {@link DraftTestSession} with a freshly generated ID.
 	 *
 	 * @param userId             the ID of the user testing the draft.
+	 * @param projectSlug        the slug of the project the draft dialogue belongs to.
 	 * @param activeDialogue     the {@link ActiveDialogue} driving execution for this session.
 	 * @param dialogueDefinition the parsed {@link Dialogue} being tested.
 	 * @param variableSnapshot   the variable store snapshot taken when this session started.
@@ -87,11 +89,12 @@ public class DraftTestSession {
 	 * @param sourceLanguage     the project's source language code, resolved from the
 	 *                           authoritative {@code DBProject} record.
 	 */
-	public DraftTestSession(String userId, ActiveDialogue activeDialogue,
+	public DraftTestSession(String userId, String projectSlug, ActiveDialogue activeDialogue,
 							Dialogue dialogueDefinition, Variable[] variableSnapshot,
 							ExecutableProject executableProject, String sourceLanguage) {
 		this.id = UUID.randomUUID().toString().toLowerCase().replaceAll("-", "");
 		this.userId = userId;
+		this.projectSlug = projectSlug;
 		this.activeDialogue = activeDialogue;
 		this.dialogueDefinition = dialogueDefinition;
 		this.variableSnapshot = variableSnapshot;
@@ -115,6 +118,15 @@ public class DraftTestSession {
 	 */
 	public String getUserId() {
 		return userId;
+	}
+
+	/**
+	 * Returns the slug of the project the draft dialogue belongs to.
+	 *
+	 * @return the project slug.
+	 */
+	public String getProjectSlug() {
+		return projectSlug;
 	}
 
 	/**

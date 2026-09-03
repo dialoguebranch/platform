@@ -395,12 +395,16 @@ public class DialogueController {
 			ZonedDateTime eventTime = DateTimeUtils.nowMs(userService.getDialogueBranchUser()
 					.getTimeZone());
 
-			// If variable data has been received in the progress call, update the values in the
-			// Dialogue Branch Variable Store
-			if (!variables.isEmpty()) userService.storeReplyInput(variables,eventTime);
-
 			DialogueState state = userService.getDialogueState(loggedDialogueId,
 					loggedInteractionIndex);
+
+			// If variable data has been received in the progress call, update the values in the
+			// Dialogue Branch Variable Store (scoped to this session's project — #86).
+			if (!variables.isEmpty()) {
+				String projectSlug = ((ServerLoggedDialogue) state.getLoggedDialogue())
+						.getProjectName();
+				userService.storeReplyInput(projectSlug, variables, eventTime);
+			}
 			ExecuteNodeResult nextNode = userService.progressDialogueSession(state, replyId);
 			if (nextNode == null)
 				return new NullableResponse<>(null);

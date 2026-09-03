@@ -207,7 +207,7 @@ public class DraftExecutionService {
 					"' could not be parsed into a runnable dialogue.");
 		}
 
-		VariableStore variableStore = userService.getVariableStore();
+		VariableStore variableStore = userService.getVariableStore(project.getSlug());
 		ActiveDialogue activeDialogue = new ActiveDialogue(resolved.pointer(), resolved.definition(),
 				variableStore);
 
@@ -225,7 +225,7 @@ public class DraftExecutionService {
 		}
 
 		DraftTestSession session = new DraftTestSession(
-				userService.getDialogueBranchUser().getId(), activeDialogue, resolved.definition(),
+				userService.getDialogueBranchUser().getId(), project.getSlug(), activeDialogue, resolved.definition(),
 				snapshot, executableProject, sourceLanguage);
 		sessions.put(session.getId(), session);
 
@@ -384,7 +384,7 @@ public class DraftExecutionService {
 	 * @param userService the {@link UserService} of the user testing the draft.
 	 */
 	public void revertVariables(DraftTestSession session, UserService userService) {
-		VariableStore variableStore = userService.getVariableStore();
+		VariableStore variableStore = userService.getVariableStore(session.getProjectSlug());
 		ZonedDateTime eventTime =
 				DateTimeUtils.nowMs(userService.getDialogueBranchUser().getTimeZone());
 
