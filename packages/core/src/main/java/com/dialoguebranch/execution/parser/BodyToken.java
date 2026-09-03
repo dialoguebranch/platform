@@ -30,9 +30,11 @@ package com.dialoguebranch.execution.parser;
 
 import com.dialoguebranch.model.execute.VariableString;
 import com.dialoguebranch.util.CurrentIterator;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A {@link BodyToken} is the smallest meaningful segment of a line of text of a Dialogue Branch
@@ -84,26 +86,50 @@ public class BodyToken {
 		VARIABLE
 	}
 
-	private Type type;
-	private int lineNumber;
-	private int colNumber;
-	// text is set via setText() before the token is read; value only for tokens whose type
-	// carries one (QUOTED_STRING, VARIABLE) and is read only after a type check.
-	@SuppressWarnings("NullAway.Init")
-	private String text;
-	@SuppressWarnings("NullAway.Init")
-	private Object value;
+	private final Type type;
+	private final int lineNumber;
+	private final int colNumber;
+	private final String text;
+	/**
+	 * Non-null only for the types that carry one (TEXT, QUOTED_STRING, VARIABLE). Set in the
+	 * constructor; {@link #setValue} exists only for the in-place whitespace trimming in
+	 * {@link #removeLeadingWhitespace} / {@link #removeTrailingWhitespace}.
+	 */
+	private @Nullable Object value;
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
 
 	/**
-	 * Creates an instance of a {@link BodyToken} with the given {@link Type}.
+	 * Creates a {@link BodyToken} of a type that carries no value.
+	 *
 	 * @param type the {@link Type} of this {@link BodyToken}.
+	 * @param text the verbatim script text this token was formed from.
+	 * @param lineNumber the line number on which this token starts (first line is 1).
+	 * @param colNumber the column number on which this token starts (first column is 1).
 	 */
-	public BodyToken(BodyToken.Type type) {
+	public BodyToken(BodyToken.Type type, String text, int lineNumber, int colNumber) {
+		this(type, text, lineNumber, colNumber, null);
+	}
+
+	/**
+	 * Creates a {@link BodyToken}.
+	 *
+	 * @param type the {@link Type} of this {@link BodyToken}.
+	 * @param text the verbatim script text this token was formed from.
+	 * @param lineNumber the line number on which this token starts (first line is 1).
+	 * @param colNumber the column number on which this token starts (first column is 1).
+	 * @param value the context-dependent value (see {@link #getValue()}), or {@code null} for a
+	 *              type that carries none.
+	 */
+	public BodyToken(BodyToken.Type type, String text, int lineNumber, int colNumber,
+			@Nullable Object value) {
 		this.type = type;
+		this.text = text;
+		this.lineNumber = lineNumber;
+		this.colNumber = colNumber;
+		this.value = value;
 	}
 
 	// ----------------------------------------------------------- //
@@ -119,28 +145,11 @@ public class BodyToken {
 	}
 
 	/**
-	 * Sets the type of this {@link BodyToken} as a {@link Type}.
-	 * @param type the type of this {@link BodyToken} as a {@link Type}.
-	 */
-	public void setType(Type type) {
-		this.type = type;
-	}
-
-	/**
 	 * Returns the line number on which this {@link BodyToken} can be found within the DLB script.
 	 * @return the line number on which this {@link BodyToken} can be found within the DLB script.
 	 */
 	public int getLineNumber() {
 		return lineNumber;
-	}
-
-	/**
-	 * Sets the line number on which this {@link BodyToken} can be found within the DLB script.
-	 * @param lineNumber the line number on which this {@link BodyToken} can be found within the DLB
-	 *                   script.
-	 */
-	public void setLineNumber(int lineNumber) {
-		this.lineNumber = lineNumber;
 	}
 
 	/**
@@ -152,28 +161,11 @@ public class BodyToken {
 	}
 
 	/**
-	 * Sets the column number on which this {@link BodyToken} may be found within the DLB script.
-	 * @param colNumber the column number on which this {@link BodyToken} may be found within the
-	 *                  DLB script.
-	 */
-	public void setColNumber(int colNumber) {
-		this.colNumber = colNumber;
-	}
-
-	/**
 	 * Returns the text representation of this {@link BodyToken}.
 	 * @return the text representation of this {@link BodyToken}.
 	 */
 	public String getText() {
 		return text;
-	}
-
-	/**
-	 * Sets the text representation of this {@link BodyToken}.
-	 * @param text the text representation of this {@link BodyToken}.
-	 */
-	public void setText(String text) {
-		this.text = text;
 	}
 
 	/**
@@ -189,18 +181,20 @@ public class BodyToken {
 	 *     {@link String}.</li>
 	 * </ul>
 	 *
-	 * @return the context-dependent value of this {@link BodyToken}.
+	 * @return the context-dependent value of this {@link BodyToken}, or {@code null} for a type
+	 *         that carries none.
 	 */
-	public Object getValue() {
+	public @Nullable Object getValue() {
 		return value;
 	}
 
 	/**
-	 * Sets the context-dependent value of this {@link BodyToken}, see {@link BodyToken#getValue()}
-	 * for additional details.
-	 * @param value the context-dependent value of this {@link BodyToken}.
+	 * Replaces the context-dependent value. Used only to write back a {@link Type#TEXT} token's
+	 * text after trimming whitespace from it in place.
+	 *
+	 * @param value the new value.
 	 */
-	public void setValue(Object value) {
+	private void setValue(@Nullable Object value) {
 		this.value = value;
 	}
 
@@ -235,7 +229,7 @@ public class BodyToken {
 			BodyToken token = tokens.get(0);
 			if (token.getType() != BodyToken.Type.TEXT)
 				return;
-			String text = (String)token.getValue();
+			String text = (String) Objects.requireNonNull(token.getValue());
 			text = text.replaceAll("^\\s+", "");
 			token.setValue(text);
 			if (!text.isEmpty())
@@ -254,7 +248,7 @@ public class BodyToken {
 			BodyToken token = tokens.get(tokens.size() - 1);
 			if (token.getType() != BodyToken.Type.TEXT)
 				return;
-			String text = (String)token.getValue();
+			String text = (String) Objects.requireNonNull(token.getValue());
 			text = text.replaceAll("\\s+$", "");
 			token.setValue(text);
 			if (!text.isEmpty())
@@ -275,7 +269,7 @@ public class BodyToken {
 			BodyToken token = tokens.getCurrent();
 			if (token.getType() != BodyToken.Type.TEXT)
 				return result;
-			String text = (String)token.getValue();
+			String text = (String) Objects.requireNonNull(token.getValue());
 			if (!text.trim().isEmpty())
 				return result;
 			result.add(token);

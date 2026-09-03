@@ -38,6 +38,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * The {@link BodyParser} can be used to parse the body of a Dialogue Branch Node. This
@@ -200,10 +201,10 @@ public class BodyParser {
 			BodyToken token = tokens.getCurrent();
 			switch (token.getType()) {
 			case TEXT:
-				string.addSegment(new VariableString.TextSegment((String)token.getValue()));
+				string.addSegment(new VariableString.TextSegment((String) Objects.requireNonNull(token.getValue())));
 				break;
 			case VARIABLE:
-				string.addSegment(new VariableString.VariableSegment((String)token.getValue()));
+				string.addSegment(new VariableString.VariableSegment((String) Objects.requireNonNull(token.getValue())));
 				break;
 			default:
 				foundEnd = true;

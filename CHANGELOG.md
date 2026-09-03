@@ -165,6 +165,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   private constructor (the public constructors are unchanged), and
   `BodyParser.ParseUntilCommandClauseResult` takes its `body` as a constructor argument. No
   behaviour change.
+- Core: `execution.parser.BodyToken` is now built via a constructor
+  (`BodyToken(Type, String text, int lineNumber, int colNumber[, Object value])`) rather than a
+  no-arg constructor plus setters ([#121](https://github.com/dialoguebranch/platform/issues/121));
+  `setType` / `setText` / `setLineNumber` / `setColNumber` are removed and its fields are `final`.
+  `getValue()` is now `@Nullable` (it is `null` for the token types that carry no value).
+  `ReplyParser` threads its statement / node-pointer / command sections through as method
+  arguments instead of scratch fields. Tokenisation and reply parsing are unchanged.
 
 ### Fixed
 
