@@ -36,9 +36,9 @@ import com.dialoguebranch.model.execute.*;
 import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
+import com.dialoguebranch.web.service.DateTimeUtils;
+import com.dialoguebranch.web.service.exception.DatabaseException;
 import com.dialoguebranch.web.service.storage.ServerLoggedDialogue;
-import nl.rrd.utils.datetime.DateTimeUtils;
-import nl.rrd.utils.exception.DatabaseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

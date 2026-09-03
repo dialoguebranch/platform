@@ -29,7 +29,6 @@
 package com.dialoguebranch.web.service.controller.schema;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import nl.rrd.utils.json.JsonObject;
 
 import java.util.Arrays;
 
@@ -39,7 +38,7 @@ import java.util.Arrays;
  *
  * @author Harm op den Akker
  */
-public class DialogueListPayload extends JsonObject {
+public class DialogueListPayload {
 
 	@Schema(description = "A list of dialogue names, supported by the web service",
 			example = "[dialogue1,dialogue2]")
@@ -95,6 +94,11 @@ public class DialogueListPayload extends JsonObject {
 		String[] sorted = dialogueNames.clone();
 		Arrays.sort(sorted, DialogueNameComparator.FOLDERS_FIRST);
 		return sorted;
+	}
+
+	@Override
+	public String toString() {
+		return "DialogueListPayload{dialogueNames=" + Arrays.toString(dialogueNames) + "}";
 	}
 
 }

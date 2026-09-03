@@ -31,15 +31,16 @@ package com.dialoguebranch.web.service.controller;
 import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.web.service.exception.*;
 import jakarta.servlet.http.HttpServletRequest;
-import nl.rrd.utils.exception.ParseException;
-import nl.rrd.utils.http.URLParameters;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.DateTimeException;
 import java.time.ZoneId;
 import java.time.zone.ZoneRulesException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 /**
  * The {@link ControllerFunctions} class offers a set of public, static methods that can be used by
@@ -130,14 +131,20 @@ public class ControllerFunctions {
 			throws BadRequestException {
 		if (request.getQueryString() == null)
 			return;
-		Map<String,String> params;
-		try {
-			params = URLParameters.parseParameterString(request.getQueryString());
-		} catch (ParseException ex) {
-			throw new BadRequestException(ex.getMessage());
+		Set<String> presentParams = new HashSet<>();
+		for (String pair : request.getQueryString().split("&")) {
+			if (pair.isEmpty())
+				continue;
+			int eq = pair.indexOf('=');
+			String rawName = eq >= 0 ? pair.substring(0, eq) : pair;
+			try {
+				presentParams.add(URLDecoder.decode(rawName, StandardCharsets.UTF_8));
+			} catch (IllegalArgumentException ex) {
+				throw new BadRequestException("Malformed query string: " + ex.getMessage());
+			}
 		}
 		for (String name : parameterNames) {
-			if (params.containsKey(name)) {
+			if (presentParams.contains(name)) {
 				throw new BadRequestException(
 					"Query parameters not accepted, parameters must be set in the request body.");
 			}
