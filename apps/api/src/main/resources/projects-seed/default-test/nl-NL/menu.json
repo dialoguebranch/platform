@@ -1,11 +1,19 @@
 {
     "Martin McOwl": {
-        "This is a menu dialogue that allows you to start other dialogues.": "Dit is een menudialoog waarmee je andere dialogen kunt starten."
+        "This is the Default Dialogue Branch Test project. Each lesson below demonstrates one part of the language. The showcases are longer, real-feeling conversations.": "Dit is het standaard Dialogue Branch-testproject. Elke les hieronder demonstreert een onderdeel van de taal. De showcases zijn langere, realistisch aanvoelende gesprekken."
     },
     "_user": {
-        "Tutorials: Basic": "Tutorials: Basis",
-        "Baldur's Gate 1: Imoen Introduction": "Baldur's Gate 1: Introductie van Imoen",
-        "Baldur's Gate 1: Winthrop Introduction": "Baldur's Gate 1: Introductie van Winthrop",
+        "Lesson: Dialogue flow": "Les: Dialoogstroom",
+        "Lesson: Statements, escaping and markup": "Les: Uitspraken, escapen en opmaak",
+        "Lesson: Variables and expressions": "Les: Variabelen en expressies",
+        "Lesson: Conditionals": "Les: Conditionelen",
+        "Lesson: Random variation": "Les: Willekeurige variatie",
+        "Lesson: Actions": "Les: Acties",
+        "Lesson: Input replies": "Les: Invoerantwoorden",
+        "Lesson: External Variable Service": "Les: External Variable Service",
+        "Showcase: Pillars of Eternity intro": "Showcase: Pillars of Eternity-intro",
+        "Showcase: Baldur's Gate 1 (Imoen)": "Showcase: Baldur's Gate 1 (Imoen)",
+        "Showcase: Baldur's Gate 1 (Winthrop)": "Showcase: Baldur's Gate 1 (Winthrop)",
         "Goodbye.": "Tot ziens."
     }
 }

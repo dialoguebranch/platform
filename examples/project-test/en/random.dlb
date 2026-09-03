@@ -1,0 +1,64 @@
+title: Start
+tags:
+speaker: Martin McOwl
+colorId: 2
+position: 0,0
+---
+This lesson is about the "random" statement, which varies a node's output from one run to the next.
+
+<<random>>
+Hey there!
+<<or>>
+Hi, good to see you!
+<<or>>
+Hello again!
+<<endrandom>>
+
+[[Show me weights.|Weights]]
+===
+title: Weights
+tags:
+speaker: Martin McOwl
+colorId: 0
+position: 320,0
+---
+Each clause can carry a weight. This one is picked about twice as often as the others.
+
+<<random weight="2">>
+This is the heavy clause.
+<<or weight="1">>
+This is a light clause.
+<<or>>
+This clause uses the default weight of 1.
+<<endrandom>>
+
+[[Can a clause do more than text?|Nested]]
+===
+title: Nested
+tags:
+speaker: Martin McOwl
+colorId: 0
+position: 640,0
+---
+A clause may contain other statements. One of the two branches below sets a variable and shows a conditional line.
+
+<<random>>
+<<set $mood = "cheerful">>
+<<if $mood == "cheerful">>
+  Today I am feeling cheerful.
+<<endif>>
+<<or>>
+<<set $mood = "grumpy">>
+Today I am feeling $mood.
+<<endrandom>>
+
+[[That is all.|End]]
+===
+title: End
+tags:
+speaker:
+colorId: 5
+position: 320,220
+---
+
+===

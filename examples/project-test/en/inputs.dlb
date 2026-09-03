@@ -1,0 +1,70 @@
+title: Start
+tags:
+speaker: Martin McOwl
+colorId: 2
+position: 0,0
+---
+This lesson is about input replies. An "input" command inside a reply collects a value from the user and stores it in a variable.
+
+What is your first name?
+
+[[My name is <<input type="text" value="$inName" min="2" max="30" description="your first name">>.|LongText]]
+===
+title: LongText
+tags:
+speaker: Martin McOwl
+colorId: 0
+position: 320,0
+---
+Thank you, $inName. The "longtext" type is meant for multi-line answers.
+
+[[<<input type="longtext" value="$inBio" description="a short bio">>|Email]]
+===
+title: Email
+tags:
+speaker: Martin McOwl
+colorId: 0
+position: 640,0
+---
+The "email" type collects an address.
+
+[[My address is <<input type="email" value="$inEmail">>.|Numeric]]
+===
+title: Numeric
+tags:
+speaker: Martin McOwl
+colorId: 0
+position: 960,0
+---
+The "numeric" type collects a number and accepts a range.
+
+[[I am <<input type="numeric" value="$inAge" min="0" max="120">> years old.|Time]]
+===
+title: Time
+tags:
+speaker: Martin McOwl
+colorId: 0
+position: 1280,0
+---
+The "time" type collects a time of day, with an optional step and range.
+
+[[I woke up at <<input type="time" value="$inWakeTime" granularityMinutes="15" startTime="07:00" minTime="04:00" maxTime="12:00">> today.|Set]]
+===
+title: Set
+tags:
+speaker: Martin McOwl
+colorId: 0
+position: 1600,0
+---
+The "set" type shows a group of labelled options, each toggling its own boolean variable.
+
+[[I would like <<input type="set" value1="$inCheese" option1="Cheese" value2="$inOlives" option2="Olives" value3="$inHam" option3="Ham">> on it.|End]]
+===
+title: End
+tags:
+speaker:
+colorId: 5
+position: 800,220
+---
+
+===

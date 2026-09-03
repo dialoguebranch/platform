@@ -3,6 +3,9 @@
         "In this example we look at $subjectToday.": "In dit voorbeeld kijken we naar $subjectToday.",
         "In this node we have set some variables: $variableOne, $variable2, and $variable_three using a \"set\" statement.": "In dit knooppunt hebben we enkele variabelen ingesteld: $variableOne, $variable2 en $variable_three met een \"set\" instructie.",
         "These variables contained string values, so they can be injected in statements (this can also be done with numbers, like so: $aNumber).": "Deze variabelen bevatten tekstwaarden, waardoor ze in uitspraken kunnen worden ingevoegd (dit kan ook met getallen, zoals: $aNumber).",
+        "Expressions can combine variables. Here $full became \"$full\".": "Expressies kunnen variabelen combineren. Hier werd $full \"$full\".",
+        "A variable can refer to itself, so $count is now $count.": "Een variabele kan naar zichzelf verwijzen, dus $count is nu $count.",
+        "Mixing numbers and strings coerces to a string, evaluated left to right: 1 + 2 + \"3\" gives \"$leftToRight\", while 1 + (2 + \"3\") gives \"$grouped\".": "Getallen en tekst mengen levert een tekst op, van links naar rechts geëvalueerd: 1 + 2 + \"3\" geeft \"$leftToRight\", terwijl 1 + (2 + \"3\") \"$grouped\" geeft.",
         "Variables must start with a $-sign and then any small or capital letter ([a-z] or [A-Z]). Besides that you can use any combination of letters, numbers and underscores to define your variable name.": "Variabelen moeten beginnen met een $-teken gevolgd door een kleine of hoofdletter ([a-z] of [A-Z]). Daarna kunt u elke combinatie van letters, cijfers en underscores gebruiken om de variabelenaam te definiëren.",
         "Variables can be set at various places in the dialogue. For example, attached to replies:": "Variabelen kunnen op verschillende plaatsen in het dialoog worden ingesteld. Bijvoorbeeld gekoppeld aan antwoorden:",
         "So, your variable now has the value \"$replyVariable\" (without the quotes).": "Uw variabele heeft nu de waarde \"$replyVariable\" (zonder de aanhalingstekens).",
@@ -14,6 +17,7 @@
     },
     "_user": {
         "Okay, let's go.": "Oké, laten we beginnen.",
+        "Show me some arithmetic.": "Laat me wat rekenwerk zien.",
         "Let it be \"Four!\"": "Laat het \"Vier!\" zijn",
         "I'm going for \"Pizza.\"": "Ik kies voor \"Pizza.\"",
         "I'll make it the number 8.": "Ik maak er het getal 8 van.",

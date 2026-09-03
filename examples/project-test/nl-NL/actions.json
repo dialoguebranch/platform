@@ -1,0 +1,17 @@
+{
+    "Martin McOwl": {
+        "This lesson is about the \"action\" statement, which couples a client-side event to a line of dialogue. Every action has a type and a value.": "Deze les gaat over de \"action\"-uitspraak, die een gebeurtenis aan de clientzijde koppelt aan een regel dialoog. Elke actie heeft een type en een waarde.",
+        "An action of type \"link\" points at a URL.": "Een actie van het type \"link\" verwijst naar een URL.",
+        "The \"image\" and \"video\" types point at a resource.": "De typen \"image\" en \"video\" verwijzen naar een bron.",
+        "A \"generic\" action carries whatever your client wants to handle, plus any extra parameters.": "Een \"generic\"-actie draagt alles wat je client wil afhandelen, plus eventuele extra parameters.",
+        "Yes. An action can also hang off a reply, and a link action can carry display text.": "Ja. Een actie kan ook aan een antwoord hangen, en een link-actie kan weergavetekst dragen."
+    },
+    "_user": {
+        "Show me a link.": "Laat me een link zien.",
+        "Show me image and video.": "Laat me afbeelding en video zien.",
+        "Show me a generic action.": "Laat me een generieke actie zien.",
+        "Can an action sit in a reply?": "Kan een actie in een antwoord zitten?",
+        "Open the book, please.": "Open het boek, alsjeblieft.",
+        "Visit the website.": "Bezoek de website."
+    }
+}
