@@ -39,13 +39,29 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
+/**
+ * A parenthesised expression {@code ( expr )}. It evaluates to the same value as the wrapped
+ * expression and exists only to preserve grouping in the parse tree.
+ *
+ * @author Dennis Hofs (RRD)
+ */
 public class GroupExpression implements Expression {
 	private Expression expression;
 
+	/**
+	 * Constructs a new group expression.
+	 *
+	 * @param expression the wrapped expression.
+	 */
 	public GroupExpression(Expression expression) {
 		this.expression = expression;
 	}
 
+	/**
+	 * Returns the wrapped expression.
+	 *
+	 * @return the wrapped expression.
+	 */
 	public Expression getExpression() {
 		return expression;
 	}

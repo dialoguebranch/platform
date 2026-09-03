@@ -39,13 +39,29 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
+/**
+ * A logical-negation expression {@code !operand}. It evaluates its operand as a boolean and
+ * returns the inverse.
+ *
+ * @author Dennis Hofs (RRD)
+ */
 public class NotExpression implements Expression {
 	private Expression operand;
 
+	/**
+	 * Constructs a new logical-negation expression.
+	 *
+	 * @param operand the operand to negate.
+	 */
 	public NotExpression(Expression operand) {
 		this.operand = operand;
 	}
 
+	/**
+	 * Returns the operand being negated.
+	 *
+	 * @return the operand.
+	 */
 	public Expression getOperand() {
 		return operand;
 	}

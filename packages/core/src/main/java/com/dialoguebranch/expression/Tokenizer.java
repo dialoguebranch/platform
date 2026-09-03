@@ -87,18 +87,40 @@ public class Tokenizer {
 
 	private @Nullable Object lookAheadState = null;
 
+	/**
+	 * Constructs a tokenizer reading from a string.
+	 *
+	 * @param input the expression text.
+	 */
 	public Tokenizer(String input) {
 		this(new StringReader(input));
 	}
 
+	/**
+	 * Constructs a tokenizer reading from a character stream.
+	 *
+	 * @param reader the input reader.
+	 */
 	public Tokenizer(Reader reader) {
 		this(new LineColumnNumberReader(reader));
 	}
 
+	/**
+	 * Constructs a tokenizer reading from a {@link LineColumnNumberReader}, which allows rewinding
+	 * the input.
+	 *
+	 * @param reader the input reader.
+	 */
 	public Tokenizer(LineColumnNumberReader reader) {
 		this.reader = reader;
 	}
 
+	/**
+	 * Returns the configuration for this tokenizer. Callers may mutate it before the first token
+	 * is read to change which variable syntaxes are recognised.
+	 *
+	 * @return the parser configuration.
+	 */
 	public ExpressionParserConfig getConfig() {
 		return config;
 	}

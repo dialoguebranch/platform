@@ -41,11 +41,27 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
+/**
+ * An assignment expression {@code variable = value}. Evaluating it stores the right-hand value in
+ * the variable map under the variable's name and returns that value. The first operand must be a
+ * {@link ValueExpression} wrapping a {@link Token.Type#NAME} or {@link Token.Type#DOLLAR_VARIABLE}
+ * token.
+ *
+ * @author Dennis Hofs (RRD)
+ */
 public class AssignExpression implements Expression {
 	private Expression variableOperand;
 	private String variableName;
 	private Expression valueOperand;
 
+	/**
+	 * Constructs a new assignment expression.
+	 *
+	 * @param variableOperand the left-hand operand; must be a variable {@link ValueExpression}.
+	 * @param operator the assignment operator token (used for error positions).
+	 * @param valueOperand the right-hand operand, whose value is assigned.
+	 * @throws LineNumberParseException if the left-hand operand is not a variable.
+	 */
 	public AssignExpression(Expression variableOperand, Token operator,
 			Expression valueOperand) throws LineNumberParseException {
 		if (!(variableOperand instanceof ValueExpression variableExpr)) {
@@ -65,14 +81,29 @@ public class AssignExpression implements Expression {
 		this.valueOperand = valueOperand;
 	}
 
+	/**
+	 * Returns the left-hand (variable) operand.
+	 *
+	 * @return the variable operand.
+	 */
 	public Expression getVariableOperand() {
 		return variableOperand;
 	}
 
+	/**
+	 * Returns the name of the variable being assigned.
+	 *
+	 * @return the variable name.
+	 */
 	public String getVariableName() {
 		return variableName;
 	}
 
+	/**
+	 * Returns the right-hand (value) operand.
+	 *
+	 * @return the value operand.
+	 */
 	public Expression getValueOperand() {
 		return valueOperand;
 	}

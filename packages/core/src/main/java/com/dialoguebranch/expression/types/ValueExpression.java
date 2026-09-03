@@ -40,13 +40,31 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
+/**
+ * A leaf expression wrapping a single atom {@link Token}: a literal ({@link Token.Type#STRING},
+ * {@link Token.Type#NUMBER}, {@link Token.Type#BOOLEAN}, {@link Token.Type#NULL}) or a variable
+ * reference ({@link Token.Type#NAME}, {@link Token.Type#DOLLAR_VARIABLE}). A variable that is not
+ * in the variable map evaluates to {@code null}.
+ *
+ * @author Dennis Hofs (RRD)
+ */
 public class ValueExpression implements Expression {
 	private Token token;
 
+	/**
+	 * Constructs a new value expression.
+	 *
+	 * @param token the atom token this expression wraps.
+	 */
 	public ValueExpression(Token token) {
 		this.token = token;
 	}
 
+	/**
+	 * Returns the atom token this expression wraps.
+	 *
+	 * @return the token.
+	 */
 	public Token getToken() {
 		return token;
 	}

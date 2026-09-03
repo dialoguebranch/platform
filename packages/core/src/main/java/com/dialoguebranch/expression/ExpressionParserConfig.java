@@ -32,31 +32,73 @@
 
 package com.dialoguebranch.expression;
 
+/**
+ * Configuration for a {@link Tokenizer} / {@link ExpressionParser}: which variable syntaxes are
+ * recognised and whether a single {@code =} is accepted as assignment. Defaults: plain variables
+ * allowed, {@code $}-variables not, single {@code =} not.
+ *
+ * @author Dennis Hofs (RRD)
+ */
 public class ExpressionParserConfig {
 	private boolean allowPlainVariables = true;
 	private boolean allowDollarVariables = false;
 	private boolean allowSingleEquals = false;
 
+	/** Constructs a configuration with the default settings. */
+	public ExpressionParserConfig() {
+	}
+
+	/**
+	 * Returns whether unadorned identifiers are recognised as variable references.
+	 *
+	 * @return {@code true} if plain variables are allowed.
+	 */
 	public boolean isAllowPlainVariables() {
 		return allowPlainVariables;
 	}
 
+	/**
+	 * Sets whether unadorned identifiers are recognised as variable references.
+	 *
+	 * @param allowPlainVariables {@code true} to allow plain variables.
+	 */
 	public void setAllowPlainVariables(boolean allowPlainVariables) {
 		this.allowPlainVariables = allowPlainVariables;
 	}
 
+	/**
+	 * Returns whether {@code $}-prefixed tokens are recognised as variable references.
+	 *
+	 * @return {@code true} if {@code $}-variables are allowed.
+	 */
 	public boolean isAllowDollarVariables() {
 		return allowDollarVariables;
 	}
 
+	/**
+	 * Sets whether {@code $}-prefixed tokens are recognised as variable references.
+	 *
+	 * @param allowDollarVariables {@code true} to allow {@code $}-variables.
+	 */
 	public void setAllowDollarVariables(boolean allowDollarVariables) {
 		this.allowDollarVariables = allowDollarVariables;
 	}
 
+	/**
+	 * Returns whether a single {@code =} is accepted as the assignment operator (in addition to
+	 * {@code ==} being equality).
+	 *
+	 * @return {@code true} if a single {@code =} is allowed.
+	 */
 	public boolean isAllowSingleEquals() {
 		return allowSingleEquals;
 	}
 
+	/**
+	 * Sets whether a single {@code =} is accepted as the assignment operator.
+	 *
+	 * @param allowSingleEquals {@code true} to allow a single {@code =}.
+	 */
 	public void setAllowSingleEquals(boolean allowSingleEquals) {
 		this.allowSingleEquals = allowSingleEquals;
 	}

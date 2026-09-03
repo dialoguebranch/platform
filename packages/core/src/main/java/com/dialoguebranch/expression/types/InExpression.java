@@ -39,7 +39,19 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
+/**
+ * An expression that tests whether its first operand is a member of its second (a list or map).
+ *
+ * @author Dennis Hofs (RRD)
+ */
 public class InExpression extends BinaryExpression {
+
+	/**
+	 * Constructs a new {@code in} expression.
+	 *
+	 * @param operand1 the left-hand operand.
+	 * @param operand2 the right-hand operand.
+	 */
 	public InExpression(Expression operand1, Expression operand2) {
 		super(operand1, operand2);
 	}

@@ -107,11 +107,10 @@ javadoc {
 	include 'com/dialoguebranch/**'
 	options.source = "17"
 	options.addStringOption('Xmaxwarns', '1000')
-	// Keep all doclint checks (broken @links, malformed HTML, param/return mismatches — the
-	// ones that catch real doc bugs) but not "missing": the expression engine vendored from
-	// rrd-utils in #102 (~30 classes) has no member-level javadoc, and inventing ~150 boilerplate
-	// comments for it adds no value. Documenting it properly is a separate task (#121).
-	options.addBooleanOption('Xdoclint:all,-missing', true)
+	// Full doclint: broken @links, malformed HTML, @param/@return mismatches (the checks that
+	// failed the build in #133) and missing comments alike. The vendored expression engine's
+	// member javadoc was written in #142, so the "missing" category is back on too.
+	options.addBooleanOption('Xdoclint:all', true)
 }
 
 dependencies {

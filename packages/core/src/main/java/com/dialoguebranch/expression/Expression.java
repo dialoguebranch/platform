@@ -125,7 +125,13 @@ public interface Expression {
 	 */
 	String toCode();
 
+	/** Jackson serializer that writes an {@link Expression} as its {@link #toCode()} string. */
 	class ExpressionSerializer extends JsonSerializer<Expression> {
+
+		/** Constructs a new serializer. */
+		public ExpressionSerializer() {
+		}
+
 		@Override
 		public void serialize(Expression expression,
 				JsonGenerator jsonGenerator,
@@ -134,7 +140,16 @@ public interface Expression {
 		}
 	}
 
+	/**
+	 * Jackson deserializer that parses an {@link Expression} from a code string via
+	 * {@link ExpressionParser}.
+	 */
 	class ExpressionDeserializer extends JsonDeserializer<Expression> {
+
+		/** Constructs a new deserializer. */
+		public ExpressionDeserializer() {
+		}
+
 		@Override
 		public @Nullable Expression deserialize(JsonParser jsonParser,
 				DeserializationContext deserializationContext)

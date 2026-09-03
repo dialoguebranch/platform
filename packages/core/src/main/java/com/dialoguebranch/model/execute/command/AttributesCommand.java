@@ -387,6 +387,10 @@ public abstract class AttributesCommand extends Command {
 	 * {@code read*} helper has confirmed the attribute is present (a non-null value from any of
 	 * them implies {@code attrs.containsKey(name)}), so a missing entry here is an internal
 	 * invariant violation rather than a parse error.
+	 *
+	 * @param attrs the parsed attribute tokens, keyed by attribute name.
+	 * @param name the attribute name, known to be present.
+	 * @return the token for {@code name}.
 	 */
 	protected static BodyToken presentToken(Map<String, BodyToken> attrs, String name) {
 		BodyToken token = attrs.get(name);

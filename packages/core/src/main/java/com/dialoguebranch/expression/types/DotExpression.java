@@ -40,19 +40,41 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
+/**
+ * A member-access expression {@code parent.name}. The parent must evaluate to a map; the
+ * result is the value stored under {@code name} (or {@code null} if absent).
+ *
+ * @author Dennis Hofs (RRD)
+ */
 public class DotExpression implements Expression {
 	private Expression parentOperand;
 	private Expression dotOperand;
 
+	/**
+	 * Constructs a new dot expression.
+	 *
+	 * @param parentOperand the operand left of the dot; must evaluate to a map.
+	 * @param dotOperand the operand right of the dot (a name, or an expression yielding the key).
+	 */
 	public DotExpression(Expression parentOperand, Expression dotOperand) {
 		this.parentOperand = parentOperand;
 		this.dotOperand = dotOperand;
 	}
 
+	/**
+	 * Returns the operand left of the dot.
+	 *
+	 * @return the parent operand.
+	 */
 	public Expression getParentOperand() {
 		return parentOperand;
 	}
 
+	/**
+	 * Returns the operand right of the dot.
+	 *
+	 * @return the dot operand.
+	 */
 	public Expression getDotOperand() {
 		return dotOperand;
 	}

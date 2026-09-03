@@ -39,19 +39,47 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Base class for the two-operand expression types (arithmetic, comparison and logical operators).
+ * It holds the two operand expressions and implements the generic {@link Expression} tree methods
+ * ({@link #getChildren()}, {@link #substituteChild(int, Expression)}, {@link #getDescendants()},
+ * {@link #getVariableNames()}); subclasses only implement the operator's own evaluation.
+ *
+ * @author Dennis Hofs (RRD)
+ */
 public abstract class BinaryExpression implements Expression {
+
+	/** The left-hand operand. */
 	protected Expression operand1;
+
+	/** The right-hand operand. */
 	protected Expression operand2;
 
+	/**
+	 * Constructs a new binary expression.
+	 *
+	 * @param operand1 the left-hand operand.
+	 * @param operand2 the right-hand operand.
+	 */
 	public BinaryExpression(Expression operand1, Expression operand2) {
 		this.operand1 = operand1;
 		this.operand2 = operand2;
 	}
 
+	/**
+	 * Returns the left-hand operand.
+	 *
+	 * @return the left-hand operand.
+	 */
 	public Expression getOperand1() {
 		return operand1;
 	}
 
+	/**
+	 * Returns the right-hand operand.
+	 *
+	 * @return the right-hand operand.
+	 */
 	public Expression getOperand2() {
 		return operand2;
 	}

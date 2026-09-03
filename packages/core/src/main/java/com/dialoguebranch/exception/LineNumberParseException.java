@@ -48,8 +48,13 @@ public class LineNumberParseException extends ParseException {
 	@Serial
 	private static final long serialVersionUID = 1L;
 
+	/** The error message without the appended line/column suffix. */
 	private final String error;
+
+	/** The one-based line number of the parse error. */
 	private final int lineNum;
+
+	/** The one-based column number of the parse error. */
 	private final int colNum;
 
 	// -------------------------------------------------------- //
