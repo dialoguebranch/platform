@@ -153,9 +153,6 @@ public class ProjectParserResult {
 		if(scriptLoader instanceof ProjectScriptLoader) {
 			projectLocationDescription =
 					((ProjectScriptLoader)scriptLoader).getProjectMetaData().getBasePath();
-		} else if(scriptLoader instanceof DirectoryScriptLoader) {
-			projectLocationDescription =
-					((DirectoryScriptLoader)scriptLoader).rootDirectory().toString();
 		}
 
 		// In case of parse errors, print them and then return

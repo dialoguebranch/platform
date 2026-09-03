@@ -38,9 +38,8 @@ Every vendored file carries the original `Copyright (c) 2022 Roessingh Research 
 Development` notice and a provenance line in its header, alongside the Fruit Tree Labs
 copyright. Both projects use the MIT License, so the permission text is shared.
 
-Classes that were written from scratch against the JDK rather than copied — notably
-`com.dialoguebranch.i18n.LanguageFinder`, the StAX-based
-`com.dialoguebranch.execution.parser.ProjectMetaDataParser`, and the DOM-based
+Classes that were written from scratch against the JDK rather than copied — notably the
+StAX-based `com.dialoguebranch.execution.parser.ProjectMetaDataParser` and the DOM-based
 `com.dialoguebranch.editing.writer.ProjectMetaDataWriter` — are original work and are not
 covered by this notice.
 

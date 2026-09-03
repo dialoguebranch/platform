@@ -31,9 +31,9 @@ package com.dialoguebranch;
 import com.dialoguebranch.execution.ActiveDialogue;
 import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.VariableStore;
-import com.dialoguebranch.execution.parser.DirectoryScriptLoader;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;
+import com.dialoguebranch.execution.parser.ProjectScriptLoader;
 import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.Node;
@@ -58,14 +58,15 @@ public class TranslatedDialogueTest {
 	// ------------------------------------------------- //
 
 	/**
-	 * Returns a {@link ProjectParserResult} by parsing the bundled test-resource example folder
-	 * (contains {@code en/basic.dlb} and {@code nl/basic.json}).
+	 * Returns a {@link ProjectParserResult} by parsing the bundled test-resource example project
+	 * (a {@code dlb-project.xml} with source language {@code en} and translation language
+	 * {@code nl}, plus {@code en/basic.dlb} and {@code nl/basic.json}).
 	 */
 	private ProjectParserResult parseExamples() throws Exception {
-		URL resourceUrl = getClass().getClassLoader().getResource("examples");
-		assertNotNull("Test resource folder 'examples' not found on classpath", resourceUrl);
-		File examplesDir = new File(resourceUrl.toURI());
-		DirectoryScriptLoader loader = new DirectoryScriptLoader(examplesDir);
+		URL resourceUrl = getClass().getClassLoader().getResource("examples/dlb-project.xml");
+		assertNotNull("Test resource 'examples/dlb-project.xml' not found on classpath", resourceUrl);
+		File metaDataFile = new File(resourceUrl.toURI());
+		ProjectScriptLoader loader = new ProjectScriptLoader(metaDataFile);
 		return new ProjectParser(loader).parse();
 	}
 

@@ -46,10 +46,8 @@ import java.util.List;
 
 /**
  * A {@link ScriptLoader} implementation that uses Spring's {@link PathMatchingResourcePatternResolver}
- * to discover Dialogue Branch script and translation files on the classpath. Unlike the core
- * {@link com.dialoguebranch.execution.parser.ResourceScriptLoader}, this loader does not require a
- * pre-generated {@code dialogues.json} index — it scans for {@code *.dlb} and {@code *.json} files
- * directly.
+ * to discover Dialogue Branch script and translation files on the classpath, scanning for
+ * {@code *.dlb} and {@code *.json} files beneath a project resource root.
  *
  * <p>The expected classpath layout beneath the project resource root is:</p>
  * <pre>

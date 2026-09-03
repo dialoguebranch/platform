@@ -30,14 +30,12 @@ package com.dialoguebranch.execution.parser;
 
 import com.dialoguebranch.exception.ParseException;
 import com.dialoguebranch.i18n.ContextTranslation;
-import com.dialoguebranch.i18n.LanguageFinder;
 import com.dialoguebranch.i18n.Translatable;
 import com.dialoguebranch.i18n.TranslationContext;
 import com.dialoguebranch.i18n.TranslationParser;
 import com.dialoguebranch.i18n.TranslationParserResult;
 import com.dialoguebranch.i18n.Translator;
 import com.dialoguebranch.model.common.DialogueBranchConstants;
-import com.dialoguebranch.model.common.ProjectMetaData;
 import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.model.execute.*;
 import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
@@ -52,7 +50,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -189,13 +186,23 @@ public class ProjectParser {
 		// error anywhere in the project — e.g. an internal-pointer error in the very same
 		// dialogue — silently hid every external-pointer error project-wide).
 
-		// A dialogue name may have multiple source-language variants, all parsed into separate
-		// Dialogue instances — build a lookup from name to every variant so an external node
-		// pointer's target node can be checked against all of them.
-		Map<String, List<Dialogue>> dialoguesByName = new HashMap<>();
-		for (Dialogue dlg : dialogues.values()) {
-			dialoguesByName.computeIfAbsent(dlg.getDialogueName(), (k) -> new ArrayList<>())
-					.add(dlg);
+		// Build a lookup from dialogue name to its (single) source Dialogue. A project has exactly
+		// one source language, so a name resolving to more than one script file means the same
+		// dialogue was placed in two language folders — reported here as a parse error rather
+		// than silently picking one.
+		Map<String, Dialogue> dialoguesByName = new HashMap<>();
+		Map<String, ResourcePointer> fileByName = new HashMap<>();
+		for (Map.Entry<ResourcePointer, Dialogue> entry : dialogues.entrySet()) {
+			String name = entry.getValue().getDialogueName();
+			ResourcePointer previous = fileByName.putIfAbsent(name, entry.getKey());
+			if (previous != null) {
+				getParseErrors(readResult, entry.getKey()).add(new ParseException(String.format(
+					"Dialogue \"%s\" is defined by more than one script file (found in language " +
+					"folders \"%s\" and \"%s\")", name, previous.getLanguage(),
+					entry.getKey().getLanguage())));
+				continue;
+			}
+			dialoguesByName.put(name, entry.getValue());
 		}
 
 		// validate referenced dialogues and nodes in external node pointers — scanning every
@@ -206,18 +213,15 @@ public class ProjectParser {
 		for (ResourcePointer fileDescription : allParsedDialogues.keySet()) {
 			Dialogue dlg = allParsedDialogues.get(fileDescription);
 			for (ExternalNodePointer pointer : dlg.getExternalNodePointers()) {
-				List<Dialogue> targetVariants =
-						dialoguesByName.get(pointer.getAbsoluteTargetDialogue());
-				if (targetVariants == null) {
+				Dialogue target = dialoguesByName.get(pointer.getAbsoluteTargetDialogue());
+				if (target == null) {
 					getParseErrors(readResult, fileDescription).add(
 						new ParseException(String.format(
 						"Found external node pointer in node %s to unknown dialogue %s",
 						pointer.getOriginNodeId(), pointer.getAbsoluteTargetDialogue())));
 					continue;
 				}
-				boolean nodeFound = targetVariants.stream()
-						.anyMatch((t) -> t.nodeExists(pointer.getTargetNodeId()));
-				if (!nodeFound) {
+				if (!target.nodeExists(pointer.getTargetNodeId())) {
 					getParseErrors(readResult, fileDescription).add(
 						new ParseException(String.format(
 						"Found external node pointer in node %s to non-existing node %s in " +
@@ -262,17 +266,15 @@ public class ProjectParser {
 	 * Service's {@code dialogue/start} end-point) regardless of whether anything within the
 	 * project links to it.
 	 *
-	 * <p>An external node pointer can target a node in a dialogue that has multiple
-	 * source-language variants (see {@code dialoguesByName}); such a pointer marks the target
-	 * node reachable in every variant, since the project parser has no way to know which variant
-	 * an external caller will actually address.</p>
+	 * <p>An external node pointer into another dialogue marks its target node reachable, since the
+	 * project parser has no way to know whether an external caller will address it.</p>
 	 *
 	 * @param allParsedDialogues every dialogue that parsed at all, keyed by its source file.
 	 * @param dialoguesByName    every parsed dialogue, keyed by dialogue name.
 	 * @param readResult         the result to add warnings to.
 	 */
 	private void detectOrphanedNodes(Map<ResourcePointer, Dialogue> allParsedDialogues,
-									 Map<String, List<Dialogue>> dialoguesByName,
+									 Map<String, Dialogue> dialoguesByName,
 									 ProjectParserResult readResult) {
 		Map<Dialogue, Set<String>> reachableNodeIds = new HashMap<>();
 
@@ -294,14 +296,11 @@ public class ProjectParser {
 		// whole project after the per-dialogue internal pass above.
 		for (Dialogue dlg : allParsedDialogues.values()) {
 			for (ExternalNodePointer pointer : dlg.getExternalNodePointers()) {
-				List<Dialogue> targetVariants =
-						dialoguesByName.get(pointer.getAbsoluteTargetDialogue());
-				if (targetVariants == null)
+				Dialogue targetDlg = dialoguesByName.get(pointer.getAbsoluteTargetDialogue());
+				if (targetDlg == null)
 					continue; // unknown target dialogue — already reported as a parse error
-				for (Dialogue targetDlg : targetVariants) {
-					reachableNodeIds.computeIfAbsent(targetDlg, (d) -> new HashSet<>())
-							.add(pointer.getTargetNodeId().toLowerCase());
-				}
+				reachableNodeIds.computeIfAbsent(targetDlg, (d) -> new HashSet<>())
+						.add(pointer.getTargetNodeId().toLowerCase());
 			}
 		}
 
@@ -371,52 +370,19 @@ public class ProjectParser {
 	}
 
 	/**
-	 * Finds the source {@link Dialogue} for a given dialogue name and translation language code.
-	 *
-	 * <p>When a {@link ProjectScriptLoader} with {@link ProjectMetaData} is available, its single
-	 * source language is used directly (a project has exactly one). This ensures the correct
-	 * source script is used regardless of how many translation languages exist in the project.</p>
-	 *
-	 * <p>If no metadata is available (e.g. when using a {@link DirectoryScriptLoader}), or its
-	 * source language isn't among the matches found, the method falls back to
-	 * {@link LanguageFinder} with {@link Locale#ENGLISH} to pick the best available source.</p>
+	 * Finds the source {@link Dialogue} with the given dialogue name. A project has exactly one
+	 * source language, so a name resolves to at most one source script (a name in two language
+	 * folders is rejected as a parse error before this point).
 	 *
 	 * @param dlgName the dialogue name to look up.
-	 * @return the source {@link Dialogue}, or {@code null} if none could be found.
+	 * @return the source {@link Dialogue}, or {@code null} if there is none.
 	 */
 	private @Nullable Dialogue findSourceDialogue(String dlgName) {
-		List<ResourcePointer> matches = new ArrayList<>();
-		for (ResourcePointer fileDescription : dialogues.keySet()) {
-			if (fileDescription.getDialogueName().equals(dlgName))
-				matches.add(fileDescription);
+		for (Map.Entry<ResourcePointer, Dialogue> entry : dialogues.entrySet()) {
+			if (entry.getKey().getDialogueName().equals(dlgName))
+				return entry.getValue();
 		}
-		if (matches.isEmpty())
-			return null;
-		if (matches.size() == 1)
-			return dialogues.get(matches.get(0));
-
-		Map<String, ResourcePointer> lngMap = new HashMap<>();
-		for (ResourcePointer match : matches)
-			lngMap.put(match.getLanguage(), match);
-
-		// Prefer the source language defined in the project metadata
-		if (scriptLoader instanceof ProjectScriptLoader projectScriptLoader) {
-			ProjectMetaData metaData = projectScriptLoader.getProjectMetaData();
-			if (metaData != null && metaData.getLanguageMap() != null
-					&& metaData.getLanguageMap().getSourceLanguage() != null) {
-				ResourcePointer sourcePointer = lngMap.get(
-						metaData.getLanguageMap().getSourceLanguage().getCode());
-				if (sourcePointer != null)
-					return dialogues.get(sourcePointer);
-			}
-		}
-
-		// Fallback: match the available languages against English
-		String language = LanguageFinder.find(lngMap.keySet(), Locale.ENGLISH);
-		if (language == null)
-			return dialogues.get(matches.get(0));
-		else
-			return dialogues.get(lngMap.get(language));
+		return null;
 	}
 
 	private ParserResult parseDialogueFile(ResourcePointer description)
