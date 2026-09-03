@@ -2,6 +2,8 @@
   "name": "dlb-documentation-vitepress",
   "version": "2.0.2",
   "private": true,
+  "license": "MIT",
+  "author": "Fruit Tree Labs (https://www.fruittreelabs.com)",
   "type": "module",
   "scripts": {
     "dev": "vitepress dev docs",

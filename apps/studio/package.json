@@ -2,6 +2,8 @@
   "name": "dlb-studio",
   "version": "0.1.8",
   "private": true,
+  "license": "MIT",
+  "author": "Fruit Tree Labs (https://www.fruittreelabs.com)",
   "type": "module",
   "engines": {
     "node": ">=20"
