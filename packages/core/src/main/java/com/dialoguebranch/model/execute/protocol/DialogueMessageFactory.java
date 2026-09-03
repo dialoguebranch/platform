@@ -37,7 +37,10 @@ import com.dialoguebranch.model.execute.command.ActionCommand;
 import com.dialoguebranch.model.execute.command.Command;
 import com.dialoguebranch.model.execute.command.InputCommand;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
+import org.jspecify.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -61,7 +64,6 @@ public class DialogueMessageFactory {
 	 * @return the DialogueMessage
 	 */
 	public static DialogueMessage generateDialogueMessage(ExecuteNodeResult executedNode) {
-		DialogueMessage dialogueMessage = new DialogueMessage();
 		Node node = executedNode.node();
 		// An executed node on its way to the client always has a header, a body and a title,
 		// and its dialogue always has a name; fail loudly here rather than downstream if not.
@@ -69,23 +71,24 @@ public class DialogueMessageFactory {
 				"Executed node has no body");
 		NodeHeader header = Objects.requireNonNull(node.getHeader(),
 				"Executed node has no header");
-		dialogueMessage.setDialogue(Objects.requireNonNull(
+		String dialogueName = Objects.requireNonNull(
 				executedNode.dialogue().getDialogueName(),
-				"Executed dialogue has no name"));
-		dialogueMessage.setNode(Objects.requireNonNull(node.getTitle(),
-				"Executed node has no title"));
+				"Executed dialogue has no name");
+		String nodeName = Objects.requireNonNull(node.getTitle(),
+				"Executed node has no title");
+		@Nullable String loggedDialogueId = null;
+		int loggedInteractionIndex = 0;
 		if (executedNode.loggedDialogue() != null) {
-			dialogueMessage.setLoggedDialogueId(executedNode.loggedDialogue()
-					.getId());
-			dialogueMessage.setLoggedInteractionIndex(
-					executedNode.interactionIndex());
+			loggedDialogueId = executedNode.loggedDialogue().getId();
+			loggedInteractionIndex = executedNode.interactionIndex();
 		}
-		dialogueMessage.setSpeaker(header.getSpeaker());
-		dialogueMessage.setStatement(generateDialogueStatement(body));
+		List<ReplyMessage> replies = new ArrayList<>();
 		for (Reply reply : body.getReplies()) {
-			dialogueMessage.addReply(generateDialogueReply(reply));
+			replies.add(generateDialogueReply(reply));
 		}
-		return dialogueMessage;
+		return new DialogueMessage(dialogueName, nodeName, loggedDialogueId,
+				loggedInteractionIndex, header.getSpeaker(),
+				generateDialogueStatement(body), replies);
 	}
 
 	private static DialogueStatement generateDialogueStatement(

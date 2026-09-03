@@ -29,6 +29,8 @@
 package com.dialoguebranch.model.execute.protocol;
 
 import com.dialoguebranch.model.execute.Node;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -44,20 +46,42 @@ import java.util.List;
  */
 public class DialogueMessage {
 
-	/** Creates an empty {@link DialogueMessage}. Required for JSON deserialization. */
-	// dialogue, node and statement have no sensible default: DialogueMessageFactory and JSON
-	// deserialization both populate them before the message is read.
-	@SuppressWarnings("NullAway.Init")
-	public DialogueMessage() {
-	}
+	private final String dialogue;
+	private final String node;
+	private final @Nullable String loggedDialogueId;
+	private final int loggedInteractionIndex;
+	private final @Nullable String speaker;
+	private final DialogueStatement statement;
+	private final List<ReplyMessage> replies;
 
-	private String dialogue;
-	private String node;
-	private @Nullable String loggedDialogueId;
-	private int loggedInteractionIndex;
-	private @Nullable String speaker;
-	private DialogueStatement statement;
-	private List<ReplyMessage> replies = new ArrayList<>();
+	/**
+	 * Creates a {@link DialogueMessage}. This is also the JSON deserialization entry point.
+	 *
+	 * @param dialogue the name of the dialogue that produced this message.
+	 * @param node the name of the node that produced this message.
+	 * @param loggedDialogueId the logged dialogue session identifier, or {@code null}.
+	 * @param loggedInteractionIndex the index of the logged interaction within the session.
+	 * @param speaker the agent (speaker) delivering this message, or {@code null}.
+	 * @param statement the {@link DialogueStatement} that makes up the message body.
+	 * @param replies the reply options, or {@code null} for none.
+	 */
+	@JsonCreator
+	public DialogueMessage(
+			@JsonProperty("dialogue") String dialogue,
+			@JsonProperty("node") String node,
+			@JsonProperty("loggedDialogueId") @Nullable String loggedDialogueId,
+			@JsonProperty("loggedInteractionIndex") int loggedInteractionIndex,
+			@JsonProperty("speaker") @Nullable String speaker,
+			@JsonProperty("statement") DialogueStatement statement,
+			@JsonProperty("replies") @Nullable List<ReplyMessage> replies) {
+		this.dialogue = dialogue;
+		this.node = node;
+		this.loggedDialogueId = loggedDialogueId;
+		this.loggedInteractionIndex = loggedInteractionIndex;
+		this.speaker = speaker;
+		this.statement = statement;
+		this.replies = replies != null ? replies : new ArrayList<>();
+	}
 
 	/**
 	 * Returns the name of the dialogue that produced this message.
@@ -65,14 +89,6 @@ public class DialogueMessage {
 	 */
 	public String getDialogue() {
 		return dialogue;
-	}
-
-	/**
-	 * Sets the name of the dialogue that produced this message.
-	 * @param dialogue the dialogue name.
-	 */
-	public void setDialogue(String dialogue) {
-		this.dialogue = dialogue;
 	}
 
 	/**
@@ -84,27 +100,11 @@ public class DialogueMessage {
 	}
 
 	/**
-	 * Sets the name of the node that produced this message.
-	 * @param node the node name.
-	 */
-	public void setNode(String node) {
-		this.node = node;
-	}
-
-	/**
 	 * Returns the identifier of the logged dialogue session, or {@code null} if not logged.
 	 * @return the logged dialogue session identifier.
 	 */
 	public @Nullable String getLoggedDialogueId() {
 		return loggedDialogueId;
-	}
-
-	/**
-	 * Sets the identifier of the logged dialogue session.
-	 * @param loggedDialogueId the logged dialogue session identifier.
-	 */
-	public void setLoggedDialogueId(String loggedDialogueId) {
-		this.loggedDialogueId = loggedDialogueId;
 	}
 
 	/**
@@ -116,27 +116,11 @@ public class DialogueMessage {
 	}
 
 	/**
-	 * Sets the index of the logged interaction within the dialogue session.
-	 * @param loggedInteractionIndex the logged interaction index.
-	 */
-	public void setLoggedInteractionIndex(int loggedInteractionIndex) {
-		this.loggedInteractionIndex = loggedInteractionIndex;
-	}
-
-	/**
 	 * Returns the name of the agent (speaker) delivering this message.
 	 * @return the speaker name.
 	 */
 	public @Nullable String getSpeaker() {
 		return speaker;
-	}
-
-	/**
-	 * Sets the name of the agent (speaker) delivering this message.
-	 * @param speaker the speaker name, or {@code null} if this message has no specific speaker.
-	 */
-	public void setSpeaker(@Nullable String speaker) {
-		this.speaker = speaker;
 	}
 
 	/**
@@ -148,14 +132,6 @@ public class DialogueMessage {
 	}
 
 	/**
-	 * Sets the {@link DialogueStatement} that makes up the body of this message.
-	 * @param statement the dialogue statement.
-	 */
-	public void setStatement(DialogueStatement statement) {
-		this.statement = statement;
-	}
-
-	/**
 	 * Returns the list of reply options presented to the user for this message.
 	 * @return the list of reply messages.
 	 */
@@ -163,19 +139,4 @@ public class DialogueMessage {
 		return replies;
 	}
 
-	/**
-	 * Sets the list of reply options for this message.
-	 * @param replies the list of reply messages.
-	 */
-	public void setReplies(List<ReplyMessage> replies) {
-		this.replies = replies;
-	}
-
-	/**
-	 * Adds a reply option to this message.
-	 * @param reply the reply to add.
-	 */
-	public void addReply(ReplyMessage reply) {
-		replies.add(reply);
-	}
 }

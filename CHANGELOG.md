@@ -178,6 +178,11 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `DialogueAction()`, `setType(...)`, `setValue(...)` and `setParameters(...)` are removed. The
   JSON wire format — `{"type":…,"value":…,"parameters":{…}}` — is unchanged and still
   round-trips (a JSON document with no `parameters` field deserializes to an empty map).
+- **Breaking:** Core: `model.execute.protocol.DialogueMessage` likewise moves to an all-args
+  `@JsonCreator` constructor with `final` fields
+  ([#121](https://github.com/dialoguebranch/platform/issues/121)); its no-arg constructor, seven
+  setters and `addReply(...)` are removed and `DialogueMessageFactory` builds the message in one
+  step. The `/dialogue/*` response JSON is unchanged.
 
 ### Fixed
 
