@@ -8,6 +8,9 @@ plugins {
 	id 'distribution'
 	id 'maven-publish'
 	id 'signing'
+	// Test-coverage reporting (assessment tooling for #90). Report only — no
+	// coverage thresholds, so it never fails the build.
+	id 'jacoco'
 	// Plugins for Publishing to the Sonatype Central Portal
 	// See: https://gradleup.com/nmcp/
 	id 'com.gradleup.nmcp' version '1.5.0'
@@ -93,6 +96,27 @@ tasks.withType(JavaCompile).configureEach {
 // src/test is deliberately not @NullMarked (see #95) — don't run NullAway over it.
 tasks.named('compileTestJava') {
 	options.errorprone.enabled = false
+}
+
+// Test-coverage reporting (#90). `./gradlew test` (and `build`) leaves a report at
+// build/reports/jacoco/test/{html,jacocoTestReport.xml}; the whole build/ dir is git-ignored.
+// The XML report is the machine-readable one a CI check / Codecov / SonarQube would consume.
+// No jacocoTestCoverageVerification — this is assessment tooling, not an enforced gate.
+jacoco {
+	toolVersion = '0.8.13'
+}
+
+tasks.named('test') {
+	finalizedBy tasks.named('jacocoTestReport')
+}
+
+tasks.named('jacocoTestReport') {
+	dependsOn tasks.named('test')
+	reports {
+		xml.required = true
+		html.required = true
+		csv.required = false
+	}
 }
 
 // javac prints only the first 100 warnings by default. Raise the cap so a temporary drop of
