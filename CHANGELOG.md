@@ -51,6 +51,15 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `VariableStore.getVariable()`, `ProjectParserResult.getProject()`. Adds an `org.jspecify:jspecify`
   dependency (annotations only, no runtime cost). Not a binary-compatible break, but downstream
   builds with strict null analysis may surface new warnings.
+- Core: the `dlb-core-java` nullness contract is now enforced in the build
+  ([#117](https://github.com/dialoguebranch/platform/issues/117)). [NullAway](https://github.com/uber/NullAway)
+  runs over `com.dialoguebranch.*` on every compile (a compile-only error-prone check, no runtime
+  or published-classpath impact) and a violation fails the build. Getting there refined roughly
+  150 further nullness spots the #95 Javadoc pass had deferred — `@Nullable` on genuinely-optional
+  values (`Variable.getValue()`, `AttributesCommand.read*Attr(...)`, `NodeParseException.getNodeTitle()`,
+  the `i18n` speaker/addressee parameters, …) and explicit guards where a value is contractually
+  present — so the contract is both more complete and machine-checked. Downstream builds with
+  strict null analysis may surface correspondingly more warnings.
 - Core: `ProjectParser` now detects orphaned nodes — a node that no reply link (internal or
   external) points to, and that isn't its own dialogue's Start node ([#105](https://github.com/dialoguebranch/platform/issues/105)).
   This can never cause a runtime error by design (a dialogue isn't required to link every node it

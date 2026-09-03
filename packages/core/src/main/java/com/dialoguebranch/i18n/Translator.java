@@ -31,7 +31,9 @@ package com.dialoguebranch.i18n;
 import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.Node;
 import com.dialoguebranch.model.execute.NodeBody;
+import com.dialoguebranch.model.execute.NodeHeader;
 import com.dialoguebranch.model.execute.VariableString;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -85,8 +87,9 @@ public class Translator {
 	public Dialogue translate(Dialogue dialogue) {
 		dialogue = new Dialogue(dialogue);
 		for (Node node : dialogue.getNodes()) {
-			translateBody(node.getHeader().getSpeaker(),
-					SourceTranslatable.USER, node.getBody());
+			NodeHeader header = Objects.requireNonNull(node.getHeader(), "Node has no header");
+			NodeBody body = Objects.requireNonNull(node.getBody(), "Node has no body");
+			translateBody(header.getSpeaker(), SourceTranslatable.USER, body);
 		}
 		return dialogue;
 	}
@@ -101,12 +104,13 @@ public class Translator {
 	 */
 	public Node translate(Node node) {
 		node = new Node(node);
-		translateBody(node.getHeader().getSpeaker(),
-				SourceTranslatable.USER, node.getBody());
+		NodeHeader header = Objects.requireNonNull(node.getHeader(), "Node has no header");
+		NodeBody body = Objects.requireNonNull(node.getBody(), "Node has no body");
+		translateBody(header.getSpeaker(), SourceTranslatable.USER, body);
 		return node;
 	}
 
-	private void translateBody(String speaker, String addressee,
+	private void translateBody(@Nullable String speaker, String addressee,
 			NodeBody body) {
 		TranslatableExtractor extractor = new TranslatableExtractor();
 		List<SourceTranslatable> translatables = extractor.extractFromBody(
@@ -181,8 +185,8 @@ public class Translator {
 		return filtered.get(0).translation();
 	}
 
-	private TranslationContext.Gender getGenderForSpeaker(String speaker) {
-		if (speaker.equals(SourceTranslatable.USER))
+	private TranslationContext.Gender getGenderForSpeaker(@Nullable String speaker) {
+		if (SourceTranslatable.USER.equals(speaker))
 			return context.getUserGender();
 		if (context.getAgentGenders().containsKey(speaker))
 			return context.getAgentGenders().get(speaker);
@@ -190,8 +194,10 @@ public class Translator {
 	}
 
 	private List<ContextTranslation> filterSpeaker(
-			List<ContextTranslation> terms, String speaker) {
+			List<ContextTranslation> terms, @Nullable String speaker) {
 		List<ContextTranslation> result = new ArrayList<>();
+		if (speaker == null)
+			return result; // no speaker context — caller falls back to the unfiltered list
 		String speakerContext = getSpeakerContext(speaker);
 		for (ContextTranslation term : terms) {
 			if (term.context().contains(speakerContext))
