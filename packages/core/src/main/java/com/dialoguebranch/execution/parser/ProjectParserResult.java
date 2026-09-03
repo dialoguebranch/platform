@@ -50,9 +50,7 @@ import java.util.Objects;
  */
 public class ProjectParserResult {
 
-	// Set by the ScriptLoader constructor or setScriptLoader() before the result is consumed.
-	@SuppressWarnings("NullAway.Init")
-	private ScriptLoader scriptLoader;
+	private final ScriptLoader scriptLoader;
 	private @Nullable ExecutableProject project = null;
 	private Map<String,List<ParseException>> parseErrors = new LinkedHashMap<>();
 	private Map<String,List<String>> warnings = new LinkedHashMap<>();
@@ -60,11 +58,6 @@ public class ProjectParserResult {
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
-
-	/**
-	 * Creates an empty instance of a {@link ProjectParserResult}.
-	 */
-	public ProjectParserResult() { }
 
 	/**
 	 * Creates an instance of a {@link ProjectParserResult} with a given {@code scriptLoader},
@@ -86,15 +79,6 @@ public class ProjectParserResult {
 	 */
 	public ScriptLoader getScriptLoader() {
 		return scriptLoader;
-	}
-
-	/**
-	 * Sets the {@link ScriptLoader} implementation that was used for generating this
-	 * {@link ProjectParserResult}.
-	 * @param scriptLoader the {@link ScriptLoader} implementation.
-	 */
-	public void setScriptLoader(ScriptLoader scriptLoader) {
-		this.scriptLoader = scriptLoader;
 	}
 
 	/**

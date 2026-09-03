@@ -162,13 +162,13 @@ public class DialogueBranchParser implements AutoCloseable {
 	 * @throws IOException if a reading error occurs
 	 */
 	public ParserResult readDialogue() throws IOException {
-		ParserResult result = new ParserResult();
+		Dialogue dialogue = new Dialogue(dialogueName);
+		this.dialogue = dialogue;
+		ParserResult result = new ParserResult(dialogue);
 		if (!dialogueName.matches(DIALOGUE_NAME_REGEX)) {
 			result.getParseErrors().add(new ParseException(
 					"Invalid dialogue name: " + dialogueName));
 		}
-		Dialogue dialogue = new Dialogue(dialogueName);
-		this.dialogue = dialogue;
 		nodePointerTokens = new ArrayList<>();
 		boolean foundNodeError = false;
 		ReadNodeResult readResult;
@@ -202,11 +202,10 @@ public class DialogueBranchParser implements AutoCloseable {
 						pointerToken.nodeTitle(), parseEx));
 			}
 		}
-		// Always expose the dialogue built so far, even if it (or a sibling node) has parse
-		// errors — e.g. so ProjectParser can still validate this dialogue's external node
-		// pointers against the rest of the project. A non-empty getParseErrors() still means
-		// this dialogue is not safe to execute or publish; callers must keep checking that.
-		result.setDialogue(dialogue);
+		// result already holds the dialogue built so far (see its constructor) — exposed even
+		// with parse errors so ProjectParser can still validate this dialogue's external node
+		// pointers against the rest of the project. A non-empty getParseErrors() still means it
+		// is not safe to execute or publish; callers must keep checking that.
 		this.dialogue = null;
 		nodePointerTokens = null;
 		return result;
