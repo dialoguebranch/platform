@@ -35,7 +35,7 @@ import com.dialoguebranch.expression.ExpressionParser;
 import com.dialoguebranch.expression.Token;
 import com.dialoguebranch.expression.Tokenizer;
 import com.dialoguebranch.io.LineColumnNumberReader;
-import nl.rrd.utils.CurrentIterator;
+import com.dialoguebranch.util.CurrentIterator;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;

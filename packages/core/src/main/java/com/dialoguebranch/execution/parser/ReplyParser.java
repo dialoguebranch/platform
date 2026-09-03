@@ -35,7 +35,7 @@ import com.dialoguebranch.model.execute.Reply;
 import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
-import nl.rrd.utils.CurrentIterator;
+import com.dialoguebranch.util.CurrentIterator;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
