@@ -40,6 +40,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.Objects;
 
 /**
  * Base class for Dialogue Branch commands whose body consists of an expression (e.g. {@code <<if>>},
@@ -66,8 +67,10 @@ public abstract class ExpressionCommand extends Command {
 			BodyToken cmdStartToken, CurrentIterator<BodyToken> tokens)
 			throws LineNumberParseException {
 		ReadContentResult result = new ReadContentResult();
-		result.lineNum = tokens.getCurrent().getLineNumber();
-		result.colNum = tokens.getCurrent().getColNumber();
+		// The iterator is positioned after the command start token by contract.
+		BodyToken contentStart = Objects.requireNonNull(tokens.getCurrent());
+		result.lineNum = contentStart.getLineNumber();
+		result.colNum = contentStart.getColNumber();
 		StringBuilder text = new StringBuilder();
 		boolean foundEnd = false;
 		while (!foundEnd && tokens.getCurrent() != null) {
@@ -212,7 +215,7 @@ public abstract class ExpressionCommand extends Command {
 					nameToken.getType(), nameToken.getLineNum(),
 					nameToken.getColNum(), lineOff, colOff);
 		}
-		result.name = nameToken.getValue().toString();
+		result.name = Objects.requireNonNull(nameToken.getValue()).toString();
 		try {
 			result.expression = parser.readExpression();
 		} catch (LineNumberParseException ex) {

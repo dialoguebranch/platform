@@ -60,6 +60,16 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   the `i18n` speaker/addressee parameters, …) and explicit guards where a value is contractually
   present — so the contract is both more complete and machine-checked. Downstream builds with
   strict null analysis may surface correspondingly more warnings.
+- Core: the expression engine vendored from `rrd-utils` in #102
+  (`com.dialoguebranch.expression` / `.expression.types` / `.io` / `.util`) is now under the same
+  `@NullMarked` + NullAway contract as the rest of `dlb-core-java`
+  ([#121](https://github.com/dialoguebranch/platform/issues/121)) — it had been excluded from the
+  check. Its genuinely-nullable public surface is now `@Nullable`: `Value.getValue()` and the
+  `Value(...)` constructor, `Token.getValue()`, `Expression.evaluate(...)`'s `variables` argument,
+  `ExpressionParser.readExpression()` / `readOperand()`, and `CurrentIterator.getCurrent()`.
+  Evaluation behaviour is unchanged. The two intricate state-machine classes (`Tokenizer`,
+  `ExpressionParser`) and `Value` / `LineColumnNumberReader` keep a class-level NullAway
+  suppression for their internal dataflow; documenting the engine's members is still open on #121.
 - Core: `ProjectParser` now detects orphaned nodes — a node that no reply link (internal or
   external) points to, and that isn't its own dialogue's Start node ([#105](https://github.com/dialoguebranch/platform/issues/105)).
   This can never cause a runtime error by design (a dialogue isn't required to link every node it

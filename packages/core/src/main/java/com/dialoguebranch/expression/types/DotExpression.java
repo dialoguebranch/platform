@@ -36,6 +36,7 @@ import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.expression.Expression;
 import com.dialoguebranch.expression.Token;
 import com.dialoguebranch.expression.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
@@ -57,7 +58,7 @@ public class DotExpression implements Expression {
 	}
 
 	@Override
-	public Value evaluate(Map<String,Object> variables)
+	public Value evaluate(@Nullable Map<String,Object> variables)
 			throws EvaluationException {
 		Value parent = parentOperand.evaluate(variables);
 		if (!parent.isMap()) {
@@ -65,11 +66,11 @@ public class DotExpression implements Expression {
 					"Dot parent must be a map, found: " +
 					parent.getTypeString());
 		}
-		Map<?,?> map = (Map<?,?>)parent.getValue();
+		Map<?,?> map = (Map<?,?>) Objects.requireNonNull(parent.getValue());
 		String name = null;
 		if (dotOperand instanceof ValueExpression valueExpr) {
 			if (valueExpr.getToken().getType() == Token.Type.NAME) {
-				name = valueExpr.getToken().getValue().toString();
+				name = Objects.requireNonNull(valueExpr.getToken().getValue()).toString();
 			}
 		}
 		if (name == null) {

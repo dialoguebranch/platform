@@ -32,6 +32,8 @@
 
 package com.dialoguebranch.expression;
 
+import org.jspecify.annotations.Nullable;
+
 public class Token {
 	public enum Type {
 		// operator tokens
@@ -73,15 +75,15 @@ public class Token {
 		DOLLAR_VARIABLE
 	}
 
-	private Type type;
-	private String text;
-	private int lineNum;
-	private int colNum;
-	private long position;
-	private Value value;
+	private final Type type;
+	private final String text;
+	private final int lineNum;
+	private final int colNum;
+	private final long position;
+	private final @Nullable Value value;
 
 	public Token(Type type, String text, int lineNum, int colNum, long position,
-			Value value) {
+			@Nullable Value value) {
 		this.type = type;
 		this.text = text;
 		this.lineNum = lineNum;
@@ -110,7 +112,7 @@ public class Token {
 		return position;
 	}
 
-	public Value getValue() {
+	public @Nullable Value getValue() {
 		return value;
 	}
 

@@ -8,10 +8,6 @@
  *
  *                                            ----------
  *
- * Portions of this file are vendored from the rrd-utils library
- * (https://github.com/RoessinghResearch/rrd-utils), used under the MIT License.
- *
- * Copyright (c) 2022 Roessingh Research and Development
  * Copyright (c) 2023-2026 Fruit Tree Labs (www.fruittreelabs.com)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
@@ -30,37 +26,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.dialoguebranch.expression.types;
 
-import com.dialoguebranch.expression.EvaluationException;
-import com.dialoguebranch.expression.Expression;
-import com.dialoguebranch.expression.Value;
-import org.jspecify.annotations.Nullable;
+/**
+ * General-purpose utilities. {@link com.dialoguebranch.util.CurrentIterator} is a cursor-style
+ * iterator wrapper that exposes the current element rather than advancing to the next.
+ * Vendored from rrd-utils in #102.
+ */
+@NullMarked
+package com.dialoguebranch.util;
 
-import java.util.*;
-
-public class OrExpression extends BinaryExpression {
-	public OrExpression(Expression operand1, Expression operand2) {
-		super(operand1, operand2);
-	}
-
-	@Override
-	public Value evaluate(@Nullable Map<String,Object> variables)
-			throws EvaluationException {
-		Value val1 = operand1.evaluate(variables);
-		if (val1.asBoolean())
-			return new Value(true);
-		Value val2 = operand2.evaluate(variables);
-		return new Value(val2.asBoolean());
-	}
-
-	@Override
-	public String toString() {
-		return operand1 + " || " + operand2;
-	}
-
-	@Override
-	public String toCode() {
-		return operand1.toCode() + " || " + operand2.toCode();
-	}
-}
+import org.jspecify.annotations.NullMarked;

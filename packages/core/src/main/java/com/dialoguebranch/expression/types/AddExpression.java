@@ -35,6 +35,7 @@ package com.dialoguebranch.expression.types;
 import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.expression.Expression;
 import com.dialoguebranch.expression.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
@@ -44,7 +45,7 @@ public class AddExpression extends BinaryExpression {
 	}
 
 	@Override
-	public Value evaluate(Map<String,Object> variables)
+	public Value evaluate(@Nullable Map<String,Object> variables)
 			throws EvaluationException {
 		Value val1 = operand1.evaluate(variables);
 		Value val2 = operand2.evaluate(variables);
@@ -77,8 +78,8 @@ public class AddExpression extends BinaryExpression {
 					nonMap.getTypeString());
 		}
 		Map<String,Object> result = new LinkedHashMap<>();
-		Map<?,?> map1 = (Map<?,?>)val1.getValue();
-		Map<?,?> map2 = (Map<?,?>)val2.getValue();
+		Map<?,?> map1 = (Map<?,?>) Objects.requireNonNull(val1.getValue());
+		Map<?,?> map2 = (Map<?,?>) Objects.requireNonNull(val2.getValue());
 		for (Object key : map1.keySet()) {
 			result.put((String)key, map1.get(key));
 		}
@@ -91,12 +92,12 @@ public class AddExpression extends BinaryExpression {
 	private Value mergeLists(Value val1, Value val2) {
 		List<?> list1;
 		if (val1.isList())
-			list1 = (List<?>)val1.getValue();
+			list1 = (List<?>) Objects.requireNonNull(val1.getValue());
 		else
 			list1 = Collections.singletonList(val1.getValue());
 		List<?> list2;
 		if (val2.isList())
-			list2 = (List<?>)val2.getValue();
+			list2 = (List<?>) Objects.requireNonNull(val2.getValue());
 		else
 			list2 = Collections.singletonList(val2.getValue());
 		List<Object> result = new ArrayList<>(list1);

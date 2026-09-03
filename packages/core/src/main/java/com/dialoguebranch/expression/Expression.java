@@ -43,6 +43,7 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.List;
@@ -85,7 +86,7 @@ public interface Expression {
 	 * @throws EvaluationException if the expression can't be evaluted with
 	 * the specified variables
 	 */
-	Value evaluate(Map<String,Object> variables) throws EvaluationException;
+	Value evaluate(@Nullable Map<String,Object> variables) throws EvaluationException;
 
 	/**
 	 * Returns the child expressions of this expression.
@@ -135,12 +136,12 @@ public interface Expression {
 
 	class ExpressionDeserializer extends JsonDeserializer<Expression> {
 		@Override
-		public Expression deserialize(JsonParser jsonParser,
+		public @Nullable Expression deserialize(JsonParser jsonParser,
 				DeserializationContext deserializationContext)
 				throws IOException, JacksonException {
 			String s = jsonParser.getValueAsString();
 			ExpressionParser parser = new ExpressionParser(s);
-			Expression expr1, expr2;
+			@Nullable Expression expr1, expr2;
 			try {
 				expr1 = parser.readExpression();
 				expr2 = parser.readExpression();

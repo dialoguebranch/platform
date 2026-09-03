@@ -35,6 +35,7 @@ package com.dialoguebranch.expression.types;
 import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.expression.Expression;
 import com.dialoguebranch.expression.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
@@ -44,21 +45,21 @@ public class SubtractExpression extends BinaryExpression {
 	}
 
 	@Override
-	public Value evaluate(Map<String,Object> variables)
+	public Value evaluate(@Nullable Map<String,Object> variables)
 			throws EvaluationException {
 		Value val1 = operand1.evaluate(variables);
 		Value val2 = operand2.evaluate(variables);
 		if (val1.isMap()) {
-			Map<?,?> map = (Map<?,?>)val1.getValue();
+			Map<?,?> map = (Map<?,?>) Objects.requireNonNull(val1.getValue());
 			if (val2.isList())
-				subtractMap(map, (List<?>)val2.getValue());
+				subtractMap(map, (List<?>) Objects.requireNonNull(val2.getValue()));
 			else
 				removeFromMap(map, val2);
 			return new Value(map);
 		} else if (val1.isList()) {
-			List<?> list = (List<?>)val1.getValue();
+			List<?> list = (List<?>) Objects.requireNonNull(val1.getValue());
 			if (val2.isList())
-				subtractList(list, (List<?>)val2.getValue());
+				subtractList(list, (List<?>) Objects.requireNonNull(val2.getValue()));
 			else
 				removeFromList(list, val2);
 			return new Value(list);

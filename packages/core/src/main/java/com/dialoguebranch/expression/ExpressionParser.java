@@ -36,6 +36,7 @@ import com.dialoguebranch.exception.LineNumberParseException;
 import com.dialoguebranch.exception.ParseException;
 import com.dialoguebranch.expression.types.*;
 import com.dialoguebranch.io.LineColumnNumberReader;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -54,6 +55,11 @@ import java.util.List;
  *
  * @author Dennis Hofs (RRD)
  */
+// Like Tokenizer, this is an intricate recursive-descent parser vendored verbatim from rrd-utils
+// in #102; its internal state is non-null by construction in ways NullAway cannot follow. Its
+// public surface is annotated honestly (readExpression()/readOperand() return null at end of
+// input when not required); the internal mechanics are exempt. See #121.
+@SuppressWarnings("NullAway")
 public class ExpressionParser {
 	private ExpressionParserConfig config;
 	private LineColumnNumberReader reader;
@@ -113,7 +119,7 @@ public class ExpressionParser {
 	 * @throws LineNumberParseException if a parse error occurs
 	 * @throws IOException if a reading error occurs
 	 */
-	public Expression readExpression() throws LineNumberParseException,
+	public @Nullable Expression readExpression() throws LineNumberParseException,
 			IOException {
 		if (lookAheadState != null)
 			reader.clearRestoreState(lookAheadState);
@@ -129,7 +135,7 @@ public class ExpressionParser {
 	 * @throws LineNumberParseException if a parse error occurs
 	 * @throws IOException if a reading error occurs
 	 */
-	public Expression readOperand() throws LineNumberParseException,
+	public @Nullable Expression readOperand() throws LineNumberParseException,
 			IOException {
 		if (lookAheadState != null)
 			reader.clearRestoreState(lookAheadState);

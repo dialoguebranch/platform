@@ -35,6 +35,7 @@ package com.dialoguebranch.expression;
 import com.dialoguebranch.exception.LineNumberParseException;
 import com.dialoguebranch.expression.Token.Type;
 import com.dialoguebranch.io.LineColumnNumberReader;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -59,24 +60,32 @@ import java.util.regex.Pattern;
  *
  * @author Dennis Hofs (RRD)
  */
+// The tokenizer is an intricate char-by-char state machine vendored verbatim from rrd-utils in
+// #102; its internal fields and helpers are non-null by construction in ways NullAway cannot
+// follow. Its public surface (readToken() -> @Nullable Token) is annotated honestly; the internal
+// mechanics are exempt. See #121.
+@SuppressWarnings("NullAway")
 public class Tokenizer {
-	private LineColumnNumberReader reader;
-	private ExpressionParserConfig config = new ExpressionParserConfig();
+	private final LineColumnNumberReader reader;
+	private final ExpressionParserConfig config = new ExpressionParserConfig();
 
 	private int currTokenLineNum;
 	private int currTokenColNum;
 	private long currTokenPos;
-	private List<NameOrFixedToken> fixedTokens = null;
+	private @Nullable List<NameOrFixedToken> fixedTokens = null;
 	private StringBuilder buffer = new StringBuilder();
 
+	// Working state for one readToken() scan; assigned before it is read on each scan.
+	@SuppressWarnings("NullAway.Init")
 	private List<NameOrFixedToken> candidateNameOrFixedTokens;
 
+	@SuppressWarnings("NullAway.Init")
 	private StringBuilder stringValue;
-	private StringBuilder stringEscape = null;
+	private @Nullable StringBuilder stringEscape = null;
 
-	private NumberPos numberPos = null;
+	private @Nullable NumberPos numberPos = null;
 
-	private Object lookAheadState = null;
+	private @Nullable Object lookAheadState = null;
 
 	public Tokenizer(String input) {
 		this(new StringReader(input));
@@ -159,7 +168,7 @@ public class Tokenizer {
 	 * @throws LineNumberParseException if a parse error occurs
 	 * @throws IOException if a reading error occurs
 	 */
-	public Token readToken() throws LineNumberParseException, IOException {
+	public @Nullable Token readToken() throws LineNumberParseException, IOException {
 		if (lookAheadState != null)
 			reader.clearRestoreState(lookAheadState);
 		lookAheadState = reader.getRestoreState();
@@ -295,7 +304,7 @@ public class Tokenizer {
 		}
 	}
 
-	private NameOrFixedToken findCompleteFixedToken() {
+	private @Nullable NameOrFixedToken findCompleteFixedToken() {
 		for (NameOrFixedToken token : candidateNameOrFixedTokens) {
 			if (token.token != Token.Type.NAME &&
 					buffer.length() == token.text.length()) {
@@ -305,7 +314,7 @@ public class Tokenizer {
 		return null;
 	}
 
-	private NameOrFixedToken findCompleteNameOrFixedToken() {
+	private @Nullable NameOrFixedToken findCompleteNameOrFixedToken() {
 		NameOrFixedToken fixedToken = findCompleteFixedToken();
 		if (fixedToken != null)
 			return fixedToken;
@@ -578,7 +587,7 @@ public class Tokenizer {
 	 * @throws LineNumberParseException if the character is not accepted and
 	 * the number token can't be completed
 	 */
-	private Token parseNumberChar(char c) throws LineNumberParseException {
+	private @Nullable Token parseNumberChar(char c) throws LineNumberParseException {
 		if (numberPos == null) {
 			if (c == '-') {
 				numberPos = NumberPos.AFTER_MAIN_SIGN;
