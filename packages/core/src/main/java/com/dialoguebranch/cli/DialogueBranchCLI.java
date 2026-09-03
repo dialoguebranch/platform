@@ -428,8 +428,7 @@ public class DialogueBranchCLI {
 		User user = new User("cli-user");
 		VariableStore variableStore = new VariableStore(user);
 
-		ActiveDialogue activeDialogue = new ActiveDialogue(pointer, dialogue);
-		activeDialogue.setVariableStore(variableStore);
+		ActiveDialogue activeDialogue = new ActiveDialogue(pointer, dialogue, variableStore);
 
 		System.out.println("\n============================================================");
 		System.out.println(" Executing: " + pointer.getDialogueName()

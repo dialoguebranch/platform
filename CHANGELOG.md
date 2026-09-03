@@ -155,6 +155,11 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `final` and the `@SuppressWarnings("NullAway.Init")` markers are gone. `ParserResult()` /
   `ParserResult.setDialogue(...)` and `ProjectParserResult()` / `setScriptLoader(...)` are
   removed; both types are only ever handed back by the parser, never constructed by callers.
+- Core: `execution.ActiveDialogue` now takes its `VariableStore` as a third constructor argument
+  ([#121](https://github.com/dialoguebranch/platform/issues/121)) — previously the field was set
+  by a mandatory `setVariableStore(...)` call right after construction. The two-argument
+  constructor is removed. `setVariableStore(...)` is kept for the one case that genuinely
+  re-points the store (re-attaching a persisted `DialogueState` to a fresh user session).
 
 ### Fixed
 

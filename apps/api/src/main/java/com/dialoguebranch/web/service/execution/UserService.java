@@ -646,8 +646,7 @@ public class UserService {
 							nodeId, dialogueName));
 		}
 		ActiveDialogue activeDialogue = new ActiveDialogue(
-				dialogueDescription, dialogueDefinition);
-		activeDialogue.setVariableStore(variableStore);
+				dialogueDescription, dialogueDefinition, variableStore);
 		activeDialogue.setCurrentNode(node);
 		return new DialogueState(dialogueDescription, dialogueDefinition,
 				loggedDialogue, loggedInteractionIndex, activeDialogue);
