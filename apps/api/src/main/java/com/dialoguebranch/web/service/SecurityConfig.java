@@ -89,6 +89,11 @@ public class SecurityConfig {
 	 */
 	public SecurityConfig(DlbProperties dlbProperties) {
 		this.dlbProperties = dlbProperties;
+		// QueryRunner is a static utility and cannot inject DlbProperties, so seed it here (once,
+		// during context startup, before any request is handled) with the configured client id
+		// whose resource_access entry carries this service's roles. See issue #104.
+		QueryRunner.setResourceAccessClientId(
+				dlbProperties.getAuth().getKeycloak().getClientId());
 	}
 
 	/**

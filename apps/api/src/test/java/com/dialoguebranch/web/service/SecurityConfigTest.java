@@ -1,7 +1,15 @@
 package com.dialoguebranch.web.service;
 
+import com.dialoguebranch.web.service.auth.AuthenticationInfo;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.oauth2.jwt.Jwt;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -66,5 +74,49 @@ class SecurityConfigTest {
 	void doesNotTrustARealmThatMerelyContainsTheAdminRealmNameAsAPrefixWithoutTheSeparator() {
 		// "Acmecorp" must not be confused for an "Acme"-prefixed tenant realm.
 		assertFalse(SecurityConfig.isTrustedRealm("Acmecorp", "Acme"));
+	}
+
+	// --- dlb.auth.keycloak.client-id → QueryRunner role extraction (issue #104) ---
+
+	@AfterEach
+	void restoreDefaultResourceAccessClientId() {
+		QueryRunner.setResourceAccessClientId("dlb-web-service");
+	}
+
+	@Test
+	void constructorSeedsQueryRunnerWithTheConfiguredClientId() {
+		DlbProperties props = new DlbProperties();
+		props.getAuth().getKeycloak().setClientId("acme-portal");
+
+		new SecurityConfig(props);
+
+		AuthenticationInfo info = QueryRunner.authenticationInfoFromKeycloakJwt(
+				jwtWithResourceAccess("acme-portal", "admin"));
+		assertArrayEquals(new String[] {"admin"}, info.getRoles(),
+				"roles under the configured client id should be picked up");
+
+		AuthenticationInfo wrongKey = QueryRunner.authenticationInfoFromKeycloakJwt(
+				jwtWithResourceAccess("dlb-web-service", "admin"));
+		assertArrayEquals(new String[0], wrongKey.getRoles(),
+				"roles under the old hardcoded key should be ignored once a different id is configured");
+	}
+
+	@Test
+	void constructorSeedsTheDefaultClientIdForAnUnconfiguredDeployment() {
+		new SecurityConfig(new DlbProperties());
+
+		AuthenticationInfo info = QueryRunner.authenticationInfoFromKeycloakJwt(
+				jwtWithResourceAccess("dlb-web-service", "editor"));
+		assertArrayEquals(new String[] {"editor"}, info.getRoles());
+	}
+
+	private static Jwt jwtWithResourceAccess(String clientId, String... roles) {
+		return Jwt.withTokenValue("token")
+				.header("alg", "RS256")
+				.issuedAt(Instant.now())
+				.expiresAt(Instant.now().plusSeconds(300))
+				.claim("preferred_username", "alice")
+				.claim("resource_access", Map.of(clientId, Map.of("roles", List.of(roles))))
+				.build();
 	}
 }

@@ -54,8 +54,27 @@ public class QueryRunner {
 
 	private static final Logger logger = LoggerFactory.getLogger(QueryRunner.class);
 
+	/**
+	 * The Keycloak client whose {@code resource_access} entry carries this service's client
+	 * roles — i.e. {@code dlb.auth.keycloak.client-id}. Seeded once by {@link SecurityConfig} at
+	 * startup; the {@code "dlb-web-service"} default matches the property's own default, so an
+	 * unconfigured deployment is unaffected.
+	 */
+	private static volatile String resourceAccessClientId = "dlb-web-service";
+
 	/** Utility class — not instantiated. */
 	private QueryRunner() { }
+
+	/**
+	 * Sets the Keycloak client id whose {@code resource_access} entry {@link #authenticationInfoFromKeycloakJwt}
+	 * reads the caller's roles from. Called by {@link SecurityConfig} at startup with
+	 * {@code dlb.auth.keycloak.client-id}.
+	 *
+	 * @param clientId the configured Keycloak client id.
+	 */
+	static void setResourceAccessClientId(String clientId) {
+		resourceAccessClientId = clientId;
+	}
 
 	/**
 	 * Runs a query, first requiring that the authenticated user holds {@code requiredPermission}
@@ -162,7 +181,9 @@ public class QueryRunner {
 
 	/**
 	 * Converts a Spring Security {@link Jwt} (issued by Keycloak) into an {@link AuthenticationInfo}
-	 * by extracting the {@code preferred_username} and {@code resource_access} claims.
+	 * by extracting the {@code preferred_username} claim and the client roles from
+	 * {@code resource_access.<client-id>.roles}, where {@code <client-id>} is the configured
+	 * {@code dlb.auth.keycloak.client-id} (see {@link #setResourceAccessClientId}).
 	 *
 	 * @param jwt the validated Keycloak JWT
 	 * @return the corresponding {@link AuthenticationInfo}
@@ -182,15 +203,18 @@ public class QueryRunner {
 			return new String[0];
 		}
 
-		Object serviceEntry = resourceAccess.get("dlb-web-service");
+		Object serviceEntry = resourceAccess.get(resourceAccessClientId);
 		if (!(serviceEntry instanceof Map<?, ?> serviceRoles)) {
-			logger.warn("No dlb-web-service entry in resource_access claim — user has no roles.");
+			logger.warn("resource_access claim has no \"{}\" entry (present: {}) — user has no " +
+					"roles. Check that dlb.auth.keycloak.client-id matches the Keycloak client " +
+					"the token was issued for.", resourceAccessClientId, resourceAccess.keySet());
 			return new String[0];
 		}
 
 		Object rolesList = serviceRoles.get("roles");
 		if (!(rolesList instanceof List<?> rawList)) {
-			logger.warn("No roles list found under dlb-web-service in resource_access claim — user has no roles.");
+			logger.warn("resource_access.\"{}\" has no roles list — user has no roles.",
+					resourceAccessClientId);
 			return new String[0];
 		}
 

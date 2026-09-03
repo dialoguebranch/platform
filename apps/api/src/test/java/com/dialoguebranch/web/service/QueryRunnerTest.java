@@ -1,5 +1,6 @@
 package com.dialoguebranch.web.service;
 
+import com.dialoguebranch.web.service.auth.AuthenticationInfo;
 import com.dialoguebranch.web.service.auth.Permission;
 import com.dialoguebranch.web.service.exception.ErrorCode;
 import com.dialoguebranch.web.service.exception.ForbiddenException;
@@ -15,6 +16,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -30,6 +32,9 @@ class QueryRunnerTest {
 	@AfterEach
 	void clearContext() {
 		SecurityContextHolder.clearContext();
+		// resourceAccessClientId is a static seeded by SecurityConfig at startup; reset it so a
+		// test that changes it does not leak into the rest of the suite.
+		QueryRunner.setResourceAccessClientId("dlb-web-service");
 	}
 
 	@Test
@@ -75,14 +80,48 @@ class QueryRunnerTest {
 						"1", new MockHttpServletResponse(), "", Permission.PROJECT_CREATE));
 	}
 
+	@Test
+	void rolesAreReadFromTheConfiguredResourceAccessClient() {
+		QueryRunner.setResourceAccessClientId("acme-portal");
+
+		AuthenticationInfo info = QueryRunner.authenticationInfoFromKeycloakJwt(
+				keycloakJwtForClient("acme-portal", "editor", "participant"));
+
+		assertArrayEquals(new String[] {"editor", "participant"}, info.getRoles());
+	}
+
+	@Test
+	void rolesUnderADifferentClientKeyAreIgnored() {
+		QueryRunner.setResourceAccessClientId("acme-portal");
+
+		// Token carries roles under "dlb-web-service", but this deployment is configured for
+		// "acme-portal" — the roles must not be picked up.
+		AuthenticationInfo info = QueryRunner.authenticationInfoFromKeycloakJwt(
+				keycloakJwtForClient("dlb-web-service", "admin"));
+
+		assertArrayEquals(new String[0], info.getRoles());
+	}
+
+	@Test
+	void theDefaultClientKeyIsDlbWebService() {
+		AuthenticationInfo info = QueryRunner.authenticationInfoFromKeycloakJwt(
+				keycloakJwt("admin"));
+
+		assertArrayEquals(new String[] {"admin"}, info.getRoles());
+	}
+
 	private static Jwt keycloakJwt(String... roles) {
+		return keycloakJwtForClient("dlb-web-service", roles);
+	}
+
+	private static Jwt keycloakJwtForClient(String resourceAccessClient, String... roles) {
 		return Jwt.withTokenValue("token")
 				.header("alg", "RS256")
 				.issuedAt(Instant.now())
 				.expiresAt(Instant.now().plusSeconds(300))
 				.claim("preferred_username", "alice")
 				.claim("resource_access",
-						Map.of("dlb-web-service", Map.of("roles", List.of(roles))))
+						Map.of(resourceAccessClient, Map.of("roles", List.of(roles))))
 				.build();
 	}
 }
