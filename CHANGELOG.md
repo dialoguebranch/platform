@@ -95,6 +95,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 - Studio's "you can't do this" tooltips on gated actions (Publish / Configure / Export project,
   Import / New project) no longer name a specific role — they now read "You don't have permission
   to …", so they stay correct if the role a capability requires ever changes.
+- Core: replaced `rrd-utils`' `I18nLanguageFinder` with a small native
+  `com.dialoguebranch.i18n.LanguageFinder` built on `java.util.Locale` RFC 4647 lookup, as the
+  first step of dropping the `nl.rrd:rrd-utils` dependency from `dlb-core-java`
+  ([#102](https://github.com/dialoguebranch/platform/issues/102)). Picking the source language
+  for a multi-language project when the project metadata doesn't name one now also accepts a
+  region-qualified tag for a generic request (a project shipping only `en-US` satisfies the
+  English fallback where before it did not); exact-match and no-match behaviour is unchanged.
 
 ### Fixed
 
