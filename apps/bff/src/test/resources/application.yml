@@ -10,6 +10,9 @@ dlb:
     keycloak-realm: dialoguebranch
     api-base-url: http://localhost:8089/dlb-web-service
     web-service-client-id: dlb-web-service
+    # An explicit non-"/" value so a logout test can assert it is sent to Keycloak as the
+    # post_logout_redirect_uri (with "/", SecurityConfig substitutes "{baseUrl}/" instead).
+    post-login-redirect-url: http://localhost:5173/
     # Read via @Value in SecurityConfig (session-max-age) and the server.servlet.session block
     # in the main application.yml (session-timeout) — must be present for the context to load.
     session-timeout: 7d
