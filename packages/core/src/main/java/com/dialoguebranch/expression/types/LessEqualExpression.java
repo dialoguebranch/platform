@@ -35,6 +35,7 @@ package com.dialoguebranch.expression.types;
 import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.expression.Expression;
 import com.dialoguebranch.expression.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
@@ -44,7 +45,7 @@ public class LessEqualExpression extends BinaryExpression {
 	}
 
 	@Override
-	public Value evaluate(Map<String,Object> variables)
+	public Value evaluate(@Nullable Map<String,Object> variables)
 			throws EvaluationException {
 		Value[] vals = new Value[2];
 		vals[0] = operand1.evaluate(variables);

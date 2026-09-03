@@ -32,6 +32,8 @@
 
 package com.dialoguebranch.util;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.Iterator;
 
 /**
@@ -46,8 +48,8 @@ import java.util.Iterator;
  * @param <T> the type of elements in the iterator
  */
 public class CurrentIterator<T> {
-	private Iterator<? extends T> iterator;
-	private T current = null;
+	private final Iterator<? extends T> iterator;
+	private @Nullable T current = null;
 
 	/**
 	 * Constructs a new instance. The iterator will be positioned before the first element.
@@ -65,7 +67,7 @@ public class CurrentIterator<T> {
 	 *
 	 * @return the current element (can be null)
 	 */
-	public T getCurrent() {
+	public @Nullable T getCurrent() {
 		return current;
 	}
 

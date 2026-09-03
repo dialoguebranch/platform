@@ -37,6 +37,7 @@ import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.expression.Expression;
 import com.dialoguebranch.expression.Token;
 import com.dialoguebranch.expression.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
@@ -60,7 +61,7 @@ public class AssignExpression implements Expression {
 					operator.getLineNum(), operator.getColNum());
 		}
 		this.variableOperand = variableOperand;
-		this.variableName = variableToken.getValue().toString();
+		this.variableName = Objects.requireNonNull(variableToken.getValue()).toString();
 		this.valueOperand = valueOperand;
 	}
 
@@ -77,7 +78,7 @@ public class AssignExpression implements Expression {
 	}
 
 	@Override
-	public Value evaluate(Map<String, Object> variables)
+	public Value evaluate(@Nullable Map<String,Object> variables)
 			throws EvaluationException {
 		Value result = valueOperand.evaluate(variables);
 		if (variables != null)

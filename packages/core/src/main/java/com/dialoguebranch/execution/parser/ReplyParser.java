@@ -94,7 +94,8 @@ public class ReplyParser {
 	private void readSections(CurrentIterator<BodyToken> tokens)
 			throws LineNumberParseException {
 		int maxSections = 3;
-		BodyToken startToken = tokens.getCurrent();
+		// The iterator is positioned at the reply start token by contract.
+		BodyToken startToken = Objects.requireNonNull(tokens.getCurrent());
 		tokens.moveNext();
 		List<ReplySection> sections = new ArrayList<>();
 		ReplySection currSection = new ReplySection();

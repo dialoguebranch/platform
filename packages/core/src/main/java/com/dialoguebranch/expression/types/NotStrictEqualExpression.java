@@ -35,6 +35,7 @@ package com.dialoguebranch.expression.types;
 import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.expression.Expression;
 import com.dialoguebranch.expression.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
@@ -44,7 +45,7 @@ public class NotStrictEqualExpression extends BinaryExpression {
 	}
 
 	@Override
-	public Value evaluate(Map<String,Object> variables)
+	public Value evaluate(@Nullable Map<String,Object> variables)
 			throws EvaluationException {
 		Value val1 = operand1.evaluate(variables);
 		Value val2 = operand2.evaluate(variables);

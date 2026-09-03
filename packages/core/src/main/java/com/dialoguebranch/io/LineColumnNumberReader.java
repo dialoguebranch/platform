@@ -43,6 +43,10 @@ import java.util.List;
  *
  * @author Dennis Hofs (RRD)
  */
+// A buffered reader with a mark / restore state machine, vendored verbatim from rrd-utils in
+// #102. Its buffers are nulled on close() and its restore-state records are populated by the
+// mark protocol in ways NullAway cannot follow. See #121.
+@SuppressWarnings("NullAway")
 public class LineColumnNumberReader extends Reader {
 	private Reader reader;
 

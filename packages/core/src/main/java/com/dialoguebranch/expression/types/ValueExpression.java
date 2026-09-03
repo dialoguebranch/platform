@@ -36,6 +36,7 @@ import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.expression.Expression;
 import com.dialoguebranch.expression.Token;
 import com.dialoguebranch.expression.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
@@ -51,16 +52,16 @@ public class ValueExpression implements Expression {
 	}
 
 	@Override
-	public Value evaluate(Map<String,Object> variables)
+	public Value evaluate(@Nullable Map<String,Object> variables)
 			throws EvaluationException {
 		if (token.getType() == Token.Type.NAME ||
 				token.getType() == Token.Type.DOLLAR_VARIABLE) {
 			if (variables == null)
 				return new Value(null);
 			else
-				return new Value(variables.get(token.getValue().toString()));
+				return new Value(variables.get(Objects.requireNonNull(token.getValue()).toString()));
 		} else {
-			return token.getValue();
+			return Objects.requireNonNull(token.getValue());
 		}
 	}
 
@@ -83,7 +84,7 @@ public class ValueExpression implements Expression {
 		Set<String> result = new HashSet<>();
 		if (token.getType() == Token.Type.NAME ||
 				token.getType() == Token.Type.DOLLAR_VARIABLE) {
-			result.add(token.getValue().toString());
+			result.add(Objects.requireNonNull(token.getValue()).toString());
 		}
 		return result;
 	}

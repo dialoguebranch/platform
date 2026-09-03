@@ -81,18 +81,12 @@ tasks.withType(JavaCompile).configureEach {
 	// NullAway enforces the JSpecify nullness contract (#95) on our own code only. The rest
 	// of error-prone's bug patterns are out of scope for #117, so everything else is off.
 	// Severity is ERROR: the #117 audit is complete, so a new nullness violation must fail
-	// the build.
-	//
-	// com.dialoguebranch.expression / .io / .util are the expression engine, its line/column
-	// reader and CurrentIterator, all vendored verbatim from rrd-utils in #102. They are not
-	// written to the JSpecify contract; null-marking them is tracked as a follow-up (#121).
-	// Until then they are excluded from NullAway.
+	// the build. The expression engine vendored from rrd-utils in #102
+	// (com.dialoguebranch.expression / .io / .util) was brought under the same contract in #121.
 	options.errorprone {
 		disableAllChecks = true
 		check('NullAway', CheckSeverity.ERROR)
 		option('NullAway:AnnotatedPackages', 'com.dialoguebranch')
-		option('NullAway:UnannotatedSubPackages',
-				'com.dialoguebranch.expression,com.dialoguebranch.io,com.dialoguebranch.util')
 	}
 }
 
@@ -113,6 +107,11 @@ javadoc {
 	include 'com/dialoguebranch/**'
 	options.source = "17"
 	options.addStringOption('Xmaxwarns', '1000')
+	// Keep all doclint checks (broken @links, malformed HTML, param/return mismatches — the
+	// ones that catch real doc bugs) but not "missing": the expression engine vendored from
+	// rrd-utils in #102 (~30 classes) has no member-level javadoc, and inventing ~150 boilerplate
+	// comments for it adds no value. Documenting it properly is a separate task (#121).
+	options.addBooleanOption('Xdoclint:all,-missing', true)
 }
 
 dependencies {

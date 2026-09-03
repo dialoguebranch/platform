@@ -35,6 +35,7 @@ package com.dialoguebranch.expression.types;
 import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.expression.Expression;
 import com.dialoguebranch.expression.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
@@ -44,7 +45,7 @@ public class InExpression extends BinaryExpression {
 	}
 
 	@Override
-	public Value evaluate(Map<String,Object> variables)
+	public Value evaluate(@Nullable Map<String,Object> variables)
 			throws EvaluationException {
 		Value needle = operand1.evaluate(variables);
 		Value collection = operand2.evaluate(variables);
@@ -61,7 +62,7 @@ public class InExpression extends BinaryExpression {
 			}
 			return new Value(collection.toString().contains(needle.toString()));
 		} else {
-			List<?> list = (List<?>)collection.getValue();
+			List<?> list = (List<?>) Objects.requireNonNull(collection.getValue());
 			for (Object item : list) {
 				if (new Value(item).isEqual(needle))
 					return new Value(true);

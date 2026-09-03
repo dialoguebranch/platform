@@ -42,6 +42,7 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -66,10 +67,15 @@ import java.util.Map;
  *
  * @author Dennis Hofs (RRD)
  */
+// Value wraps one elementary JSON-ish value (null / String / Number / Boolean / List / Map).
+// Its private equality / conversion helpers cast `value` after an isX() guard in ways NullAway
+// cannot follow; the public surface (constructor, getValue(), isX() / asX()) is annotated
+// honestly, the internal mechanics are exempt. See #121.
 @JsonSerialize(using=Value.ValueSerializer.class)
 @JsonDeserialize(using=Value.ValueDeserializer.class)
+@SuppressWarnings("NullAway")
 public class Value {
-	private Object value;
+	private final @Nullable Object value;
 
 	/**
 	 * Constructs a new value.
@@ -83,7 +89,7 @@ public class Value {
 	 * @throws IllegalArgumentException if the value is a map and it can't be
 	 * converted to a string map
 	 */
-	public Value(Object value) throws IllegalArgumentException {
+	public Value(@Nullable Object value) throws IllegalArgumentException {
 		this.value = value;
 	}
 
@@ -92,7 +98,7 @@ public class Value {
 	 *
 	 * @return the value
 	 */
-	public Object getValue() {
+	public @Nullable Object getValue() {
 		return value;
 	}
 

@@ -35,6 +35,7 @@ package com.dialoguebranch.expression.types;
 import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.expression.Expression;
 import com.dialoguebranch.expression.Value;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
@@ -56,7 +57,7 @@ public class IndexExpression implements Expression {
 	}
 
 	@Override
-	public Value evaluate(Map<String,Object> variables)
+	public Value evaluate(@Nullable Map<String,Object> variables)
 			throws EvaluationException {
 		Value parentVal = parentOperand.evaluate(variables);
 		if (!parentVal.isString() && !parentVal.isList() &&
@@ -92,7 +93,7 @@ public class IndexExpression implements Expression {
 						"List index must be an integer, found: " +
 						num.getClass().getSimpleName());
 			}
-			List<?> list = (List<?>)parentVal.getValue();
+			List<?> list = (List<?>) Objects.requireNonNull(parentVal.getValue());
 			return new Value(list.get(num.intValue()));
 		} else {
 			if (!indexVal.isString() && !indexVal.isNumber()) {
@@ -100,7 +101,7 @@ public class IndexExpression implements Expression {
 						"Map index must be a string or number, found: " +
 						indexVal.getTypeString());
 			}
-			Map<?,?> map = (Map<?,?>)parentVal.getValue();
+			Map<?,?> map = (Map<?,?>) Objects.requireNonNull(parentVal.getValue());
 			return new Value(map.get(indexVal.toString()));
 		}
 	}

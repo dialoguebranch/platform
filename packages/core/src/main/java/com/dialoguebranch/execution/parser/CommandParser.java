@@ -31,8 +31,10 @@ package com.dialoguebranch.execution.parser;
 import com.dialoguebranch.exception.LineNumberParseException;
 import com.dialoguebranch.model.execute.command.*;
 import com.dialoguebranch.util.CurrentIterator;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Parses a single Dialogue Branch command token sequence into the appropriate {@link Command}
@@ -69,7 +71,8 @@ public class CommandParser {
 	 */
 	public String readCommandName(CurrentIterator<BodyToken> tokens)
 			throws LineNumberParseException {
-		BodyToken startToken = tokens.getCurrent();
+		// The iterator is positioned at the command start token by contract.
+		BodyToken startToken = Objects.requireNonNull(tokens.getCurrent());
 		tokens.moveNext();
 		BodyToken.skipWhitespace(tokens);
 		BodyToken token = tokens.getCurrent();
@@ -89,8 +92,10 @@ public class CommandParser {
 	 */
 	public Command parseFromName(BodyToken startToken, CurrentIterator<BodyToken> tokens)
 			throws LineNumberParseException {
-		BodyToken token = tokens.getCurrent();
-		String name = getCommandName(startToken, token);
+		BodyToken nameToken = tokens.getCurrent();
+		String name = getCommandName(startToken, nameToken);
+		// getCommandName throws when the name token is null, so it is non-null here.
+		BodyToken token = Objects.requireNonNull(nameToken);
 		if (!validCommands.contains(name)) {
 			throw new LineNumberParseException("Unexpected command: " + name,
 					token.getLineNumber(), token.getColNumber());
@@ -118,7 +123,8 @@ public class CommandParser {
 	 */
 	public Command parseFromStart(CurrentIterator<BodyToken> tokens)
 			throws LineNumberParseException {
-		BodyToken startToken = tokens.getCurrent();
+		// The iterator is positioned at the command start token by contract.
+		BodyToken startToken = Objects.requireNonNull(tokens.getCurrent());
 		tokens.moveNext();
 		BodyToken.skipWhitespace(tokens);
 		return parseFromName(startToken, tokens);
@@ -134,7 +140,7 @@ public class CommandParser {
 	 * @throws LineNumberParseException if the command name can't be read
 	 */
 	private String getCommandName(BodyToken startToken,
-								  BodyToken nameToken) throws LineNumberParseException {
+								  @Nullable BodyToken nameToken) throws LineNumberParseException {
 		if (nameToken == null) {
 			throw new LineNumberParseException("Command not terminated",
 					startToken.getLineNumber(), startToken.getColNumber());
