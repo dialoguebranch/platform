@@ -81,10 +81,10 @@ tasks.withType(JavaCompile).configureEach {
 	// NullAway checks the JSpecify nullness contract (#95) on our own code only. The rest
 	// of error-prone's bug patterns are out of scope for #117, so everything else is off.
 	//
-	// Severity is WARN for now: the initial audit surfaced ~100 findings (a mix of the
+	// Severity is WARN for now: the initial audit surfaced ~150 findings (a mix of the
 	// data-flow spots #95 deferred and framework-populated bean fields). They are being
-	// worked down in follow-up passes; flip this to ERROR once the count reaches zero so
-	// CI blocks regressions.
+	// worked down in themed follow-up passes; flip this to ERROR once the count reaches
+	// zero so CI blocks regressions.
 	options.errorprone {
 		disableAllChecks = true
 		check('NullAway', CheckSeverity.WARN)
@@ -95,6 +95,12 @@ tasks.withType(JavaCompile).configureEach {
 // src/test is deliberately not @NullMarked (see #95) — don't run NullAway over it.
 tasks.named('compileTestJava') {
 	options.errorprone.enabled = false
+}
+
+// javac prints only the first 100 warnings by default, which would hide the NullAway
+// burn-down count (#117). Raise the cap so a full `compileJava` reports every finding.
+tasks.named('compileJava') {
+	options.compilerArgs << '-Xmaxwarns' << '10000'
 }
 
 javadoc {

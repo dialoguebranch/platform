@@ -162,6 +162,9 @@ public class DialogueStatement {
 		private String text;
 
 		/** Creates an empty {@link TextSegment}. */
+		// text has no sensible default: addTextSegment / setText / JSON deserialization
+		// populate it before the segment is read.
+		@SuppressWarnings("NullAway.Init")
 		public TextSegment() {
 			super(SegmentType.TEXT);
 		}
@@ -192,6 +195,9 @@ public class DialogueStatement {
 		private Map<String,?> parameters = new LinkedHashMap<>();
 
 		/** Creates an empty {@link InputSegment}. */
+		// inputType has no sensible default: addInputSegment / setInputType / JSON
+		// deserialization populate it before the segment is read.
+		@SuppressWarnings("NullAway.Init")
 		public InputSegment() {
 			super(SegmentType.INPUT);
 		}
@@ -267,6 +273,9 @@ public class DialogueStatement {
 		private DialogueAction action;
 
 		/** Creates an empty {@link ActionSegment}. */
+		// action has no sensible default: addActionSegment / setAction / JSON deserialization
+		// populate it before the segment is read.
+		@SuppressWarnings("NullAway.Init")
 		public ActionSegment() {
 			super(SegmentType.ACTION);
 		}
