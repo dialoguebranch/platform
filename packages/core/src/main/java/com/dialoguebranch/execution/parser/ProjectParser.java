@@ -54,6 +54,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -277,10 +278,12 @@ public class ProjectParser {
 
 		for (Dialogue dlg : allParsedDialogues.values()) {
 			Set<String> reachable = reachableNodeIds.computeIfAbsent(dlg, (d) -> new HashSet<>());
-			if (dlg.getStartNode() != null)
-				reachable.add(dlg.getStartNode().getTitle().toLowerCase());
+			Node startNode = dlg.getStartNode();
+			if (startNode != null)
+				reachable.add(Objects.requireNonNull(startNode.getTitle()).toLowerCase());
 			for (Node node : dlg.getNodes()) {
-				for (NodePointer pointer : node.getBody().getNodePointers()) {
+				for (NodePointer pointer
+						: Objects.requireNonNull(node.getBody()).getNodePointers()) {
 					if (pointer instanceof InternalNodePointer)
 						reachable.add(pointer.getTargetNodeId().toLowerCase());
 				}
@@ -306,10 +309,11 @@ public class ProjectParser {
 			Dialogue dlg = entry.getValue();
 			Set<String> reachable = reachableNodeIds.getOrDefault(dlg, Set.of());
 			for (Node node : dlg.getNodes()) {
-				if (!reachable.contains(node.getTitle().toLowerCase())) {
+				String nodeTitle = Objects.requireNonNull(node.getTitle());
+				if (!reachable.contains(nodeTitle.toLowerCase())) {
 					getWarnings(readResult, entry.getKey()).add(String.format(
 							"Node \"%s\" is orphaned: no reply link points to it, and it is " +
-							"not this dialogue's Start node", node.getTitle()));
+							"not this dialogue's Start node", nodeTitle));
 				}
 			}
 		}

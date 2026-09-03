@@ -88,8 +88,12 @@ public class BodyToken {
 	private Type type;
 	private int lineNumber;
 	private int colNumber;
+	// text is set via setText() before the token is read; value only for tokens whose type
+	// carries one (QUOTED_STRING, VARIABLE) and is read only after a type check.
+	@SuppressWarnings("NullAway.Init")
 	private String text;
-	private Object value = null;
+	@SuppressWarnings("NullAway.Init")
+	private Object value;
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //

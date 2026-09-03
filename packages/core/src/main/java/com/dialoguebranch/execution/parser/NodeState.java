@@ -170,5 +170,6 @@ public class NodeState {
 	 * @param pointer the parsed node pointer.
 	 * @param token the body token from which the pointer was read.
 	 */
-	public record NodePointerToken(String nodeTitle, NodePointer pointer, BodyToken token) { }
+	public record NodePointerToken(@Nullable String nodeTitle, NodePointer pointer,
+			BodyToken token) { }
 }
