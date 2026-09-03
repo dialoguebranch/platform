@@ -11,6 +11,11 @@ ALTER TABLE variables
     ADD COLUMN project_id CHAR(36) NOT NULL,
     ADD CONSTRAINT fk_variables_project FOREIGN KEY (project_id) REFERENCES projects (id);
 
-ALTER TABLE variables DROP INDEX user_name;
+-- Add the replacement uniqueness BEFORE dropping the old one: its leftmost column is
+-- user_id, so the foreign key on variables.user_id keeps a covering index at every step.
+-- MariaDB refuses to drop user_name while it is the only index that covers that FK
+-- (error 1553 "needed in a foreign key constraint"); H2's MariaDB mode does not, which is
+-- why this only shows up outside the test suite.
 ALTER TABLE variables ADD CONSTRAINT uq_variables_user_project_name
     UNIQUE (user_id, project_id, name);
+ALTER TABLE variables DROP INDEX user_name;
