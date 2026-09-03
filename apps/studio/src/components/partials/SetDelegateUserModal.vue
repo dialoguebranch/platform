@@ -26,6 +26,10 @@ const rawSubject = ref('');
 
 let searchTimer = null;
 let searchSeq = 0;
+// Set when pick() writes the chosen username back into `query`, so the watcher below
+// doesn't treat that programmatic write as the user editing the field (which would clear
+// the selection and re-disable Apply).
+let suppressQueryWatch = false;
 
 function runSearch() {
     const seq = ++searchSeq;
@@ -47,6 +51,10 @@ function runSearch() {
 }
 
 watch(query, () => {
+    if (suppressQueryWatch) {
+        suppressQueryWatch = false;
+        return;
+    }
     selected.value = null;
     clearTimeout(searchTimer);
     searchTimer = setTimeout(runSearch, 250);
@@ -56,7 +64,10 @@ onMounted(runSearch);
 
 function pick(row) {
     selected.value = row;
-    query.value = row.username;
+    if (query.value !== row.username) {
+        suppressQueryWatch = true;
+        query.value = row.username;
+    }
 }
 
 function onApply() {
