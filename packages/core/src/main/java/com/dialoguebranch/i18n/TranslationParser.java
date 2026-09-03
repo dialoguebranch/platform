@@ -203,7 +203,7 @@ public class TranslationParser {
 					": " + value + ": " + ex.getMessage(), ex));
 			success = false;
 		}
-		if (success) {
+		if (success && transValue != null) {
 			List<ContextTranslation> transList = translations.get(source);
 			if (transList == null) {
 				transList = new ArrayList<>();
@@ -262,6 +262,9 @@ public class TranslationParser {
 					"Invalid translation string: " + translation +
 					": " + ex.getError());
 		}
+		// A bare translation string has no node context; BodyParser rejects any reply it finds
+		// (BodyParser.parseUntilCommandClause) rather than dereferencing the null NodeState.
+		@SuppressWarnings("NullAway")
 		BodyParser parser = new BodyParser(null);
 		NodeBody body;
 		try {

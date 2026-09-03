@@ -30,15 +30,18 @@ package com.dialoguebranch.i18n;
 
 import com.dialoguebranch.model.execute.Node;
 import com.dialoguebranch.model.execute.NodeBody;
+import com.dialoguebranch.model.execute.NodeHeader;
 import com.dialoguebranch.model.execute.Reply;
 import com.dialoguebranch.model.execute.VariableString;
 import com.dialoguebranch.model.execute.command.Command;
 import com.dialoguebranch.model.execute.command.IfCommand;
 import com.dialoguebranch.model.execute.command.InputCommand;
 import com.dialoguebranch.model.execute.command.RandomCommand;
+import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * This class can extract all translatable segments (plain text, variables and &lt;&lt;input&gt;&gt;
@@ -62,8 +65,9 @@ public class TranslatableExtractor {
 	 * @return a {@link List} of {@link SourceTranslatable}s found in the node body.
 	 */
 	public List<SourceTranslatable> extractFromNode(Node node) {
-		return extractFromBody(node.getHeader().getSpeaker(),
-				SourceTranslatable.USER, node.getBody());
+		NodeHeader header = Objects.requireNonNull(node.getHeader(), "Node has no header");
+		NodeBody body = Objects.requireNonNull(node.getBody(), "Node has no body");
+		return extractFromBody(header.getSpeaker(), SourceTranslatable.USER, body);
 	}
 
 	/**
@@ -80,8 +84,8 @@ public class TranslatableExtractor {
 	 * @return a {@link List} of {@link SourceTranslatable}s found in the body and its nested
 	 *         commands and replies.
 	 */
-	public List<SourceTranslatable> extractFromBody(String speaker,
-													String addressee, NodeBody body) {
+	public List<SourceTranslatable> extractFromBody(@Nullable String speaker,
+													@Nullable String addressee, NodeBody body) {
 		List<SourceTranslatable> result = new ArrayList<>();
 		List<NodeBody.Segment> current = new ArrayList<>();
 		for (int i = 0; i < body.getSegments().size(); i++) {
@@ -116,14 +120,14 @@ public class TranslatableExtractor {
 		for (Reply reply : body.getReplies()) {
 			if (!reply.isAutoForward()) {
 				result.addAll(extractFromBody(addressee, speaker,
-						reply.getStatement()));
+						Objects.requireNonNull(reply.getStatement())));
 			}
 		}
 		return result;
 	}
 
 	private List<SourceTranslatable> getTranslatableSegmentsFromIfCommand(
-			String speaker, String addressee, IfCommand ifCmd) {
+			@Nullable String speaker, @Nullable String addressee, IfCommand ifCmd) {
 		List<SourceTranslatable> result = new ArrayList<>();
 		for (IfCommand.Clause clause : ifCmd.getIfClauses()) {
 			result.addAll(extractFromBody(speaker, addressee,
@@ -137,7 +141,7 @@ public class TranslatableExtractor {
 	}
 
 	private List<SourceTranslatable> getTranslatableSegmentsFromRandomCommand(
-			String speaker, String addressee, RandomCommand rndCmd) {
+			@Nullable String speaker, @Nullable String addressee, RandomCommand rndCmd) {
 		List<SourceTranslatable> result = new ArrayList<>();
 		for (RandomCommand.Clause clause : rndCmd.getClauses()) {
 			result.addAll(extractFromBody(speaker, addressee,
@@ -146,8 +150,8 @@ public class TranslatableExtractor {
 		return result;
 	}
 
-	private void finishCurrentTranslatableSegment(String speaker,
-			String addressee, NodeBody parent,
+	private void finishCurrentTranslatableSegment(@Nullable String speaker,
+			@Nullable String addressee, NodeBody parent,
 			List<NodeBody.Segment> current,
 			List<SourceTranslatable> translatables) {
 		if (hasContent(current)) {
