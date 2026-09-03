@@ -97,6 +97,18 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- **Breaking:** Web Service: Dialogue Branch Variables are now scoped to the project
+  ([#86](https://github.com/dialoguebranch/platform/issues/86)). Projects on one Web Service
+  instance are isolated tenants, so a user who runs dialogues in two projects no longer shares
+  one variable namespace. Variables are keyed `(user, project, name)`: `variables` gains a
+  `project_id` (`NOT NULL`, FK → `projects`), the `UNIQUE(user_id, name)` constraint becomes
+  `UNIQUE(user_id, project_id, name)`, and each user's runtime `VariableStore` is now
+  per-project. **`GET /v1/variables/get`, `POST /v1/variables/set-single` and
+  `POST /v1/variables/set` gain a required `projectSlug` parameter.** Flyway migration `V6` adds
+  the column and drops all existing `variables` rows (there is no per-project attribution to
+  recover — dev-only data, no deployment on this schema). `packages/core` is unchanged. The
+  External Variable Service request contract and the Studio Variable Browser are updated in the
+  following steps of this change.
 - **Breaking:** Web Service: a Dialogue Branch user is now identified by the JWT's
   `(issuer, subject)` pair instead of `preferred_username`
   ([#128](https://github.com/dialoguebranch/platform/issues/128)). `preferred_username` is not

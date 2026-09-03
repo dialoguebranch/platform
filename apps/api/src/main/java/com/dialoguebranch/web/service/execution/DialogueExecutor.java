@@ -99,7 +99,7 @@ public class DialogueExecutor {
 			throws DatabaseException, IOException, ExecutionException {
 
 		ActiveDialogue dialogue = new ActiveDialogue(dialogueDescription,
-				dialogueDefinition, userService.getVariableStore());
+				dialogueDefinition, userService.getVariableStore(projectSlug));
 
 		// Collects all the Dialogue Branch Variables needed to execute this file and update from an
 		// external variable service (if enabled).
@@ -107,7 +107,7 @@ public class DialogueExecutor {
 		logger.info("Dialogue '" + dialogue.getDialogueDefinition().getDialogueName() +
 				"' uses the following set of Dialogue Branch Variables: "+variablesNeeded);
 		if(!variablesNeeded.isEmpty())
-			userService.updateVariablesFromExternalService(variablesNeeded);
+			userService.updateVariablesFromExternalService(projectSlug, variablesNeeded);
 
 		// The timestamp of this "start dialogue" trigger will be passed on and used for logging
 		ZonedDateTime eventTime = DateTimeUtils.nowMs(
@@ -271,7 +271,8 @@ public class DialogueExecutor {
 	public ExecuteNodeResult executeCurrentNode(DialogueState state, ZonedDateTime eventTime) {
 		ServerLoggedDialogue serverLoggedDialogue = (ServerLoggedDialogue)state.getLoggedDialogue();
 		ActiveDialogue dialogue = state.getActiveDialogue();
-		dialogue.setVariableStore(userService.getVariableStore());
+		dialogue.setVariableStore(
+				userService.getVariableStore(serverLoggedDialogue.getProjectName()));
 		Node node = dialogue.getCurrentNode();
 		try {
 			node = dialogue.executeNode(node,eventTime);

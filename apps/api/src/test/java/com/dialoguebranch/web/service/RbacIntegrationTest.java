@@ -100,7 +100,8 @@ class RbacIntegrationTest {
 	@Test
 	void delegatingToAnotherUserIsForbiddenForANonAdmin() throws Exception {
 		mockMvc.perform(withRoles(get("/v1/variables/get")
-						.param("timeZone", "UTC").param("delegateUser", "someone-else"), "editor"))
+						.param("timeZone", "UTC").param("projectSlug", "nope")
+						.param("delegateUser", "someone-else"), "editor"))
 				.andExpect(status().isForbidden())
 				.andExpect(jsonPath("$.code").value("INSUFFICIENT_PRIVILEGES"));
 	}
