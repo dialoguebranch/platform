@@ -152,12 +152,13 @@ public class DialogueBranchCLI {
 
 	/**
 	 * Parses and dispatches a non-interactive invocation. See {@link #printUsage()} for the
-	 * accepted syntax.
+	 * accepted syntax. Package-private (rather than {@code private}) so a test can drive it
+	 * without {@link #main} calling {@link System#exit}.
 	 *
 	 * @param args the raw command-line arguments (guaranteed non-empty by {@link #main}).
 	 * @return the process exit status to use.
 	 */
-	private static int runNonInteractive(String[] args) {
+	static int runNonInteractive(String[] args) {
 		List<String> argList = new ArrayList<>(List.of(args));
 
 		if (argList.contains("-h") || argList.contains("--help") || argList.contains("-?")) {
