@@ -43,6 +43,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -294,7 +295,7 @@ public class ActionCommand extends AttributesCommand {
 		ActionCommand command = new ActionCommand(type, value);
 		for (String attr : attrs.keySet()) {
 			token = attrs.get(attr);
-			command.addParameter(attr, (VariableString)token.getValue());
+			command.addParameter(attr, (VariableString) Objects.requireNonNull(token.getValue()));
 		}
 		return command;
 	}

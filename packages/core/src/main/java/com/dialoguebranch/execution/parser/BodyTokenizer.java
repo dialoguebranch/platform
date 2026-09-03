@@ -200,12 +200,8 @@ public class BodyTokenizer {
 			return end[0];
 		}
 		finishTextToken(tokens, line, lineNum, start);
-		BodyToken token = new BodyToken(BodyToken.Type.VARIABLE);
-		token.setText(line.substring(start, end[0]));
-		token.setValue(varName);
-		token.setLineNumber(lineNum);
-		token.setColNumber(start + 1);
-		tokens.add(token);
+		tokens.add(new BodyToken(BodyToken.Type.VARIABLE, line.substring(start, end[0]),
+				lineNum, start + 1, varName));
 		startBodyTextBuffer(end[0] + 1);
 		return end[0];
 	}
@@ -232,12 +228,8 @@ public class BodyTokenizer {
 		finishTextToken(tokens, line, lineNum, start);
 		int[] end = new int[1];
 		VariableString string = readQuotedString(line, lineNum, start, end);
-		BodyToken token = new BodyToken(BodyToken.Type.QUOTED_STRING);
-		token.setLineNumber(lineNum);
-		token.setColNumber(start + 1);
-		token.setText(line.substring(start, end[0]));
-		token.setValue(string);
-		tokens.add(token);
+		tokens.add(new BodyToken(BodyToken.Type.QUOTED_STRING, line.substring(start, end[0]),
+				lineNum, start + 1, string));
 		startBodyTextBuffer(end[0] + 1);
 		return end[0];
 	}
@@ -306,12 +298,9 @@ public class BodyTokenizer {
 		String text = bodyState.textBuffer.toString();
 		if (text.isEmpty())
 			return;
-		BodyToken token = new BodyToken(BodyToken.Type.TEXT);
-		token.setText(line.substring(bodyState.textStartCol - 1, end));
-		token.setValue(text);
-		token.setLineNumber(lineNum);
-		token.setColNumber(bodyState.textStartCol);
-		tokens.add(token);
+		tokens.add(new BodyToken(BodyToken.Type.TEXT,
+				line.substring(bodyState.textStartCol - 1, end), lineNum,
+				bodyState.textStartCol, text));
 	}
 
 	private void finishCommandStart(List<BodyToken> tokens, int lineNum, int colNum)
@@ -320,11 +309,7 @@ public class BodyTokenizer {
 			throw new LineNumberParseException("Found << inside <<...>>",
 					lineNum, colNum);
 		}
-		BodyToken token = new BodyToken(BodyToken.Type.COMMAND_START);
-		token.setText("<<");
-		token.setLineNumber(lineNum);
-		token.setColNumber(colNum);
-		tokens.add(token);
+		tokens.add(new BodyToken(BodyToken.Type.COMMAND_START, "<<", lineNum, colNum));
 		bodyState.inCommand = true;
 	}
 
@@ -334,11 +319,7 @@ public class BodyTokenizer {
 			throw new LineNumberParseException("Found >> without preceding <<",
 					lineNum, colNum);
 		}
-		BodyToken token = new BodyToken(BodyToken.Type.COMMAND_END);
-		token.setText(">>");
-		token.setLineNumber(lineNum);
-		token.setColNumber(colNum);
-		tokens.add(token);
+		tokens.add(new BodyToken(BodyToken.Type.COMMAND_END, ">>", lineNum, colNum));
 		bodyState.inCommand = false;
 	}
 
@@ -347,11 +328,7 @@ public class BodyTokenizer {
 		if (bodyState.inReply) {
 			throw new LineNumberParseException("Found [[ inside [[...]]", lineNum, colNum);
 		}
-		BodyToken token = new BodyToken(BodyToken.Type.REPLY_START);
-		token.setText("[[");
-		token.setLineNumber(lineNum);
-		token.setColNumber(colNum);
-		tokens.add(token);
+		tokens.add(new BodyToken(BodyToken.Type.REPLY_START, "[[", lineNum, colNum));
 		bodyState.inReply = true;
 	}
 
@@ -360,20 +337,12 @@ public class BodyTokenizer {
 		if (!bodyState.inReply) {
 			throw new LineNumberParseException("Found ]] without preceding [[", lineNum, colNum);
 		}
-		BodyToken token = new BodyToken(BodyToken.Type.REPLY_END);
-		token.setText("]]");
-		token.setLineNumber(lineNum);
-		token.setColNumber(colNum);
-		tokens.add(token);
+		tokens.add(new BodyToken(BodyToken.Type.REPLY_END, "]]", lineNum, colNum));
 		bodyState.inReply = false;
 	}
 
 	private void finishReplySeparator(List<BodyToken> tokens, int lineNum, int colNum) {
-		BodyToken token = new BodyToken(BodyToken.Type.REPLY_SEPARATOR);
-		token.setText("|");
-		token.setLineNumber(lineNum);
-		token.setColNumber(colNum);
-		tokens.add(token);
+		tokens.add(new BodyToken(BodyToken.Type.REPLY_SEPARATOR, "|", lineNum, colNum));
 	}
 
 	private static class BodyState {

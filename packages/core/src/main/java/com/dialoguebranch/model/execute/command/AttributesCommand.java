@@ -76,7 +76,7 @@ public abstract class AttributesCommand extends Command {
 			String text;
 			if (first) {
 				first = false;
-				text = ((String)token.getValue()).trim();
+				text = ((String) Objects.requireNonNull(token.getValue())).trim();
 				String[] split = text.split("\\s+", 2);
 				if (split.length < 2) {
 					tokens.moveNext();
@@ -91,7 +91,7 @@ public abstract class AttributesCommand extends Command {
 						"Expected attribute name, found token: " +
 						token.getType(), token.getLineNumber(), token.getColNumber());
 			} else {
-				text = ((String)token.getValue()).trim();
+				text = ((String) Objects.requireNonNull(token.getValue())).trim();
 			}
 			// text is a trimmed string, length > 0
 			// expect: attribute=
@@ -156,7 +156,7 @@ public abstract class AttributesCommand extends Command {
 					cmdStartToken.getLineNumber(), cmdStartToken.getColNumber());
 		}
 		BodyToken token = presentToken(attrs, name);
-		return (VariableString)token.getValue();
+		return (VariableString) Objects.requireNonNull(token.getValue());
 	}
 
 	/**

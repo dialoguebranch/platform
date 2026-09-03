@@ -53,13 +53,14 @@ import java.util.Objects;
  * @author Harm op den Akker
  */
 public class ReplyParser {
-	private NodeState nodeState;
+	private final NodeState nodeState;
 
-	private @Nullable ReplySection statementSection;
-	// Always assigned by parseReply() before parseNodePointer() reads it.
-	@SuppressWarnings("NullAway.Init")
-	private ReplySection nodePointerSection;
-	private @Nullable ReplySection commandSection;
+	/**
+	 * The pipe-separated sections of one reply: an optional statement, the mandatory node
+	 * pointer, and an optional command section.
+	 */
+	private record Sections(@Nullable ReplySection statement, ReplySection nodePointer,
+			@Nullable ReplySection command) {}
 
 	/**
 	 * Creates a {@link ReplyParser} that uses the given node state for reply-ID generation and
@@ -81,17 +82,17 @@ public class ReplyParser {
 	 */
 	public Reply parse(CurrentIterator<BodyToken> tokens)
 			throws LineNumberParseException {
-		readSections(tokens);
-		NodeBody statement = parseStatement();
-		NodePointer nodePointer = parseNodePointer();
+		Sections sections = readSections(tokens);
+		NodeBody statement = parseStatement(sections.statement());
+		NodePointer nodePointer = parseNodePointer(sections.nodePointer());
 		Reply reply = new Reply(nodeState.createNextReplyId(),
 				statement, nodePointer);
-		if (commandSection != null)
-			parseCommands(reply, commandSection);
+		if (sections.command() != null)
+			parseCommands(reply, sections.command());
 		return reply;
 	}
 
-	private void readSections(CurrentIterator<BodyToken> tokens)
+	private Sections readSections(CurrentIterator<BodyToken> tokens)
 			throws LineNumberParseException {
 		int maxSections = 3;
 		// The iterator is positioned at the reply start token by contract.
@@ -130,21 +131,15 @@ public class ReplyParser {
 			throw new LineNumberParseException("Reply not terminated",
 					startToken.getLineNumber(), startToken.getColNumber());
 		}
-		statementSection = null;
-		commandSection = null;
-		if (sections.size() == 1) {
-			nodePointerSection = sections.get(0);
-		} else if (sections.size() == 2) {
-			statementSection = sections.get(0);
-			nodePointerSection = sections.get(1);
-		} else {
-			statementSection = sections.get(0);
-			nodePointerSection = sections.get(1);
-			commandSection = sections.get(2);
-		}
+		if (sections.size() == 1)
+			return new Sections(null, sections.get(0), null);
+		if (sections.size() == 2)
+			return new Sections(sections.get(0), sections.get(1), null);
+		return new Sections(sections.get(0), sections.get(1), sections.get(2));
 	}
 
-	private @Nullable NodeBody parseStatement() throws LineNumberParseException {
+	private @Nullable NodeBody parseStatement(@Nullable ReplySection statementSection)
+			throws LineNumberParseException {
 		if (statementSection == null)
 			return null;
 		BodyParser bodyParser = new BodyParser(nodeState);
@@ -156,7 +151,8 @@ public class ReplyParser {
 			return result;
 	}
 
-	private NodePointer parseNodePointer() throws LineNumberParseException {
+	private NodePointer parseNodePointer(ReplySection nodePointerSection)
+			throws LineNumberParseException {
 		BodyToken.trimWhitespace(nodePointerSection.tokens);
 		if (nodePointerSection.tokens.size() == 0) {
 			throw new LineNumberParseException("Empty node pointer in reply",
@@ -171,7 +167,7 @@ public class ReplyParser {
 					nodePointerToken.getLineNumber(),
 					nodePointerToken.getColNumber());
 		}
-		String nodePointerStr = (String)nodePointerToken.getValue();
+		String nodePointerStr = (String) Objects.requireNonNull(nodePointerToken.getValue());
 		String originNodeId = Objects.requireNonNull(nodeState.getTitle(),
 				"Node title must be set before its replies are parsed");
 		NodePointer result;
