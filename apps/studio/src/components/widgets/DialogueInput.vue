@@ -123,8 +123,8 @@ const inputClass =
         :placeholder="segment.description ?? ''"
         :minlength="params.min ?? undefined"
         :maxlength="params.max ?? undefined"
-        rows="2"
-        :class="inputClass + ' align-middle w-full'"
+        rows="5"
+        :class="inputClass + ' block w-full resize-none'"
     ></textarea>
 
     <input
