@@ -119,6 +119,7 @@ const statementSizeClass = computed(() => SIZE_TIERS[Math.max(statementSizeTier.
                     <template v-if="!dialogueEnded" v-for="(reply, index) in currentStep.replies">
                         <InteractiveReply
                             v-if="reply instanceof BasicReply && reply.statement.hasSegmentOfType('INPUT')"
+                            :key="`ir-${currentStep.node}-${currentStep.loggedInteractionIndex}-${reply.replyId}`"
                             :reply="reply"
                             :disabled="awaitingReply"
                             button-class="mt-2 block rounded-xl bg-orange-dark hover:bg-orange-medium text-white p-3 disabled:bg-icon-button-disabled disabled:cursor-not-allowed cursor-pointer disabled:cursor-not-allowed"
