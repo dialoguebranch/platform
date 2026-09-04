@@ -94,6 +94,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 - Permission-based access control for the Web Service ([#28](https://github.com/dialoguebranch/platform/issues/28)):
   a `Permission` catalogue, a `Role` → permission mapping (`participant` ⊂ `editor` ⊂ `admin`),
   and an `AuthorizationService` that decides whether a caller may perform an operation.
+- Studio: `<<action>>` commands now render in the dialogue view
+  ([#178](https://github.com/dialoguebranch/platform/issues/178)). An action attached to an agent
+  statement is shown inline — `link` as an anchor, `image` as an `<img>`, `video` as a player for
+  a direct media URL (a labelled link otherwise), and `generic` as a chip showing its value.
+  Actions attached to a reply are logged to the Debug Console on selection; the participant view
+  also emits a `dlb-action` `CustomEvent` on `window` for an embedding page to react to. Previously
+  every non-text statement segment was dropped from the rendered dialogue.
 - Studio: `<<input>>` replies now work in the dialogue view
   ([#177](https://github.com/dialoguebranch/platform/issues/177)). A reply containing an
   `<<input>>` command renders the matching widget inline (single-line / multi-line text, email,
