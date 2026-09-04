@@ -29,6 +29,7 @@
 import { AutoForwardReply } from "./model/AutoForwardReply";
 import { BasicReply } from "./model/BasicReply";
 import { DialogueStep } from "./model/DialogueStep";
+import { Action } from "./model/Action";
 import { Segment } from "./model/Segment";
 import { Statement } from "./model/Statement";
 import { Variable } from "./model/Variable";
@@ -679,8 +680,7 @@ export class DialogueBranchClient {
         var statement = Statement.emptyInstance();
         data.statement.segments.forEach(
             (element) => {
-                var segment = new Segment(element.segmentType,element.text);
-                statement.addSegment(segment);
+                statement.addSegment(Segment.fromJSON(element));
             }
         );
         dialogueStep.statement = statement;
@@ -701,13 +701,12 @@ export class DialogueBranchClient {
                     statement = Statement.emptyInstance();
                     element.statement.segments.forEach(
                         (segmentElement) => {
-                            var segment = new Segment(segmentElement.segmentType,segmentElement.text);
-                            statement.addSegment(segment);
+                            statement.addSegment(Segment.fromJSON(segmentElement));
                         }
                     );
                     reply.statement = statement;
                 }
-                reply.actions = element.actions; // TODO: Unfold 'actions' into Action-objects
+                reply.actions = (element.actions ?? []).map((a) => Action.fromJSON(a));
                 dialogueStep.addReply(reply);
             }
         );
