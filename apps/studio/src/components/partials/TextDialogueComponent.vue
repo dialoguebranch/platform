@@ -5,6 +5,7 @@ import { BasicReply } from '@/dlb-lib/model/BasicReply';
 import { AutoForwardReply } from '@/dlb-lib/model/AutoForwardReply';
 import { statementToHtml } from '@/composables/sanitize-html.js';
 import CollapsibleErrorList from '../widgets/CollapsibleErrorList.vue';
+import InteractiveReply from './InteractiveReply.vue';
 
 const props = defineProps([
     'dialogueName',
@@ -144,7 +145,15 @@ function getBasicReplyTextClasses(step, stepIndex, reply) {
                         {{ replyIndex + 1 }}: -
                     </div>
                     <div class="basis-0 grow-8">
+                        <InteractiveReply
+                            v-if="reply.statement.hasSegmentOfType('INPUT')"
+                            :reply="reply"
+                            :disabled="!isReplySelectable(stepIndex) || selectedReplies.get(step) !== undefined"
+                            button-class="ml-2 rounded border border-orange-dark text-orange-darker hover:bg-orange-light px-3 py-1 text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                            @submit="(vars) => { selectedReplies.set(step, reply.replyId); $emit('selectReply', step, reply, vars); }"
+                        />
                         <span
+                            v-else
                             :class="getBasicReplyTextClasses(step, stepIndex, reply)"
                             @click="onReplyClick(step, stepIndex, reply)"
                         >

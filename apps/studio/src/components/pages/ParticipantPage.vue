@@ -50,14 +50,15 @@ function startDialogue() {
     });
 }
 
-function onSelectReply(dialogueStep, reply) {
+function onSelectReply(dialogueStep, reply, inputValues) {
     if (awaitingReply.value) return;
     const replyText = reply.statement?.segments?.map(s => s.text).join('') ?? String(reply.replyId);
+    const values = inputValues && Object.keys(inputValues).length > 0 ? inputValues : null;
     dismissError();
     awaitingReply.value = true;
     logEvent('dialogue', 'Reply selected: $1', replyText);
     client.progressDialogue(dialogueStep.loggedDialogueId, dialogueStep.loggedInteractionIndex,
-        reply.replyId)
+        reply.replyId, values)
     .then((nextStep) => {
         if (nextStep) {
             dialogueSteps.value.push(nextStep);
