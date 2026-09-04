@@ -607,6 +607,23 @@ export class DialogueBranchClient {
         .then((data) => Array.isArray(data) ? data : []);
     }
 
+    // Returns the variables the project's configured External Variable Service reports as
+    // supported, proxied through live by the Web Service (never cached). Rejects if no External
+    // Variable Service is configured for this deployment, or it could not be reached — callers
+    // should treat that as "no EVS info available" rather than a user-facing error, since not
+    // every deployment configures one.
+    listSupportedVariables(projectSlug) {
+        const url = this._baseUrl + "/variables/list-supported?projectSlug="
+            + encodeURIComponent(projectSlug);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" }
+        })
+        .then((response) => this._handleResponse(response))
+        .then((data) => Array.isArray(data) ? data : []);
+    }
+
     getVariables(projectSlug) {
         var url = this._baseUrl + "/variables/get";
 
