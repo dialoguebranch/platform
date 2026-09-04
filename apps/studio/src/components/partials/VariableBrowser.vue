@@ -290,7 +290,7 @@ onMounted(() => {
                     :class="{ 'opacity-60': !storedNames.has(v.name) }"
                     :title="storedNames.has(v.name) ? 'You have a value for this' : 'No value set for you yet'">
                     <div class="font-title font-semibold text-xs text-orange-darker min-w-0 truncate grow">${{ v.name }}</div>
-                    <FontAwesomeIcon v-if="v.evsSupported" icon="fa-solid fa-server"
+                    <FontAwesomeIcon v-if="v.evsSupported" icon="fa-solid fa-wifi"
                         class="shrink-0 text-[10px] text-grey-dark"
                         title="Reported as supported by the configured External Variable Service" />
                     <button type="button" title="Copy name"
