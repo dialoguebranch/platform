@@ -72,6 +72,27 @@ export class Statement {
         return resultStatement;
     }
 
+    /**
+     * Returns whether this statement contains at least one segment of the given type
+     * ("TEXT", "INPUT" or "ACTION").
+     *
+     * @param {string} type the segment type to look for.
+     * @returns {boolean} true if a segment of that type is present.
+     */
+    hasSegmentOfType(type) {
+        return this._segments.some((segment) => segment.type === type);
+    }
+
+    /**
+     * Returns the segments of the given type, in order.
+     *
+     * @param {string} type the segment type to filter on.
+     * @returns {Array} the matching segments (possibly empty).
+     */
+    segmentsOfType(type) {
+        return this._segments.filter((segment) => segment.type === type);
+    }
+
     toString() {
         var result = "";
         result += this.fullStatement();

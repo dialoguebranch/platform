@@ -26,15 +26,71 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+import { Action } from './Action.js';
+
+/**
+ * One part of a dialogue statement. The Web Service sends a statement as an ordered list of
+ * segments; a client renders them in order. There are three kinds, distinguished by {@link type}:
+ *
+ * - `"TEXT"` — a run of (already `$variable`-resolved) text, in {@link text}.
+ * - `"INPUT"` — a resolved `<<input>>` command, in {@link inputType} / {@link description} /
+ *   {@link parameters}. Only ever appears inside a reply's statement.
+ * - `"ACTION"` — a resolved `<<action>>` command, in {@link action}.
+ *
+ * The constructor keeps its original `(type, text)` shape for the common `TEXT` case and for
+ * test fixtures; use {@link Segment.fromJSON} to build a segment of any kind from an API
+ * response.
+ *
+ * @author Harm op den Akker (Fruit Tree Labs)
+ */
 export class Segment {
 
     // ------------------------------------
     // ---------- Constructor(s) ----------
     // ------------------------------------
 
+    /**
+     * Creates a segment. For a `TEXT` segment, pass the text. For `INPUT` / `ACTION`, prefer
+     * {@link Segment.fromJSON}; the extra fields can also be set afterwards via their setters.
+     *
+     * @param {string} type one of `"TEXT"`, `"INPUT"`, `"ACTION"`.
+     * @param {string} [text] the text, for a `TEXT` segment.
+     */
     constructor(type, text) {
         this._type = type;
         this._text = text;
+
+        // INPUT-only
+        this._inputType = null;
+        this._description = null;
+        this._parameters = {};
+
+        // ACTION-only
+        this._action = null;
+    }
+
+    /**
+     * Builds a segment from the JSON form the Web Service sends, dispatching on its
+     * `segmentType` field.
+     *
+     * @param {Object} json a statement segment from the API (`{ segmentType, ... }`).
+     * @returns {Segment} the parsed segment.
+     */
+    static fromJSON(json) {
+        const type = json.segmentType;
+        if (type === 'INPUT') {
+            const segment = new Segment('INPUT', '');
+            segment._inputType = json.inputType ?? null;
+            segment._description = json.description ?? null;
+            segment._parameters = json.parameters ?? {};
+            return segment;
+        }
+        if (type === 'ACTION') {
+            const segment = new Segment('ACTION', '');
+            segment._action = json.action ? Action.fromJSON(json.action) : null;
+            return segment;
+        }
+        return new Segment('TEXT', json.text);
     }
 
     // ---------------------------------------
@@ -55,6 +111,42 @@ export class Segment {
 
     get text() {
         return this._text;
+    }
+
+    /** The input type (`"text"`, `"longtext"`, `"email"`, `"numeric"`, `"time"`, `"set"`), or `null`. */
+    get inputType() {
+        return this._inputType;
+    }
+
+    set inputType(inputType) {
+        this._inputType = inputType;
+    }
+
+    /** An optional hint / accessibility label for an `INPUT` segment, or `null`. */
+    get description() {
+        return this._description;
+    }
+
+    set description(description) {
+        this._description = description;
+    }
+
+    /** The resolved parameters of an `INPUT` segment (name → value), or `{}`. */
+    get parameters() {
+        return this._parameters;
+    }
+
+    set parameters(parameters) {
+        this._parameters = parameters ?? {};
+    }
+
+    /** The {@link Action} of an `ACTION` segment, or `null`. */
+    get action() {
+        return this._action;
+    }
+
+    set action(action) {
+        this._action = action;
     }
 
 }
