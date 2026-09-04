@@ -12,13 +12,11 @@ function inputReply() {
     reply.statement = new Statement([
         new Segment('TEXT', 'My name is '),
         Segment.fromJSON({
-            segmentType: 'INPUT', inputType: 'text',
-            parameters: { variableName: 'firstName', min: 2 },
+            segmentType: 'INPUT', inputType: 'text', variableName: 'firstName', min: 2,
         }),
         new Segment('TEXT', ' and I am '),
         Segment.fromJSON({
-            segmentType: 'INPUT', inputType: 'numeric',
-            parameters: { variableName: 'age', min: 0, max: 120 },
+            segmentType: 'INPUT', inputType: 'numeric', variableName: 'age', min: 0, max: 120,
         }),
         new Segment('TEXT', '.'),
     ]);

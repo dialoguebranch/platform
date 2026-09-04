@@ -3,9 +3,10 @@ import { mount } from '@vue/test-utils';
 import DialogueInput from './DialogueInput.vue';
 import { Segment } from '@/dlb-lib/model/Segment';
 
+// The Web Service flattens an input command's parameters onto the segment object, so the test
+// fixtures spread them the same way.
 function inputSegment(inputType, parameters, description = null) {
-    const s = Segment.fromJSON({ segmentType: 'INPUT', inputType, description, parameters });
-    return s;
+    return Segment.fromJSON({ segmentType: 'INPUT', inputType, description, ...parameters });
 }
 
 function lastEmit(wrapper, name) {
