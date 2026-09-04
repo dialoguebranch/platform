@@ -50,6 +50,22 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Web Service: an External Variable Service (EVS) may now report which variables it supports for
+  a project, via an optional `GET /v{version}/variables/supported?projectSlug=<slug>` end-point on
+  the EVS ([#185](https://github.com/dialoguebranch/platform/issues/185)). The Web Service exposes
+  this to clients as `GET /variables/list-supported?projectSlug=<slug>` (`editor`/`admin` role,
+  same as `/variables/list-project`), proxying each call to the EVS live with no caching. This is
+  purely a discovery mechanism for authoring tools (e.g. confirming a `$variable` referenced in a
+  dialogue is actually one the configured EVS knows about) — the Web Service does not validate,
+  warn, or change execution behavior based on it, and dialogue execution remains fault-tolerant as
+  before (a variable with no value is not an error). An EVS that does not implement the new
+  end-point is unaffected; there is no API-version bump. `apps/mock-variable-service` implements
+  the new end-point too, reporting the same three variables `retrieve-updates` already knows about
+  (`currentDate`, `currentTime`, `dayPart`), regardless of the requested `projectSlug`. Dialogue
+  Branch Studio's Variable Browser "Used" view now merges this into the existing list of variables
+  referenced by the project's dialogues: a variable the configured EVS supports but no dialogue
+  references yet still gets a row, and any row the EVS reports gets a small badge. Best-effort — a
+  deployment with no EVS configured (the common case) sees no change from today's behavior.
 - Core: `dlb-core-java`'s public API now carries a machine-readable nullness contract
   ([#95](https://github.com/dialoguebranch/platform/issues/95)). Every package is
   [JSpecify](https://jspecify.dev) `@NullMarked` (via a new `package-info.java` per package, which

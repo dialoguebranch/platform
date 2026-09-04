@@ -66,4 +66,12 @@ public class ErrorCode {
 	/** In case a requested language code is not supported by the relevant project. */
 	public static final String UNKNOWN_LANGUAGE_CODE = "UNKNOWN_LANGUAGE_CODE";
 
+	/** In case no External Variable Service is configured for this deployment. */
+	public static final String EXTERNAL_VARIABLE_SERVICE_NOT_ENABLED =
+			"EXTERNAL_VARIABLE_SERVICE_NOT_ENABLED";
+
+	/** In case the configured External Variable Service could not be reached, or errored. */
+	public static final String EXTERNAL_VARIABLE_SERVICE_UNREACHABLE =
+			"EXTERNAL_VARIABLE_SERVICE_UNREACHABLE";
+
 }

@@ -31,6 +31,7 @@ package com.dialoguebranch.web.varservice.controller;
 import com.dialoguebranch.web.varservice.DlbVarServiceProperties;
 import com.dialoguebranch.web.varservice.ProtocolVersion;
 import com.dialoguebranch.web.varservice.controller.schema.DLBVariablePayload;
+import com.dialoguebranch.web.varservice.controller.schema.SupportedVariablePayload;
 import com.dialoguebranch.web.varservice.exception.BadRequestException;
 import com.dialoguebranch.web.varservice.exception.ErrorCode;
 import com.dialoguebranch.web.varservice.exception.UnauthorizedException;
@@ -564,6 +565,89 @@ public class VariablesController {
 				"was successfully cleared.", subject, timeZone);
 
 		return new ResponseEntity<ResponseEntity<?>>(HttpStatus.OK);
+	}
+
+	// -------------------------------------------------------------------
+	// -------------------- END-POINT: "supported" --------------------
+	// -------------------------------------------------------------------
+
+	/**
+	 * Reports the Dialogue Branch Variables this service supports for a given project. This lets
+	 * an authoring tool (e.g. Dialogue Branch Studio, via the Web Service's
+	 * {@code /variables/list-supported} end-point) confirm that a variable referenced in a
+	 * dialogue is actually one this service knows about, rather than a naming mismatch that would
+	 * otherwise silently never receive a value.
+	 *
+	 * <p>The capability list this end-point reports is static and project-independent: it answers
+	 * "can this service compute this variable at all", not "does this specific user have a value
+	 * right now" (that distinction is answered by {@code retrieve-updates} instead). The
+	 * {@code projectSlug} parameter is required by the contract even though this dummy
+	 * implementation ignores it and always returns the same list &mdash; a real, multi-project
+	 * External Variable Service may support different variables per project.</p>
+	 *
+	 * <p>In this dummy implementation, the reported list is exactly the three variables
+	 * {@code retrieveUpdates} always knows how to compute: {@code currentDate}, {@code
+	 * currentTime}, and {@code dayPart}.</p>
+	 *
+	 * @param request the {@link HttpServletRequest} that generated the request.
+	 * @param response the {@link HttpServletResponse} that generated the request.
+	 * @param version the API Version to use, e.g. '1'.
+	 * @param projectSlug the slug of the project to report supported variables for.
+	 * @return the list of Dialogue Branch Variables this service supports.
+	 * @throws Exception in case of a network or service error.
+	 */
+	@Operation(summary = "Report the Dialogue Branch Variables this service supports for a project",
+		description = "Lets an authoring tool confirm that a variable referenced in a dialogue is " +
+			"actually one this External Variable Service knows about." +
+			"<br/><br/>The reported list is static and project-independent capability information " +
+			"(\"can this service compute this variable at all\"), not a per-user value check " +
+			"(that is what 'retrieve-updates' answers)." +
+			"<br/><br/>In this dummy implementation, the reported list is always the same three " +
+			"variables that 'retrieve-updates' knows how to compute: 'currentDate', " +
+			"'currentTime', and 'dayPart'.")
+	@ApiResponses(value = {
+		@ApiResponse(responseCode = "200",
+			description = "Successful operation",
+			content = @Content(
+				array = @ArraySchema(
+					schema = @Schema(implementation = SupportedVariablePayload.class)))) })
+	@RequestMapping(value="/supported", method= RequestMethod.GET)
+	public List<SupportedVariablePayload> getSupportedVariables(
+		HttpServletRequest request,
+		HttpServletResponse response,
+
+		@Parameter(hidden = true, description = "API Version to use, e.g. '1'")
+		@PathVariable(value = "version")
+		String version,
+
+		@Parameter(description = "The slug of the project to report supported variables for")
+		@RequestParam(value="projectSlug")
+		String projectSlug) throws Exception {
+
+		// If no explicit protocol version is provided, assume the latest version
+		if(version == null) version = ProtocolVersion.getLatestVersion().versionName();
+
+		// Log this call to the service log
+		logger.info("GET /v{}/variables/supported?projectSlug={}", version, projectSlug);
+
+		if(projectSlug == null || projectSlug.isEmpty()) {
+			throw new BadRequestException("Missing 'projectSlug' in request.");
+		}
+
+		String providedAPIKey = ControllerFunctions.extractAPIKey(request);
+		if(!properties.getAuth().getApiKey().equals(providedAPIKey)) {
+			throw new UnauthorizedException(ErrorCode.ACCESS_TOKEN_INVALID,
+					"Invalid API Key provided.");
+		}
+
+		return List.of(
+				new SupportedVariablePayload("currentDate",
+						"Today's date (yyyy-MM-dd) in the user's time zone"),
+				new SupportedVariablePayload("currentTime",
+						"The current time (HH:mm:ss) in the user's time zone"),
+				new SupportedVariablePayload("dayPart",
+						"One of 'morning', 'afternoon', 'evening', or 'night', based on the " +
+								"current hour in the user's time zone"));
 	}
 
 }

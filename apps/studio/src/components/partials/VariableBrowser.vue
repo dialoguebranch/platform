@@ -65,6 +65,7 @@ const client = useClient();
 const mode = ref('values');
 const variables = ref([]);
 const projectVariables = ref([]); // [{ name, read, written }]
+const supportedVariables = ref([]); // [{ name, description }] — from the configured EVS, if any
 
 const searchQuery = ref('');
 const sortMode = ref('name-asc');
@@ -79,8 +80,22 @@ function filterSort(list) {
 
 // 'values' mode. Rows keep their original variable objects, so editing/deleting is unaffected.
 const displayedVariables = computed(() => filterSort(variables.value));
-// 'project' mode.
-const displayedProjectVariables = computed(() => filterSort(projectVariables.value));
+// 'project' mode — every variable the project's dialogues reference, merged with every variable
+// the configured EVS reports as supported (a variable may be either, both, or (transiently, while
+// typed but not yet used) neither). A name present only on the EVS side gets read: false,
+// written: false — it's still a real row, just not yet referenced by any dialogue.
+const mergedProjectVariables = computed(() => {
+    const byName = new Map();
+    for (const v of projectVariables.value)
+        byName.set(v.name, { name: v.name, read: v.read, written: v.written, evsSupported: false });
+    for (const v of supportedVariables.value) {
+        const existing = byName.get(v.name);
+        if (existing) existing.evsSupported = true;
+        else byName.set(v.name, { name: v.name, read: false, written: false, evsSupported: true });
+    }
+    return [...byName.values()];
+});
+const displayedProjectVariables = computed(() => filterSort(mergedProjectVariables.value));
 // Names the current user has a stored value for — used to subtly dim the not-yet-set entries in
 // the 'project' list.
 const storedNames = computed(() => new Set(variables.value.map((v) => v.name)));
@@ -128,9 +143,21 @@ const loadProjectVariables = () => {
         .catch(() => { projectVariables.value = []; });
 };
 
+// Best-effort, same as loadProjectVariables(): most deployments won't have an EVS configured at
+// all, which surfaces as a rejected request here, not a special "empty" response — that's expected,
+// not an error, so it's swallowed the same way rather than shown to the user.
+const loadSupportedVariables = () => {
+    const slug = state.value.selectedProject?.slug;
+    if (!slug) return;
+    client.listSupportedVariables(slug)
+        .then((vars) => { supportedVariables.value = vars; })
+        .catch(() => { supportedVariables.value = []; });
+};
+
 function refresh() {
     loadVariables();
     loadProjectVariables();
+    loadSupportedVariables();
 }
 
 function copyName(name) {
@@ -206,7 +233,7 @@ onMounted(() => {
                         type="button"
                         class="px-2 h-7.5 cursor-pointer border-l border-grey-light"
                         :class="mode === 'project' ? 'bg-orange-dark text-white' : 'bg-white text-grey-dark hover:bg-grey-lighter'"
-                        title="Every variable name used anywhere in this project (read-only)"
+                        title="Every variable used anywhere in this project, plus any the configured External Variable Service supports (read-only)"
                         @click="mode = 'project'"
                     >Used</button>
                 </div>
@@ -263,6 +290,9 @@ onMounted(() => {
                     :class="{ 'opacity-60': !storedNames.has(v.name) }"
                     :title="storedNames.has(v.name) ? 'You have a value for this' : 'No value set for you yet'">
                     <div class="font-title font-semibold text-xs text-orange-darker min-w-0 truncate grow">${{ v.name }}</div>
+                    <FontAwesomeIcon v-if="v.evsSupported" icon="fa-solid fa-satellite-dish"
+                        class="shrink-0 text-[10px] text-grey-dark"
+                        title="Reported as supported by the configured External Variable Service" />
                     <button type="button" title="Copy name"
                         class="shrink-0 w-5 h-5 flex items-center justify-center text-grey-dark hover:text-orange-dark cursor-pointer opacity-0 group-hover:opacity-100"
                         @click="copyName(v.name)">

@@ -42,9 +42,12 @@ import com.dialoguebranch.model.execute.ResourcePointer;
 import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.controller.schema.ProjectVariableInfo;
+import com.dialoguebranch.web.service.controller.schema.SupportedVariableInfo;
 import com.dialoguebranch.web.service.exception.DatabaseException;
+import com.dialoguebranch.web.service.exception.InternalServerErrorException;
 import com.dialoguebranch.web.service.repository.DBLoggedDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBUserRepository;
+import com.dialoguebranch.web.service.storage.ExternalVariableServiceClient;
 import com.dialoguebranch.web.service.storage.VariableStoreDatabaseStorageHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -314,6 +317,22 @@ public class ApplicationManager {
 		byName.forEach((name, flags) ->
 				result.add(new ProjectVariableInfo(name, flags[0], flags[1])));
 		return result;
+	}
+
+	/**
+	 * Returns the variables the configured External Variable Service reports as supported for the
+	 * given project, queried live on every call — see {@link ExternalVariableServiceClient} for
+	 * why this is not cached.
+	 *
+	 * @param projectSlug the project folder name / slug.
+	 * @return the External Variable Service's reported supported variables for {@code projectSlug}.
+	 * @throws InternalServerErrorException if no External Variable Service is configured, or the
+	 *                                       configured EVS could not be reached or returned an
+	 *                                       error.
+	 */
+	public List<SupportedVariableInfo> getSupportedVariablesFromExternalService(String projectSlug)
+			throws InternalServerErrorException {
+		return new ExternalVariableServiceClient(dlbProperties).getSupportedVariables(projectSlug);
 	}
 
 	/**

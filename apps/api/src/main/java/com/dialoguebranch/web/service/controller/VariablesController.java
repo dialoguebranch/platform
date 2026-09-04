@@ -38,6 +38,7 @@ import com.dialoguebranch.web.service.QueryRunner;
 import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.auth.Permission;
 import com.dialoguebranch.web.service.controller.schema.ProjectVariableInfo;
+import com.dialoguebranch.web.service.controller.schema.SupportedVariableInfo;
 import com.dialoguebranch.web.service.exception.BadRequestException;
 import com.dialoguebranch.web.service.exception.DatabaseException;
 import com.dialoguebranch.web.service.exception.ErrorCode;
@@ -216,6 +217,56 @@ public class VariablesController {
 		return QueryRunner.runQuery(
 			(protocolVersion, authenticatedUser) ->
 				application.getApplicationManager().getProjectVariables(projectSlug),
+			version, response, "", Permission.VARIABLE_INSPECT_PROJECT);
+	}
+
+	// -------------------------------------------------------------------------------- //
+	// -------------------- END-POINT: "/variables/list-supported" -------------------- //
+	// -------------------------------------------------------------------------------- //
+
+	/**
+	 * Lists the variables the project's configured External Variable Service (EVS) reports as
+	 * supported, via the EVS's own {@code /variables/supported} end-point. Intended as an
+	 * authoring aid alongside {@code /variables/list-project}: a dialogue author referencing
+	 * {@code $someVariable} expecting an EVS to fill it in has no other way to confirm the EVS
+	 * actually knows that name. Every call is proxied through to the EVS live, never cached.
+	 * Accessible to users with the {@code editor} or {@code admin} role.
+	 *
+	 * @param request the {@link HttpServletRequest}.
+	 * @param response the {@link HttpServletResponse}.
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the slug of the project to query supported variables for.
+	 * @return the External Variable Service's reported supported variables for the project.
+	 * @throws Exception in case of a network, internal or authentication error, or if no External
+	 *                    Variable Service is configured for this deployment.
+	 */
+	@Operation(
+		summary = "List the variables the project's configured External Variable Service supports.",
+		description = "Queries the project's configured External Variable Service's own " +
+			"'/variables/supported' end-point live (never cached) and returns its answer. " +
+			"Accessible for users with the 'editor' or 'admin' role.")
+	@RequestMapping(value="/list-supported", method=RequestMethod.GET)
+	public List<SupportedVariableInfo> listSupportedVariables(
+		HttpServletRequest request,
+		HttpServletResponse response,
+
+		@Parameter(hidden = true, description = "API Version to use, e.g. '1'")
+		@PathVariable(value = "version")
+		String version,
+
+		@Parameter(description = "The slug of the project to query supported variables for")
+		@RequestParam(value = "projectSlug")
+		String projectSlug) throws Exception {
+
+		if (version == null || version.isEmpty())
+			version = ProtocolVersion.getLatestVersion().versionName();
+
+		logger.info("GET /v" + version + "/variables/list-supported?projectSlug=" + projectSlug);
+
+		return QueryRunner.runQuery(
+			(protocolVersion, authenticatedUser) ->
+				application.getApplicationManager()
+						.getSupportedVariablesFromExternalService(projectSlug),
 			version, response, "", Permission.VARIABLE_INSPECT_PROJECT);
 	}
 
