@@ -37,6 +37,7 @@ function startDialogue() {
     client.startDialogue(projectSlug, dialogueName, '')
     .then((dialogueStep) => {
         dialogueSteps.value.push(dialogueStep);
+        announceStatementActions(dialogueStep);
         dialogueEnded.value = dialogueStep.replies.length === 0;
         if (dialogueEnded.value) logEvent('dialogue', 'Dialogue ended immediately: $1', dialogueName);
     })
@@ -50,8 +51,27 @@ function startDialogue() {
     });
 }
 
+// Surfaces resolved <<action>> commands: a Debug Console line, and a `dlb-action` CustomEvent on
+// `window` so a page embedding the participant view can react to a `generic` action.
+function announceAction(action, origin) {
+    const params = action.parameters && Object.keys(action.parameters).length
+        ? ' {' + Object.entries(action.parameters).map(([k, v]) => `${k}=${v}`).join(', ') + '}'
+        : '';
+    logEvent('dialogue', `${origin} action: $1`, `${action.type} → ${action.value}${params}`);
+    window.dispatchEvent(new CustomEvent('dlb-action', {
+        detail: { origin, type: action.type, value: action.value, parameters: action.parameters },
+    }));
+}
+
+function announceStatementActions(step) {
+    (step?.statement?.segments ?? [])
+        .filter((segment) => segment.type === 'ACTION' && segment.action)
+        .forEach((segment) => announceAction(segment.action, 'Statement'));
+}
+
 function onSelectReply(dialogueStep, reply, inputValues) {
     if (awaitingReply.value) return;
+    (reply.actions ?? []).forEach((action) => announceAction(action, 'Reply'));
     const replyText = reply.statement?.segments?.map(s => s.text).join('') ?? String(reply.replyId);
     const values = inputValues && Object.keys(inputValues).length > 0 ? inputValues : null;
     dismissError();
@@ -62,6 +82,7 @@ function onSelectReply(dialogueStep, reply, inputValues) {
     .then((nextStep) => {
         if (nextStep) {
             dialogueSteps.value.push(nextStep);
+            announceStatementActions(nextStep);
             dialogueEnded.value = nextStep.replies.length === 0;
             if (dialogueEnded.value) logEvent('dialogue', 'Dialogue ended: $1', dialogueName);
         } else {

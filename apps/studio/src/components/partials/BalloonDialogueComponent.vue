@@ -2,11 +2,11 @@
 import { computed, ref, watch, useTemplateRef } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useResizablePanel } from '@/composables/resizablepanel.js';
-import { statementToHtml } from '@/composables/sanitize-html.js';
 import { BasicReply } from '@/dlb-lib/model/BasicReply';
 import { AutoForwardReply } from '@/dlb-lib/model/AutoForwardReply';
 import CollapsibleErrorList from '../widgets/CollapsibleErrorList.vue';
 import InteractiveReply from './InteractiveReply.vue';
+import DialogueStatement from './DialogueStatement.vue';
 import avatarMartin from '@/assets/img/avatar-martin.png';
 import avatarMartinTools from '@/assets/img/avatar-martin-tools.png';
 
@@ -88,7 +88,9 @@ const statementSizeClass = computed(() => SIZE_TIERS[Math.max(statementSizeTier.
                     sm: 'ml-10 mr-20',
                 })"
             >
-                <div class="bg-speech-bubble text-white rounded-2xl p-5 space-y-3" :class="statementSizeClass" v-html="statementToHtml(currentStep.statement.fullStatement())"></div>
+                <div class="bg-speech-bubble text-white rounded-2xl p-5 space-y-3" :class="statementSizeClass">
+                    <DialogueStatement :statement="currentStep.statement" />
+                </div>
                 <div class="border-20 border-transparent border-t-speech-bubble self-end mr-[10%]"></div>
                 <div v-if="dialogueEnded" class="absolute top-full font-title text-sm font-bold italic text-center pt-2 w-full flex items-center justify-center gap-2">
                     {{ dialogueCancelled ? 'This dialogue has been cancelled.' : 'The dialogue has finished.' }}

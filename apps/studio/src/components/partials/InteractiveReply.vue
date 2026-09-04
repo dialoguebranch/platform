@@ -6,6 +6,7 @@ import { computed, reactive, ref } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { sanitizeHtml } from '@/composables/sanitize-html.js';
 import DialogueInput from '../widgets/DialogueInput.vue';
+import DialogueActionSegment from '../widgets/DialogueActionSegment.vue';
 
 const props = defineProps({
     // A dlb-lib BasicReply whose statement has at least one INPUT segment.
@@ -63,6 +64,10 @@ function onSubmit() {
                 :disabled="disabled || submitted"
                 @update:value="(v) => onValue(index, v)"
                 @update:valid="(v) => onValid(index, v)"
+            />
+            <DialogueActionSegment
+                v-else-if="segment.type === 'ACTION' && segment.action"
+                :action="segment.action"
             />
         </template>
         <button

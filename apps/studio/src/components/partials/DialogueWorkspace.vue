@@ -325,6 +325,7 @@ const loadDialogue = (name, { tab: givenTab, startNodeId, language } = {}) => {
         tab.dialogueName = dialogueStep.dialogueName;
         tab.loggedDialogueId = dialogueStep.loggedDialogueId;
         tab.dialogueSteps.push(dialogueStep);
+        logStatementActions(dialogueStep);
         tab.dialogueEnded = dialogueStep.replies.length === 0;
         if (tab.dialogueEnded) logEvent('dialogue', 'Dialogue ended immediately: $1', name);
         emit('newDialogueStep');
@@ -367,6 +368,7 @@ const loadDraftDialogue = (name, { tab: givenTab, startNodeId, language } = {}) 
         tab.draftSessionId = draftSessionId;
         tab.dialogueName = dialogueStep.dialogueName;
         tab.dialogueSteps.push(dialogueStep);
+        logStatementActions(dialogueStep);
         tab.dialogueEnded = dialogueStep.replies.length === 0;
         if (tab.dialogueEnded) logEvent('dialogue', 'Draft test ended immediately: $1', name);
         emit('newDialogueStep');
@@ -503,6 +505,7 @@ const reloadStep = () => {
         .then((dialogueStep) => {
             tab.dialogueSteps.pop();
             tab.dialogueSteps.push(dialogueStep);
+            logStatementActions(dialogueStep);
             emit('newDialogueStep');
             scrollTextToBottom();
         })
@@ -534,6 +537,7 @@ const resumeDialogue = (name) => {
         if (dialogueStep) {
             tab.loggedDialogueId = dialogueStep.loggedDialogueId;
             tab.dialogueSteps.push(dialogueStep);
+            logStatementActions(dialogueStep);
             tab.dialogueEnded = dialogueStep.replies.length === 0;
         } else {
             tab.dialogueEnded = true;
@@ -712,11 +716,29 @@ function onCancelClick() {
     });
 }
 
+function describeAction(action) {
+    const params = action.parameters && Object.keys(action.parameters).length
+        ? ' {' + Object.entries(action.parameters).map(([k, v]) => `${k}=${v}`).join(', ') + '}'
+        : '';
+    return `${action.type} → ${action.value}${params}`;
+}
+
+// The action segments of a statement (link / image / video / generic) render in the dialogue
+// view; also log them so they show up in the Debug Console.
+function logStatementActions(step) {
+    (step?.statement?.segments ?? [])
+        .filter((segment) => segment.type === 'ACTION' && segment.action)
+        .forEach((segment) => logEvent('dialogue', 'Statement action: $1',
+            describeAction(segment.action)));
+}
+
 function onSelectReply(dialogueStep, reply, inputValues) {
     const tab = activeTab.value;
     // Guards against a fast double-click/tap firing two progress requests for the same step —
     // both components also disable reply selection via :awaitingReply, this is the source of truth.
     if (tab.awaitingReply) return;
+    (reply.actions ?? []).forEach((action) =>
+        logEvent('dialogue', 'Reply action: $1', describeAction(action)));
     const replyText = reply.statement?.segments?.map(s => s.text).join('') ?? String(reply.replyId);
     // inputValues is a { variableName: value } map, present only for a reply with <<input>>
     // commands; passed to the Web Service as the progress-call body.
@@ -735,6 +757,7 @@ function onSelectReply(dialogueStep, reply, inputValues) {
             if (nextStep) {
                 tab.dialogueName = nextStep.dialogueName;
                 tab.dialogueSteps.push(nextStep);
+                logStatementActions(nextStep);
                 tab.dialogueEnded = nextStep.replies.length === 0;
                 if (tab.dialogueEnded) logEvent('dialogue', 'Draft test ended: $1', tab.dialogueName);
             } else {
@@ -762,6 +785,7 @@ function onSelectReply(dialogueStep, reply, inputValues) {
         if (nextStep) {
             tab.dialogueName = nextStep.dialogueName;
             tab.dialogueSteps.push(nextStep);
+            logStatementActions(nextStep);
             tab.dialogueEnded = nextStep.replies.length === 0;
             if (tab.dialogueEnded) logEvent('dialogue', 'Dialogue ended: $1', tab.dialogueName);
         } else {
