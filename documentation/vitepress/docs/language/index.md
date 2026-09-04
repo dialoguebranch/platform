@@ -403,6 +403,8 @@ In the example above, you could for example give the user some time to choose be
 
 You can ask a user to provide various types of input as part of a reply's statement text, using an `<<input>>` command. Dialogue Branch supports six input types: `text`, `longtext`, `email`, `numeric`, `time`, and `set`.
 
+An `<<input>>` command is only valid **inside a `[[...]]` reply** — it cannot appear as a statement in a node body (unlike `<<set>>`, `<<if>>`, `<<random>>` and `<<action>>`). This applies to every input type, `set` included.
+
 The easiest way is to request some text input:
 
 ```text
@@ -473,7 +475,8 @@ Presents the user with a set of labelled boolean options (e.g. checkboxes), each
 
 ```text
 Which toppings would you like?
-<<input type="set" value1="$wantsCheese" option1="Cheese" value2="$wantsOlives" option2="Olives" value3="$wantsHam" option3="Ham">>
+
+[[I would like <<input type="set" value1="$wantsCheese" option1="Cheese" value2="$wantsOlives" option2="Olives" value3="$wantsHam" option3="Ham">> on my pizza.|ToppingsChosen]]
 ```
 
 Each `valueN` is a `$variable` that will be set to `true`/`false` depending on whether the user selected `optionN`'s label.
