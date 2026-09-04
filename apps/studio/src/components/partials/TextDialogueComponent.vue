@@ -149,6 +149,7 @@ function getBasicReplyTextClasses(step, stepIndex, reply) {
                     <div class="basis-0 grow-8">
                         <InteractiveReply
                             v-if="reply.statement.hasSegmentOfType('INPUT')"
+                            :key="`ir-${stepIndex}-${reply.replyId}`"
                             :reply="reply"
                             :disabled="!isReplySelectable(stepIndex) || selectedReplies.get(step) !== undefined"
                             button-class="ml-2 rounded border border-orange-dark text-orange-darker hover:bg-orange-light px-3 py-1 text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"

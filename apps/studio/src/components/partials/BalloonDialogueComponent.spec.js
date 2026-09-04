@@ -33,6 +33,7 @@ import BalloonDialogueComponent from './BalloonDialogueComponent.vue';
 import { DialogueStep } from '@/dlb-lib/model/DialogueStep';
 import { Statement } from '@/dlb-lib/model/Statement';
 import { Segment } from '@/dlb-lib/model/Segment';
+import { BasicReply } from '@/dlb-lib/model/BasicReply';
 
 function step(textLength) {
     return new DialogueStep(
@@ -115,5 +116,47 @@ describe('BalloonDialogueComponent statement font size', () => {
         await wrapper.setProps({ dialogueSteps: [step(SHORT)] });
 
         expect(bubbleSizeClass(wrapper)).toBe('text-lg');
+    });
+});
+
+// A reply with an <<input type="text">> command in its statement.
+function inputReply() {
+    const reply = BasicReply.emptyInstance();
+    reply.replyId = 1;
+    reply.endsDialogue = false;
+    reply.statement = new Statement([
+        Segment.fromJSON({ segmentType: 'INPUT', inputType: 'text', variableName: 'answer' }),
+    ]);
+    return reply;
+}
+
+function inputStep(node) {
+    return new DialogueStep(
+        'TestDialogue', node, 'Agent',
+        new Statement([new Segment('TEXT', node)]),
+        [inputReply()], 'ld-1', 0,
+    );
+}
+
+describe('BalloonDialogueComponent input replies', () => {
+    it('keeps the input field editable on a later step (no leaked submit state)', async () => {
+        const steps = reactive([inputStep('First')]);
+        const wrapper = mountComponent(steps);
+        expect(wrapper.get('input').attributes('disabled')).toBeUndefined();
+
+        // Fill and submit the first step's input reply.
+        await wrapper.get('input').setValue('hello');
+        await wrapper.get('button').trigger('click');
+
+        // The dialogue moves on to another node that also has an input reply. Without a per-step
+        // key the InteractiveReply instance would be reused with its `submitted` flag still set,
+        // leaving the field disabled and the reply unsendable.
+        steps.push(inputStep('Second'));
+        await nextTick();
+
+        const field = wrapper.get('input');
+        expect(field.attributes('disabled')).toBeUndefined();
+        await field.setValue('world');
+        expect(wrapper.get('button').attributes('disabled')).toBeUndefined();
     });
 });
