@@ -22,9 +22,9 @@ import {
     faCircleXmark, faClockRotateLeft, faCloudArrowUp, faCookieBite, faDiagramProject, faFileExport,
     faFileImport, faFileLines, faFileZipper, faFingerprint, faFlagCheckered, faFlask, faFolder,
     faFolderMinus, faFolderOpen, faHeading, faLanguage, faMagnifyingGlass, faParagraph, faPen,
-    faPlay, faPlus, faRightFromBracket, faRocket, faRotateLeft, faRotateRight, faServer, faSliders,
-    faTrash, faTriangleExclamation, faUser, faUserGear, faUserLock, faUserXmark,
-    faWandMagicSparkles, faWifi, faXmark,
+    faPlay, faPlus, faRightFromBracket, faRocket, faRotateLeft, faRotateRight, faSatelliteDish,
+    faServer, faSliders, faTrash, faTriangleExclamation, faUser, faUserGear, faUserLock,
+    faUserXmark, faWandMagicSparkles, faXmark,
 } from '@fortawesome/free-solid-svg-icons';
 import { faComments, faCopy } from '@fortawesome/free-regular-svg-icons';
 
@@ -35,9 +35,9 @@ library.add(
     faCircleXmark, faClockRotateLeft, faCloudArrowUp, faCookieBite, faDiagramProject, faFileExport,
     faFileImport, faFileLines, faFileZipper, faFingerprint, faFlagCheckered, faFlask, faFolder,
     faFolderMinus, faFolderOpen, faHeading, faLanguage, faMagnifyingGlass, faParagraph, faPen,
-    faPlay, faPlus, faRightFromBracket, faRocket, faRotateLeft, faRotateRight, faServer, faSliders,
-    faTrash, faTriangleExclamation, faUser, faUserGear, faUserLock, faUserXmark,
-    faWandMagicSparkles, faWifi, faXmark,
+    faPlay, faPlus, faRightFromBracket, faRocket, faRotateLeft, faRotateRight, faSatelliteDish,
+    faServer, faSliders, faTrash, faTriangleExclamation, faUser, faUserGear, faUserLock,
+    faUserXmark, faWandMagicSparkles, faXmark,
     faComments, faCopy,
 );
 
