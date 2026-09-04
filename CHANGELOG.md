@@ -94,6 +94,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 - Permission-based access control for the Web Service ([#28](https://github.com/dialoguebranch/platform/issues/28)):
   a `Permission` catalogue, a `Role` → permission mapping (`participant` ⊂ `editor` ⊂ `admin`),
   and an `AuthorizationService` that decides whether a caller may perform an operation.
+- Studio: `<<input>>` replies now work in the dialogue view
+  ([#177](https://github.com/dialoguebranch/platform/issues/177)). A reply containing an
+  `<<input>>` command renders the matching widget inline (single-line / multi-line text, email,
+  number, time picker, or a checkbox group for `set`), validates it against the command's
+  parameters, and submits the collected value(s) to the Web Service as the `/dialogue/progress`
+  (and `/draft/progress`) request body — which previously was never sent, so input replies could
+  not be used at all. Applies to both the authoring test view and the participant view.
 - Web Service + Studio: pick a delegate user by name instead of typing a raw subject
   ([#130](https://github.com/dialoguebranch/platform/issues/130)). New `GET /v1/users` endpoint —
   a read-only, realm-scoped listing of the users this service has run a dialogue for

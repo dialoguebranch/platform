@@ -285,7 +285,10 @@ export class DialogueBranchClient {
         .then((json) => this.createDialogueStepObject(json));
     }
 
-    progressDialogue(loggedDialogueId, loggedInteractionIndex, replyId) {
+    // `inputValues`, when given, is an object mapping Dialogue Branch variable names to the values
+    // the user provided for a reply's <<input>> command(s); it is sent as the JSON request body,
+    // which the Web Service stores before progressing (see DialogueController.doProgressDialogue).
+    progressDialogue(loggedDialogueId, loggedInteractionIndex, replyId, inputValues = null) {
         var url = this._baseUrl + "/dialogue/progress";
 
         url += "?loggedDialogueId="+loggedDialogueId;
@@ -293,10 +296,12 @@ export class DialogueBranchClient {
         url += "&replyId="+replyId;
         url += this._delegateParam;
 
+        const body = inputValues ? JSON.stringify(inputValues) : null;
         return this._fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" }
-        })
+            headers: { "Content-Type": "application/json" },
+            ...(body != null ? { body } : {})
+        }, body)
         .then((response) => this._handleResponse(response))
         .then((json) => json.value ? this.createDialogueStepObject(json.value) : null);
     }
@@ -370,7 +375,9 @@ export class DialogueBranchClient {
         }));
     }
 
-    progressDraftDialogue(draftSessionId, replyId) {
+    // See progressDialogue: `inputValues` is forwarded as the JSON request body, which
+    // DraftExecutionController.progress stores before progressing the draft-test session.
+    progressDraftDialogue(draftSessionId, replyId, inputValues = null) {
         let url = this._baseUrl + "/draft/progress";
 
         url += "?draftSessionId=" + draftSessionId;
@@ -378,10 +385,12 @@ export class DialogueBranchClient {
         url += "&timeZone=" + this._timeZone;
         url += this._delegateParam;
 
+        const body = inputValues ? JSON.stringify(inputValues) : null;
         return this._fetch(url, {
             method: "POST",
-            headers: { "Content-Type": "application/json" }
-        })
+            headers: { "Content-Type": "application/json" },
+            ...(body != null ? { body } : {})
+        }, body)
         .then((response) => this._handleResponse(response))
         .then((json) => json.value ? this.createDialogueStepObject(json.value) : null);
     }

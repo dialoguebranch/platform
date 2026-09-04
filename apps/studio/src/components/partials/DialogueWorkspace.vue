@@ -712,18 +712,21 @@ function onCancelClick() {
     });
 }
 
-function onSelectReply(dialogueStep, reply) {
+function onSelectReply(dialogueStep, reply, inputValues) {
     const tab = activeTab.value;
     // Guards against a fast double-click/tap firing two progress requests for the same step —
     // both components also disable reply selection via :awaitingReply, this is the source of truth.
     if (tab.awaitingReply) return;
     const replyText = reply.statement?.segments?.map(s => s.text).join('') ?? String(reply.replyId);
+    // inputValues is a { variableName: value } map, present only for a reply with <<input>>
+    // commands; passed to the Web Service as the progress-call body.
+    const values = inputValues && Object.keys(inputValues).length > 0 ? inputValues : null;
     dismissError();
     tab.awaitingReply = true;
 
     if (tab.isDraftTest) {
         logEvent('dialogue', 'Draft test reply selected: $1', replyText);
-        client.progressDraftDialogue(tab.draftSessionId, reply.replyId)
+        client.progressDraftDialogue(tab.draftSessionId, reply.replyId, values)
         .then((nextStep) => {
             // The tab could have been cancelled while this request was in flight (Cancel is
             // disabled once awaitingReply is set, but this stays correct even if that ever
@@ -752,7 +755,7 @@ function onSelectReply(dialogueStep, reply) {
 
     logEvent('dialogue', 'Reply selected: $1', replyText);
     client.progressDialogue(dialogueStep.loggedDialogueId, dialogueStep.loggedInteractionIndex,
-        reply.replyId)
+        reply.replyId, values)
     .then((nextStep) => {
         // See the identical guard in the draft-test branch above.
         if (tab.dialogueCancelled) return;

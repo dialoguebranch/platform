@@ -6,6 +6,7 @@ import { statementToHtml } from '@/composables/sanitize-html.js';
 import { BasicReply } from '@/dlb-lib/model/BasicReply';
 import { AutoForwardReply } from '@/dlb-lib/model/AutoForwardReply';
 import CollapsibleErrorList from '../widgets/CollapsibleErrorList.vue';
+import InteractiveReply from './InteractiveReply.vue';
 import avatarMartin from '@/assets/img/avatar-martin.png';
 import avatarMartinTools from '@/assets/img/avatar-martin-tools.png';
 
@@ -114,8 +115,15 @@ const statementSizeClass = computed(() => SIZE_TIERS[Math.max(statementSizeTier.
                     })"
                 >
                     <template v-if="!dialogueEnded" v-for="(reply, index) in currentStep.replies">
+                        <InteractiveReply
+                            v-if="reply instanceof BasicReply && reply.statement.hasSegmentOfType('INPUT')"
+                            :reply="reply"
+                            :disabled="awaitingReply"
+                            button-class="mt-2 block rounded-xl bg-orange-dark hover:bg-orange-medium text-white p-3 disabled:bg-icon-button-disabled disabled:cursor-not-allowed cursor-pointer disabled:cursor-not-allowed"
+                            @submit="(vars) => $emit('selectReply', currentStep, reply, vars)"
+                        />
                         <button
-                            v-if="reply instanceof BasicReply"
+                            v-else-if="reply instanceof BasicReply"
                             class="block rounded-xl bg-orange-dark hover:bg-orange-medium text-white text-left p-3 disabled:bg-icon-button-disabled disabled:cursor-not-allowed"
                             :class="{ 'cursor-pointer': !awaitingReply }"
                             :disabled="awaitingReply"
