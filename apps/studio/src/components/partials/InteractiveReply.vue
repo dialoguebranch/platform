@@ -52,7 +52,7 @@ function onSubmit() {
 </script>
 
 <template>
-    <div class="font-title text-left leading-relaxed">
+    <div class="font-title text-left leading-relaxed w-full">
         <span v-if="reply.endsDialogue" class="mr-1 opacity-75">
             <FontAwesomeIcon icon="fa-solid fa-xmark" title="This reply ends the dialogue" />
         </span>
