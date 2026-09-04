@@ -34,17 +34,19 @@ describe('Segment.fromJSON', () => {
         expect(segment.action).toBeNull();
     });
 
-    it('builds an INPUT segment with type, description and parameters', () => {
+    it('collects the flattened input parameters (the wire format has no `parameters` object)', () => {
         const segment = Segment.fromJSON({
             segmentType: 'INPUT',
             inputType: 'numeric',
             description: 'your age',
-            parameters: { min: 0, max: 120 },
+            variableName: 'age',
+            min: 0,
+            max: 120,
         });
         expect(segment.type).toBe('INPUT');
         expect(segment.inputType).toBe('numeric');
         expect(segment.description).toBe('your age');
-        expect(segment.parameters).toEqual({ min: 0, max: 120 });
+        expect(segment.parameters).toEqual({ variableName: 'age', min: 0, max: 120 });
         expect(segment.text).toBe('');
     });
 
@@ -75,7 +77,7 @@ describe('Segment.fromJSON', () => {
 describe('Statement segment helpers', () => {
     const statement = new Statement([
         new Segment('TEXT', 'before '),
-        Segment.fromJSON({ segmentType: 'INPUT', inputType: 'text', parameters: {} }),
+        Segment.fromJSON({ segmentType: 'INPUT', inputType: 'text', variableName: 'x' }),
         new Segment('TEXT', ' after'),
     ]);
 
@@ -120,7 +122,9 @@ describe('DialogueBranchClient.createDialogueStepObject', () => {
                             segmentType: 'INPUT',
                             inputType: 'text',
                             description: 'your first name',
-                            parameters: { min: 2, max: 30 },
+                            variableName: 'inName',
+                            min: 2,
+                            max: 30,
                         },
                         { segmentType: 'TEXT', text: '.' },
                     ],
@@ -153,7 +157,7 @@ describe('DialogueBranchClient.createDialogueStepObject', () => {
         expect(inputSegments).toHaveLength(1);
         expect(inputSegments[0].inputType).toBe('text');
         expect(inputSegments[0].description).toBe('your first name');
-        expect(inputSegments[0].parameters).toEqual({ min: 2, max: 30 });
+        expect(inputSegments[0].parameters).toEqual({ variableName: 'inName', min: 2, max: 30 });
         expect(basicReply.statement.fullStatement()).toBe('My name is .');
     });
 

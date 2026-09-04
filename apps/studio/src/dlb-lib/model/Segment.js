@@ -79,10 +79,15 @@ export class Segment {
     static fromJSON(json) {
         const type = json.segmentType;
         if (type === 'INPUT') {
+            // The Web Service flattens an input command's parameters onto the segment object
+            // (see DialogueStatement.InputSegmentSerializer) — everything that is not
+            // segmentType / inputType / description is a parameter (e.g. variableName, min,
+            // max, granularityMinutes, options).
+            const { segmentType, inputType, description, ...parameters } = json;
             const segment = new Segment('INPUT', '');
-            segment._inputType = json.inputType ?? null;
-            segment._description = json.description ?? null;
-            segment._parameters = json.parameters ?? {};
+            segment._inputType = inputType ?? null;
+            segment._description = description ?? null;
+            segment._parameters = parameters;
             return segment;
         }
         if (type === 'ACTION') {
