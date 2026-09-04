@@ -70,7 +70,11 @@ public enum Permission {
 	/** Read project metadata: {@code /project/list-projects|get-project}. */
 	PROJECT_READ,
 
-	/** Inspect every variable a project's dialogues reference: {@code /variables/list-project}. */
+	/**
+	 * Inspect a project's variables: every variable its dialogues reference
+	 * ({@code /variables/list-project}), and every variable its configured External Variable
+	 * Service reports as supported ({@code /variables/list-supported}).
+	 */
 	VARIABLE_INSPECT_PROJECT,
 
 	/**

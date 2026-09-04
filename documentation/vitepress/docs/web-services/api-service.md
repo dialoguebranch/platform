@@ -51,7 +51,9 @@ Using these, you can inform Dialogue Branch about Variables whose values are gen
 
 Variables are **scoped to the project**: the same variable name in two different projects holds two independent values. All three end-points above therefore take a required `projectSlug` parameter identifying which project's variables to read or write.
 
-Another way of making sure that Dialogue Branch has up-to-date values for Variables, is by using an [External Variable Service](/web-services/external-variable-service).
+Another way of making sure that Dialogue Branch has up-to-date values for Variables, is by using an [External Variable Service](/web-services/external-variable-service). If your configured External Variable Service implements the optional [supported-variables end-point](/web-services/external-variable-service#reporting-supported-variables), you can query which variable names it knows how to compute for a project — useful for confirming a dialogue references the name an EVS actually supports, rather than a typo or mismatch:
+
+* `/variables/list-supported` — takes a required `projectSlug`, and returns the configured External Variable Service's reported list of supported variables for that project (each call is proxied to the EVS live, never cached). Requires the `editor` or `admin` role.
 
 ## Known Users
 
