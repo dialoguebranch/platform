@@ -59,7 +59,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   dialogue is actually one the configured EVS knows about) — the Web Service does not validate,
   warn, or change execution behavior based on it, and dialogue execution remains fault-tolerant as
   before (a variable with no value is not an error). An EVS that does not implement the new
-  end-point is unaffected; there is no API-version bump.
+  end-point is unaffected; there is no API-version bump. `apps/mock-variable-service` implements
+  the new end-point too, reporting the same three variables `retrieve-updates` already knows about
+  (`currentDate`, `currentTime`, `dayPart`), regardless of the requested `projectSlug`.
 - Core: `dlb-core-java`'s public API now carries a machine-readable nullness contract
   ([#95](https://github.com/dialoguebranch/platform/issues/95)). Every package is
   [JSpecify](https://jspecify.dev) `@NullMarked` (via a new `package-info.java` per package, which
