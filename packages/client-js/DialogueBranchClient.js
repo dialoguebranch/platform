@@ -102,8 +102,8 @@ export class DialogueBranchClient extends BaseClient {
         var url = this._baseUrl + "/dialogue/start";
 
         url += "?projectSlug="+encodeURIComponent(projectSlug);
-        url += "&dialogueName="+dialogueName;
-        url += "&language="+language;
+        url += "&dialogueName="+encodeURIComponent(dialogueName);
+        url += "&language="+encodeURIComponent(language);
         url += "&timeZone="+this._timeZone;
         if (startNodeId) url += "&startNodeId=" + encodeURIComponent(startNodeId);
         url += this._delegateParam;
@@ -132,7 +132,7 @@ export class DialogueBranchClient extends BaseClient {
     progressDialogue(loggedDialogueId, loggedInteractionIndex, replyId, inputValues = null) {
         var url = this._baseUrl + "/dialogue/progress";
 
-        url += "?loggedDialogueId="+loggedDialogueId;
+        url += "?loggedDialogueId="+encodeURIComponent(loggedDialogueId);
         url += "&loggedInteractionIndex="+loggedInteractionIndex;
         url += "&replyId="+replyId;
         url += this._delegateParam;
@@ -161,7 +161,7 @@ export class DialogueBranchClient extends BaseClient {
         var url = this._baseUrl + "/dialogue/continue";
 
         url += "?projectSlug="+encodeURIComponent(projectSlug);
-        url += "&dialogueName="+dialogueName;
+        url += "&dialogueName="+encodeURIComponent(dialogueName);
         url += "&timeZone="+this._timeZone;
         url += this._delegateParam;
 
@@ -189,7 +189,7 @@ export class DialogueBranchClient extends BaseClient {
      * @returns {Promise<void>}
      */
     cancelDialogue(loggedDialogueId) {
-        let url = this._baseUrl + "/dialogue/cancel?loggedDialogueId=" + loggedDialogueId;
+        let url = this._baseUrl + "/dialogue/cancel?loggedDialogueId=" + encodeURIComponent(loggedDialogueId);
         url += this._delegateParam;
 
         return this._fetch(url, {
@@ -261,8 +261,8 @@ export class DialogueBranchClient extends BaseClient {
         var url = this._baseUrl + "/variables/set-single";
 
         url += "?projectSlug="+encodeURIComponent(projectSlug);
-        url += "&name="+variableName;
-        if(variableValue != null) url += "&value="+variableValue;
+        url += "&name="+encodeURIComponent(variableName);
+        if(variableValue != null) url += "&value="+encodeURIComponent(variableValue);
         url += "&timeZone="+this._timeZone;
         url += this._delegateParam;
 
