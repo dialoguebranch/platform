@@ -330,6 +330,10 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Web Service: `GET /variables/list-supported` now returns 501 when no External Variable
+  Service is configured and 503 when the configured service is unavailable, instead of
+  reporting both conditions as 500
+  ([#243](https://github.com/dialoguebranch/platform/issues/243)).
 - Client JS: limit the npm package to runtime modules, include its MIT licence,
   and add repository and issue-tracker metadata
   ([#236](https://github.com/dialoguebranch/platform/issues/236)).

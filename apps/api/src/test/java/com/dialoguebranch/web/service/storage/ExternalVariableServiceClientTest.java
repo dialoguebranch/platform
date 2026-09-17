@@ -26,40 +26,44 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-package com.dialoguebranch.web.service.execution;
+package com.dialoguebranch.web.service.storage;
 
-import com.dialoguebranch.web.service.Application;
+import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.exception.ErrorCode;
-import com.dialoguebranch.web.service.exception.NotImplementedException;
+import com.dialoguebranch.web.service.exception.ServiceUnavailableException;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
+
+import java.io.IOException;
+import java.net.ServerSocket;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-/**
- * {@link ApplicationManager#getSupportedVariablesFromExternalService} backs the
- * {@code /variables/list-supported} end-point (dialoguebranch/platform#185). The test profile has
- * no External Variable Service configured, which is exactly the "not enabled" path this covers;
- * the live-proxy success path needs a mock EVS HTTP server, which is out of scope here since no
- * such test infrastructure exists yet for any of the EVS-calling code in this module.
- */
-@SpringBootTest
-@ActiveProfiles("test")
-class SupportedVariablesTest {
-
-	@Autowired
-	private Application application;
+class ExternalVariableServiceClientTest {
 
 	@Test
-	void throwsWithTheExpectedErrorCodeWhenNoExternalVariableServiceIsConfigured() {
-		NotImplementedException exception = assertThrows(NotImplementedException.class,
-				() -> application.getApplicationManager()
-						.getSupportedVariablesFromExternalService("default-test"));
+	void throwsServiceUnavailableWhenExternalVariableServiceCannotBeReached() throws IOException {
+		int unusedPort;
+		try (ServerSocket socket = new ServerSocket(0)) {
+			unusedPort = socket.getLocalPort();
+		}
 
-		assertEquals(ErrorCode.EXTERNAL_VARIABLE_SERVICE_NOT_ENABLED,
+		DlbProperties properties = new DlbProperties();
+		DlbProperties.ExternalVariableService evs = properties.getExternalVariableService();
+		evs.setEnabled(true);
+		evs.setUrl("http://127.0.0.1:" + unusedPort);
+		evs.setApiVersion(1);
+		evs.setApiKey("test-key");
+
+		ServiceUnavailableException exception = assertThrows(ServiceUnavailableException.class,
+				() -> new ExternalVariableServiceClient(properties)
+						.getSupportedVariables("default-test"));
+
+		assertEquals(ErrorCode.EXTERNAL_VARIABLE_SERVICE_UNREACHABLE,
 				exception.getError().getCode());
+		assertEquals(HttpStatus.SERVICE_UNAVAILABLE,
+				ServiceUnavailableException.class.getAnnotation(ResponseStatus.class).value());
 	}
 }
