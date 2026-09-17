@@ -330,6 +330,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- JavaScript client: `ConsoleLogger` now sends each log level to its corresponding
+  console method, so console severity filtering works; unknown levels still use
+  `console.log` ([#247](https://github.com/dialoguebranch/platform/issues/247)).
 - Client JS: limit the npm package to runtime modules, include its MIT licence,
   and add repository and issue-tracker metadata
   ([#236](https://github.com/dialoguebranch/platform/issues/236)).

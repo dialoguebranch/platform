@@ -43,7 +43,15 @@ export class ConsoleLogger extends AbstractLogger {
     // ---------------------------------------
 
     writeLogEntry(level, logtag, message) {
-        console.log("[" + logtag + " - " + level + "] " + message);
+        let method;
+        switch (level) {
+            case "ERROR": method = "error"; break;
+            case "WARN": method = "warn"; break;
+            case "INFO": method = "info"; break;
+            case "DEBUG": method = "debug"; break;
+            default: method = "log";
+        }
+        console[method]("[" + logtag + " - " + level + "] " + message);
     }
 
 }
