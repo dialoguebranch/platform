@@ -31,7 +31,8 @@ package com.dialoguebranch.web.service.storage;
 import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.controller.schema.SupportedVariableInfo;
 import com.dialoguebranch.web.service.exception.ErrorCode;
-import com.dialoguebranch.web.service.exception.InternalServerErrorException;
+import com.dialoguebranch.web.service.exception.NotImplementedException;
+import com.dialoguebranch.web.service.exception.ServiceUnavailableException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
@@ -81,19 +82,19 @@ public class ExternalVariableServiceClient {
 	 * @param projectSlug the slug of the project to query supported variables for.
 	 * @return the EVS's reported list of supported variables for {@code projectSlug}, in the order
 	 *         the EVS returned them.
-	 * @throws InternalServerErrorException if no External Variable Service is configured, or the
-	 *                                       configured EVS could not be reached or returned an
-	 *                                       error. This deliberately does not degrade to an empty
-	 *                                       list: a client asking "what does the EVS support"
-	 *                                       needs to distinguish "supports nothing" from "could not
-	 *                                       find out", which are not the same fact.
+	 * @throws NotImplementedException if no External Variable Service is configured.
+	 * @throws ServiceUnavailableException if the configured EVS could not be reached or returned
+	 *                                     an error. This deliberately does not degrade to an empty
+	 *                                     list: a client asking "what does the EVS support" needs
+	 *                                     to distinguish "supports nothing" from "could not find
+	 *                                     out", which are not the same fact.
 	 */
 	public List<SupportedVariableInfo> getSupportedVariables(String projectSlug)
-			throws InternalServerErrorException {
+			throws NotImplementedException, ServiceUnavailableException {
 		DlbProperties.ExternalVariableService evs = dlbProperties.getExternalVariableService();
 
 		if (!evs.isEnabled()) {
-			throw new InternalServerErrorException(
+			throw new NotImplementedException(
 					ErrorCode.EXTERNAL_VARIABLE_SERVICE_NOT_ENABLED,
 					"No External Variable Service is configured for this deployment.");
 		}
@@ -119,7 +120,7 @@ public class ExternalVariableServiceClient {
 					SupportedVariableInfo[].class);
 
 			if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
-				throw new InternalServerErrorException(
+				throw new ServiceUnavailableException(
 						ErrorCode.EXTERNAL_VARIABLE_SERVICE_UNREACHABLE,
 						"The External Variable Service did not return a supported-variables list "
 								+ "for project '" + projectSlug + "'.");
@@ -128,7 +129,7 @@ public class ExternalVariableServiceClient {
 		} catch (RestClientException ex) {
 			logger.error("Error retrieving supported variables from the External Variable " +
 					"Service for project '{}'.", projectSlug, ex);
-			throw new InternalServerErrorException(
+			throw new ServiceUnavailableException(
 					ErrorCode.EXTERNAL_VARIABLE_SERVICE_UNREACHABLE,
 					"Could not reach the External Variable Service to determine supported "
 							+ "variables for project '" + projectSlug + "'.");

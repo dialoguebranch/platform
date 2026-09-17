@@ -44,7 +44,8 @@ import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.controller.schema.ProjectVariableInfo;
 import com.dialoguebranch.web.service.controller.schema.SupportedVariableInfo;
 import com.dialoguebranch.web.service.exception.DatabaseException;
-import com.dialoguebranch.web.service.exception.InternalServerErrorException;
+import com.dialoguebranch.web.service.exception.NotImplementedException;
+import com.dialoguebranch.web.service.exception.ServiceUnavailableException;
 import com.dialoguebranch.web.service.repository.DBLoggedDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBUserRepository;
 import com.dialoguebranch.web.service.storage.ExternalVariableServiceClient;
@@ -326,12 +327,12 @@ public class ApplicationManager {
 	 *
 	 * @param projectSlug the project folder name / slug.
 	 * @return the External Variable Service's reported supported variables for {@code projectSlug}.
-	 * @throws InternalServerErrorException if no External Variable Service is configured, or the
-	 *                                       configured EVS could not be reached or returned an
-	 *                                       error.
+	 * @throws NotImplementedException if no External Variable Service is configured.
+	 * @throws ServiceUnavailableException if the configured EVS could not be reached or returned
+	 *                                     an error.
 	 */
 	public List<SupportedVariableInfo> getSupportedVariablesFromExternalService(String projectSlug)
-			throws InternalServerErrorException {
+			throws NotImplementedException, ServiceUnavailableException {
 		return new ExternalVariableServiceClient(dlbProperties).getSupportedVariables(projectSlug);
 	}
 
