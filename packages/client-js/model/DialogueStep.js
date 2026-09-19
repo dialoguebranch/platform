@@ -30,12 +30,30 @@ import { Statement } from './Statement.js';
 import { BasicReply } from './BasicReply.js';
 import { AutoForwardReply } from './AutoForwardReply.js';
 
+/**
+ * One turn of an ongoing dialogue as returned by the Web Service playback endpoints:
+ * the current node, speaker, agent {@link Statement}, and the available {@link Reply}
+ * options. Prefer {@link DialogueStep.fromJSON} when building from an API response.
+ *
+ * @author Harm op den Akker (Fruit Tree Labs)
+ */
 export class DialogueStep {
 
     // ------------------------------------
     // ---------- Constructor(s) ----------
     // ------------------------------------
 
+    /**
+     * Creates a DialogueStep.
+     *
+     * @param {string} dialogueName the dialogue script name (API field `dialogue`).
+     * @param {string} node the current node id within the dialogue.
+     * @param {string} speaker who is speaking this step (e.g. an agent id).
+     * @param {Statement} statement the agent statement for this step.
+     * @param {Array} replies the reply options ({@link BasicReply} / {@link AutoForwardReply}).
+     * @param {string} loggedDialogueId server id for the logged dialogue session.
+     * @param {number} loggedInteractionIndex index of this interaction within the log.
+     */
     constructor(dialogueName, node, speaker, statement, replies, loggedDialogueId, loggedInteractionIndex) {
         this._dialogueName = dialogueName;
         this._node = node;

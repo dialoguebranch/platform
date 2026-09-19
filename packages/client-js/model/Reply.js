@@ -42,7 +42,7 @@ export class Reply {
 
     /**
      * Creates an instance of a Reply. Note that 'Reply' is an 'abstract' class that should not be
-     * instantiated directly. Instead, use the constrcutor of one of the classes that extends Reply.
+     * instantiated directly. Instead, use the constructor of one of the classes that extends Reply.
      * @param {number} replyId The identifier of this reply option that is unique within this dialogue step.
      * @param {boolean} endsDialogue Whether or not selecting this reply will end the dialogue.
      * @param {Array} actions A list of Actions that should be executed when this reply is chosen.
