@@ -28,7 +28,7 @@
 
 /**
  * A User object models the user of this client app: username and roles, as reported by the BFF's
- * {@code /whoami} endpoint. The BFF holds the actual Keycloak access/refresh token server-side
+ * {/whoami} endpoint. The BFF holds the actual Keycloak access/refresh token server-side
  * (and refreshes it transparently) — this app never sees, or needs to track, a token at all.
  *
  * @author Harm op den Akker

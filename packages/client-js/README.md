@@ -46,7 +46,7 @@ render(step);
 
 function render(step) {
   // step.statement is a Statement — fullStatement() gives the plain-text rendering of its
-  // TEXT segments (segments() also exposes INPUT/ACTION parts, for a richer UI).
+  // TEXT segments (segments also exposes INPUT/ACTION parts, for a richer UI).
   console.log(step.statement.fullStatement());
   // step.replies is an array of Reply (BasicReply carries its own statement; AutoForwardReply
   // doesn't — it's a reply with no user-visible text, e.g. a "Continue" button).

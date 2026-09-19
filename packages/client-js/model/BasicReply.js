@@ -51,7 +51,7 @@ export class BasicReply extends Reply {
      * dialogue step.
      * @param {boolean} endsDialogue Whether or not selecting this reply will end the dialogue.
      * @param {Array} actions A list of Actions that should be executed when this reply is chosen.
-     * @param {String} statement The statement that the user 'utters' when selecting this Reply.
+     * @param {Statement} statement The statement that the user 'utters' when selecting this Reply.
      */
     constructor(replyId, endsDialogue, actions, statement) {
         super(replyId, endsDialogue, actions);
