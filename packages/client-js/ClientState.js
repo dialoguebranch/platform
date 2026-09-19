@@ -42,7 +42,7 @@ export class ClientState {
     /**
      * Creates an instance of a ClientState object to keep track of the state of a Dialogue Branch client.
      * Log information is passed through the provided Logger instance.
-     * @param {Logger} logger A Logger instance that may be used to log information.
+     * @param {AbstractLogger} logger A Logger instance that may be used to log information.
      */
     constructor(logger) {
         this._logger = logger;
