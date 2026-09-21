@@ -28,12 +28,24 @@
 
 import { Segment } from './Segment.js';
 
+/**
+ * An agent or user utterance for a dialogue step: an ordered list of {@link Segment}s
+ * (TEXT / INPUT / ACTION). Clients usually receive these via {@link Statement.fromJSON}
+ * on a {@link DialogueStep}; {@link Statement#fullStatement} concatenates the TEXT parts.
+ *
+ * @author Harm op den Akker (Fruit Tree Labs)
+ */
 export class Statement {
 
     // ------------------------------------
     // ---------- Constructor(s) ----------
     // ------------------------------------
 
+    /**
+     * Creates a Statement from an ordered list of segments.
+     *
+     * @param {Segment[]} segments the segments that make up this statement.
+     */
     constructor(segments) {
         this._segments = segments;
     }

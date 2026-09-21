@@ -7,6 +7,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Fixed
+
+- Client JS: correct small JSDoc/README inaccuracies (`constrcutor` typo, `Statement`/`AbstractLogger`
+  param types, `` `/whoami` `` markup, `segments` getter wording) and add missing class/constructor
+  docs on `Statement` and `DialogueStep`
+  ([#248](https://github.com/dialoguebranch/platform/issues/248)).
+
 ### Removed
 
 - **Breaking:** Core: retired the pre-flattening multi-source-language handling in
