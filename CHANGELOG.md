@@ -9,6 +9,10 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Client JS: `ConsoleLogger` now sends each log level to its corresponding console method
+  (`console.error`/`warn`/`info`/`debug`) instead of always `console.log`, so browser/Node
+  console severity filtering and error stack capture work as expected
+  ([#247](https://github.com/dialoguebranch/platform/issues/247)).
 - Client JS: correct small JSDoc/README inaccuracies (`constrcutor` typo, `Statement`/`AbstractLogger`
   param types, `` `/whoami` `` markup, `segments` getter wording) and add missing class/constructor
   docs on `Statement` and `DialogueStep`
