@@ -334,6 +334,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   Service is configured and 503 when the configured service is unavailable, instead of
   reporting both conditions as 500
   ([#243](https://github.com/dialoguebranch/platform/issues/243)).
+- Client JS: URL-encode string query parameters used by dialogue playback and draft-test
+  requests so reserved characters do not corrupt the request URL
+  ([#246](https://github.com/dialoguebranch/platform/issues/246)).
 - Client JS: limit the npm package to runtime modules, include its MIT licence,
   and add repository and issue-tracker metadata
   ([#236](https://github.com/dialoguebranch/platform/issues/236)).

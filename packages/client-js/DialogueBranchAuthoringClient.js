@@ -406,7 +406,7 @@ export class DialogueBranchAuthoringClient extends BaseClient {
 
         url += "?projectSlug=" + encodeURIComponent(projectSlug);
         url += "&dialogueName=" + encodeURIComponent(dialogueName);
-        url += "&language=" + language;
+        url += "&language=" + encodeURIComponent(language);
         url += "&timeZone=" + this._timeZone;
         if (startNodeId) url += "&startNodeId=" + encodeURIComponent(startNodeId);
         url += this._delegateParam;
@@ -436,7 +436,7 @@ export class DialogueBranchAuthoringClient extends BaseClient {
     progressDraftDialogue(draftSessionId, replyId, inputValues = null) {
         let url = this._baseUrl + "/draft/progress";
 
-        url += "?draftSessionId=" + draftSessionId;
+        url += "?draftSessionId=" + encodeURIComponent(draftSessionId);
         url += "&replyId=" + replyId;
         url += "&timeZone=" + this._timeZone;
         url += this._delegateParam;
@@ -458,7 +458,7 @@ export class DialogueBranchAuthoringClient extends BaseClient {
      * @returns {Promise<void>}
      */
     cancelDraftDialogue(draftSessionId) {
-        const url = this._baseUrl + "/draft/cancel?draftSessionId=" + draftSessionId
+        const url = this._baseUrl + "/draft/cancel?draftSessionId=" + encodeURIComponent(draftSessionId)
             + this._delegateParam;
 
         return this._fetch(url, {
@@ -477,7 +477,7 @@ export class DialogueBranchAuthoringClient extends BaseClient {
      * @returns {Promise<void>}
      */
     revertDraftVariables(draftSessionId) {
-        let url = this._baseUrl + "/draft/revert-variables?draftSessionId=" + draftSessionId;
+        let url = this._baseUrl + "/draft/revert-variables?draftSessionId=" + encodeURIComponent(draftSessionId);
         url += "&timeZone=" + this._timeZone;
         url += this._delegateParam;
 
