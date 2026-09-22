@@ -392,22 +392,26 @@ export class DialogueBranchAuthoringClient extends BaseClient {
      * the equivalent of {@link DialogueBranchClient#startDialogue} for trying out in-progress
      * edits, e.g. in a visual editor. Nothing is logged as a real dialogue session.
      *
-     * @param {string} projectSlug The project's slug.
-     * @param {string} dialogueName The dialogue's name.
-     * @param {string} language The language code to test in.
-     * @param {string} [startNodeId] Start at a specific node instead of the dialogue's default
-     * start node.
+     * @param {Object} options
+     * @param {string} options.projectSlug The project's slug.
+     * @param {string} options.dialogueName The dialogue's name.
+     * @param {string} options.language The language code to test in.
+     * @param {string} [options.timeZone] The caller's IANA time zone (e.g. `"Europe/Lisbon"`).
+     * This client never infers it — pass it explicitly (e.g.
+     * `Intl.DateTimeFormat().resolvedOptions().timeZone` in a browser).
+     * @param {string} [options.startNodeId] Start at a specific node instead of the dialogue's
+     * default start node.
      * @returns {Promise<{draftSessionId: string, dialogueStep: DialogueStep}>} `draftSessionId`
      * identifies this ephemeral test session for {@link progressDraftDialogue}/
      * {@link cancelDraftDialogue}/{@link revertDraftVariables}.
      */
-    startDraftDialogue(projectSlug, dialogueName, language, startNodeId) {
+    startDraftDialogue({ projectSlug, dialogueName, language, timeZone, startNodeId }) {
         let url = this._baseUrl + "/draft/start";
 
         url += "?projectSlug=" + encodeURIComponent(projectSlug);
         url += "&dialogueName=" + encodeURIComponent(dialogueName);
         url += "&language=" + encodeURIComponent(language);
-        url += "&timeZone=" + this._timeZone;
+        if (timeZone) url += "&timeZone=" + encodeURIComponent(timeZone);
         if (startNodeId) url += "&startNodeId=" + encodeURIComponent(startNodeId);
         url += this._delegateParam;
 
@@ -426,19 +430,23 @@ export class DialogueBranchAuthoringClient extends BaseClient {
      * Advances a draft-test session by one step — the {@link startDraftDialogue} equivalent of
      * {@link DialogueBranchClient#progressDialogue}.
      *
-     * @param {string} draftSessionId The draft-test session's id, from {@link startDraftDialogue}.
-     * @param {number} replyId The id of the reply the user selected.
-     * @param {Object} [inputValues] If the selected reply had one or more `<<input>>` commands,
-     * the values the user provided for them (see
+     * @param {Object} options
+     * @param {string} options.draftSessionId The draft-test session's id, from
+     * {@link startDraftDialogue}.
+     * @param {number} options.replyId The id of the reply the user selected.
+     * @param {Object} [options.inputValues] If the selected reply had one or more `<<input>>`
+     * commands, the values the user provided for them (see
      * {@link DialogueBranchClient#progressDialogue}'s `inputValues`).
+     * @param {string} [options.timeZone] The caller's IANA time zone. See
+     * {@link startDraftDialogue}'s `timeZone`.
      * @returns {Promise<DialogueStep|null>} The next step, or `null` if the dialogue ended.
      */
-    progressDraftDialogue(draftSessionId, replyId, inputValues = null) {
+    progressDraftDialogue({ draftSessionId, replyId, inputValues = null, timeZone }) {
         let url = this._baseUrl + "/draft/progress";
 
         url += "?draftSessionId=" + encodeURIComponent(draftSessionId);
         url += "&replyId=" + replyId;
-        url += "&timeZone=" + this._timeZone;
+        if (timeZone) url += "&timeZone=" + encodeURIComponent(timeZone);
         url += this._delegateParam;
 
         const body = inputValues ? JSON.stringify(inputValues) : null;
@@ -473,12 +481,15 @@ export class DialogueBranchAuthoringClient extends BaseClient {
      * before it started — so trying out a dialogue in the editor doesn't leave the tester's real
      * stored variable values altered.
      *
-     * @param {string} draftSessionId The draft-test session's id.
+     * @param {Object} options
+     * @param {string} options.draftSessionId The draft-test session's id.
+     * @param {string} [options.timeZone] The caller's IANA time zone. See
+     * {@link startDraftDialogue}'s `timeZone`.
      * @returns {Promise<void>}
      */
-    revertDraftVariables(draftSessionId) {
+    revertDraftVariables({ draftSessionId, timeZone }) {
         let url = this._baseUrl + "/draft/revert-variables?draftSessionId=" + encodeURIComponent(draftSessionId);
-        url += "&timeZone=" + this._timeZone;
+        if (timeZone) url += "&timeZone=" + encodeURIComponent(timeZone);
         url += this._delegateParam;
 
         return this._fetch(url, {
