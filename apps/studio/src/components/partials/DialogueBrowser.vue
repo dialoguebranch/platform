@@ -5,7 +5,7 @@ export default { inheritAttrs: false };
 <script setup>
 import { computed, inject, ref, watch, useAttrs } from 'vue';
 const attrs = useAttrs();
-import { useClient, useAuthoringClient } from '../../composables/client.js';
+import { useClient, useAuthoringClient, getBrowserTimeZone } from '../../composables/client.js';
 import { describeError } from '../../composables/error-message.js';
 import { showError, dismissError } from '../../composables/error-toast.js';
 import { useLatestRequest } from '../../composables/latest-request.js';
@@ -124,7 +124,7 @@ function listDialogues() {
     // by name across the two lists.
     const listPromise = isDraftMode.value
         ? authoringClient.listDraftDialogues(projectSlug).catch(() => [])
-        : client.listDialogues(projectSlug).catch(() => ({ dialogueNames: [] }));
+        : client.listDialogues({ projectSlug }).catch(() => ({ dialogueNames: [] }));
     listPromise
     .then((result) => {
         if (!isCurrentListRequest(requestId)) return;
@@ -216,7 +216,10 @@ const hasActiveDialogue = computed(() =>
 
 function checkOngoingDialogue() {
     dismissError();
-    client.getOngoingDialogue(state.value.selectedProject?.slug)
+    client.getOngoingDialogue({
+        projectSlug: state.value.selectedProject?.slug,
+        timeZone: getBrowserTimeZone(),
+    })
     .then((ongoing) => {
         if (ongoing) {
             const alreadyOpenTab = props.openTabs.find(t =>

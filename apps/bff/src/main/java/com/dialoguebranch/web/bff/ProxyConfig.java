@@ -38,6 +38,7 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.web.OAuth2AuthorizedClientRepository;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.util.DefaultUriBuilderFactory;
 
 /**
  * Wires up what {@link ApiProxyController} and {@link WhoAmIController} need: a manager that
@@ -78,6 +79,15 @@ public class ProxyConfig {
 	 */
 	@Bean
 	public RestClient apiRestClient(@Value("${dlb.bff.api-base-url}") String baseUrl) {
-		return RestClient.builder().baseUrl(baseUrl).build();
+		// ApiProxyController forwards the incoming request's raw, already-encoded path and query
+		// string verbatim (via HttpServletRequest#getRequestURI/#getQueryString). The default
+		// encoding mode would encode them a second time — a query value the caller already
+		// percent-encoded (e.g. "Europe%2FLisbon") would have its literal "%" re-encoded to
+		// "%25", corrupting it into "Europe%252FLisbon" by the time it reaches the Web Service.
+		// EncodingMode.NONE passes the already-encoded bytes through untouched, matching what
+		// this proxy is actually meant to do.
+		DefaultUriBuilderFactory uriBuilderFactory = new DefaultUriBuilderFactory(baseUrl);
+		uriBuilderFactory.setEncodingMode(DefaultUriBuilderFactory.EncodingMode.NONE);
+		return RestClient.builder().uriBuilderFactory(uriBuilderFactory).build();
 	}
 }

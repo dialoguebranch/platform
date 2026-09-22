@@ -84,41 +84,53 @@ describe('DialogueBranchClient playback methods', () => {
         expect(info.serviceVersion).toBe('0.1.8');
     });
 
-    it('listDialogues(projectSlug) GETs with the project slug encoded', async () => {
+    it('listDialogues() GETs with no query string when projectSlug is omitted', async () => {
         const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ dialogueNames: ['menu'] }));
         vi.stubGlobal('fetch', fetchMock);
 
-        const result = await client().listDialogues('a project');
+        const result = await client().listDialogues();
 
-        expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/dialogue/list-dialogues?projectSlug=a%20project');
+        expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/dialogue/list-dialogues');
         expect(result).toEqual({ dialogueNames: ['menu'] });
     });
 
-    it('startDialogue() POSTs with projectSlug/dialogueName/language/timeZone and parses a DialogueStep', async () => {
+    it('listDialogues({ projectSlug }) GETs with the project slug encoded', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ dialogueNames: ['menu'] }));
+        vi.stubGlobal('fetch', fetchMock);
+
+        await client().listDialogues({ projectSlug: 'a project' });
+
+        expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/dialogue/list-dialogues?projectSlug=a%20project');
+    });
+
+    it('startDialogue() sends only dialogueName when projectSlug/language/timeZone are omitted', async () => {
         const fetchMock = vi.fn().mockResolvedValue(jsonResponse(STEP_JSON));
         vi.stubGlobal('fetch', fetchMock);
 
-        const step = await client().startDialogue('default-test', 'menu', 'en');
+        const step = await client().startDialogue({ dialogueName: 'menu' });
 
         const [url, options] = fetchMock.mock.calls[0];
-        expect(url).toContain('/api/v1/dialogue/start?');
-        expect(url).toContain('projectSlug=default-test');
-        expect(url).toContain('dialogueName=menu');
-        expect(url).toContain('language=en');
-        expect(url).toContain('timeZone=');
-        expect(url).not.toContain('startNodeId');
+        expect(url).toBe('/api/v1/dialogue/start?dialogueName=menu');
         expect(options.method).toBe('POST');
         expect(step).toBeInstanceOf(DialogueStep);
         expect(step.node).toBe('Start');
     });
 
-    it('startDialogue() includes startNodeId when given', async () => {
+    it('startDialogue() includes projectSlug/language/timeZone/startNodeId when given', async () => {
         const fetchMock = vi.fn().mockResolvedValue(jsonResponse(STEP_JSON));
         vi.stubGlobal('fetch', fetchMock);
 
-        await client().startDialogue('default-test', 'menu', 'en', 'SomeNode');
+        await client().startDialogue({
+            dialogueName: 'menu', projectSlug: 'default-test', language: 'en',
+            timeZone: 'Europe/Lisbon', startNodeId: 'SomeNode',
+        });
 
-        expect(fetchMock.mock.calls[0][0]).toContain('startNodeId=SomeNode');
+        const url = fetchMock.mock.calls[0][0];
+        expect(url).toContain('dialogueName=menu');
+        expect(url).toContain('projectSlug=default-test');
+        expect(url).toContain('language=en');
+        expect(url).toContain('timeZone=Europe%2FLisbon');
+        expect(url).toContain('startNodeId=SomeNode');
     });
 
     it('startDialogue() appends &delegateUser= when delegateUser is set', async () => {
@@ -127,7 +139,7 @@ describe('DialogueBranchClient playback methods', () => {
 
         const c = client();
         c.delegateUser = 'bob';
-        await c.startDialogue('default-test', 'menu', 'en');
+        await c.startDialogue({ dialogueName: 'menu' });
 
         expect(fetchMock.mock.calls[0][0]).toContain('&delegateUser=bob');
     });
@@ -150,23 +162,34 @@ describe('DialogueBranchClient playback methods', () => {
         expect(step).toBeNull();
     });
 
-    it('continueDialogue() parses the resumed DialogueStep when a session exists', async () => {
+    it('continueDialogue() sends only dialogueName when projectSlug/timeZone are omitted', async () => {
         const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ value: STEP_JSON }));
         vi.stubGlobal('fetch', fetchMock);
 
-        const step = await client().continueDialogue('default-test', 'menu');
+        const step = await client().continueDialogue({ dialogueName: 'menu' });
 
         const [url, options] = fetchMock.mock.calls[0];
-        expect(url).toContain('/api/v1/dialogue/continue?');
+        expect(url).toBe('/api/v1/dialogue/continue?dialogueName=menu');
         expect(options.method).toBe('POST');
         expect(step).toBeInstanceOf(DialogueStep);
+    });
+
+    it('continueDialogue() includes projectSlug/timeZone when given', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ value: STEP_JSON }));
+        vi.stubGlobal('fetch', fetchMock);
+
+        await client().continueDialogue({ dialogueName: 'menu', projectSlug: 'default-test', timeZone: 'Europe/Lisbon' });
+
+        const url = fetchMock.mock.calls[0][0];
+        expect(url).toContain('projectSlug=default-test');
+        expect(url).toContain('timeZone=Europe%2FLisbon');
     });
 
     it('continueDialogue() resolves to null when there is no ongoing session', async () => {
         const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ value: null }));
         vi.stubGlobal('fetch', fetchMock);
 
-        const step = await client().continueDialogue('default-test', 'menu');
+        const step = await client().continueDialogue({ dialogueName: 'menu' });
 
         expect(step).toBeNull();
     });
@@ -182,66 +205,126 @@ describe('DialogueBranchClient playback methods', () => {
         expect(options.method).toBe('POST');
     });
 
-    it('getVariables(projectSlug) maps the response array to Variable instances', async () => {
+    it('back(loggedDialogueId, loggedInteractionIndex) POSTs to /dialogue/back and parses a DialogueStep', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(jsonResponse(STEP_JSON));
+        vi.stubGlobal('fetch', fetchMock);
+
+        const step = await client().back('ld-1', 2);
+
+        const [url, options] = fetchMock.mock.calls[0];
+        expect(url).toBe('/api/v1/dialogue/back?loggedDialogueId=ld-1&loggedInteractionIndex=2');
+        expect(options.method).toBe('POST');
+        expect(step).toBeInstanceOf(DialogueStep);
+    });
+
+    it('getVariables() GETs with no query string when projectSlug/timeZone are omitted', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(jsonResponse([]));
+        vi.stubGlobal('fetch', fetchMock);
+
+        await client().getVariables();
+
+        expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/variables/get');
+    });
+
+    it('getVariables({ projectSlug, timeZone }) maps the response array to Variable instances', async () => {
         const fetchMock = vi.fn().mockResolvedValue(jsonResponse([
             { name: 'gold', value: '10', updatedTime: 1, updatedTimeZone: 'UTC', updatedSource: 'DLB_SCRIPT' },
         ]));
         vi.stubGlobal('fetch', fetchMock);
 
-        const variables = await client().getVariables('default-test');
+        const variables = await client().getVariables({ projectSlug: 'default-test', timeZone: 'Europe/Lisbon' });
 
+        const url = fetchMock.mock.calls[0][0];
+        expect(url).toContain('projectSlug=default-test');
+        expect(url).toContain('timeZone=Europe%2FLisbon');
         expect(variables).toHaveLength(1);
         expect(variables[0]).toBeInstanceOf(Variable);
         expect(variables[0].name).toBe('gold');
     });
 
-    it('getVariables(projectSlug) defaults to an empty array when the body is null', async () => {
+    it('getVariables() defaults to an empty array when the body is null', async () => {
         const fetchMock = vi.fn().mockResolvedValue(jsonResponse(null));
         vi.stubGlobal('fetch', fetchMock);
 
-        const variables = await client().getVariables('default-test');
+        const variables = await client().getVariables();
 
         expect(variables).toEqual([]);
     });
 
-    it('getOngoingDialogue(projectSlug) parses an OngoingDialogue when one exists', async () => {
+    it('getVariables() builds a valid URL (leading ?, not &) when only delegateUser is set', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(jsonResponse([]));
+        vi.stubGlobal('fetch', fetchMock);
+
+        const c = client();
+        c.delegateUser = 'bob';
+        await c.getVariables();
+
+        expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/variables/get?delegateUser=bob');
+    });
+
+    it('getOngoingDialogue() parses an OngoingDialogue when one exists', async () => {
         const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
             value: { dialogueName: 'menu', loggedDialogueId: 'ld-1', secondsSinceLastEngagement: 42 },
         }));
         vi.stubGlobal('fetch', fetchMock);
 
-        const ongoing = await client().getOngoingDialogue('default-test');
+        const ongoing = await client().getOngoingDialogue({ projectSlug: 'default-test' });
 
+        expect(fetchMock.mock.calls[0][0]).toContain('projectSlug=default-test');
         expect(ongoing).toBeInstanceOf(OngoingDialogue);
         expect(ongoing.loggedDialogueId).toBe('ld-1');
     });
 
-    it('getOngoingDialogue(projectSlug) resolves to null when there is none', async () => {
+    it('getOngoingDialogue() resolves to null when there is none', async () => {
         const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ value: null }));
         vi.stubGlobal('fetch', fetchMock);
 
-        const ongoing = await client().getOngoingDialogue('default-test');
+        const ongoing = await client().getOngoingDialogue();
 
         expect(ongoing).toBeNull();
     });
 
-    it('setVariable() includes the value param when given', async () => {
+    it('getOngoingDialogue() builds a valid URL (leading ?, not &) when only delegateUser is set', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ value: null }));
+        vi.stubGlobal('fetch', fetchMock);
+
+        const c = client();
+        c.delegateUser = 'bob';
+        await c.getOngoingDialogue();
+
+        expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/dialogue/get-ongoing?delegateUser=bob');
+    });
+
+    it('setVariable() sends only name when projectSlug/timeZone are omitted', async () => {
         const fetchMock = vi.fn().mockResolvedValue(okResponse());
         vi.stubGlobal('fetch', fetchMock);
 
-        await client().setVariable('default-test', 'gold', '10');
+        await client().setVariable({ variableName: 'gold', variableValue: '10' });
 
         const [url, options] = fetchMock.mock.calls[0];
-        expect(url).toBe('/api/v1/variables/set-single?projectSlug=default-test&name=gold&value=10' +
-            `&timeZone=${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
+        expect(url).toBe('/api/v1/variables/set-single?name=gold&value=10');
         expect(options.method).toBe('POST');
+    });
+
+    it('setVariable() includes projectSlug/timeZone when given', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(okResponse());
+        vi.stubGlobal('fetch', fetchMock);
+
+        await client().setVariable({
+            variableName: 'gold', variableValue: '10',
+            projectSlug: 'default-test', timeZone: 'Europe/Lisbon',
+        });
+
+        const url = fetchMock.mock.calls[0][0];
+        expect(url).toContain('projectSlug=default-test');
+        expect(url).toContain('timeZone=Europe%2FLisbon');
     });
 
     it('setVariable() omits the value param when clearing (null)', async () => {
         const fetchMock = vi.fn().mockResolvedValue(okResponse());
         vi.stubGlobal('fetch', fetchMock);
 
-        await client().setVariable('default-test', 'gold', null);
+        await client().setVariable({ variableName: 'gold', variableValue: null });
 
         expect(fetchMock.mock.calls[0][0]).not.toContain('&value=');
     });

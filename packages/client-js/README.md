@@ -40,8 +40,15 @@ import { BasicReply } from '@dialoguebranch/client-js/model/BasicReply';
 
 const client = new DialogueBranchClient({ baseUrl: 'https://your-web-service/v1' });
 
-// Start a dialogue, then render it.
-let step = await client.startDialogue('my-project', 'welcome', 'en');
+// Start a dialogue, then render it. projectSlug/language/timeZone are only sent when given —
+// omit them if your baseUrl points at a backend that resolves them itself (e.g. from the
+// caller's own account), rather than the Dialogue Branch Web Service directly.
+let step = await client.startDialogue({
+  dialogueName: 'welcome',
+  projectSlug: 'my-project',
+  language: 'en',
+  timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+});
 render(step);
 
 function render(step) {

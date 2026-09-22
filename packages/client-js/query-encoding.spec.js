@@ -41,15 +41,15 @@ describe("query parameter encoding", () => {
     it("encodes playback string parameters", () => {
         const client = new DialogueBranchClient({ baseUrl: "/api/v1" });
 
-        expect(captureUrl(client, c => c.startDialogue("project", "Q&A", "en&debug=true")))
-            .toContain("dialogueName=Q%26A&language=en%26debug%3Dtrue");
+        expect(captureUrl(client, c => c.startDialogue({ dialogueName: "Q&A", projectSlug: "project", language: "en&debug=true" })))
+            .toContain("dialogueName=Q%26A&projectSlug=project&language=en%26debug%3Dtrue");
         expect(captureUrl(client, c => c.progressDialogue("session&admin=true", 1, 2)))
             .toContain("loggedDialogueId=session%26admin%3Dtrue");
-        expect(captureUrl(client, c => c.continueDialogue("project", "Q&A")))
+        expect(captureUrl(client, c => c.continueDialogue({ dialogueName: "Q&A", projectSlug: "project" })))
             .toContain("dialogueName=Q%26A");
         expect(captureUrl(client, c => c.cancelDialogue("session&admin=true")))
             .toContain("loggedDialogueId=session%26admin%3Dtrue");
-        expect(captureUrl(client, c => c.setVariable("project", "name&scope", "one=1&two=2")))
+        expect(captureUrl(client, c => c.setVariable({ variableName: "name&scope", variableValue: "one=1&two=2", projectSlug: "project" })))
             .toContain("name=name%26scope&value=one%3D1%26two%3D2");
     });
 

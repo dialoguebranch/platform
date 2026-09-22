@@ -6,7 +6,7 @@ export default { inheritAttrs: false };
 import { computed, inject, onMounted, ref, useAttrs } from 'vue';
 const attrs = useAttrs();
 const state = inject('state');
-import { useClient, useAuthoringClient } from '@/composables/client.js';
+import { useClient, useAuthoringClient, getBrowserTimeZone } from '@/composables/client.js';
 import { logEvent } from '@/composables/debug-log.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
@@ -119,7 +119,7 @@ const loadVariables = () => {
         return;
     }
     const requestId = nextLoadRequest();
-    client.getVariables(slug)
+    client.getVariables({ projectSlug: slug, timeZone: getBrowserTimeZone() })
     .then((vars) => {
         if (!isCurrentLoadRequest(requestId)) return;
         variables.value = vars;
@@ -176,7 +176,12 @@ function deleteVariable(name) {
     const next = new Set(deletingVariables.value);
     next.add(name);
     deletingVariables.value = next;
-    client.setVariable(state.value.selectedProject?.slug, name, null)
+    client.setVariable({
+        variableName: name,
+        variableValue: null,
+        projectSlug: state.value.selectedProject?.slug,
+        timeZone: getBrowserTimeZone(),
+    })
     .then(() => {
         emit('changeVariable');
         return loadVariables();
@@ -201,7 +206,12 @@ function submitVariable(variable) {
     if (!dirtyVariables.value.has(variable.name)) return;
     dismissError();
     logEvent('variable', 'Variable $1 updated to $2', variable.name, variable.value);
-    client.setVariable(state.value.selectedProject?.slug, variable.name, variable.value)
+    client.setVariable({
+        variableName: variable.name,
+        variableValue: variable.value,
+        projectSlug: state.value.selectedProject?.slug,
+        timeZone: getBrowserTimeZone(),
+    })
     .then(() => {
         const next = new Set(dirtyVariables.value);
         next.delete(variable.name);

@@ -8,6 +8,12 @@ import { DocumentFunctions } from '../authoring/DocumentFunctions.js';
 let _client = null;
 let _authoringClient = null;
 
+// DialogueBranchClient no longer infers this itself (see #252) — the caller decides. Studio
+// wants the browser's own time zone, same as the client previously computed internally.
+export function getBrowserTimeZone() {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+
 // Shared transport options for both clients — identical wiring, just two different classes (see
 // #231: playback and authoring were split into DialogueBranchClient / DialogueBranchAuthoringClient
 // so an external playback-only consumer isn't stuck importing Studio's whole admin surface).

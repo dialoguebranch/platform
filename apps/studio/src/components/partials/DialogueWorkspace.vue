@@ -1,6 +1,6 @@
 <script setup>
 import { inject, nextTick, ref, computed, useTemplateRef, watch, onMounted } from 'vue';
-import { useClient, useAuthoringClient } from '@/composables/client.js';
+import { useClient, useAuthoringClient, getBrowserTimeZone } from '@/composables/client.js';
 
 const state = inject('state');
 import { logEvent } from '@/composables/debug-log.js';
@@ -321,7 +321,13 @@ const loadDialogue = (name, { tab: givenTab, startNodeId, language } = {}) => {
     scrollActiveTabIntoView();
     dismissError();
     logEvent('dialogue', 'Dialogue started: $1', name);
-    client.startDialogue(state.value.selectedProject?.slug, name, tab.language, startNodeId)
+    client.startDialogue({
+        dialogueName: name,
+        projectSlug: state.value.selectedProject?.slug,
+        language: tab.language,
+        timeZone: getBrowserTimeZone(),
+        startNodeId,
+    })
     .then((dialogueStep) => {
         tab.dialogueName = dialogueStep.dialogueName;
         tab.loggedDialogueId = dialogueStep.loggedDialogueId;
@@ -502,7 +508,11 @@ const reloadStep = () => {
     if (tab.dialogueName && !tab.isDraftTest) {
         reloading.value = true;
         dismissError();
-        client.continueDialogue(state.value.selectedProject?.slug, tab.dialogueName)
+        client.continueDialogue({
+            dialogueName: tab.dialogueName,
+            projectSlug: state.value.selectedProject?.slug,
+            timeZone: getBrowserTimeZone(),
+        })
         .then((dialogueStep) => {
             tab.dialogueSteps.pop();
             tab.dialogueSteps.push(dialogueStep);
@@ -531,7 +541,11 @@ const resumeDialogue = (name) => {
     activeTabId.value = newTab.id;
     nextTick(updateScrollState);
     dismissError();
-    client.continueDialogue(state.value.selectedProject?.slug, name)
+    client.continueDialogue({
+        dialogueName: name,
+        projectSlug: state.value.selectedProject?.slug,
+        timeZone: getBrowserTimeZone(),
+    })
     .then((dialogueStep) => {
         const tab = tabs.value.find(t => t.id === newTab.id);
         if (!tab) return;
