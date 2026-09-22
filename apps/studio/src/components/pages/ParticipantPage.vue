@@ -1,6 +1,6 @@
 <script setup>
 import { inject, onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue';
-import { useClient } from '../../composables/client.js';
+import { useClient, getBrowserTimeZone } from '../../composables/client.js';
 import { useStateManagement } from '../../composables/state-management.js';
 import { showError, dismissError } from '../../composables/error-toast.js';
 import { describeError } from '../../composables/error-message.js';
@@ -31,10 +31,9 @@ function startDialogue() {
     startError.value = null;
     dismissError();
     logEvent('dialogue', 'Dialogue started: $1', dialogueName);
-    // Empty language: a participant has no language selector, so let the server fall back to
-    // the project's source language (DialogueBranchClient concatenates this straight into the
-    // query string — passing null here would literally send "language=null").
-    client.startDialogue(projectSlug, dialogueName, '')
+    // No language: a participant has no language selector, so let the server fall back to the
+    // project's source language.
+    client.startDialogue({ dialogueName, projectSlug, timeZone: getBrowserTimeZone() })
     .then((dialogueStep) => {
         dialogueSteps.value.push(dialogueStep);
         announceStatementActions(dialogueStep);

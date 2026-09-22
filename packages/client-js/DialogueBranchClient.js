@@ -73,11 +73,16 @@ export class DialogueBranchClient extends BaseClient {
      * this is more for a client that offers dialogue discovery/selection than a strict end-user
      * playback UI) — see the Web Service's own docs for direct API clients.
      *
-     * @param {string} projectSlug The project's slug.
+     * @param {Object} [options]
+     * @param {string} [options.projectSlug] The project's slug. Required when talking to a
+     * Dialogue Branch Web Service directly — a request omitting it will be rejected. Omit only
+     * when this client is pointed at a backend that resolves the project itself (e.g. from the
+     * caller's own account/session) and doesn't accept a client-supplied one.
      * @returns {Promise<Object>} `{ dialogueNames: string[] }`.
      */
-    listDialogues(projectSlug) {
-        const url = this._baseUrl + "/dialogue/list-dialogues?projectSlug=" + encodeURIComponent(projectSlug);
+    listDialogues({ projectSlug } = {}) {
+        let url = this._baseUrl + "/dialogue/list-dialogues";
+        if (projectSlug) url += "?projectSlug=" + encodeURIComponent(projectSlug);
 
         return this._fetch(url, {
             method: "GET",
@@ -90,21 +95,31 @@ export class DialogueBranchClient extends BaseClient {
      * Starts a new session of a published dialogue, from its default start node (or `startNodeId`
      * if given). This is the usual entry point for playing a dialogue.
      *
-     * @param {string} projectSlug The project's slug.
-     * @param {string} dialogueName The dialogue's name (as returned by {@link listDialogues}).
-     * @param {string} language The language code to run the dialogue in (e.g. `"en"`), matching
-     * one of the project's source/translation languages.
-     * @param {string} [startNodeId] Start at a specific node instead of the dialogue's default
-     * start node.
+     * @param {Object} options
+     * @param {string} options.dialogueName The dialogue's name (as returned by
+     * {@link listDialogues}).
+     * @param {string} [options.projectSlug] The project's slug. See {@link listDialogues}'s
+     * `projectSlug` for when to omit it.
+     * @param {string} [options.language] The language code to run the dialogue in (e.g. `"en"`),
+     * matching one of the project's source/translation languages. Required when talking to a
+     * Dialogue Branch Web Service directly; omit for a resolving backend the same as
+     * `projectSlug`, or to let the Web Service fall back to the project's source language.
+     * @param {string} [options.timeZone] The caller's IANA time zone (e.g. `"Europe/Lisbon"`),
+     * used to resolve any time-of-day-dependent content. This client never infers it — pass it
+     * explicitly (e.g. `Intl.DateTimeFormat().resolvedOptions().timeZone` in a browser) when
+     * talking to a Web Service directly, or omit it the same as `projectSlug` for a resolving
+     * backend.
+     * @param {string} [options.startNodeId] Start at a specific node instead of the dialogue's
+     * default start node.
      * @returns {Promise<DialogueStep>} The first step of the dialogue.
      */
-    startDialogue(projectSlug, dialogueName, language, startNodeId) {
-        var url = this._baseUrl + "/dialogue/start";
+    startDialogue({ dialogueName, projectSlug, language, timeZone, startNodeId }) {
+        let url = this._baseUrl + "/dialogue/start";
 
-        url += "?projectSlug="+encodeURIComponent(projectSlug);
-        url += "&dialogueName="+encodeURIComponent(dialogueName);
-        url += "&language="+encodeURIComponent(language);
-        url += "&timeZone="+this._timeZone;
+        url += "?dialogueName=" + encodeURIComponent(dialogueName);
+        if (projectSlug) url += "&projectSlug=" + encodeURIComponent(projectSlug);
+        if (language) url += "&language=" + encodeURIComponent(language);
+        if (timeZone) url += "&timeZone=" + encodeURIComponent(timeZone);
         if (startNodeId) url += "&startNodeId=" + encodeURIComponent(startNodeId);
         url += this._delegateParam;
 
@@ -152,17 +167,21 @@ export class DialogueBranchClient extends BaseClient {
      * the given dialogue, picking up at the step it was left on — see also
      * {@link getOngoingDialogue}, which checks whether such a session exists without resuming it.
      *
-     * @param {string} projectSlug The project's slug.
-     * @param {string} dialogueName The dialogue's name.
+     * @param {Object} options
+     * @param {string} options.dialogueName The dialogue's name.
+     * @param {string} [options.projectSlug] The project's slug. See {@link listDialogues}'s
+     * `projectSlug` for when to omit it.
+     * @param {string} [options.timeZone] The caller's IANA time zone. See {@link startDialogue}'s
+     * `timeZone`.
      * @returns {Promise<DialogueStep|null>} The step the session was left on, or `null` if there
      * is no ongoing session for this dialogue.
      */
-    continueDialogue(projectSlug, dialogueName) {
-        var url = this._baseUrl + "/dialogue/continue";
+    continueDialogue({ dialogueName, projectSlug, timeZone }) {
+        let url = this._baseUrl + "/dialogue/continue";
 
-        url += "?projectSlug="+encodeURIComponent(projectSlug);
-        url += "&dialogueName="+encodeURIComponent(dialogueName);
-        url += "&timeZone="+this._timeZone;
+        url += "?dialogueName=" + encodeURIComponent(dialogueName);
+        if (projectSlug) url += "&projectSlug=" + encodeURIComponent(projectSlug);
+        if (timeZone) url += "&timeZone=" + encodeURIComponent(timeZone);
         url += this._delegateParam;
 
         return this._fetch(url, {
@@ -200,21 +219,56 @@ export class DialogueBranchClient extends BaseClient {
     }
 
     /**
+     * Steps a dialogue session back to the previous step, as if a regular reply had led there —
+     * the counterpart of {@link progressDialogue}.
+     *
+     * **Caution:** this does not undo any `<<set>>` variable changes the current step's execution
+     * made — if the step being returned to depends on a variable set during the step being left,
+     * going back can produce unexpected results.
+     *
+     * @param {string} loggedDialogueId The dialogue session's id.
+     * @param {number} loggedInteractionIndex The current step's interaction index, i.e. the step
+     * being stepped back from.
+     * @returns {Promise<DialogueStep>} The previous step.
+     */
+    back(loggedDialogueId, loggedInteractionIndex) {
+        let url = this._baseUrl + "/dialogue/back?loggedDialogueId=" + encodeURIComponent(loggedDialogueId);
+        url += "&loggedInteractionIndex=" + loggedInteractionIndex;
+        url += this._delegateParam;
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" }
+        })
+        .then((response) => this._handleResponse(response))
+        .then((json) => DialogueStep.fromJSON(json));
+    }
+
+    /**
      * Returns all of the current user's stored Dialogue Branch variable values for a project —
      * variables are scoped per `(user, project)`, so this never includes another project's
      * values. See {@link setVariable} to write one; there is no bulk-write equivalent on this
      * class (see `DialogueBranchAuthoringClient.listProjectVariables` for the separate, static
      * "which variable names does this project's content reference" question).
      *
-     * @param {string} projectSlug The project's slug.
+     * @param {Object} [options]
+     * @param {string} [options.projectSlug] The project's slug. See {@link listDialogues}'s
+     * `projectSlug` for when to omit it.
+     * @param {string} [options.timeZone] The caller's IANA time zone. See {@link startDialogue}'s
+     * `timeZone`.
      * @returns {Promise<Variable[]>} The stored variables — empty if none are set yet.
      */
-    getVariables(projectSlug) {
-        var url = this._baseUrl + "/variables/get";
+    getVariables({ projectSlug, timeZone } = {}) {
+        let url = this._baseUrl + "/variables/get";
 
-        url += "?projectSlug="+encodeURIComponent(projectSlug);
-        url += "&timeZone="+this._timeZone;
-        url += this._delegateParam;
+        const params = [];
+        if (projectSlug) params.push("projectSlug=" + encodeURIComponent(projectSlug));
+        if (timeZone) params.push("timeZone=" + encodeURIComponent(timeZone));
+        // Built as a plain param (not via `_delegateParam`, which assumes a `?param=` already
+        // precedes it) since projectSlug/timeZone are both optional here and may leave `params`
+        // empty.
+        if (this.delegateUser) params.push("delegateUser=" + encodeURIComponent(this.delegateUser));
+        if (params.length) url += "?" + params.join("&");
 
         return this._fetch(url, {
             method: "GET",
@@ -230,15 +284,24 @@ export class DialogueBranchClient extends BaseClient {
      * actually pick it back up, e.g. after asking the user "you have an unfinished conversation,
      * continue it?".
      *
-     * @param {string} projectSlug The project's slug.
+     * @param {Object} [options]
+     * @param {string} [options.projectSlug] The project's slug. See {@link listDialogues}'s
+     * `projectSlug` for when to omit it.
+     * @param {string} [options.timeZone] The caller's IANA time zone. See {@link startDialogue}'s
+     * `timeZone`.
      * @returns {Promise<OngoingDialogue|null>} Information about the ongoing session, or `null`
      * if there is none.
      */
-    getOngoingDialogue(projectSlug) {
+    getOngoingDialogue({ projectSlug, timeZone } = {}) {
         let url = this._baseUrl + "/dialogue/get-ongoing";
-        url += "?projectSlug=" + encodeURIComponent(projectSlug);
-        url += "&timeZone=" + this._timeZone;
-        url += this._delegateParam;
+
+        const params = [];
+        if (projectSlug) params.push("projectSlug=" + encodeURIComponent(projectSlug));
+        if (timeZone) params.push("timeZone=" + encodeURIComponent(timeZone));
+        // See getVariables()'s equivalent comment on why delegateUser is built as a plain param
+        // here rather than via `_delegateParam`.
+        if (this.delegateUser) params.push("delegateUser=" + encodeURIComponent(this.delegateUser));
+        if (params.length) url += "?" + params.join("&");
 
         return this._fetch(url, {
             method: "GET",
@@ -252,18 +315,22 @@ export class DialogueBranchClient extends BaseClient {
      * Sets (or clears) a single Dialogue Branch variable value for the current user, in the given
      * project.
      *
-     * @param {string} projectSlug The project's slug.
-     * @param {string} variableName The variable's name (without the leading `$`).
-     * @param {string|null} variableValue The value to set, or `null`/omitted to clear it.
+     * @param {Object} options
+     * @param {string} options.variableName The variable's name (without the leading `$`).
+     * @param {string|null} [options.variableValue] The value to set, or `null`/omitted to clear it.
+     * @param {string} [options.projectSlug] The project's slug. See {@link listDialogues}'s
+     * `projectSlug` for when to omit it.
+     * @param {string} [options.timeZone] The caller's IANA time zone. See {@link startDialogue}'s
+     * `timeZone`.
      * @returns {Promise<void>}
      */
-    setVariable(projectSlug, variableName, variableValue) {
-        var url = this._baseUrl + "/variables/set-single";
+    setVariable({ variableName, variableValue, projectSlug, timeZone }) {
+        let url = this._baseUrl + "/variables/set-single";
 
-        url += "?projectSlug="+encodeURIComponent(projectSlug);
-        url += "&name="+encodeURIComponent(variableName);
-        if(variableValue != null) url += "&value="+encodeURIComponent(variableValue);
-        url += "&timeZone="+this._timeZone;
+        url += "?name=" + encodeURIComponent(variableName);
+        if (variableValue != null) url += "&value=" + encodeURIComponent(variableValue);
+        if (projectSlug) url += "&projectSlug=" + encodeURIComponent(projectSlug);
+        if (timeZone) url += "&timeZone=" + encodeURIComponent(timeZone);
         url += this._delegateParam;
 
         return this._fetch(url, {

@@ -9,6 +9,15 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- BFF: `apps/bff`'s `/api/**` proxy no longer double-encodes the forwarded query string.
+  `ApiProxyController` forwards the incoming request's raw, already-percent-encoded query string
+  verbatim, but `RestClient`'s default URI-building encoded it a second time — an already-encoded
+  value like `timeZone=Europe%2FLisbon` had its literal `%` re-encoded to `%25`, corrupting it
+  into `Europe%252FLisbon` by the time it reached the Web Service, which then rejected it as
+  invalid. Affected any Studio request whose query string needed escaping (a project slug or
+  variable name/value with a space, `&`, `/`, etc.), not just `timeZone` — found via real
+  browser testing while verifying #252, since `timeZone` had never actually been percent-encoded
+  before that change and nothing else routinely triggered the double-encoding.
 - Client JS: `ConsoleLogger` now sends each log level to its corresponding console method
   (`console.error`/`warn`/`info`/`debug`) instead of always `console.log`, so browser/Node
   console severity filtering and error stack capture work as expected
@@ -158,6 +167,17 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- **Breaking:** Client JS: `DialogueBranchClient`'s `listDialogues`, `startDialogue`,
+  `continueDialogue`, `getVariables`, `getOngoingDialogue`, and `setVariable` now take a single
+  options object instead of positional arguments, and no longer require (or silently infer)
+  `projectSlug`/`language`/`timeZone` — each is sent only when explicitly given
+  ([#252](https://github.com/dialoguebranch/platform/issues/252)). Previously these were
+  positional and `timeZone` was always auto-computed from `Intl.DateTimeFormat()`; a deployment
+  behind a backend that resolves the project/language/time zone itself (from the caller's own
+  account or session) can now omit them entirely rather than having the client send values the
+  backend will ignore. A direct Dialogue Branch Web Service consumer must now pass `timeZone`
+  explicitly — the client never infers it. Also adds `DialogueBranchClient.back(loggedDialogueId,
+  loggedInteractionIndex)`, wrapping the previously-unexposed `POST /dialogue/back` endpoint.
 - **Breaking:** Client JS: every wire-protocol model type now has a `fromJSON` parser (previously
   only `Action`/`Segment` did, despite `protocol.js` claiming otherwise)
   ([#232](https://github.com/dialoguebranch/platform/issues/232)). `getServerInfo()` and
