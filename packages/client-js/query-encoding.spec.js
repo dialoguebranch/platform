@@ -56,13 +56,13 @@ describe("query parameter encoding", () => {
     it("encodes draft-session string parameters", () => {
         const client = new DialogueBranchAuthoringClient({ baseUrl: "/api/v1" });
 
-        expect(captureUrl(client, c => c.startDraftDialogue("project", "draft", "en&debug=true")))
+        expect(captureUrl(client, c => c.startDraftDialogue({ projectSlug: "project", dialogueName: "draft", language: "en&debug=true" })))
             .toContain("language=en%26debug%3Dtrue");
-        expect(captureUrl(client, c => c.progressDraftDialogue("draft&admin=true", 1)))
+        expect(captureUrl(client, c => c.progressDraftDialogue({ draftSessionId: "draft&admin=true", replyId: 1 })))
             .toContain("draftSessionId=draft%26admin%3Dtrue");
         expect(captureUrl(client, c => c.cancelDraftDialogue("draft&admin=true")))
             .toContain("draftSessionId=draft%26admin%3Dtrue");
-        expect(captureUrl(client, c => c.revertDraftVariables("draft&admin=true")))
+        expect(captureUrl(client, c => c.revertDraftVariables({ draftSessionId: "draft&admin=true" })))
             .toContain("draftSessionId=draft%26admin%3Dtrue");
     });
 });

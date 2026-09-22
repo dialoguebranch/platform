@@ -370,7 +370,13 @@ const loadDraftDialogue = (name, { tab: givenTab, startNodeId, language } = {}) 
     scrollActiveTabIntoView();
     dismissError();
     logEvent('dialogue', 'Draft test started: $1', name);
-    authoringClient.startDraftDialogue(state.value.selectedProject?.slug, name, tab.language, startNodeId)
+    authoringClient.startDraftDialogue({
+        projectSlug: state.value.selectedProject?.slug,
+        dialogueName: name,
+        language: tab.language,
+        timeZone: getBrowserTimeZone(),
+        startNodeId,
+    })
     .then(({ draftSessionId, dialogueStep }) => {
         tab.draftSessionId = draftSessionId;
         tab.dialogueName = dialogueStep.dialogueName;
@@ -490,7 +496,7 @@ function onRevertVariablesClick() {
     if (!tab.isDraftTest || !tab.draftSessionId) return;
     dismissError();
     logEvent('dialogue', 'Draft test variables reverted: $1', tab.dialogueName);
-    authoringClient.revertDraftVariables(tab.draftSessionId)
+    authoringClient.revertDraftVariables({ draftSessionId: tab.draftSessionId, timeZone: getBrowserTimeZone() })
     .then(() => {
         tab.draftSessionId = null;
         tab.dialogueEnded = true;
@@ -763,7 +769,12 @@ function onSelectReply(dialogueStep, reply, inputValues) {
 
     if (tab.isDraftTest) {
         logEvent('dialogue', 'Draft test reply selected: $1', replyText);
-        authoringClient.progressDraftDialogue(tab.draftSessionId, reply.replyId, values)
+        authoringClient.progressDraftDialogue({
+            draftSessionId: tab.draftSessionId,
+            replyId: reply.replyId,
+            inputValues: values,
+            timeZone: getBrowserTimeZone(),
+        })
         .then((nextStep) => {
             // The tab could have been cancelled while this request was in flight (Cancel is
             // disabled once awaitingReply is set, but this stays correct even if that ever

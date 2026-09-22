@@ -167,6 +167,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- **Breaking:** Client JS: `DialogueBranchAuthoringClient`'s `startDraftDialogue`,
+  `progressDraftDialogue`, and `revertDraftVariables` now take a single options object instead of
+  positional arguments, and no longer silently infer `timeZone` — it's sent only when explicitly
+  given, the same treatment #252 gave `DialogueBranchClient`
+  ([#256](https://github.com/dialoguebranch/platform/issues/256)). `BaseClient`'s
+  `Intl.DateTimeFormat()`-computed `_timeZone` field is removed entirely — nothing reads it any
+  more, on either client class.
 - **Breaking:** Client JS: `DialogueBranchClient`'s `listDialogues`, `startDialogue`,
   `continueDialogue`, `getVariables`, `getOngoingDialogue`, and `setVariable` now take a single
   options object instead of positional arguments, and no longer require (or silently infer)

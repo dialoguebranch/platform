@@ -50,7 +50,7 @@ describe('progressDialogue / progressDraftDialogue with input values', () => {
         vi.stubGlobal('fetch', fetchMock);
 
         const client = new DialogueBranchAuthoringClient({ baseUrl: '/api/v1' });
-        await client.progressDraftDialogue('sess-1', 3, { wantsCheese: true });
+        await client.progressDraftDialogue({ draftSessionId: 'sess-1', replyId: 3, inputValues: { wantsCheese: true } });
 
         expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ wantsCheese: true });
     });

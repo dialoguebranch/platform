@@ -75,7 +75,6 @@ export class BaseClient {
         this._onRequest = onRequest;
         this._onApiCall = onApiCall;
         this._onUnauthorized = onUnauthorized;
-        this._timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         this.delegateUser = null;
     }
 
