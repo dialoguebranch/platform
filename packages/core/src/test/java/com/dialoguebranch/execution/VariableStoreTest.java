@@ -36,6 +36,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -116,6 +119,26 @@ public class VariableStoreTest {
 		assertEquals(List.of("alpha", "bravo", "charlie"), store.getSortedVariableNames());
 	}
 
+	// Regression test for #205: getVariableNames()/getSortedVariableNames()/the modifiable map's
+	// keySet() used to return a live view backed directly by the store's internal map, unguarded
+	// by its lock once the call returned — a concurrent setValue()/removeByName() on another
+	// thread could then race with anyone iterating the returned collection.
+	@Test
+	public void nameCollectionsAreSnapshotsNotLiveViews() {
+		VariableStore store = newStore();
+		store.setValue("alpha", 1, false, T);
+
+		Set<String> names = store.getVariableNames();
+		List<String> sortedNames = store.getSortedVariableNames();
+		Set<String> mapKeySet = store.getModifiableMap(false, T).keySet();
+
+		store.setValue("bravo", 2, false, T);
+
+		assertEquals(1, names.size());
+		assertEquals(1, sortedNames.size());
+		assertEquals(1, mapKeySet.size());
+	}
+
 	@Test
 	public void arrayConstructorPrePopulatesTheStore() {
 		Variable[] seed = {
@@ -178,6 +201,44 @@ public class VariableStoreTest {
 		assertEquals(T, change.getTime());
 		assertEquals(VariableUpdatedSource.DLB_SCRIPT, change.getSource());
 		assertEquals(7, ((VariableStoreChange.Put) change).getVariables().get("x"));
+	}
+
+	// Regression test for #205: setValue() used to call notifyOnChange(...) while still holding
+	// the `variables` lock, unlike removeByName()/addAll()/the modifiable map's clear(). A
+	// registered listener that blocks (e.g. ExternalVariableServiceUpdater's synchronous HTTP
+	// call in apps/api) would then serialize all access to this store for the duration of that
+	// call. Proves the lock is released before notification: while a listener is deliberately
+	// kept blocked, a concurrent getValue() on another thread must still complete promptly.
+	@Test
+	public void setValueDoesNotHoldItsLockWhileNotifyingListeners() throws Exception {
+		VariableStore store = newStore();
+		CountDownLatch listenerEntered = new CountDownLatch(1);
+		CountDownLatch releaseListener = new CountDownLatch(1);
+		store.addOnChangeListener((s, changes) -> {
+			listenerEntered.countDown();
+			try {
+				assertTrue("test setup: releaseListener should be counted down before the join " +
+						"timeout below", releaseListener.await(2, TimeUnit.SECONDS));
+			} catch (InterruptedException e) {
+				throw new RuntimeException(e);
+			}
+		});
+
+		Thread setter = new Thread(() -> store.setValue("x", 1, true, T));
+		setter.start();
+		assertTrue("listener should have started",
+				listenerEntered.await(2, TimeUnit.SECONDS));
+
+		long startNanos = System.nanoTime();
+		Object value = store.getValue("x");
+		long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
+
+		releaseListener.countDown();
+		setter.join(2000);
+
+		assertEquals(1, value);
+		assertTrue("getValue() should not block on the in-flight listener call, took " +
+				elapsedMs + "ms", elapsedMs < 500);
 	}
 
 	@Test

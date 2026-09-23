@@ -193,7 +193,9 @@ public class VariableStore {
 	 * @return a set of all the names of {@link Variable}s contained in this {@link VariableStore}.
 	 */
 	public Set<String> getVariableNames() {
-		return variables.keySet();
+		synchronized (variables) {
+			return new HashSet<>(variables.keySet());
+		}
 	}
 
 	/**
@@ -202,7 +204,10 @@ public class VariableStore {
 	 * @return a sorted list of all variable names in this {@link VariableStore}.
 	 */
 	public List<String> getSortedVariableNames() {
-		List<String> nameList = new ArrayList<>(variables.keySet());
+		List<String> nameList;
+		synchronized (variables) {
+			nameList = new ArrayList<>(variables.keySet());
+		}
 		Collections.sort(nameList);
 		return nameList;
 	}
@@ -241,12 +246,16 @@ public class VariableStore {
 	 */
 	public void setValue(String name, @Nullable Object value, boolean notifyObservers,
 						 ZonedDateTime eventTime, VariableUpdatedSource source) {
+		Variable variable = new Variable(name, value, eventTime, source);
 		synchronized (variables) {
-			Variable Variable = new Variable(name, value, eventTime, source);
-			variables.put(name, Variable);
-			if (notifyObservers) {
-				notifyOnChange(new VariableStoreChange.Put(Variable, eventTime, source));
-			}
+			variables.put(name, variable);
+		}
+		// Notified outside the lock, consistent with removeByName()/addAll()/clear() below — a
+		// registered VariableStoreOnChangeListener can do blocking I/O (e.g.
+		// ExternalVariableServiceUpdater's synchronous HTTP call in apps/api), and intrinsic
+		// locks aren't designed to be held across a call into arbitrary listener code.
+		if (notifyObservers) {
+			notifyOnChange(new VariableStoreChange.Put(variable, eventTime, source));
 		}
 	}
 
@@ -570,8 +579,11 @@ public class VariableStore {
 		 */
 		@Override
 		public Set<String> keySet() {
+			// A copy, not a live view — consistent with values()/entrySet() below. Returning
+			// variables.keySet() directly here would still be an unsynchronized live view once
+			// this method returns, even though it was fetched under the lock.
 			synchronized (variables) {
-				return variables.keySet();
+				return new HashSet<>(variables.keySet());
 			}
 		}
 
