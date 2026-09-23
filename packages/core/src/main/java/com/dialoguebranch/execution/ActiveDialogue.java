@@ -51,6 +51,21 @@ import java.util.Objects;
  * {@link ActiveDialogue} also contains utility functions to keep track of the state during
  * "execution" of the dialogue.
  *
+ * <p><b>Not thread-safe.</b> {@link #getCurrentNode()}/{@link #setCurrentNode(Node)} and the
+ * dialogue-progression methods below mutate {@link #currentNode} with no synchronization — two
+ * threads driving the same {@link ActiveDialogue} instance concurrently can race on it. This is a
+ * deliberate choice, not an oversight (see #204): most owners of an {@link ActiveDialogue} are
+ * single-threaded by construction (a CLI session, a test, or — in the bundled web service — a
+ * fresh instance reconstructed per request from the persisted dialogue log, never shared across
+ * requests). Baking locking into this class would cost every one of those owners overhead for a
+ * guarantee only one kind of owner actually needs. The one case that does need it is a long-lived
+ * session an owner deliberately keeps and reuses across multiple separate calls (e.g. the bundled
+ * web service's draft-dialogue test sessions, which persist one {@link ActiveDialogue} across a
+ * whole test run) — that owner is responsible for serializing its own access to this instance,
+ * and should do so without holding its lock across any downstream call that can block (a
+ * {@link VariableStoreOnChangeListener} doing I/O, for instance) — see #205 for the equivalent
+ * problem already fixed inside {@link VariableStore} itself.
+ *
  * @author Harm op den Akker
  * @author Tessa Beinema
  */
