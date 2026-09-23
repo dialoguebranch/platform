@@ -27,6 +27,8 @@
  */
 package com.dialoguebranch.execution;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.ZonedDateTime;
 import java.util.*;
 
@@ -88,11 +90,7 @@ public abstract class VariableStoreChange {
 		 * @param time the time that this change took place (in the time zone of the user).
 		 */
 		public Put(Map<String, Variable> variablesMap, ZonedDateTime time) {
-			super(time,VariableUpdatedSource.UNKNOWN);
-			variables = new LinkedHashMap<>();
-			for(Variable Variable : variablesMap.values()) {
-				variables.put(Variable.getName(), Variable.getValue());
-			}
+			this(variablesMap, time, VariableUpdatedSource.UNKNOWN);
 		}
 
 		/**
@@ -104,11 +102,8 @@ public abstract class VariableStoreChange {
 		 * @param source the source of the change to the variable store.
 		 */
 		public Put(Map<String, Variable> variablesMap, ZonedDateTime time, VariableUpdatedSource source) {
-			super(time,source);
-			variables = new LinkedHashMap<>();
-			for(Variable Variable : variablesMap.values()) {
-				variables.put(Variable.getName(), Variable.getValue());
-			}
+			super(time, source);
+			variables = toValueMap(variablesMap.values());
 		}
 
 		/**
@@ -119,10 +114,8 @@ public abstract class VariableStoreChange {
 		 * @param variableValue the value of the {@link Variable} representing this Put change.
 		 * @param time the time that this change took place (in the time zone of the user).
 		 */
-		public Put(String variableName, Object variableValue, ZonedDateTime time) {
-			super(time, VariableUpdatedSource.UNKNOWN);
-			variables = new LinkedHashMap<>();
-			variables.put(variableName, variableValue);
+		public Put(String variableName, @Nullable Object variableValue, ZonedDateTime time) {
+			this(variableName, variableValue, time, VariableUpdatedSource.UNKNOWN);
 		}
 
 		/**
@@ -134,10 +127,9 @@ public abstract class VariableStoreChange {
 		 * @param time the time that this change took place (in the time zone of the user).
 		 * @param source the source of the change to the variable store.
 		 */
-		public Put(String variableName, Object variableValue, ZonedDateTime time, VariableUpdatedSource source) {
+		public Put(String variableName, @Nullable Object variableValue, ZonedDateTime time, VariableUpdatedSource source) {
 			super(time, source);
-			variables = new LinkedHashMap<>();
-			variables.put(variableName, variableValue);
+			variables = singleValueMap(variableName, variableValue);
 		}
 
 		/**
@@ -148,9 +140,7 @@ public abstract class VariableStoreChange {
 		 * @param time the time that this change took place (in the time zone of the user).
 		 */
 		public Put(Variable variable, ZonedDateTime time) {
-			super(time, VariableUpdatedSource.UNKNOWN);
-			variables = new LinkedHashMap<>();
-			variables.put(variable.getName(), variable.getValue());
+			this(variable, time, VariableUpdatedSource.UNKNOWN);
 		}
 
 		/**
@@ -163,39 +153,47 @@ public abstract class VariableStoreChange {
 		 */
 		public Put(Variable variable, ZonedDateTime time, VariableUpdatedSource source) {
 			super(time, source);
-			variables = new LinkedHashMap<>();
-			variables.put(variable.getName(), variable.getValue());
+			variables = singleValueMap(variable.getName(), variable.getValue());
 		}
 
 		/**
 		 * Creates an instance of a {@link Put} {@link VariableStoreChange} with a list of given
 		 * {@link Variable}s.
-		 * @param VariablesList the list of {@link Variable}s that were added in this
+		 * @param variablesList the list of {@link Variable}s that were added in this
 		 *                          {@link VariableStoreChange}.
 		 * @param time the time that this change took place (in the time zone of the user).
 		 */
-		public Put(List<Variable> VariablesList, ZonedDateTime time) {
-			super(time, VariableUpdatedSource.UNKNOWN);
-			variables = new LinkedHashMap<>();
-			for(Variable variable : VariablesList) {
-				variables.put(variable.getName(), variable.getValue());
-			}
+		public Put(List<Variable> variablesList, ZonedDateTime time) {
+			this(variablesList, time, VariableUpdatedSource.UNKNOWN);
 		}
 
 		/**
 		 * Creates an instance of a {@link Put} {@link VariableStoreChange} with a list of given
 		 * {@link Variable}s.
-		 * @param VariablesList the list of {@link Variable}s that were added in this
+		 * @param variablesList the list of {@link Variable}s that were added in this
 		 *                          {@link VariableStoreChange}.
 		 * @param time the time that this change took place (in the time zone of the user).
 		 * @param source the source of the change to the variable store.
 		 */
-		public Put(List<Variable> VariablesList, ZonedDateTime time, VariableUpdatedSource source) {
+		public Put(List<Variable> variablesList, ZonedDateTime time, VariableUpdatedSource source) {
 			super(time, source);
-			variables = new LinkedHashMap<>();
-			for(Variable variable : VariablesList) {
-				variables.put(variable.getName(), variable.getValue());
+			variables = toValueMap(variablesList);
+		}
+
+		/** Shared by the {@link Map}- and {@link List}-of-{@link Variable} constructor shapes. */
+		private static Map<String,Object> toValueMap(Iterable<Variable> source) {
+			Map<String,Object> result = new LinkedHashMap<>();
+			for (Variable variable : source) {
+				result.put(variable.getName(), variable.getValue());
 			}
+			return result;
+		}
+
+		/** Shared by the two single-variable constructor shapes. */
+		private static Map<String,Object> singleValueMap(String variableName, @Nullable Object variableValue) {
+			Map<String,Object> result = new LinkedHashMap<>();
+			result.put(variableName, variableValue);
+			return result;
 		}
 
 		/**

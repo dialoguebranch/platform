@@ -320,24 +320,25 @@ public class ProjectParser {
 
 	private List<ParseException> getParseErrors(ProjectParserResult readResult,
 												ResourcePointer fileDescription) {
-		String path = fileDescriptionToPath(fileDescription);
-		List<ParseException> errors = readResult.getParseErrors().get(path);
-		if (errors != null)
-			return errors;
-		errors = new ArrayList<>();
-		readResult.getParseErrors().put(path, errors);
-		return errors;
+		return getOrCreateList(readResult.getParseErrors(),
+				fileDescriptionToPath(fileDescription));
 	}
 
 	private List<String> getWarnings(ProjectParserResult readResult,
 									 ResourcePointer fileDescription) {
-		String path = fileDescriptionToPath(fileDescription);
-		List<String> warnings = readResult.getWarnings().get(path);
-		if (warnings != null)
-			return warnings;
-		warnings = new ArrayList<>();
-		readResult.getWarnings().put(path, warnings);
-		return warnings;
+		return getOrCreateList(readResult.getWarnings(),
+				fileDescriptionToPath(fileDescription));
+	}
+
+	/** Shared compute-if-absent logic behind {@link #getParseErrors}/{@link #getWarnings} — the
+	 *  two differ only in the list's element type. */
+	private static <T> List<T> getOrCreateList(Map<String, List<T>> map, String key) {
+		List<T> list = map.get(key);
+		if (list != null)
+			return list;
+		list = new ArrayList<>();
+		map.put(key, list);
+		return list;
 	}
 
 	/**
