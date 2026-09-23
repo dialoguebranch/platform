@@ -46,7 +46,7 @@ sequenceDiagram
 
 The flow:
 
-1. Studio sends the browser to the BFF's `GET /oauth2/authorization/keycloak` end-point (a real top-level navigation, not a fetch/XHR call). The BFF performs the Authorization Code + PKCE exchange against Keycloak itself and stores the resulting access/refresh token in the browser's HTTP session.
+1. Studio sends the browser to the BFF's `GET /login` end-point (a real top-level navigation, not a fetch/XHR call), a generic login trigger that doesn't presuppose anything about how the BFF is configured. The BFF redirects to its own actual OAuth2 authorization endpoint, which performs the Authorization Code + PKCE exchange against Keycloak itself and stores the resulting access/refresh token in the browser's HTTP session.
 2. After login, Studio calls `GET /whoami` on the BFF to learn who's logged in. The BFF decodes the session's access token server-side and returns `{ "username": ..., "roles": [...] }` — the same `preferred_username` and `resource_access` → `<client-id>` → `roles` claims described under [Roles](#roles) below, just read out on the server instead of in the browser.
 3. Every Web Service call Studio makes goes to the BFF's `/api/**` end-point instead of the Web Service directly. The BFF proxies the request through, attaching the session's access token as the `Authorization: Bearer` header itself. `GET /api/v1/info/all` is the one path the BFF forwards without a session at all, matching the Web Service's own public `/info/all` end-point (used by Studio's pre-login reachability check).
 4. Token refresh happens transparently inside the BFF (via Spring Security's `OAuth2AuthorizedClientManager`) — Studio never sees or handles a refresh token.
@@ -65,6 +65,8 @@ sequenceDiagram
 
     Browser->>BFF: GET /whoami
     BFF-->>Browser: 401 (no session)
+    Browser->>BFF: Navigate to GET /login
+    BFF-->>Browser: Redirect to this BFF's own authorization endpoint
     Browser->>BFF: Navigate to GET /oauth2/authorization/keycloak
     BFF->>Keycloak: Authorization Code + PKCE flow
     Keycloak->>User: Hosted login page

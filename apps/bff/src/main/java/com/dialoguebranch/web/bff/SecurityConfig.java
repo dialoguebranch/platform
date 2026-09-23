@@ -217,6 +217,9 @@ public class SecurityConfig {
 				// forward would itself be treated as an unauthenticated request and redirected to
 				// login, silently replacing the 401 the client is supposed to see.
 				.requestMatchers("/error").permitAll()
+				// Generic, backend-agnostic login trigger (see LoginController): Studio navigates
+				// here without needing to know this service's actual registration id.
+				.requestMatchers("/login").permitAll()
 				// Studio's pre-login reachability check (see service-health.js) calls
 				// this same public, unauthenticated Web Service endpoint through the proxy —
 				// ApiProxyController forwards it without a bearer token when there's no session

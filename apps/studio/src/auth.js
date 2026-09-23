@@ -1,6 +1,6 @@
 import { DocumentFunctions } from './authoring/DocumentFunctions.js';
 
-const LOGIN_PATH = '/oauth2/authorization/keycloak';
+const LOGIN_PATH = '/login';
 const LOGOUT_PATH = '/logout';
 
 /**

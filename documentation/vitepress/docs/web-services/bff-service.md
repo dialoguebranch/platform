@@ -15,7 +15,7 @@ cd apps/bff
 
 The BFF exposes the following end-points to the browser:
 
-* `GET /oauth2/authorization/keycloak` — starts the login flow: performs the Authorization Code + PKCE exchange against Keycloak and stores the resulting token in the session.
+* `GET /login` — the generic login trigger Studio navigates to; redirects to this BFF's own OAuth2 authorization endpoint, which performs the Authorization Code + PKCE exchange against Keycloak and stores the resulting token in the session. Studio only ever needs this path, not the actual registration id behind it, so a differently-structured BFF (e.g. one resolving a registration per request rather than having exactly one fixed client) can satisfy the same contract however it needs to.
 * `GET /whoami` — returns the current session's username and Dialogue Branch Web Service roles as JSON, decoded from the session's access token.
 * `/api/**` — proxies every call through to the Web Service, attaching the session's access token as the `Authorization: Bearer` header. `GET /api/v1/info/all` is reachable without a session, matching that end-point's public status on the Web Service itself.
 * `POST /logout` — RP-initiated logout: ends both the BFF's session and the underlying Keycloak SSO session.
