@@ -7,6 +7,14 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+## [0.1.10] - 2026-09-23
+
+### Fixed
+
+- Studio: the `apps/studio` Docker image builds again. Its Dockerfile didn't copy
+  `packages/client-js` into the build context, so the `file:` dependency on
+  `@dialoguebranch/client-js` couldn't be resolved and `vite build` failed.
+
 ## [0.1.9] - 2026-09-23
 
 ### Fixed
