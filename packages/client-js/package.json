@@ -1,6 +1,6 @@
 {
   "name": "@dialoguebranch/client-js",
-  "version": "0.1.10",
+  "version": "0.2.0",
   "description": "JavaScript client for a Dialogue Branch Web Service — DialogueBranchClient for playback (the default export), DialogueBranchAuthoringClient (./authoring) for project/dialogue authoring.",
   "private": true,
   "license": "MIT",
