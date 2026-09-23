@@ -1,9 +1,9 @@
 name: Release (prepare)
 
-# CI counterpart to phase 1 of infrastructure/release/release-github.sh: bumps
-# global.json, syncs apps/studio's version, splits CHANGELOG.md's [Unreleased]
-# section into a dated version heading, and opens a release/vX.Y.Z PR against
-# main. See release-finish.yml for phase 2 (tag + publish, after that PR merges).
+# Phase 1 of cutting a release: bumps global.json, syncs apps/studio and
+# packages/client-js's versions, splits CHANGELOG.md's [Unreleased] section
+# into a dated version heading, and opens a release/vX.Y.Z PR against main.
+# See release-finish.yml for phase 2 (tag + publish, after that PR merges).
 #
 # Requires a repository secret RELEASE_PAT: a personal access token (classic
 # "repo" scope, or fine-grained with Contents: Read and write + Pull requests:
