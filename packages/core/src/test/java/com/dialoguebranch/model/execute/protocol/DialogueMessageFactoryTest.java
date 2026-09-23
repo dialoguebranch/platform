@@ -34,6 +34,7 @@ import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.parser.DialogueBranchParser;
 import com.dialoguebranch.execution.parser.ParserResult;
+import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.Node;
@@ -174,5 +175,48 @@ public class DialogueMessageFactoryTest {
 		DialogueMessage msg = message(new TestLoggedDialogue(), 3);
 		assertEquals("log-1", msg.getLoggedDialogueId());
 		assertEquals(3, msg.getLoggedInteractionIndex());
+	}
+
+	// Regression test for #206: generateDialogueReply() used to check the target node id
+	// against a hardcoded "end" literal instead of DialogueBranchConstants.DLB_NODE_END_ID.
+	// mapsEveryReply() above also exercises isEndsDialogue(), but only coincidentally — its
+	// fixture points at a node literally titled "End", which matches case-insensitively
+	// regardless of the constant's actual value. Building this fixture's target node id from
+	// the constant itself means a future change to DLB_NODE_END_ID can't silently stop being
+	// recognized here without this test failing.
+	@Test
+	public void endsDialogueIsDrivenByTheSharedEndNodeConstant() throws Exception {
+		String fixture = """
+			title: Start
+			tags:
+			speaker: Robot
+			---
+			Bye.
+			[[Quit.|%1$s]]
+			===
+			title: %1$s
+			tags:
+			speaker:
+			---
+
+			===
+			""".formatted(DialogueBranchConstants.DLB_NODE_END_ID);
+
+		Dialogue dlg;
+		try (DialogueBranchParser parser =
+				new DialogueBranchParser("flow2", new StringReader(fixture))) {
+			ParserResult result = parser.readDialogue();
+			assertTrue("fixture should parse cleanly: " + result.getParseErrors(),
+					result.getParseErrors().isEmpty());
+			dlg = result.getDialogue();
+		}
+		ActiveDialogue active = new ActiveDialogue(
+				new ResourcePointer("en", "flow2", ResourceType.SCRIPT), dlg,
+				new VariableStore(new User("u")));
+		Node executed = active.executeNode(dlg.getNodeById("Start"), NOW);
+
+		DialogueMessage msg = DialogueMessageFactory.generateDialogueMessage(
+				new ExecuteNodeResult(dlg, executed, null, 0));
+		assertTrue(msg.getReplies().get(0).isEndsDialogue());
 	}
 }

@@ -29,6 +29,7 @@
 package com.dialoguebranch.model.execute.protocol;
 
 import com.dialoguebranch.execution.ExecuteNodeResult;
+import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.execute.Node;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.NodeHeader;
@@ -124,7 +125,8 @@ public class DialogueMessageFactory {
 		if (reply.getNodePointer() instanceof InternalNodePointer) {
 			InternalNodePointer pointer =
 					(InternalNodePointer)reply.getNodePointer();
-			if (pointer.getTargetNodeId().equalsIgnoreCase("end"))
+			if (pointer.getTargetNodeId().equalsIgnoreCase(
+					DialogueBranchConstants.DLB_NODE_END_ID))
 				replyMsg.setEndsDialogue(true);
 		}
 		for (Command cmd : reply.getCommands()) {

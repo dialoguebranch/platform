@@ -269,7 +269,8 @@ public class DialogueBranchParser implements AutoCloseable {
 			BodyParser bodyParser = new BodyParser(nodeState);
 			NodeBody body = bodyParser.parse(bodyTokens, Arrays.asList(
 					"action", "if", "random", "set"));
-			if (Objects.requireNonNull(header.getTitle()).equalsIgnoreCase("end"))
+			if (Objects.requireNonNull(header.getTitle())
+					.equalsIgnoreCase(DialogueBranchConstants.DLB_NODE_END_ID))
 				validateEndNode(header, body, bodyTokens);
 			Objects.requireNonNull(nodePointerTokens)
 					.addAll(nodeState.getNodePointerTokens());
@@ -373,7 +374,7 @@ public class DialogueBranchParser implements AutoCloseable {
 					lineNum, 1);
 		}
 		String speaker = nodeState.getSpeaker();
-		if (title.equalsIgnoreCase("end")) {
+		if (title.equalsIgnoreCase(DialogueBranchConstants.DLB_NODE_END_ID)) {
 			speaker = null;
 		} else {
 			if (speaker == null) {
