@@ -73,7 +73,7 @@ public class DialogueAction {
 	 * @param actionCommand the action command with variables already resolved.
 	 */
 	public DialogueAction(ActionCommand actionCommand) {
-		this(actionCommand.getType(), actionCommand.getValue().evaluate(null),
+		this(actionCommand.getType().getWireValue(), actionCommand.getValue().evaluate(null),
 				resolveParameters(actionCommand));
 	}
 

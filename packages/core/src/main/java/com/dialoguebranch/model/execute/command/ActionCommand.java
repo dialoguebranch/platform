@@ -39,9 +39,7 @@ import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import com.dialoguebranch.util.CurrentIterator;
 import org.jspecify.annotations.Nullable;
 
-import java.util.Arrays;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -75,24 +73,8 @@ import java.util.Set;
  */
 public class ActionCommand extends AttributesCommand {
 
-	/** The reserved type of action for images. */
-	public static final String TYPE_IMAGE = "image";
-
-	/** The reserved type of action for video. */
-	public static final String TYPE_VIDEO = "video";
-
-	/** The reserved type of action for hyperlinks. */
-	public static final String TYPE_LINK = "link";
-
-	/** The reserved type of action for generic (user defined) actions. */
-	public static final String TYPE_GENERIC = "generic";
-
-	/** The list of all valid action types. */
-	private static final List<String> VALID_TYPES = Arrays.asList(
-			TYPE_IMAGE, TYPE_VIDEO, TYPE_LINK, TYPE_GENERIC);
-
 	/** The specific type of this ActionCommand. */
-	private String type;
+	private ActionType type;
 
 	/** The contents of the ActionCommand modelled as a {@link VariableString}. */
 	private VariableString value;
@@ -107,11 +89,10 @@ public class ActionCommand extends AttributesCommand {
 	/**
 	 * Creates an instance of an {@link ActionCommand} with given {@code type} and {@code value}.
 	 *
-	 * @param type the type of this {@link ActionCommand} as a String, which should be one of
-	 *             "image", "video", "link", or "generic".
+	 * @param type the type of this {@link ActionCommand}.
 	 * @param value the value of this command
 	 */
-	public ActionCommand(String type, VariableString value) {
+	public ActionCommand(ActionType type, VariableString value) {
 		this.type = type;
 		this.value = value;
 	}
@@ -136,21 +117,20 @@ public class ActionCommand extends AttributesCommand {
 	// ----------------------------------------------------------- //
 
 	/**
-	 * Returns the type of this {@link ActionCommand} as a String.
+	 * Returns the type of this {@link ActionCommand}.
 	 *
-	 * @return the type of this {@link ActionCommand} as a String.
+	 * @return the type of this {@link ActionCommand}.
 	 */
-	public String getType() {
+	public ActionType getType() {
 		return type;
 	}
 
 	/**
-	 * Sets the type of this {@link ActionCommand}, which should be one of "image", "video", "link",
-	 * or "generic".
+	 * Sets the type of this {@link ActionCommand}.
 	 *
 	 * @param type the type of this {@link ActionCommand}.
 	 */
-	public void setType(String type) {
+	public void setType(ActionType type) {
 		this.type = type;
 	}
 
@@ -282,11 +262,12 @@ public class ActionCommand extends AttributesCommand {
 									  CurrentIterator<BodyToken> tokens, NodeState nodeState)
 			throws LineNumberParseException {
 		Map<String, BodyToken> attrs = parseAttributesCommand(cmdStartToken, tokens);
-		String type = requirePlainTextAttr("type", attrs, cmdStartToken);
+		String typeAttr = requirePlainTextAttr("type", attrs, cmdStartToken);
 		BodyToken token = presentToken(attrs, "type");
-		if (!VALID_TYPES.contains(type)) {
+		ActionType type = ActionType.fromWireValue(typeAttr);
+		if (type == null) {
 			throw new LineNumberParseException(
-					"Invalid value for attribute \"type\": " + type,
+					"Invalid value for attribute \"type\": " + typeAttr,
 					token.getLineNumber(), token.getColNumber());
 		}
 		attrs.remove("type");

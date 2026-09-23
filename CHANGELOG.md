@@ -7,6 +7,19 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** Core: `ActionCommand`'s `type` is now the `ActionType` enum (`IMAGE`/`VIDEO`/`LINK`/`GENERIC`)
+  instead of a plain `String` — its constructor, `getType()`, and `setType()` all changed
+  signature accordingly, and the `TYPE_IMAGE`/`TYPE_VIDEO`/`TYPE_LINK`/`TYPE_GENERIC`/`VALID_TYPES`
+  constants are removed (use `ActionType.IMAGE` etc., or `ActionType.fromWireValue(String)`).
+  Previously the "must be one of four known values" invariant was enforced only by the static
+  `parse()` factory method, via a `List<String>.contains()` check external to the class — the
+  public constructor and `setType()` didn't validate at all, so constructing one directly with an
+  arbitrary string bypassed it entirely. The wire protocol (`.dlb` script `type="..."` attributes,
+  and the `type` field the web service sends clients) is unaffected — both still use the same
+  lowercase strings as before.
+
 ## [0.2.1] - 2026-09-23
 
 ### Added
