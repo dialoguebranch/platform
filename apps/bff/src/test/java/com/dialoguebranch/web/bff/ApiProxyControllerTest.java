@@ -22,6 +22,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.io.IOException;
+import java.net.URI;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
@@ -99,6 +100,40 @@ class ApiProxyControllerTest {
 		RecordedRequest downstream = webService.takeRequest();
 		assertThat(downstream.getPath()).isEqualTo("/dlb-web-service/v1/dialogue/foo?bar=baz");
 		assertThat(downstream.getHeader("Authorization")).isEqualTo("Bearer stub-access-token");
+	}
+
+	@Test
+	void forwardsAnAlreadyEncodedQueryValueWithoutDoubleEncodingIt() throws Exception {
+		webService.enqueue(new MockResponse().setResponseCode(200));
+
+		// Built from a pre-formed URI (not a URL template string, and not .queryParam(name,
+		// value)) so the query string arrives exactly as given, already percent-encoded — the
+		// same way a real client sends it (e.g. client-js's encodeURIComponent(timeZone)).
+		// MockMvcRequestBuilders.get(String, Object...) treats its argument as a URI *template*
+		// and re-encodes it via UriComponentsBuilder, which would re-trigger the very bug this
+		// test exists to catch for an unrelated reason; .queryParam(name, value) separately
+		// doesn't escape "/" at all, since it's legal unencoded in a query per RFC 3986. Neither
+		// reproduces what an already-encoded incoming request actually looks like.
+		mockMvc.perform(get(URI.create("/api/v1/variables/get?timeZone=Europe%2FAmsterdam")).with(user("alice")))
+				.andExpect(status().isOk());
+
+		RecordedRequest downstream = webService.takeRequest();
+		// A regression here would double-encode this to "Europe%252FAmsterdam".
+		assertThat(downstream.getPath()).isEqualTo("/dlb-web-service/v1/variables/get?timeZone=Europe%2FAmsterdam");
+	}
+
+	@Test
+	void forwardsMultipleQueryValuesThatEachNeedEncodingUnchanged() throws Exception {
+		webService.enqueue(new MockResponse().setResponseCode(200));
+
+		mockMvc.perform(get(URI.create(
+						"/api/v1/variables/set-single?name=userCurrentMood&value=fine%2Fbad&timeZone=Europe%2FAmsterdam"))
+						.with(user("alice")))
+				.andExpect(status().isOk());
+
+		RecordedRequest downstream = webService.takeRequest();
+		assertThat(downstream.getPath()).isEqualTo(
+				"/dlb-web-service/v1/variables/set-single?name=userCurrentMood&value=fine%2Fbad&timeZone=Europe%2FAmsterdam");
 	}
 
 	@Test
