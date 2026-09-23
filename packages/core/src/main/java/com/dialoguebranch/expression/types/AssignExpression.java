@@ -47,12 +47,18 @@ import java.util.*;
  * {@link ValueExpression} wrapping a {@link Token.Type#NAME} or {@link Token.Type#DOLLAR_VARIABLE}
  * token.
  *
+ * <p>{@code getChildren()}/{@code substituteChild()}/{@code getDescendants()} are inherited
+ * unchanged from {@link BinaryExpression}. {@code getVariableNames()} is <em>not</em> inherited —
+ * it stays overridden below, since it's cheaper to use the {@code variableName} already resolved
+ * at construction than to recompute it via {@code getOperand1().getVariableNames()} (the two are
+ * equivalent today only because {@link #getOperand1()} is validated to be exactly that variable
+ * reference; recomputing would also stay correct if that ever changed, but there's no need to pay
+ * for it).</p>
+ *
  * @author Dennis Hofs (RRD)
  */
-public class AssignExpression implements Expression {
-	private Expression variableOperand;
+public class AssignExpression extends BinaryExpression {
 	private String variableName;
-	private Expression valueOperand;
 
 	/**
 	 * Constructs a new assignment expression.
@@ -64,6 +70,7 @@ public class AssignExpression implements Expression {
 	 */
 	public AssignExpression(Expression variableOperand, Token operator,
 			Expression valueOperand) throws LineNumberParseException {
+		super(variableOperand, valueOperand);
 		if (!(variableOperand instanceof ValueExpression variableExpr)) {
 			throw new LineNumberParseException(
 					"First operand of assign expression must be a variable",
@@ -76,9 +83,7 @@ public class AssignExpression implements Expression {
 					"First operand of assign expression must be a variable",
 					operator.getLineNum(), operator.getColNum());
 		}
-		this.variableOperand = variableOperand;
 		this.variableName = Objects.requireNonNull(variableToken.getValue()).toString();
-		this.valueOperand = valueOperand;
 	}
 
 	/**
@@ -87,7 +92,7 @@ public class AssignExpression implements Expression {
 	 * @return the variable operand.
 	 */
 	public Expression getVariableOperand() {
-		return variableOperand;
+		return getOperand1();
 	}
 
 	/**
@@ -105,41 +110,15 @@ public class AssignExpression implements Expression {
 	 * @return the value operand.
 	 */
 	public Expression getValueOperand() {
-		return valueOperand;
+		return getOperand2();
 	}
 
 	@Override
 	public Value evaluate(@Nullable Map<String,Object> variables)
 			throws EvaluationException {
-		Value result = valueOperand.evaluate(variables);
+		Value result = getOperand2().evaluate(variables);
 		if (variables != null)
 			variables.put(variableName, result.getValue());
-		return result;
-	}
-
-	@Override
-	public List<Expression> getChildren() {
-		List<Expression> result = new ArrayList<>();
-		result.add(variableOperand);
-		result.add(valueOperand);
-		return result;
-	}
-
-	@Override
-	public void substituteChild(int index, Expression expr) {
-		if (index == 0)
-			variableOperand = expr;
-		else if (index == 1)
-			valueOperand = expr;
-	}
-
-	@Override
-	public List<Expression> getDescendants() {
-		List<Expression> result = new ArrayList<>();
-		for (Expression child : getChildren()) {
-			result.add(child);
-			result.addAll(child.getDescendants());
-		}
 		return result;
 	}
 
@@ -147,17 +126,17 @@ public class AssignExpression implements Expression {
 	public Set<String> getVariableNames() {
 		Set<String> result = new HashSet<>();
 		result.add(variableName);
-		result.addAll(valueOperand.getVariableNames());
+		result.addAll(getOperand2().getVariableNames());
 		return result;
 	}
 
 	@Override
 	public String toString() {
-		return variableOperand + " = " + valueOperand;
+		return getOperand1() + " = " + getOperand2();
 	}
 
 	@Override
 	public String toCode() {
-		return variableOperand.toCode() + " = " + valueOperand.toCode();
+		return getOperand1().toCode() + " = " + getOperand2().toCode();
 	}
 }

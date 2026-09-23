@@ -44,11 +44,14 @@ import java.util.*;
  * A member-access expression {@code parent.name}. The parent must evaluate to a map; the
  * result is the value stored under {@code name} (or {@code null} if absent).
  *
+ * <p>{@code getChildren()}/{@code substituteChild()}/{@code getDescendants()} are inherited
+ * unchanged from {@link BinaryExpression}. {@code getVariableNames()} stays overridden below,
+ * since — unlike a plain {@link BinaryExpression} — a literal field name on the right of the dot
+ * (as opposed to a computed key, e.g. {@code a.$b}) is not itself a variable reference.</p>
+ *
  * @author Dennis Hofs (RRD)
  */
-public class DotExpression implements Expression {
-	private Expression parentOperand;
-	private Expression dotOperand;
+public class DotExpression extends BinaryExpression {
 
 	/**
 	 * Constructs a new dot expression.
@@ -57,8 +60,7 @@ public class DotExpression implements Expression {
 	 * @param dotOperand the operand right of the dot (a name, or an expression yielding the key).
 	 */
 	public DotExpression(Expression parentOperand, Expression dotOperand) {
-		this.parentOperand = parentOperand;
-		this.dotOperand = dotOperand;
+		super(parentOperand, dotOperand);
 	}
 
 	/**
@@ -67,7 +69,7 @@ public class DotExpression implements Expression {
 	 * @return the parent operand.
 	 */
 	public Expression getParentOperand() {
-		return parentOperand;
+		return getOperand1();
 	}
 
 	/**
@@ -76,27 +78,36 @@ public class DotExpression implements Expression {
 	 * @return the dot operand.
 	 */
 	public Expression getDotOperand() {
-		return dotOperand;
+		return getOperand2();
+	}
+
+	/**
+	 * Returns the dot operand's literal field name if it's a bare {@link Token.Type#NAME} token
+	 * (e.g. the {@code name} in {@code parent.name}), or {@code null} if it's a computed
+	 * expression instead (e.g. {@code parent.$key}) — used by both {@link #evaluate} and
+	 * {@link #getVariableNames} to agree on which case they're in.
+	 */
+	private @Nullable String dotOperandAsLiteralName() {
+		if (getOperand2() instanceof ValueExpression valueExpr
+				&& valueExpr.getToken().getType() == Token.Type.NAME) {
+			return Objects.requireNonNull(valueExpr.getToken().getValue()).toString();
+		}
+		return null;
 	}
 
 	@Override
 	public Value evaluate(@Nullable Map<String,Object> variables)
 			throws EvaluationException {
-		Value parent = parentOperand.evaluate(variables);
+		Value parent = getOperand1().evaluate(variables);
 		if (!parent.isMap()) {
 			throw new EvaluationException(
 					"Dot parent must be a map, found: " +
 					parent.getTypeString());
 		}
 		Map<?,?> map = (Map<?,?>) Objects.requireNonNull(parent.getValue());
-		String name = null;
-		if (dotOperand instanceof ValueExpression valueExpr) {
-			if (valueExpr.getToken().getType() == Token.Type.NAME) {
-				name = Objects.requireNonNull(valueExpr.getToken().getValue()).toString();
-			}
-		}
+		String name = dotOperandAsLiteralName();
 		if (name == null) {
-			Value nameVal = dotOperand.evaluate(variables);
+			Value nameVal = getOperand2().evaluate(variables);
 			if (!nameVal.isString() && !nameVal.isNumber()) {
 				throw new EvaluationException(
 						"Dot name must be a string or number, found: " +
@@ -108,52 +119,20 @@ public class DotExpression implements Expression {
 	}
 
 	@Override
-	public List<Expression> getChildren() {
-		List<Expression> result = new ArrayList<>();
-		result.add(parentOperand);
-		result.add(dotOperand);
-		return result;
-	}
-
-	@Override
-	public void substituteChild(int index, Expression expr) {
-		if (index == 0)
-			parentOperand = expr;
-		else if (index == 1)
-			dotOperand = expr;
-	}
-
-	@Override
-	public List<Expression> getDescendants() {
-		List<Expression> result = new ArrayList<>();
-		for (Expression child : getChildren()) {
-			result.add(child);
-			result.addAll(child.getDescendants());
-		}
-		return result;
-	}
-
-	@Override
 	public Set<String> getVariableNames() {
-		Set<String> result = new HashSet<>(parentOperand.getVariableNames());
-		boolean dotOperandIsName = false;
-		if (dotOperand instanceof ValueExpression valueExpr) {
-			if (valueExpr.getToken().getType() == Token.Type.NAME) {
-				dotOperandIsName = true;
-			}
-		}
-		if (!dotOperandIsName)
-			result.addAll(dotOperand.getVariableNames());
+		Set<String> result = new HashSet<>(getOperand1().getVariableNames());
+		if (dotOperandAsLiteralName() == null)
+			result.addAll(getOperand2().getVariableNames());
 		return result;
 	}
 
 	@Override
 	public String toString() {
-		return parentOperand + "." + dotOperand;
+		return getOperand1() + "." + getOperand2();
 	}
 
 	@Override
 	public String toCode() {
-		return parentOperand.toCode() + "." + dotOperand.toCode();
+		return getOperand1().toCode() + "." + getOperand2().toCode();
 	}
 }

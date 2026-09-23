@@ -43,11 +43,14 @@ import java.util.*;
  * An index expression {@code parent[index]}. The parent must evaluate to a string, list or map;
  * the result is the element / character / value at the given index or key.
  *
+ * <p>{@code getChildren()}/{@code substituteChild()}/{@code getDescendants()}/{@code
+ * getVariableNames()} are inherited unchanged from {@link BinaryExpression} — both operands here
+ * are ordinary expressions with no special-cased children, unlike e.g. {@link DotExpression}'s
+ * field-name operand.</p>
+ *
  * @author Dennis Hofs (RRD)
  */
-public class IndexExpression implements Expression {
-	private Expression parentOperand;
-	private Expression indexOperand;
+public class IndexExpression extends BinaryExpression {
 
 	/**
 	 * Constructs a new index expression.
@@ -56,8 +59,7 @@ public class IndexExpression implements Expression {
 	 * @param indexOperand the index or key operand.
 	 */
 	public IndexExpression(Expression parentOperand, Expression indexOperand) {
-		this.parentOperand = parentOperand;
-		this.indexOperand = indexOperand;
+		super(parentOperand, indexOperand);
 	}
 
 	/**
@@ -66,7 +68,7 @@ public class IndexExpression implements Expression {
 	 * @return the parent operand.
 	 */
 	public Expression getParentOperand() {
-		return parentOperand;
+		return getOperand1();
 	}
 
 	/**
@@ -75,20 +77,20 @@ public class IndexExpression implements Expression {
 	 * @return the index operand.
 	 */
 	public Expression getIndexOperand() {
-		return indexOperand;
+		return getOperand2();
 	}
 
 	@Override
 	public Value evaluate(@Nullable Map<String,Object> variables)
 			throws EvaluationException {
-		Value parentVal = parentOperand.evaluate(variables);
+		Value parentVal = getOperand1().evaluate(variables);
 		if (!parentVal.isString() && !parentVal.isList() &&
 				!parentVal.isMap()) {
 			throw new EvaluationException(
 					"Index parent must be a string, list or map, found: " +
 					parentVal.getTypeString());
 		}
-		Value indexVal = indexOperand.evaluate(variables);
+		Value indexVal = getOperand2().evaluate(variables);
 		if (parentVal.isString()) {
 			if (!indexVal.isNumericString() && !indexVal.isNumber()) {
 				throw new EvaluationException(
@@ -129,47 +131,12 @@ public class IndexExpression implements Expression {
 	}
 
 	@Override
-	public List<Expression> getChildren() {
-		List<Expression> result = new ArrayList<>();
-		result.add(parentOperand);
-		result.add(indexOperand);
-		return result;
-	}
-
-	@Override
-	public void substituteChild(int index, Expression expr) {
-		if (index == 0)
-			parentOperand = expr;
-		else if (index == 1)
-			indexOperand = expr;
-	}
-
-	@Override
-	public List<Expression> getDescendants() {
-		List<Expression> result = new ArrayList<>();
-		for (Expression child : getChildren()) {
-			result.add(child);
-			result.addAll(child.getDescendants());
-		}
-		return result;
-	}
-
-	@Override
-	public Set<String> getVariableNames() {
-		Set<String> result = new HashSet<>();
-		for (Expression child : getChildren()) {
-			result.addAll(child.getVariableNames());
-		}
-		return result;
-	}
-
-	@Override
 	public String toString() {
-		return parentOperand + "[" + indexOperand + "]";
+		return getOperand1() + "[" + getOperand2() + "]";
 	}
 
 	@Override
 	public String toCode() {
-		return parentOperand.toCode() + "[" + indexOperand.toCode() + "]";
+		return getOperand1().toCode() + "[" + getOperand2().toCode() + "]";
 	}
 }
