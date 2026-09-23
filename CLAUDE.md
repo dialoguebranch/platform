@@ -151,7 +151,7 @@ Controllers (all under `/v1`):
 
 The service is a pure OAuth2 resource server: it validates bearer tokens issued by Keycloak (JWKS-based JWT validation configured in `SecurityConfig`, with claim extraction in `QueryRunner`) but never issues or refreshes tokens itself. A direct API client (a custom integration, or the bundled Swagger UI) authenticates with Keycloak itself via the Authorization Code + PKCE flow; Dialogue Branch Studio instead goes through `apps/bff` (see below) and never holds a token at all.
 
-Variable storage is pluggable: `VariableStoreJSONStorageHandler` (file-based) or `VariableStoreDatabaseStorageHandler` (MariaDB via Hibernate). An optional external variable service can be enabled via `DLB_EXTERNAL_VARIABLE_SERVICE_ENABLED`.
+Variable storage is `VariableStoreDatabaseStorageHandler` (MariaDB via Hibernate) — the file-based `VariableStoreJSONStorageHandler` this section once described as a pluggable alternative no longer exists in the codebase. An optional external variable service can be enabled via `DLB_EXTERNAL_VARIABLE_SERVICE_ENABLED`.
 
 Projects are seeded into the database from `src/main/resources/projects-seed/` (one sub-directory per project, each a standard `.dlb`/`dlb-project.xml` file tree) by `ProjectSeedService` on first startup only; from then on, dialogue content lives in MariaDB, not on disk.
 
