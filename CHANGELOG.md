@@ -7,6 +7,14 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Added
+
+- Client JS: `@dialoguebranch/client-js` is now published to npm
+  ([#230](https://github.com/dialoguebranch/platform/issues/230)) — a new `release: published`-triggered
+  workflow runs its tests and `npm publish`es it on every GitHub release, keeping the published
+  version in lockstep with the monorepo-wide version. Previously `"private": true`, consumed only
+  via a `file:` dependency from within this monorepo.
+
 ## [0.2.0] - 2026-09-23
 
 ### Changed

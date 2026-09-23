@@ -1,0 +1,45 @@
+name: Publish client-js to npm
+
+# Fires on every GitHub release release-finish.yml creates (`gh release create`, which raises a
+# `release: published` event) and publishes @dialoguebranch/client-js under that same version —
+# its package.json is kept in sync with global.json on every release (see release-prepare.yml),
+# so every release publishes, whether or not this package's own content changed this time. `npm
+# publish` on a version that's already on the registry fails cleanly on its own; no extra guard
+# needed for a re-run.
+#
+# Requires a repository secret NPM_TOKEN: an npm access token (granular, scoped to the
+# @dialoguebranch org/scope with Read and write package permissions) — see #230.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write # for --provenance's OIDC attestation
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+          cache-dependency-path: packages/client-js/package-lock.json
+
+      - working-directory: packages/client-js
+        run: npm ci
+
+      # Don't publish if the tests don't pass, even though CI already gated the release PR that
+      # got us here — this runs against the tagged commit specifically, not just "whatever CI saw."
+      - working-directory: packages/client-js
+        run: npm test
+
+      - working-directory: packages/client-js
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
