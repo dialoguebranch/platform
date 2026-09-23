@@ -21,6 +21,14 @@ The BFF exposes the following end-points to the browser:
 * `POST /logout` — RP-initiated logout: ends both the BFF's session and the underlying Keycloak SSO session.
 * `GET /actuator/health`, `/actuator/info` — Spring Boot Actuator health/info endpoints.
 
+## Building Your Own Proxy
+
+If you write your own BFF or reverse proxy in front of the Web Service — rather than deploying this one — watch out for one easy-to-hit pitfall: **double-encoding the forwarded query string.**
+
+An incoming request's query string arrives already percent-encoded (e.g. a client correctly sends `timeZone=Europe%2FAmsterdam` for the value `Europe/Amsterdam`). Many HTTP client libraries' URL builders assume the string you hand them still *needs* encoding, and will encode it again — turning that `%2F` into `%252F`. The Web Service then decodes it once, is left with the literal string `Europe%2FAmsterdam`, and rejects it as an invalid time zone. Any query parameter whose value itself needs escaping (a time zone, a name with `&`/`=`/spaces, …) can trigger this — not just `timeZone`.
+
+Concretely, in Spring: `RestClient`'s default `UriBuilderFactory` re-encodes whatever string you pass to `.query(...)`. If your proxy's whole job is forwarding an already-encoded request verbatim, configure it not to re-encode — a `DefaultUriBuilderFactory` with `EncodingMode.NONE`. This `apps/bff`'s own `ProxyConfig` does exactly this, as a concrete reference if you're proxying in Spring/Kotlin too.
+
 ## Configuration
 
 The BFF is configured through `dlb.bff.*` properties (see `apps/bff/src/main/resources/application.yml`), each overridable at runtime via a matching `DLB_BFF_*` environment variable:
