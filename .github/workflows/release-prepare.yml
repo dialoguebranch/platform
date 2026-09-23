@@ -90,6 +90,10 @@ jobs:
         working-directory: apps/studio
         run: npm run --silent sync-version
 
+      - name: Sync packages/client-js's version
+        working-directory: packages/client-js
+        run: npm run --silent sync-version
+
       - name: Split the CHANGELOG's Unreleased section into a dated version heading
         run: |
           awk -v version="${{ steps.version.outputs.new_version }}" -v date="$(date +%F)" '
@@ -116,7 +120,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add global.json CHANGELOG.md apps/studio/package.json apps/studio/package-lock.json
+          git add global.json CHANGELOG.md apps/studio/package.json apps/studio/package-lock.json packages/client-js/package.json
           git commit -m "Release ${{ steps.version.outputs.new_tag }}"
 
       - name: Push the release branch

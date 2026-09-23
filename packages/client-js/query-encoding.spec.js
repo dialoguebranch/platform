@@ -65,4 +65,18 @@ describe("query parameter encoding", () => {
         expect(captureUrl(client, c => c.revertDraftVariables({ draftSessionId: "draft&admin=true" })))
             .toContain("draftSessionId=draft%26admin%3Dtrue");
     });
+
+    it("builds listUsers' URL from its options, including pagination", () => {
+        const client = new DialogueBranchAuthoringClient({ baseUrl: "/api/v1" });
+
+        expect(captureUrl(client, c => c.listUsers()))
+            .toBe("/api/v1/users?username=");
+        expect(captureUrl(client, c => c.listUsers({ usernameFragment: "har&admin=true" })))
+            .toBe("/api/v1/users?username=har%26admin%3Dtrue");
+        expect(captureUrl(client, c => c.listUsers({ usernameFragment: "harm", page: 2, pageSize: 100 })))
+            .toBe("/api/v1/users?username=harm&page=2&pageSize=100");
+        // page 0 is a legitimate value, not "omit" — must not be dropped by a falsy check.
+        expect(captureUrl(client, c => c.listUsers({ page: 0, pageSize: 0 })))
+            .toBe("/api/v1/users?username=&page=0&pageSize=0");
+    });
 });
