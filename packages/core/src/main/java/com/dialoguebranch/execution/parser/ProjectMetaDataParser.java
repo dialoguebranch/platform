@@ -70,9 +70,33 @@ public class ProjectMetaDataParser {
 	public static ProjectMetaData parse(File metaDataFile) throws ParseException, IOException {
 		ProjectMetaData projectMetaData;
 		try (InputStream input = new BufferedInputStream(new FileInputStream(metaDataFile))) {
+			projectMetaData = parse(input);
+		}
+		projectMetaData.setBasePath(metaDataFile.getParent());
+		projectMetaData.setStorageSource(new FileStorageSource(metaDataFile));
+		return projectMetaData;
+	}
+
+	/**
+	 * Parses project metadata XML read from the given stream — for a caller whose content isn't
+	 * (or isn't only) backed by a real {@link File}, e.g. a Spring classpath {@code Resource} or
+	 * an in-memory archive entry. Unlike {@link #parse(File)}, this does not set {@link
+	 * ProjectMetaData#getBasePath() basePath} or {@link ProjectMetaData#getStorageSource()
+	 * storageSource} — neither concept applies to an arbitrary stream, so both stay {@code null}
+	 * unless the caller sets them itself afterward (e.g. with a {@link
+	 * com.dialoguebranch.model.common.DescribedStorageSource}).
+	 *
+	 * @param input the stream to read the project metadata XML from. Not closed by this method —
+	 *              the caller owns its lifecycle.
+	 * @return the parsed {@link ProjectMetaData}.
+	 * @throws ParseException if the XML content is invalid.
+	 * @throws IOException if the stream cannot be read.
+	 */
+	public static ProjectMetaData parse(InputStream input) throws ParseException, IOException {
+		try {
 			XMLStreamReader reader = newInputFactory().createXMLStreamReader(input);
 			try {
-				projectMetaData = readProject(reader);
+				return readProject(reader);
 			} finally {
 				reader.close();
 			}
@@ -80,9 +104,6 @@ public class ProjectMetaDataParser {
 			throw new ParseException("Invalid XML while parsing Dialogue Branch project " +
 					"metadata: " + ex.getMessage(), ex);
 		}
-		projectMetaData.setBasePath(metaDataFile.getParent());
-		projectMetaData.setStorageSource(new FileStorageSource(metaDataFile));
-		return projectMetaData;
 	}
 
 	/**

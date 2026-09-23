@@ -33,6 +33,7 @@ import com.dialoguebranch.execution.parser.ProjectMetaDataParser;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;
 import com.dialoguebranch.execution.parser.ScriptLoader;
+import com.dialoguebranch.model.common.DescribedStorageSource;
 import com.dialoguebranch.model.common.ProjectMetaData;
 import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.model.execute.Language;
@@ -54,7 +55,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.*;
 import java.net.URI;
-import java.nio.file.Files;
 import java.util.List;
 import java.util.Optional;
 
@@ -399,9 +399,9 @@ public class ProjectSeedService {
 	}
 
 	/**
-	 * Parses the {@code dlb-project.xml} from the given Spring {@link Resource} by copying it to a
-	 * temporary file first, which allows {@link ProjectMetaDataParser} to work in both filesystem
-	 * and JAR classpath environments.
+	 * Parses the {@code dlb-project.xml} from the given Spring {@link Resource} directly, via
+	 * {@link ProjectMetaDataParser}'s stream-based overload — works the same whether this
+	 * resource resolved to a real file or a JAR classpath entry, with no filesystem copy needed.
 	 *
 	 * @param markerResource the {@code dlb-project.xml} resource.
 	 * @return the parsed {@link ProjectMetaData}.
@@ -410,13 +410,12 @@ public class ProjectSeedService {
 	 */
 	private ProjectMetaData parseMetaData(Resource markerResource)
 			throws ParseException, IOException {
-		File tempFile = Files.createTempFile("dlb-project-", ".xml").toFile();
-		tempFile.deleteOnExit();
-		try (InputStream in = markerResource.getInputStream();
-			 OutputStream out = new FileOutputStream(tempFile)) {
-			in.transferTo(out);
+		ProjectMetaData metaData;
+		try (InputStream in = markerResource.getInputStream()) {
+			metaData = ProjectMetaDataParser.parse(in);
 		}
-		return ProjectMetaDataParser.parse(tempFile);
+		metaData.setStorageSource(new DescribedStorageSource(markerResource.getDescription()));
+		return metaData;
 	}
 
 	/**
