@@ -109,12 +109,46 @@ jobs:
           npm ci
           npm run build
 
+  docker:
+    name: docker (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: api
+            dockerfile: apps/api/Dockerfile
+          - name: bff
+            dockerfile: apps/bff/Dockerfile
+          - name: studio
+            dockerfile: apps/studio/Dockerfile
+          - name: mock-variable-service
+            dockerfile: apps/mock-variable-service/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Every Dockerfile's build context is the repo root (see the comment at the top of each
+      # one) — catches exactly the class of bug a plain `npm run build`/`./gradlew build` can't:
+      # a file the image needs that isn't actually COPYed into its isolated build context, even
+      # though it's right there as a sibling directory when building outside Docker.
+      - name: Build the image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: false
+          tags: dlb-${{ matrix.name }}:ci
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
   # Single check to mark "required" in branch protection: green only when every
   # job above succeeded.
   all-green:
     name: all-green
     runs-on: ubuntu-latest
-    needs: [jvm, client-js, studio, vitepress]
+    needs: [jvm, client-js, studio, vitepress, docker]
     if: always()
     steps:
       - name: Verify all jobs succeeded
@@ -123,7 +157,9 @@ jobs:
           echo "client-js: ${{ needs.client-js.result }}"
           echo "studio:    ${{ needs.studio.result }}"
           echo "vitepress: ${{ needs.vitepress.result }}"
+          echo "docker:    ${{ needs.docker.result }}"
           [ "${{ needs.jvm.result }}" = "success" ] \
             && [ "${{ needs.client-js.result }}" = "success" ] \
             && [ "${{ needs.studio.result }}" = "success" ] \
-            && [ "${{ needs.vitepress.result }}" = "success" ]
+            && [ "${{ needs.vitepress.result }}" = "success" ] \
+            && [ "${{ needs.docker.result }}" = "success" ]
