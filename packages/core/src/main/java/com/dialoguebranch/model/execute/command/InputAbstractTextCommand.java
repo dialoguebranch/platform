@@ -29,28 +29,21 @@
 package com.dialoguebranch.model.execute.command;
 
 import com.dialoguebranch.exception.LineNumberParseException;
-import com.dialoguebranch.execution.Variable;
-import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.parser.BodyToken;
-import com.dialoguebranch.expression.EvaluationException;
-import com.dialoguebranch.expression.Value;
-import com.dialoguebranch.model.execute.NodeBody;
 import org.jspecify.annotations.Nullable;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 
 /**
  * Abstract base for text-based input commands ({@link InputTextCommand},
- * {@link InputLongtextCommand}, {@link InputEmailCommand}). Captures the common set of text
- * input options such as length constraints and capitalisation hints.
+ * {@link InputLongtextCommand}). Captures the common set of text input options such as length
+ * constraints and capitalisation hints — see {@link InputVariableCommand} for the
+ * variable-storage boilerplate shared more broadly across input command types.
  *
  * @author Harm op den Akker
  */
-public abstract class InputAbstractTextCommand extends InputCommand {
-	private String variableName;
+public abstract class InputAbstractTextCommand extends InputVariableCommand {
 	private @Nullable Integer min = null;
 	private @Nullable Integer max = null;
 	private Boolean allowNumbers = Boolean.TRUE;
@@ -71,8 +64,7 @@ public abstract class InputAbstractTextCommand extends InputCommand {
 	 * @param variableName the Dialogue Branch variable name in which to store the input.
 	 */
 	public InputAbstractTextCommand(String type, String variableName) {
-		super(type);
-		this.variableName = variableName;
+		super(type, variableName);
 	}
 
 	/**
@@ -82,7 +74,6 @@ public abstract class InputAbstractTextCommand extends InputCommand {
 	 */
 	public InputAbstractTextCommand(InputAbstractTextCommand other) {
 		super(other);
-		this.variableName = other.variableName;
 		this.min = other.min;
 		this.max = other.max;
 		this.allowNumbers = other.allowNumbers;
@@ -94,22 +85,6 @@ public abstract class InputAbstractTextCommand extends InputCommand {
 		this.forceCapCharacters = other.forceCapCharacters;
 		this.forceCapWords = other.forceCapWords;
 		this.forceCapSentences = other.forceCapSentences;
-	}
-
-	/**
-	 * Returns the name of the Dialogue Branch variable in which the user's input is stored.
-	 * @return the variable name.
-	 */
-	public String getVariableName() {
-		return variableName;
-	}
-
-	/**
-	 * Sets the name of the Dialogue Branch variable in which the user's input is stored.
-	 * @param variableName the variable name.
-	 */
-	public void setVariableName(String variableName) {
-		this.variableName = variableName;
 	}
 
 	/**
@@ -315,7 +290,7 @@ public abstract class InputAbstractTextCommand extends InputCommand {
 	@Override
 	public Map<String, ?> getParameters() {
 		Map<String,Object> result = new LinkedHashMap<>();
-		result.put("variableName", variableName);
+		result.put("variableName", getVariableName());
 		if(min != null) result.put("min", min);
 		if(max != null) result.put("max", max);
 		result.put("allowNumbers",allowNumbers);
@@ -331,32 +306,9 @@ public abstract class InputAbstractTextCommand extends InputCommand {
 	}
 
 	@Override
-	public void getReadVariableNames(Set<String> varNames) {
-	}
-
-	@Override
-	public void getWriteVariableNames(Set<String> varNames) {
-		varNames.add(variableName);
-	}
-
-	@Override
-	public void executeBodyCommand(Map<String, Object> variables,
-			NodeBody processedBody) throws EvaluationException {
-		processedBody.addSegment(new NodeBody.CommandSegment(this));
-	}
-
-	@Override
-	public String getStatementLog(VariableStore varStore) {
-		Variable variable = Objects.requireNonNull(
-				varStore.getVariable(variableName), variableName);
-		Value value = new Value(variable.getValue());
-		return value.toString();
-	}
-
-	@Override
 	public String toString() {
 		String result = toStringStart();
-		result += " value=\"$" + variableName + "\"";
+		result += " value=\"$" + getVariableName() + "\"";
 		if (min != null)
 			result += " min=\"" + min + "\"";
 

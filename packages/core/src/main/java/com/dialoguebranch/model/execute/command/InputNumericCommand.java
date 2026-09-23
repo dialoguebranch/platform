@@ -29,18 +29,11 @@
 package com.dialoguebranch.model.execute.command;
 
 import com.dialoguebranch.exception.LineNumberParseException;
-import com.dialoguebranch.execution.Variable;
-import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.parser.BodyToken;
-import com.dialoguebranch.expression.EvaluationException;
-import com.dialoguebranch.expression.Value;
-import com.dialoguebranch.model.execute.NodeBody;
 import org.jspecify.annotations.Nullable;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 
 /**
  * Models the {@code <<input type="numeric" ...>>} command in Dialogue Branch, which prompts the
@@ -49,8 +42,7 @@ import java.util.Set;
  *
  * @author Harm op den Akker
  */
-public class InputNumericCommand extends InputCommand {
-	private String variableName;
+public class InputNumericCommand extends InputVariableCommand {
 	private @Nullable Integer min = null;
 	private @Nullable Integer max = null;
 
@@ -61,8 +53,7 @@ public class InputNumericCommand extends InputCommand {
 	 * @param variableName the Dialogue Branch variable name in which to store the input.
 	 */
 	public InputNumericCommand(String variableName) {
-		super(TYPE_NUMERIC);
-		this.variableName = variableName;
+		super(TYPE_NUMERIC, variableName);
 	}
 
 	/**
@@ -72,25 +63,8 @@ public class InputNumericCommand extends InputCommand {
 	 */
 	public InputNumericCommand(InputNumericCommand other) {
 		super(other);
-		this.variableName = other.variableName;
 		this.min = other.min;
 		this.max = other.max;
-	}
-
-	/**
-	 * Returns the name of the Dialogue Branch variable in which the user's numeric input is stored.
-	 * @return the variable name.
-	 */
-	public String getVariableName() {
-		return variableName;
-	}
-
-	/**
-	 * Sets the name of the Dialogue Branch variable in which the user's numeric input is stored.
-	 * @param variableName the variable name.
-	 */
-	public void setVariableName(String variableName) {
-		this.variableName = variableName;
 	}
 
 	/**
@@ -128,39 +102,16 @@ public class InputNumericCommand extends InputCommand {
 	@Override
 	public Map<String, ?> getParameters() {
 		Map<String,Object> result = new LinkedHashMap<>();
-		result.put("variableName", variableName);
+		result.put("variableName", getVariableName());
 		result.put("min", min);
 		result.put("max", max);
 		return result;
 	}
 
 	@Override
-	public void getReadVariableNames(Set<String> varNames) {
-	}
-
-	@Override
-	public void getWriteVariableNames(Set<String> varNames) {
-		varNames.add(variableName);
-	}
-
-	@Override
-	public void executeBodyCommand(Map<String, Object> variables,
-			NodeBody processedBody) throws EvaluationException {
-		processedBody.addSegment(new NodeBody.CommandSegment(this));
-	}
-
-	@Override
-	public String getStatementLog(VariableStore varStore) {
-		Variable variable = Objects.requireNonNull(
-				varStore.getVariable(variableName), variableName);
-		Value value = new Value(variable.getValue());
-		return value.toString();
-	}
-
-	@Override
 	public String toString() {
 		String result = toStringStart();
-		result += " value=\"$" + variableName + "\"";
+		result += " value=\"$" + getVariableName() + "\"";
 		if (min != null)
 			result += " min=\"" + min + "\"";
 		if (max != null)
