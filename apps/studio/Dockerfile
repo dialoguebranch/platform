@@ -25,6 +25,7 @@ FROM node:22 AS builder
 WORKDIR /build
 
 COPY global.json global.json
+COPY packages/client-js/ packages/client-js/
 COPY apps/studio/ apps/studio/
 
 WORKDIR /build/apps/studio
