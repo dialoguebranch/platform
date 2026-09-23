@@ -154,8 +154,9 @@ with open(path, 'w') as f:
     f.write('\n')
 "
 
-command -v npm >/dev/null || { echo "error: 'npm' is required to sync apps/studio/package.json" >&2; exit 1; }
+command -v npm >/dev/null || { echo "error: 'npm' is required to sync apps/studio/package.json and packages/client-js/package.json" >&2; exit 1; }
 (cd apps/studio && npm run --silent sync-version)
+(cd packages/client-js && npm run --silent sync-version)
 
 RELEASE_DATE="$(date +%F)"
 
@@ -185,10 +186,11 @@ awk -v heading="## [${NEW_VERSION}]" '
 
 STUDIO_PACKAGE_JSON="apps/studio/package.json"
 STUDIO_PACKAGE_LOCK="apps/studio/package-lock.json"
+CLIENT_JS_PACKAGE_JSON="packages/client-js/package.json"
 
 echo "About to open a release PR for ${NEW_TAG} (${BUMP_TYPE} bump from ${VERSION}):"
 echo "--------------------------------"
-git --no-pager diff -- "$GLOBAL_JSON" "$CHANGELOG" "$STUDIO_PACKAGE_JSON" "$STUDIO_PACKAGE_LOCK"
+git --no-pager diff -- "$GLOBAL_JSON" "$CHANGELOG" "$STUDIO_PACKAGE_JSON" "$STUDIO_PACKAGE_LOCK" "$CLIENT_JS_PACKAGE_JSON"
 echo "--------------------------------"
 echo "Release notes (from CHANGELOG.md):"
 echo "--------------------------------"
@@ -205,7 +207,7 @@ if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
 	exit 1
 fi
 
-git add "$GLOBAL_JSON" "$CHANGELOG" "$STUDIO_PACKAGE_JSON" "$STUDIO_PACKAGE_LOCK"
+git add "$GLOBAL_JSON" "$CHANGELOG" "$STUDIO_PACKAGE_JSON" "$STUDIO_PACKAGE_LOCK" "$CLIENT_JS_PACKAGE_JSON"
 git commit -m "Release ${NEW_TAG}"
 git push -u origin "$RELEASE_BRANCH"
 

@@ -7,6 +7,24 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** Client JS: `DialogueBranchAuthoringClient.listUsers` now takes a single options
+  object (`{ usernameFragment, page, pageSize }`) instead of a positional `usernameFragment`
+  string, and exposes the Web Service's existing `page`/`pageSize` pagination on `/users` —
+  previously always fetched page 0 only (undocumented beyond a JSDoc note), so a deployment with
+  more than 50 known users couldn't reach the rest through Studio's "run as this user" picker.
+
+### Fixed
+
+- Client JS: `packages/client-js/package.json`'s version now stays in sync with the
+  monorepo-wide version in `global.json`. `infrastructure/release/release-github.sh` and its
+  GitHub Actions equivalent (`release-prepare.yml`) both ran `npm run sync-version` for
+  `apps/studio` but never for `packages/client-js`, even though it has the identical script —
+  its `package.json` had drifted two patch releases stale (`0.1.8` while `global.json` had moved
+  on to `0.1.10`). Harmless while the package stays unpublished, but would have shipped a wrong
+  version to npm once it is. A new packaging test now asserts the two stay in sync.
+
 ## [0.1.10] - 2026-09-23
 
 ### Fixed

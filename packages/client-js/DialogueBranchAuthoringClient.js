@@ -799,15 +799,21 @@ export class DialogueBranchAuthoringClient extends BaseClient {
      * {@link DialogueBranchClient}'s `delegateUser`) needs, e.g. for a "run as this user"
      * picker. Requires the `admin` role.
      *
-     * @param {string} [usernameFragment] Substring to filter usernames by. Omit (or pass an
-     * empty string) to list all known users (first page only).
-     * @returns {Promise<{username: string, subject: string}[]>} Matching users, ordered by
-     * username. Only includes users the Web Service has actually seen run a dialogue before —
-     * a Keycloak account that has never authenticated against it won't appear.
+     * @param {Object} [options]
+     * @param {string} [options.usernameFragment] Substring to filter usernames by. Omit (or pass
+     * an empty string) to list all known users.
+     * @param {number} [options.page] Zero-based page index. Defaults to the Web Service's own
+     * default (currently `0`).
+     * @param {number} [options.pageSize] Page size. Defaults to the Web Service's own default
+     * (currently `50`, capped server-side regardless of what's requested).
+     * @returns {Promise<{username: string, subject: string}[]>} The matching page of users,
+     * ordered by username. Only includes users the Web Service has actually seen run a dialogue
+     * before — a Keycloak account that has never authenticated against it won't appear.
      */
-    listUsers(usernameFragment) {
-        const url = this._baseUrl + "/users?username="
-            + encodeURIComponent(usernameFragment ?? "");
+    listUsers({ usernameFragment, page, pageSize } = {}) {
+        let url = this._baseUrl + "/users?username=" + encodeURIComponent(usernameFragment ?? "");
+        if (page != null) url += "&page=" + page;
+        if (pageSize != null) url += "&pageSize=" + pageSize;
 
         return this._fetch(url, {
             method: "GET",

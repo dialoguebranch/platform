@@ -35,7 +35,7 @@ function runSearch() {
     const seq = ++searchSeq;
     loading.value = true;
     loadError.value = false;
-    client.listUsers(query.value.trim())
+    client.listUsers({ usernameFragment: query.value.trim() })
         .then((rows) => {
             if (seq !== searchSeq) return;
             results.value = rows;

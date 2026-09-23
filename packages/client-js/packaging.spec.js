@@ -45,6 +45,11 @@ describe('npm package contents', () => {
         expect(readFileSync(new URL('LICENSE', import.meta.url), 'utf8')).toBe(mitText + '\n');
     });
 
+    it('has its version synced with the monorepo-wide global.json (via `npm run sync-version`)', () => {
+        const globalJson = JSON.parse(readFileSync(new URL('../../global.json', import.meta.url), 'utf8'));
+        expect(manifest.version).toBe(globalJson.version);
+    });
+
     it('points consumers back to the monorepo and issue tracker', () => {
         expect(manifest.repository).toEqual({
             type: 'git',
