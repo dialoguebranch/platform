@@ -32,18 +32,17 @@
 
 package com.dialoguebranch.expression;
 
+import com.dialoguebranch.exception.DialogueBranchException;
+import org.jspecify.annotations.Nullable;
+
 /**
  * Thrown when an {@link Expression} cannot be evaluated — for example an operator applied to an
  * incompatible value type, or an out-of-range index.
  *
  * @author Dennis Hofs (RRD)
  */
-public class EvaluationException extends Exception {
+public class EvaluationException extends DialogueBranchException {
 	private static final long serialVersionUID = 1L;
-
-	/** Constructs a new evaluation exception with no detail message. */
-	public EvaluationException() {
-	}
 
 	/**
 	 * Constructs a new evaluation exception with the given detail message.
@@ -60,7 +59,7 @@ public class EvaluationException extends Exception {
 	 * @param message the detail message.
 	 * @param cause the underlying cause.
 	 */
-	public EvaluationException(String message, Throwable cause) {
+	public EvaluationException(String message, @Nullable Throwable cause) {
 		super(message, cause);
 	}
 }
