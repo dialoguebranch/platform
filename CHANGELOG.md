@@ -70,6 +70,14 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- BFF: `apps/bff` now exposes a generic `GET /login` end-point (`LoginController`)
+  ([#261](https://github.com/dialoguebranch/platform/issues/261)). Studio's login trigger used to
+  navigate straight to `/oauth2/authorization/keycloak`, this service's own fixed registration id,
+  an internal detail a differently-structured BFF (one resolving a registration per request rather
+  than having exactly one fixed client) has no way to predict. `apps/studio/src/auth.js` now
+  navigates to `/login` instead, and any BFF fronting Studio can satisfy that same generic path
+  however its own registration scheme works. Purely additive: `/oauth2/authorization/keycloak`
+  itself is unchanged and still works.
 - New `packages/client-js`: a JavaScript client for a Dialogue Branch Web Service,
   `@dialoguebranch/client-js` ([#88](https://github.com/dialoguebranch/platform/issues/88)),
   extracted from what used to be Dialogue Branch Studio's in-app client library. Two classes:
