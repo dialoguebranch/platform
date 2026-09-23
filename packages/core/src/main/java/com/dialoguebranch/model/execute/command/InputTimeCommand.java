@@ -29,11 +29,8 @@
 package com.dialoguebranch.model.execute.command;
 
 import com.dialoguebranch.exception.LineNumberParseException;
-import com.dialoguebranch.execution.Variable;
-import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.parser.BodyToken;
 import com.dialoguebranch.expression.EvaluationException;
-import com.dialoguebranch.expression.Value;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.VariableString;
 import org.jspecify.annotations.Nullable;
@@ -43,7 +40,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -53,11 +49,10 @@ import java.util.Set;
  *
  * @author Harm op den Akker
  */
-public class InputTimeCommand extends InputCommand {
+public class InputTimeCommand extends InputVariableCommand {
 	/** Special time value meaning "the current time". */
 	public static final String TIME_NOW = "now";
 
-	private String variableName;
 	private int granularityMinutes = 1;
 	private @Nullable VariableString startTime = null;
 	private @Nullable VariableString minTime = null;
@@ -70,8 +65,7 @@ public class InputTimeCommand extends InputCommand {
 	 * @param variableName the Dialogue Branch variable name in which to store the input.
 	 */
 	public InputTimeCommand(String variableName) {
-		super(TYPE_TIME);
-		this.variableName = variableName;
+		super(TYPE_TIME, variableName);
 	}
 
 	/**
@@ -81,7 +75,6 @@ public class InputTimeCommand extends InputCommand {
 	 */
 	public InputTimeCommand(InputTimeCommand other) {
 		super(other);
-		this.variableName = other.variableName;
 		this.granularityMinutes = other.granularityMinutes;
 		if (other.startTime != null)
 			this.startTime = new VariableString(other.startTime);
@@ -89,22 +82,6 @@ public class InputTimeCommand extends InputCommand {
 			this.minTime = new VariableString(other.minTime);
 		if (other.maxTime != null)
 			this.maxTime = new VariableString(other.maxTime);
-	}
-
-	/**
-	 * Returns the name of the Dialogue Branch variable in which the user's time input is stored.
-	 * @return the variable name.
-	 */
-	public String getVariableName() {
-		return variableName;
-	}
-
-	/**
-	 * Sets the name of the Dialogue Branch variable in which the user's time input is stored.
-	 * @param variableName the variable name.
-	 */
-	public void setVariableName(String variableName) {
-		this.variableName = variableName;
 	}
 
 	/**
@@ -174,7 +151,7 @@ public class InputTimeCommand extends InputCommand {
 	@Override
 	public Map<String, ?> getParameters() {
 		Map<String,Object> result = new LinkedHashMap<>();
-		result.put("variableName", variableName);
+		result.put("variableName", getVariableName());
 		result.put("granularityMinutes", granularityMinutes);
 		if (startTime != null)
 			result.put("startTime", startTime.evaluate(null));
@@ -183,14 +160,6 @@ public class InputTimeCommand extends InputCommand {
 		if (maxTime != null)
 			result.put("maxTime", maxTime.evaluate(null));
 		return result;
-	}
-
-	@Override
-	public String getStatementLog(VariableStore varStore) {
-		Variable variable = Objects.requireNonNull(
-				varStore.getVariable(variableName), variableName);
-		Value value = new Value(variable.getValue());
-		return value.toString();
 	}
 
 	@Override
@@ -204,15 +173,10 @@ public class InputTimeCommand extends InputCommand {
 	}
 
 	@Override
-	public void getWriteVariableNames(Set<String> varNames) {
-		varNames.add(variableName);
-	}
-
-	@Override
 	public void executeBodyCommand(Map<String, Object> variables,
 			NodeBody processedBody) throws EvaluationException {
 		InputTimeCommand processedCmd = new InputTimeCommand(
-				variableName);
+				getVariableName());
 		processedCmd.granularityMinutes = granularityMinutes;
 		if (startTime != null) {
 			processedCmd.startTime = evaluateTime(startTime.evaluate(
@@ -251,7 +215,7 @@ public class InputTimeCommand extends InputCommand {
 	public String toString() {
 		char[] escapes = new char[] { '"' };
 		StringBuilder builder = new StringBuilder(toStringStart());
-		builder.append(" value=\"$" + variableName + "\"");
+		builder.append(" value=\"$" + getVariableName() + "\"");
 		builder.append(" granularityMinutes=\"" + granularityMinutes + "\"");
 		if (startTime != null) {
 			builder.append(" startTime=\"" + startTime.toString(escapes) +
