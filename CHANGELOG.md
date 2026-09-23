@@ -7,6 +7,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-23
+
 ### Changed
 
 - **Breaking:** Client JS: `DialogueBranchAuthoringClient.listUsers` now takes a single options
