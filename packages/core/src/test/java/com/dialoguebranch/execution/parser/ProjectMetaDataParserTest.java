@@ -29,17 +29,21 @@
 package com.dialoguebranch.execution.parser;
 
 import com.dialoguebranch.exception.ParseException;
+import com.dialoguebranch.model.common.FileStorageSource;
 import com.dialoguebranch.model.common.ProjectMetaData;
 import com.dialoguebranch.model.execute.LanguageMap;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -78,6 +82,62 @@ public class ProjectMetaDataParserTest {
 		LanguageMap languages = meta.getLanguageMap();
 		assertEquals("en", languages.getSourceLanguage().getCode());
 		assertEquals(2, languages.getTranslationLanguages().size());
+	}
+
+	@Test
+	public void parsingAFileSetsBasePathAndAFileStorageSource() throws Exception {
+		File file = metadataFile("<dlb-project name=\"Demo\"></dlb-project>");
+		ProjectMetaData meta = ProjectMetaDataParser.parse(file);
+
+		assertEquals(file.getParent() + File.separator, meta.getBasePath());
+		assertTrue(meta.getStorageSource() instanceof FileStorageSource);
+		assertEquals(file.getAbsolutePath(), meta.getStorageSource().getDescriptor());
+	}
+
+	// Regression test for #207: parse(InputStream) is what ProjectSeedService now uses directly
+	// for a Spring classpath Resource, instead of copying it to a temp File first just to satisfy
+	// a File-only API.
+	@Test
+	public void parsingAStreamProducesTheSameContentAsParsingAFile() throws Exception {
+		String xml = """
+			<dlb-project name="Demo" version="3">
+				<description>A demo project.</description>
+				<language-map>
+					<source-language code="en" name="English"/>
+					<translation-language code="nl-NL" name="Nederlands"/>
+				</language-map>
+			</dlb-project>
+			""";
+
+		ProjectMetaData meta;
+		try (ByteArrayInputStream input =
+				new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))) {
+			meta = ProjectMetaDataParser.parse(input);
+		}
+
+		assertEquals("Demo", meta.getName());
+		assertEquals("3", meta.getVersion());
+		assertEquals("en", meta.getLanguageMap().getSourceLanguage().getCode());
+	}
+
+	@Test
+	public void parsingAStreamLeavesBasePathAndStorageSourceUnset() throws Exception {
+		String xml = "<dlb-project name=\"Demo\"></dlb-project>";
+		ProjectMetaData meta;
+		try (ByteArrayInputStream input =
+				new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))) {
+			meta = ProjectMetaDataParser.parse(input);
+		}
+
+		assertNull(meta.getBasePath());
+		assertNull(meta.getStorageSource());
+	}
+
+	@Test
+	public void aStreamWithInvalidMetadataIsRejected() {
+		String xml = "<not-a-project name=\"Demo\"></not-a-project>";
+		assertThrows(ParseException.class, () -> ProjectMetaDataParser.parse(
+				new ByteArrayInputStream(xml.getBytes(StandardCharsets.UTF_8))));
 	}
 
 	@Test
