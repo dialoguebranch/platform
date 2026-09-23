@@ -1,0 +1,129 @@
+name: Release (prepare)
+
+# CI counterpart to phase 1 of infrastructure/release/release-github.sh: bumps
+# global.json, syncs apps/studio's version, splits CHANGELOG.md's [Unreleased]
+# section into a dated version heading, and opens a release/vX.Y.Z PR against
+# main. See release-finish.yml for phase 2 (tag + publish, after that PR merges).
+#
+# Requires a repository secret RELEASE_PAT: a personal access token (classic
+# "repo" scope, or fine-grained with Contents: Read and write + Pull requests:
+# Read and write on this repo). The default GITHUB_TOKEN can't be used here —
+# pushes and PRs it creates don't trigger other workflows (github.com/orgs/
+# community/discussions/25702), so the CI workflow's required "all-green" check
+# would never run on the release PR and it could never merge under main's
+# branch ruleset.
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Release type
+        type: choice
+        options: [major, minor, patch]
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-prepare
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.RELEASE_PAT }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify CHANGELOG has an Unreleased section
+        run: grep -q "^## \[Unreleased\]" CHANGELOG.md
+
+      - name: Compute the new version
+        id: version
+        run: |
+          CUR_VERSION="$(jq -r .version global.json)"
+          IFS='.' read -r CUR_MAJOR CUR_MINOR CUR_PATCH <<< "$CUR_VERSION"
+          case "${{ inputs.bump }}" in
+            major) NEW_VERSION="$((CUR_MAJOR + 1)).0.0" ;;
+            minor) NEW_VERSION="${CUR_MAJOR}.$((CUR_MINOR + 1)).0" ;;
+            patch) NEW_VERSION="${CUR_MAJOR}.${CUR_MINOR}.$((CUR_PATCH + 1))" ;;
+          esac
+          NEW_TAG="v${NEW_VERSION}"
+          echo "Bumping ${CUR_VERSION} -> ${NEW_VERSION} (${{ inputs.bump }})"
+          echo "new_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "new_tag=${NEW_TAG}" >> "$GITHUB_OUTPUT"
+          echo "release_branch=release/${NEW_TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Guard against a tag or release branch that already exists
+        run: |
+          TAG="${{ steps.version.outputs.new_tag }}"
+          BRANCH="${{ steps.version.outputs.release_branch }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1 || git ls-remote --tags origin "refs/tags/$TAG" | grep -q .; then
+            echo "::error::tag '$TAG' already exists locally or on origin"
+            exit 1
+          fi
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            echo "::error::branch '$BRANCH' already exists on origin"
+            exit 1
+          fi
+
+      - name: Create the release branch
+        run: git checkout -b "${{ steps.version.outputs.release_branch }}"
+
+      - name: Bump global.json
+        run: |
+          jq --indent 2 '.version = "${{ steps.version.outputs.new_version }}"' global.json > global.json.tmp
+          mv global.json.tmp global.json
+
+      - name: Sync apps/studio's version
+        working-directory: apps/studio
+        run: npm run --silent sync-version
+
+      - name: Split the CHANGELOG's Unreleased section into a dated version heading
+        run: |
+          awk -v version="${{ steps.version.outputs.new_version }}" -v date="$(date +%F)" '
+            /^## \[Unreleased\]/ && !done {
+              print
+              print ""
+              print "## [" version "] - " date
+              done = 1
+              next
+            }
+            { print }
+          ' CHANGELOG.md > CHANGELOG.md.tmp
+          mv CHANGELOG.md.tmp CHANGELOG.md
+
+      - name: Extract this release's notes
+        run: |
+          awk -v heading="## [${{ steps.version.outputs.new_version }}]" '
+            index($0, heading) == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add global.json CHANGELOG.md apps/studio/package.json apps/studio/package-lock.json
+          git commit -m "Release ${{ steps.version.outputs.new_tag }}"
+
+      - name: Push the release branch
+        run: git push -u origin "${{ steps.version.outputs.release_branch }}"
+
+      - name: Open the release PR
+        run: |
+          gh pr create --base main --head "${{ steps.version.outputs.release_branch }}" \
+            --title "Release ${{ steps.version.outputs.new_tag }}" \
+            --body-file release-notes.md
