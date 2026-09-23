@@ -7,6 +7,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+## [0.1.9] - 2026-09-23
+
 ### Fixed
 
 - BFF: `apps/bff`'s `/api/**` proxy no longer double-encodes the forwarded query string.
