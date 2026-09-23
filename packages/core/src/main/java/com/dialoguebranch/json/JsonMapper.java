@@ -50,6 +50,11 @@ import java.io.IOException;
  */
 public class JsonMapper {
 
+	// Jackson's ObjectMapper is thread-safe for reading/writing once configured, and nothing
+	// here configures it further after construction (no registered modules, no feature flags),
+	// so a single shared instance is safe — avoids allocating a fresh one on every call.
+	private static final ObjectMapper MAPPER = new ObjectMapper();
+
 	/** This is a utility class — all methods are static, so it is not instantiated. */
 	private JsonMapper() {
 	}
@@ -64,9 +69,8 @@ public class JsonMapper {
 	 * @throws ParseException if a JSON parsing error occurs
 	 */
 	public static <T> T parse(String json, Class<T> clazz) throws ParseException {
-		ObjectMapper mapper = new ObjectMapper();
 		try {
-			return mapper.readValue(json, clazz);
+			return MAPPER.readValue(json, clazz);
 		} catch (JsonParseException ex) {
 			throw new ParseException("Can't parse JSON code: " + ex.getMessage(), ex);
 		} catch (JsonMappingException ex) {
@@ -87,9 +91,8 @@ public class JsonMapper {
 	 * @throws ParseException if a JSON parsing error occurs
 	 */
 	public static <T> T parse(String json, TypeReference<T> typeRef) throws ParseException {
-		ObjectMapper mapper = new ObjectMapper();
 		try {
-			return mapper.readValue(json, typeRef);
+			return MAPPER.readValue(json, typeRef);
 		} catch (JsonParseException ex) {
 			throw new ParseException("Can't parse JSON code: " + ex.getMessage(), ex);
 		} catch (JsonMappingException ex) {
@@ -111,9 +114,8 @@ public class JsonMapper {
 	 * @throws ParseException if the JSON object can't be converted to the specified class
 	 */
 	public static <T> T convert(Object json, Class<T> clazz) throws ParseException {
-		ObjectMapper mapper = new ObjectMapper();
 		try {
-			return mapper.convertValue(json, clazz);
+			return MAPPER.convertValue(json, clazz);
 		} catch (IllegalArgumentException ex) {
 			throw new ParseException("Can't map JSON code to object: " + ex.getMessage(), ex);
 		}
@@ -130,9 +132,8 @@ public class JsonMapper {
 	 * @throws ParseException if the JSON object can't be converted to the specified type
 	 */
 	public static <T> T convert(Object json, TypeReference<T> typeRef) throws ParseException {
-		ObjectMapper mapper = new ObjectMapper();
 		try {
-			return mapper.convertValue(json, typeRef);
+			return MAPPER.convertValue(json, typeRef);
 		} catch (IllegalArgumentException ex) {
 			throw new ParseException("Can't map JSON code to object: " + ex.getMessage(), ex);
 		}
@@ -146,9 +147,8 @@ public class JsonMapper {
 	 * @return the JSON string
 	 */
 	public static String generate(Object obj) {
-		ObjectMapper mapper = new ObjectMapper();
 		try {
-			return mapper.writeValueAsString(obj);
+			return MAPPER.writeValueAsString(obj);
 		} catch (JsonProcessingException ex) {
 			throw new RuntimeException("Can't convert object to JSON: " + ex.getMessage(), ex);
 		}
