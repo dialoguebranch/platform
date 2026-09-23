@@ -1,10 +1,8 @@
 name: Release (finish)
 
-# CI counterpart to phase 2 (--finish) of infrastructure/release/release-github.sh:
-# runs once a release-prepare.yml PR (see release-prepare.yml) merges, and tags
-# vX.Y.Z, re-points the floating "latest" tag, and creates the GitHub release
-# from that version's CHANGELOG.md section — the manual step someone previously
-# had to remember to come back and run.
+# Phase 2 of cutting a release: runs once a release-prepare.yml PR (see
+# release-prepare.yml) merges, and tags vX.Y.Z, re-points the floating "latest"
+# tag, and creates the GitHub release from that version's CHANGELOG.md section.
 #
 # Requires the same RELEASE_PAT secret as release-prepare.yml, and for the same
 # reason: a release created with the default GITHUB_TOKEN wouldn't fire a
