@@ -38,20 +38,15 @@ import com.dialoguebranch.i18n.Translator;
 import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.model.execute.*;
-import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
-import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
-import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -179,64 +174,21 @@ public class ProjectParser {
 			}
 		}
 
-		// Validate external node pointers among whichever dialogues parsed successfully above,
-		// regardless of whether some OTHER dialogue file failed to parse — those are unrelated
-		// errors and must not suppress reporting of these ones (previously this whole block was
-		// gated on readResult.getParseErrors().isEmpty(), which meant a single unrelated parse
-		// error anywhere in the project — e.g. an internal-pointer error in the very same
-		// dialogue — silently hid every external-pointer error project-wide).
+		// The three checks below are independent validation passes, each scanning whichever
+		// dialogues parsed successfully above regardless of whether some OTHER dialogue file
+		// failed to parse — those are unrelated errors and must not suppress reporting of these
+		// ones (previously this whole block was gated on readResult.getParseErrors().isEmpty(),
+		// which meant a single unrelated parse error anywhere in the project — e.g. an
+		// internal-pointer error in the very same dialogue — silently hid every
+		// external-pointer error project-wide).
+		Map<String, Dialogue> dialoguesByName = DuplicateDialogueNameValidator.buildDialoguesByName(
+				dialogues, (file, error) -> getParseErrors(readResult, file).add(error));
 
-		// Build a lookup from dialogue name to its (single) source Dialogue. A project has exactly
-		// one source language, so a name resolving to more than one script file means the same
-		// dialogue was placed in two language folders — reported here as a parse error rather
-		// than silently picking one.
-		Map<String, Dialogue> dialoguesByName = new HashMap<>();
-		Map<String, ResourcePointer> fileByName = new HashMap<>();
-		for (Map.Entry<ResourcePointer, Dialogue> entry : dialogues.entrySet()) {
-			String name = entry.getValue().getDialogueName();
-			ResourcePointer previous = fileByName.putIfAbsent(name, entry.getKey());
-			if (previous != null) {
-				getParseErrors(readResult, entry.getKey()).add(new ParseException(String.format(
-					"Dialogue \"%s\" is defined by more than one script file (found in language " +
-					"folders \"%s\" and \"%s\")", name, previous.getLanguage(),
-					entry.getKey().getLanguage())));
-				continue;
-			}
-			dialoguesByName.put(name, entry.getValue());
-		}
+		ExternalNodePointerValidator.validate(allParsedDialogues, dialoguesByName,
+				(file, error) -> getParseErrors(readResult, file).add(error));
 
-		// validate referenced dialogues and nodes in external node pointers — scanning every
-		// dialogue that parsed at all (not just error-free ones), so a broken external pointer
-		// sitting next to some other, unrelated error in the same dialogue is still reported.
-		// Iterating the pointers themselves (rather than just the set of referenced dialogue
-		// names) keeps the originating node's title on hand for the error message.
-		for (ResourcePointer fileDescription : allParsedDialogues.keySet()) {
-			Dialogue dlg = allParsedDialogues.get(fileDescription);
-			for (ExternalNodePointer pointer : dlg.getExternalNodePointers()) {
-				Dialogue target = dialoguesByName.get(pointer.getAbsoluteTargetDialogue());
-				if (target == null) {
-					getParseErrors(readResult, fileDescription).add(
-						new ParseException(String.format(
-						"Found external node pointer in node %s to unknown dialogue %s",
-						pointer.getOriginNodeId(), pointer.getAbsoluteTargetDialogue())));
-					continue;
-				}
-				if (!target.nodeExists(pointer.getTargetNodeId())) {
-					getParseErrors(readResult, fileDescription).add(
-						new ParseException(String.format(
-						"Found external node pointer in node %s to non-existing node %s in " +
-						"dialogue %s", pointer.getOriginNodeId(), pointer.getTargetNodeId(),
-						pointer.getAbsoluteTargetDialogue())));
-				}
-			}
-		}
-
-		// Detecting orphaned nodes never affects parsing success or dialogue execution — a node
-		// that nothing points to can simply never be reached, which is not an error by design
-		// (a dialogue is not required to link every node it defines). It usually does indicate
-		// an authoring mistake though (a branch left disconnected while editing), so it is
-		// reported as a warning rather than a parse error.
-		detectOrphanedNodes(allParsedDialogues, dialoguesByName, readResult);
+		OrphanedNodeValidator.detect(allParsedDialogues, dialoguesByName,
+				(file, warning) -> getWarnings(readResult, file).add(warning));
 
 		for (ResourcePointer fileDescription : translationFiles) {
 			if (fileDescriptionsSet.contains(fileDescription)) {
@@ -256,65 +208,6 @@ public class ProjectParser {
 			}
 			if (transParseResult.getParseErrors().isEmpty())
 				translations.put(fileDescription, transParseResult.getTranslations());
-		}
-	}
-
-	/**
-	 * Reports a warning for every {@link Node} that no reply link (internal or external) points
-	 * to and that is not its own {@link Dialogue}'s Start node. A Start node is always treated as
-	 * reachable in its own right, since it is a valid standalone entry point (e.g. via the Web
-	 * Service's {@code dialogue/start} end-point) regardless of whether anything within the
-	 * project links to it.
-	 *
-	 * <p>An external node pointer into another dialogue marks its target node reachable, since the
-	 * project parser has no way to know whether an external caller will address it.</p>
-	 *
-	 * @param allParsedDialogues every dialogue that parsed at all, keyed by its source file.
-	 * @param dialoguesByName    every parsed dialogue, keyed by dialogue name.
-	 * @param readResult         the result to add warnings to.
-	 */
-	private void detectOrphanedNodes(Map<ResourcePointer, Dialogue> allParsedDialogues,
-									 Map<String, Dialogue> dialoguesByName,
-									 ProjectParserResult readResult) {
-		Map<Dialogue, Set<String>> reachableNodeIds = new HashMap<>();
-
-		for (Dialogue dlg : allParsedDialogues.values()) {
-			Set<String> reachable = reachableNodeIds.computeIfAbsent(dlg, (d) -> new HashSet<>());
-			Node startNode = dlg.getStartNode();
-			if (startNode != null)
-				reachable.add(Objects.requireNonNull(startNode.getTitle()).toLowerCase());
-			for (Node node : dlg.getNodes()) {
-				for (NodePointer pointer
-						: Objects.requireNonNull(node.getBody()).getNodePointers()) {
-					if (pointer instanceof InternalNodePointer)
-						reachable.add(pointer.getTargetNodeId().toLowerCase());
-				}
-			}
-		}
-
-		// External pointers can target nodes in OTHER dialogues, so fold those in across the
-		// whole project after the per-dialogue internal pass above.
-		for (Dialogue dlg : allParsedDialogues.values()) {
-			for (ExternalNodePointer pointer : dlg.getExternalNodePointers()) {
-				Dialogue targetDlg = dialoguesByName.get(pointer.getAbsoluteTargetDialogue());
-				if (targetDlg == null)
-					continue; // unknown target dialogue — already reported as a parse error
-				reachableNodeIds.computeIfAbsent(targetDlg, (d) -> new HashSet<>())
-						.add(pointer.getTargetNodeId().toLowerCase());
-			}
-		}
-
-		for (Map.Entry<ResourcePointer, Dialogue> entry : allParsedDialogues.entrySet()) {
-			Dialogue dlg = entry.getValue();
-			Set<String> reachable = reachableNodeIds.getOrDefault(dlg, Set.of());
-			for (Node node : dlg.getNodes()) {
-				String nodeTitle = Objects.requireNonNull(node.getTitle());
-				if (!reachable.contains(nodeTitle.toLowerCase())) {
-					getWarnings(readResult, entry.getKey()).add(String.format(
-							"Node \"%s\" is orphaned: no reply link points to it, and it is " +
-							"not this dialogue's Start node", nodeTitle));
-				}
-			}
 		}
 	}
 
