@@ -36,6 +36,7 @@ import com.dialoguebranch.execution.parser.ParserResult;
 import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.Reply;
+import com.dialoguebranch.model.execute.ResolvedNodeBody;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -119,7 +120,7 @@ public class InputCommandTest {
 	/** Pulls the single input command out of the reply statement at the given index of Start. */
 	private InputCommand inputCommand(int replyIndex) {
 		List<Reply> replies = dialogue.getNodeById("Start").getBody().getReplies();
-		NodeBody statement = replies.get(replyIndex).getStatement();
+		NodeBody statement = (NodeBody) replies.get(replyIndex).getStatement();
 		assertNotNull(statement);
 		for (NodeBody.Segment segment : statement.getSegments()) {
 			if (segment instanceof NodeBody.CommandSegment cmd
@@ -182,8 +183,9 @@ public class InputCommandTest {
 		text.getWriteVariableNames(writes);
 		assertEquals(Set.of("name"), writes);
 
-		NodeBody processed = new NodeBody();
-		text.executeBodyCommand(new LinkedHashMap<>(), processed);
+		ResolvedNodeBody.Builder builder = new ResolvedNodeBody.Builder();
+		text.executeBodyCommand(new LinkedHashMap<>(), builder);
+		ResolvedNodeBody processed = builder.build();
 		assertEquals(1, processed.getSegments().size());
 		assertTrue(processed.getSegments().get(0) instanceof NodeBody.CommandSegment);
 	}
@@ -265,8 +267,9 @@ public class InputCommandTest {
 	@Test
 	public void timeInputExecuteResolvesTheTimeValues() throws Exception {
 		InputTimeCommand time = (InputTimeCommand) inputCommand(4);
-		NodeBody processed = new NodeBody();
-		time.executeBodyCommand(new LinkedHashMap<>(), processed);
+		ResolvedNodeBody.Builder builder = new ResolvedNodeBody.Builder();
+		time.executeBodyCommand(new LinkedHashMap<>(), builder);
+		ResolvedNodeBody processed = builder.build();
 
 		NodeBody.CommandSegment segment =
 				(NodeBody.CommandSegment) processed.getSegments().get(0);

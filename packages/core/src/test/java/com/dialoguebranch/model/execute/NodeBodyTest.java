@@ -61,9 +61,10 @@ public class NodeBodyTest {
 
 	@Test
 	public void adjacentTextSegmentsMergeIntoOne() {
-		NodeBody body = new NodeBody();
-		body.addSegment(new NodeBody.TextSegment(new VariableString("Hello ")));
-		body.addSegment(new NodeBody.TextSegment(new VariableString("world.")));
+		NodeBody.Builder builder = new NodeBody.Builder();
+		builder.addSegment(new NodeBody.TextSegment(new VariableString("Hello ")));
+		builder.addSegment(new NodeBody.TextSegment(new VariableString("world.")));
+		NodeBody body = builder.build();
 
 		assertEquals(1, body.getSegments().size());
 		assertEquals("Hello world.", body.getSegments().get(0).toString());
@@ -71,10 +72,11 @@ public class NodeBodyTest {
 
 	@Test
 	public void threeConsecutiveTextSegmentsMergeIntoOne() {
-		NodeBody body = new NodeBody();
-		body.addSegment(new NodeBody.TextSegment(new VariableString("One ")));
-		body.addSegment(new NodeBody.TextSegment(new VariableString("two ")));
-		body.addSegment(new NodeBody.TextSegment(new VariableString("three.")));
+		NodeBody.Builder builder = new NodeBody.Builder();
+		builder.addSegment(new NodeBody.TextSegment(new VariableString("One ")));
+		builder.addSegment(new NodeBody.TextSegment(new VariableString("two ")));
+		builder.addSegment(new NodeBody.TextSegment(new VariableString("three.")));
+		NodeBody body = builder.build();
 
 		assertEquals(1, body.getSegments().size());
 		assertEquals("One two three.", body.getSegments().get(0).toString());

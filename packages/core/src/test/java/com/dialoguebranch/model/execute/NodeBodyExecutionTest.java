@@ -67,10 +67,10 @@ public class NodeBodyExecutionTest {
 		}
 	}
 
-	private static NodeBody execute(Node node, Map<String,Object> variables) throws Exception {
-		NodeBody processed = new NodeBody();
-		node.getBody().execute(variables, true, processed);
-		return processed;
+	private static ResolvedNodeBody execute(Node node, Map<String,Object> variables)
+			throws Exception {
+		NodeBody body = (NodeBody) node.getBody();
+		return body.execute(variables, true);
 	}
 
 	@Test
@@ -86,7 +86,7 @@ public class NodeBodyExecutionTest {
 			===
 			""");
 
-		NodeBody processed = execute(node, new LinkedHashMap<>());
+		ResolvedNodeBody processed = execute(node, new LinkedHashMap<>());
 
 		assertEquals(1, processed.getSegments().size());
 		assertEquals("Hello  world.", processed.getSegments().get(0).toString());
@@ -108,7 +108,7 @@ public class NodeBodyExecutionTest {
 			===
 			""");
 
-		NodeBody processed = execute(node, Map.of("x", false));
+		ResolvedNodeBody processed = execute(node, Map.of("x", false));
 
 		String text = processed.getSegments().get(0).toString();
 		assertEquals(1, processed.getSegments().size());
@@ -133,7 +133,7 @@ public class NodeBodyExecutionTest {
 			===
 			""");
 
-		NodeBody processed = execute(node, Map.of("x", false));
+		ResolvedNodeBody processed = execute(node, Map.of("x", false));
 
 		assertEquals(1, processed.getSegments().size());
 		String text = processed.getSegments().get(0).toString();
@@ -162,7 +162,7 @@ public class NodeBodyExecutionTest {
 			===
 			""");
 
-		NodeBody processed = execute(node, Map.of("x", true));
+		ResolvedNodeBody processed = execute(node, Map.of("x", true));
 
 		List<NodeBody.Segment> segments = processed.getSegments();
 		assertEquals(3, segments.size());
@@ -188,7 +188,7 @@ public class NodeBodyExecutionTest {
 			===
 			""");
 
-		NodeBody processed = execute(node, new LinkedHashMap<>());
+		ResolvedNodeBody processed = execute(node, new LinkedHashMap<>());
 
 		List<Reply> replies = processed.getReplies();
 		assertEquals(3, replies.size());
