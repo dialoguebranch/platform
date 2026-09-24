@@ -1,6 +1,6 @@
-// Demonstrates: errors in different nodes of the same dialogue are already accumulated today, at
-// per-node granularity — both nodes below are reported, unlike the two errors within one node in
-// multiple-errors-in-one-node.dlb.
+// Demonstrates: errors in different nodes of the same dialogue are both reported, at per-node
+// granularity — same idea as multiple-errors-in-one-node.dlb, but split across two nodes instead
+// of piled into one.
 title: Start
 speaker: Narrator
 ---
@@ -9,6 +9,5 @@ speaker: Narrator
 title: Second
 speaker: Narrator
 ---
-<<ift $x == 1>>
-<<endif>>
+<<foo $y = 2>>
 ===

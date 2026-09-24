@@ -79,14 +79,14 @@ public class ErrorTestProjectParsingTest {
 	}
 
 	@Test
-	public void testOnlyFirstOfMultipleErrorsInOneNodeIsReportedToday() {
+	public void testMultipleErrorsInOneNodeAreBothReported() {
 		List<ParseException> errors = errorsFor("multiple-errors-in-one-node");
-		assertEquals("Expected only the first error to be reported today", 1, errors.size());
+		assertEquals("Expected both errors to be reported", 2, errors.size());
 		String message = errors.toString();
-		assertTrue("Expected the first (reached) error, got: " + message,
+		assertTrue("Expected the first error, got: " + message,
 				message.contains("sett"));
-		assertFalse("Did not expect the second (never-reached) error, got: " + message,
-				message.contains("ift"));
+		assertTrue("Expected the second error too, got: " + message,
+				message.contains("foo"));
 	}
 
 	@Test
@@ -97,7 +97,7 @@ public class ErrorTestProjectParsingTest {
 		assertTrue("Expected the error from node Start, got: " + message,
 				message.contains("Start") && message.contains("sett"));
 		assertTrue("Expected the error from node Second, got: " + message,
-				message.contains("Second") && message.contains("ift"));
+				message.contains("Second") && message.contains("foo"));
 	}
 
 	@Test

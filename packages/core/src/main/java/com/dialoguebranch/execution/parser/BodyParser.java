@@ -112,28 +112,43 @@ public class BodyParser {
 			switch (token.getType()) {
 			case TEXT:
 			case VARIABLE:
-				VariableString text = parseTextSegment(tokens);
-				if (result.body.getReplies().isEmpty()) {
-					result.body.addSegment(new NodeBody.TextSegment(text));
-				} else if (text.hasContents()) {
-					throw new LineNumberParseException(
-							"Found content after reply", token.getLineNumber(),
-							token.getColNumber());
+				// Authoring mistakes below are recorded on nodeState and parsing continues
+				// (accumulate-and-continue, #211); a genuinely impossible state (default: below)
+				// still throws directly, since that indicates a bug in the parser itself, not a
+				// mistake in the .dlb script being parsed.
+				try {
+					VariableString text = parseTextSegment(tokens);
+					if (result.body.getReplies().isEmpty()) {
+						result.body.addSegment(new NodeBody.TextSegment(text));
+					} else if (text.hasContents()) {
+						throw new LineNumberParseException(
+								"Found content after reply", token.getLineNumber(),
+								token.getColNumber());
+					}
+				} catch (LineNumberParseException ex) {
+					nodeState.addError(ex);
 				}
 				break;
 			case COMMAND_START:
 				CommandParser cmdParser = new CommandParser(validCommands, nodeState);
-				String name = cmdParser.readCommandName(tokens);
-				if (validCommandClauses.contains(name)) {
-					result.cmdClauseStartToken = token;
-					result.cmdClauseName = name;
-				} else if (!name.equals("if") && !name.equals("random") &&
-						!result.body.getReplies().isEmpty()) {
-					throw new LineNumberParseException(
-							"Found << after reply", token.getLineNumber(), token.getColNumber());
-				} else {
-					Command command = cmdParser.parseFromName(token, tokens);
-					result.body.addSegment(new NodeBody.CommandSegment(command));
+				try {
+					String name = cmdParser.readCommandName(tokens);
+					if (validCommandClauses.contains(name)) {
+						result.cmdClauseStartToken = token;
+						result.cmdClauseName = name;
+					} else if (!name.equals("if") && !name.equals("random") &&
+							!result.body.getReplies().isEmpty()) {
+						// Unlike a failure inside CommandParser, nothing has consumed this
+						// command's tokens yet — skip to its own COMMAND_END before reporting it.
+						BodyToken.skipTo(tokens, BodyToken.Type.COMMAND_END);
+						throw new LineNumberParseException("Found << after reply",
+								token.getLineNumber(), token.getColNumber());
+					} else {
+						Command command = cmdParser.parseFromName(token, tokens);
+						result.body.addSegment(new NodeBody.CommandSegment(command));
+					}
+				} catch (LineNumberParseException ex) {
+					nodeState.addError(ex);
 				}
 				break;
 			case REPLY_START:
@@ -143,13 +158,17 @@ public class BodyParser {
 							token.getColNumber());
 				}
 				ReplyParser replyParser = new ReplyParser(nodeState);
-				Reply reply = replyParser.parse(tokens);
-				if (reply.isAutoForward() && hasAutoForwardReply(result.body)) {
-					throw new LineNumberParseException(
-							"Found more than one autoforward reply",
-							token.getLineNumber(), token.getColNumber());
+				try {
+					Reply reply = replyParser.parse(tokens);
+					if (reply.isAutoForward() && hasAutoForwardReply(result.body)) {
+						throw new LineNumberParseException(
+								"Found more than one autoforward reply",
+								token.getLineNumber(), token.getColNumber());
+					}
+					result.body.addReply(reply);
+				} catch (LineNumberParseException ex) {
+					nodeState.addError(ex);
 				}
-				result.body.addReply(reply);
 				break;
 			default:
 				// If we get here, there must be a bug

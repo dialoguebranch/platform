@@ -277,4 +277,37 @@ public class BodyToken {
 		}
 		return result;
 	}
+
+	/**
+	 * Advances the iterator past (i.e. including) the next token of the given type, or to
+	 * exhaustion if none remains. Used to resynchronize after a recoverable parse error by
+	 * discarding whatever's left of the broken construct — e.g. skipping to the next
+	 * {@link Type#COMMAND_END} after an unrecognized command name, so parsing of the rest of the
+	 * node body can continue from a clean position.
+	 *
+	 * @param tokens the token iterator, advanced in place.
+	 * @param type the token type to skip to and past.
+	 */
+	public static void skipTo(CurrentIterator<BodyToken> tokens, Type type) {
+		while (tokens.getCurrent() != null) {
+			boolean found = tokens.getCurrent().getType() == type;
+			tokens.moveNext();
+			if (found)
+				return;
+		}
+	}
+
+	/**
+	 * Advances the iterator up to (but not including) the next token of the given type, or to
+	 * exhaustion if none remains. Unlike {@link #skipTo}, the matching token itself is left
+	 * unconsumed — used to resynchronize when the caller still needs to re-examine that token
+	 * itself on its next loop iteration.
+	 *
+	 * @param tokens the token iterator, advanced in place.
+	 * @param type the token type to skip up to.
+	 */
+	public static void skipUntil(CurrentIterator<BodyToken> tokens, Type type) {
+		while (tokens.getCurrent() != null && tokens.getCurrent().getType() != type)
+			tokens.moveNext();
+	}
 }

@@ -44,17 +44,15 @@ import java.util.Map;
 import static org.junit.Assert.*;
 
 /**
- * Characterizes today's actual parser error-handling behavior — a mix of accumulate-and-continue
- * (at the per-node and per-dialogue granularity) and fail-fast (within a single node, where
- * {@code DialogueBranchParser.readNode()} wraps header and body parsing in one {@code try/catch},
- * so only the first error found anywhere in a node ever surfaces) — before that fail-fast part is
- * changed to accumulate-and-continue (#211).
+ * Verifies the parser's error-handling behavior — accumulate-and-continue throughout: within a
+ * node's body ({@link BodyParser}/{@link CommandParser}/{@link ReplyParser}, #211), across nodes
+ * in a dialogue, and across files in a project. Node-header errors are the one remaining
+ * exception, still fail-fast (out of #211's scope — see {@code DialogueBranchParser.readNode()}).
  *
- * <p>These tests are a prerequisite for #211, not independent test coverage: they pin down the
- * current baseline (including its real limitation, one error per node) so a future change to
- * accumulate-and-continue can be judged against it — both for what must keep working (errors
- * across different nodes are already accumulated today) and for what should improve (multiple
- * errors within one node) without regressing into a flood of misleading cascading errors.</p>
+ * <p>Originally written as a pre-#211 baseline (characterizing the then-fail-fast within-node
+ * behavior these tests are named after), now updated to verify the accumulate-and-continue
+ * behavior #211 introduced — both that it works (multiple errors within one node) and that it
+ * doesn't regress into a flood of misleading cascading errors on a single root-cause typo.</p>
  *
  * @author Harm op den Akker
  */
@@ -85,26 +83,25 @@ public class ParserErrorHandlingBaselineTest {
 	}
 
 	/**
-	 * Characterizes today's real limitation: {@code readNode()} wraps header and body parsing in a
-	 * single {@code try/catch}, so only the first error anywhere in a node is ever reported — a
-	 * second, independent error later in the same node's body is silently never reached. After
-	 * #211, both should be reported.
+	 * #211: {@code BodyParser} now recovers from a command-level error (resynchronizing to the
+	 * next {@code COMMAND_END}) and keeps parsing the rest of the node's body, instead of
+	 * aborting the whole node on the first problem — so two independent errors in the same node
+	 * are both reported, not just the first.
 	 */
 	@Test
-	public void testOnlyFirstOfMultipleErrorsInSameNodeIsReportedToday() throws IOException {
+	public void testMultipleErrorsInSameNodeAreBothReported() throws IOException {
 		Map<String, String> scripts = new LinkedHashMap<>();
 		scripts.put("main",
 				"title: Start\nspeaker: Narrator\n---\n<<sett>>\n<<ift>>\n===\n");
 
 		ProjectParserResult result = parse(scripts);
 
-		assertEquals("Expected only the first error to be reported today", 1,
-				totalErrorCount(result));
+		assertEquals("Expected both errors to be reported", 2, totalErrorCount(result));
 		String allErrors = result.getParseErrors().toString();
-		assertTrue("Expected the first (reached) error to be reported, got: " + allErrors,
+		assertTrue("Expected the first error to be reported, got: " + allErrors,
 				allErrors.contains("sett"));
-		assertFalse("Did not expect the second (never-reached) error to be reported, got: " +
-				allErrors, allErrors.contains("ift"));
+		assertTrue("Expected the second error to be reported too, got: " + allErrors,
+				allErrors.contains("ift"));
 	}
 
 	/**
@@ -194,15 +191,36 @@ public class ParserErrorHandlingBaselineTest {
 	}
 
 	/**
-	 * Documents today's baseline for the scenario most likely to make accumulate-and-continue
-	 * actively worse than today if implemented carelessly: a single root-cause error (here, an
-	 * unclosed {@code <<}) positioned early in a node body, followed by otherwise-valid content.
-	 * Today's fail-fast parsing reports exactly one error for the whole node — once #211 lands,
-	 * re-running this exact fixture must still produce one clear error, not a flood of spurious
-	 * follow-on errors from a poorly-chosen resynchronization point.
+	 * #211: {@code ReplyParser.parseCommands()}'s own loop over a reply's post-pipe commands also
+	 * recovers from one bad command and keeps checking the rest, rather than stopping at the
+	 * first — same idea as {@link #testMultipleErrorsInSameNodeAreBothReported}, but for a
+	 * reply's command section instead of a node's own body.
 	 */
 	@Test
-	public void testUnclosedCommandEarlyInBodyDoesNotCascadeToday() throws IOException {
+	public void testMultipleErrorsInReplyCommandsAreBothReported() throws IOException {
+		Map<String, String> scripts = new LinkedHashMap<>();
+		scripts.put("main",
+				"title: Start\nspeaker: Narrator\n---\n[[Continue.|Start|<<if>><<random>>]]\n===\n");
+
+		ProjectParserResult result = parse(scripts);
+
+		assertEquals("Expected both errors to be reported", 2, totalErrorCount(result));
+		String allErrors = result.getParseErrors().toString();
+		assertTrue("Expected \"if\" to be flagged, got: " + allErrors,
+				allErrors.contains("Unexpected command: if"));
+		assertTrue("Expected \"random\" to be flagged too, got: " + allErrors,
+				allErrors.contains("Unexpected command: random"));
+	}
+
+	/**
+	 * #211's own risk, verified: a single root-cause error (here, an unclosed {@code <<}) early in
+	 * a node body, followed by otherwise-valid content, still produces exactly one error — not a
+	 * flood of spurious follow-on errors from a poorly-chosen resynchronization point. With no
+	 * matching {@code >>} anywhere in the rest of the body, {@link CommandParser}'s resync (skip
+	 * to the next {@code COMMAND_END}) naturally runs to exhaustion instead of over-skipping.
+	 */
+	@Test
+	public void testUnclosedCommandEarlyInBodyDoesNotCascade() throws IOException {
 		Map<String, String> scripts = new LinkedHashMap<>();
 		scripts.put("main",
 				"title: Start\nspeaker: Narrator\n---\n<<set $x = 1\nHello there.\n===\n");

@@ -28,6 +28,7 @@
 
 package com.dialoguebranch.execution.parser;
 
+import com.dialoguebranch.exception.LineNumberParseException;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import org.jspecify.annotations.Nullable;
 
@@ -52,6 +53,7 @@ public class NodeState {
 	private int speakerColumn = 0;
 	private int nextReplyId = 1;
 	private final List<NodePointerToken> nodePointerTokens = new ArrayList<>();
+	private final List<LineNumberParseException> errors = new ArrayList<>();
 
 	/**
 	 * Creates a {@link NodeState} for the dialogue with the given name.
@@ -160,6 +162,28 @@ public class NodeState {
 	 */
 	public void addNodePointerToken(NodePointer pointer, BodyToken token) {
 		nodePointerTokens.add(new NodePointerToken(title, pointer, token));
+	}
+
+	/**
+	 * Returns every recoverable parse error found so far while parsing this node's body — from
+	 * {@link BodyParser}, {@link CommandParser}, and {@link ReplyParser}, which record here and
+	 * keep going (accumulate-and-continue) instead of aborting the whole node on the first
+	 * problem. A non-empty list still disqualifies the node exactly as a single thrown exception
+	 * used to: {@link DialogueBranchParser} never adds a node with any recorded error to the
+	 * dialogue. This only changes how many errors get reported, not whether the node counts as
+	 * broken.
+	 * @return the accumulated parse errors, in the order they were found.
+	 */
+	public List<LineNumberParseException> getErrors() {
+		return errors;
+	}
+
+	/**
+	 * Records a recoverable parse error found while parsing this node's body.
+	 * @param error the error to record.
+	 */
+	public void addError(LineNumberParseException error) {
+		errors.add(error);
 	}
 
 	/**
