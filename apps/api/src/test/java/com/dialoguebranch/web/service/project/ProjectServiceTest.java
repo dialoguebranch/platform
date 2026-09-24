@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -79,6 +80,22 @@ class ProjectServiceTest {
 
 		assertTrue(draftDialogueService.listDialogues(project).isEmpty());
 		assertTrue(projectService.findBySlug("delete-project-test").isEmpty());
+	}
+
+	/**
+	 * Regression test for #298: {@code draft_description} is a {@code TEXT} column (see
+	 * {@code V2__project_metadata_draft_publish.sql}), not capped at 255 characters — the entity
+	 * mapping must say so too, or the test schema (generated from the entity, not Flyway) silently
+	 * disagrees with every real deployment.
+	 */
+	@Test
+	void draftDescriptionLongerThan255CharactersIsPersisted() {
+		String longDescription = "x".repeat(300);
+		DBProject project = projectService.createProject("long-description-test",
+				"Long Description Test", longDescription, "en", "English");
+
+		DBProject reloaded = projectService.findBySlug("long-description-test").orElseThrow();
+		assertEquals(longDescription, reloaded.getDraftDescription());
 	}
 
 }
