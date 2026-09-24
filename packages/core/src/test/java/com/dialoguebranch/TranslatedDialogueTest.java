@@ -48,8 +48,9 @@ import java.util.Map;
 import static org.junit.Assert.*;
 
 /**
- * Integration tests that verify the core parse-and-execute pipeline using the bundled example
- * scripts in {@code src/test/resources/examples/}.
+ * Integration tests that verify the core parse-and-execute pipeline using the canonical
+ * {@code project-test} example project (shared with {@link com.dialoguebranch.ProjectTest} and
+ * {@code apps/api}'s {@code default-test} seed project).
  */
 public class TranslatedDialogueTest {
 
@@ -58,13 +59,13 @@ public class TranslatedDialogueTest {
 	// ------------------------------------------------- //
 
 	/**
-	 * Returns a {@link ProjectParserResult} by parsing the bundled test-resource example project
-	 * (a {@code dlb-project.xml} with source language {@code en} and translation language
-	 * {@code nl}, plus {@code en/basic.dlb} and {@code nl/basic.json}).
+	 * Returns a {@link ProjectParserResult} by parsing the bundled {@code project-test} example
+	 * project (source language {@code en}, translation language {@code nl-NL}, among others).
 	 */
 	private ProjectParserResult parseExamples() throws Exception {
-		URL resourceUrl = getClass().getClassLoader().getResource("examples/dlb-project.xml");
-		assertNotNull("Test resource 'examples/dlb-project.xml' not found on classpath", resourceUrl);
+		URL resourceUrl = getClass().getClassLoader().getResource("project-test/dlb-project.xml");
+		assertNotNull("Test resource 'project-test/dlb-project.xml' not found on classpath",
+				resourceUrl);
 		File metaDataFile = new File(resourceUrl.toURI());
 		ProjectScriptLoader loader = new ProjectScriptLoader(metaDataFile);
 		return new ProjectParser(loader).parse();
@@ -107,8 +108,8 @@ public class TranslatedDialogueTest {
 	@Test
 	public void testDutchTranslationIsLoaded() throws Exception {
 		ProjectParserResult result = parseExamples();
-		Dialogue dutch = findDialogue(result, "nl", "basic");
-		assertNotNull("Dutch translated dialogue 'nl/basic' not found in parsed project", dutch);
+		Dialogue dutch = findDialogue(result, "nl-NL", "basic");
+		assertNotNull("Dutch translated dialogue 'nl-NL/basic' not found in parsed project", dutch);
 	}
 
 	/**
@@ -118,10 +119,10 @@ public class TranslatedDialogueTest {
 	@Test
 	public void testDutchStartNodeContainsTranslatedText() throws Exception {
 		ProjectParserResult result = parseExamples();
-		Dialogue dutch = findDialogue(result, "nl", "basic");
+		Dialogue dutch = findDialogue(result, "nl-NL", "basic");
 		assertNotNull("Dutch translated dialogue not found", dutch);
 
-		ResourcePointer fd = new ResourcePointer("nl", "basic", ResourceType.TRANSLATION);
+		ResourcePointer fd = new ResourcePointer("nl-NL", "basic", ResourceType.TRANSLATION);
 		ActiveDialogue ad = new ActiveDialogue(fd, dutch, new VariableStore(new User("test")));
 
 		Node startNode = ad.startDialogue(ZonedDateTime.now());

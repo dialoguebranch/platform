@@ -1,0 +1,6 @@
+// Demonstrates: a header line missing its required ":" separator.
+title: Start
+speaker Narrator
+---
+Hello.
+===

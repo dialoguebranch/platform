@@ -16,6 +16,7 @@ WORKDIR /build
 
 COPY global.json global.json
 COPY packages/core/ packages/core/
+COPY examples/project-test/ examples/project-test/
 COPY apps/api/ apps/api/
 
 RUN chmod +x apps/api/gradlew

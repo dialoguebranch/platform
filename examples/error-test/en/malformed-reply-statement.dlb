@@ -1,0 +1,7 @@
+// Demonstrates: a reply's own statement — what the user "says" when picking the reply — only
+// allows "input" commands. "set" isn't valid there.
+title: Start
+speaker: Narrator
+---
+[[<<set $x = 1>>|Start]]
+===

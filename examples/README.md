@@ -1,16 +1,18 @@
 # Dialogue Branch Example Scripts
-This project contains examples of valid .dlb scripts that may be used to test your applications or
-to learn how to use the Dialogue Branch Language.
+This directory holds the Dialogue Branch example projects used both to learn the `.dlb` language and
+as real test fixtures for `packages/core`.
 
 ## Structure
-This project is structured like a Dialogue Branch project, so that the root contains folders for the
-different supported languages. The `en` folder contains the .dlb scripts (in English); `nl-NL` and
-`pt-PT` hold their translations.
+Each subdirectory is a self-contained Dialogue Branch project (a `dlb-project.xml` plus one folder
+per supported language).
 
-`project-test/` is the canonical example project — it is kept byte-for-byte in sync with the
-Dialogue Branch Web Service's built-in `default-test` seed project, and between them they exercise
-every feature of the `.dlb` language. The loose scripts directly under `en/` are an older, smaller
-set kept for existing tests.
+- `project-test/` — the canonical, fully valid example project. It is kept byte-for-byte in sync
+  with the Dialogue Branch Web Service's built-in `default-test` seed project (`apps/api` copies it
+  in at build time), and exercises every feature of the `.dlb` language. Every dialogue in it parses
+  with zero errors and zero warnings — it's a seed project, so it has to stay clean.
+- `error-test/` — the deliberately broken counterpart, covering every parse error and warning
+  `packages/core`'s parser can produce. It exists purely as a `packages/core` test fixture and is
+  never used as a seed project or referenced by any other component.
 
 ## Lessons (in `project-test/en/`)
 Each lesson is a short dialogue demonstrating one part of the language; start from `menu.dlb`.
@@ -24,3 +26,17 @@ Each lesson is a short dialogue demonstrating one part of the language; start fr
  - `inputs.dlb` — the six `input` reply types and their parameters.
  - `external-variable-service.dlb` — retrieving variable values from an external service.
  - `poe.dlb`, `bg1/*` — longer, real-feeling showcase conversations.
+
+## What can go wrong (in `error-test/en/`)
+Each script demonstrates one specific mistake and what the parser reports for it.
+
+ - `unknown-command.dlb` — a command name the parser doesn't recognize.
+ - `multiple-errors-in-one-node.dlb`, `errors-in-different-nodes.dlb` — how the parser handles more
+   than one mistake at once, today.
+ - `malformed-header.dlb` — a header line missing its `:` separator.
+ - `malformed-reply-statement.dlb`, `malformed-reply-command.dlb` — commands that aren't allowed in
+   a reply's statement or command section.
+ - `unclosed-command.dlb` — a `<<` that's never closed.
+ - `broken-pointers.dlb`, `pointer-target.dlb` — replies pointing at nodes or dialogues that don't
+   exist.
+ - `orphaned-node.dlb` — a node nothing links to (a warning, not an error).

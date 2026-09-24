@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<dlb-project name="Dialogue Branch Error Showcase" slug="error-test" version="1">
+	<description>A dialogue project that's deliberately broken in every way we could think of —
+	each script demonstrates one thing that can go wrong, from a missing colon in a header to a
+	reply pointing at a node that doesn't exist. Handy for seeing exactly what the parser catches,
+	and how; it also doubles as a real-file test fixture for packages/core. Never loaded by the Web
+	Service itself.</description>
+	<language-map>
+		<source-language name="English" code="en" />
+	</language-map>
+</dlb-project>

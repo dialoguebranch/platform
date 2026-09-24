@@ -1,0 +1,9 @@
+// Demonstrates: reply node-pointers to a node or dialogue that doesn't exist — internal, external
+// to an unknown dialogue, and external to a known dialogue but an unknown node within it.
+title: Start
+speaker: Narrator
+---
+[[Points nowhere within this dialogue.|NoSuchNode]]
+[[Points to a dialogue that doesn't exist.|no-such-dialogue.Start]]
+[[Points to a real dialogue but an unknown node in it.|pointer-target.NoSuchNode]]
+===

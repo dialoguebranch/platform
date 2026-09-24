@@ -1,0 +1,9 @@
+// Demonstrates: an unclosed "<<" early in a node body, followed by otherwise-valid content.
+// Today this aborts the whole node with a single clean error — the baseline any future
+// accumulate-and-continue change (#211) must not regress into a flood of cascading errors.
+title: Start
+speaker: Narrator
+---
+<<set $x = 1
+Hello there.
+===

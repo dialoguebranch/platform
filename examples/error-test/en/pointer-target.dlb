@@ -1,0 +1,7 @@
+// Companion dialogue for broken-pointers.dlb: an otherwise normal, valid dialogue, used only as
+// the target of an external node pointer that (deliberately) names a node that doesn't exist here.
+title: Start
+speaker: Narrator
+---
+Hello from pointer-target.
+===

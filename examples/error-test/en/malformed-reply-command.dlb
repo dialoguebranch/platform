@@ -1,0 +1,7 @@
+// Demonstrates: a reply's post-pipe commands only allow "action"/"set", deliberately excluding
+// "if"/"random" — conditional logic belongs in the node's own body, not a reply's commands.
+title: Start
+speaker: Narrator
+---
+[[Continue.|Start|<<if $x == 1>><<endif>>]]
+===

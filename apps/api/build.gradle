@@ -156,4 +156,13 @@ javadoc {
 	}
 }
 
+// The "default-test" seed project is the monorepo-shared examples/project-test/, not a duplicate
+// copy under src/main/resources — kept in sync automatically by copying it in at build time. See
+// issue #296.
+processResources {
+	from('../../examples/project-test') {
+		into 'projects-seed/default-test'
+	}
+}
+
 processResources.dependsOn checkResources
