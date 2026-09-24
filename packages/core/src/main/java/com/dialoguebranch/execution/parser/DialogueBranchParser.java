@@ -169,7 +169,7 @@ public class DialogueBranchParser implements AutoCloseable {
 				dialogue.addNode(readResult.node);
 			} else {
 				foundNodeError = true;
-				result.getParseErrors().add(readResult.parseException);
+				result.getParseErrors().addAll(readResult.parseExceptions);
 				if (!readResult.readNodeEnd)
 					moveToNextNode();
 			}
@@ -205,16 +205,18 @@ public class DialogueBranchParser implements AutoCloseable {
 
 	private static class ReadNodeResult {
 		public @Nullable Node node = null;
-		public @Nullable NodeParseException parseException = null;
+		public final List<NodeParseException> parseExceptions = new ArrayList<>();
 		public boolean readNodeEnd = false;
 	}
 
 	/**
 	 * Tries to read the next node. The reader should be positioned at the start of a node. If there
 	 * are no more nodes, this method returns null. If a reading error occurs, it throws an
-	 * {@link IOException}. Otherwise, it returns a result object, where either "node" or
-	 * "parseException" is set. The property "readNodeEnd" is set if the end of the node (===) has
-	 * been read. This can be used to skip to the next node in case of a parse exception.
+	 * {@link IOException}. Otherwise, it returns a result object, where either "node" is set, or
+	 * "parseExceptions" holds one or more errors (accumulate-and-continue within the node body,
+	 * #211; a header error still aborts the node immediately, contributing exactly one). The
+	 * property "readNodeEnd" is set if the end of the node (===) has been read. This can be used
+	 * to skip to the next node in case of a parse exception.
 	 *
 	 * @return the result or null
 	 * @throws IOException if a reading error occurs
@@ -277,13 +279,24 @@ public class DialogueBranchParser implements AutoCloseable {
 			if (Objects.requireNonNull(header.getTitle())
 					.equalsIgnoreCase(DialogueBranchConstants.DLB_NODE_END_ID))
 				validateEndNode(header, body, bodyTokens);
+			// BodyParser/CommandParser/ReplyParser record recoverable body errors on nodeState
+			// instead of throwing (accumulate-and-continue, #211) — any of them still disqualify
+			// this node exactly as a single thrown exception used to: neither its Node nor its
+			// node-pointer tokens are added below, only now there may be several errors to report
+			// instead of just the first one found.
+			for (LineNumberParseException error : nodeState.getErrors()) {
+				result.parseExceptions.add(createNodeParseException(
+						nodeState.getTitle(), error));
+			}
+			if (!result.parseExceptions.isEmpty())
+				return result;
 			Objects.requireNonNull(nodePointerTokens)
 					.addAll(nodeState.getNodePointerTokens());
 			result.node = new Node(header, body);
 			return result;
 		} catch (LineNumberParseException ex) {
-			result.parseException = createNodeParseException(
-					nodeState.getTitle(), ex);
+			result.parseExceptions.add(createNodeParseException(
+					nodeState.getTitle(), ex));
 			return result;
 		}
 	}

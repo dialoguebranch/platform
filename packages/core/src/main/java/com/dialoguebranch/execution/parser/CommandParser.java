@@ -76,7 +76,7 @@ public class CommandParser {
 		tokens.moveNext();
 		BodyToken.skipWhitespace(tokens);
 		BodyToken token = tokens.getCurrent();
-		return getCommandName(startToken, token);
+		return getCommandName(startToken, token, tokens);
 	}
 
 	/**
@@ -93,10 +93,15 @@ public class CommandParser {
 	public Command parseFromName(BodyToken startToken, CurrentIterator<BodyToken> tokens)
 			throws LineNumberParseException {
 		BodyToken nameToken = tokens.getCurrent();
-		String name = getCommandName(startToken, nameToken);
+		String name = getCommandName(startToken, nameToken, tokens);
 		// getCommandName throws when the name token is null, so it is non-null here.
 		BodyToken token = Objects.requireNonNull(nameToken);
 		if (!validCommands.contains(name)) {
+			// Discard the rest of this command before reporting it, so a caller recovering from
+			// this exception finds the iterator positioned past this command's own COMMAND_END
+			// (or exhausted) — the same postcondition every dispatched Command.parse() leaves it
+			// in via ExpressionCommand.readCommandContent(), whether it succeeds or fails.
+			BodyToken.skipTo(tokens, BodyToken.Type.COMMAND_END);
 			throw new LineNumberParseException("Unexpected command: " + name,
 					token.getLineNumber(), token.getColNumber());
 		}
@@ -136,16 +141,23 @@ public class CommandParser {
 	 *
 	 * @param startToken the start token
 	 * @param nameToken the name token or null
+	 * @param tokens the token iterator, positioned at {@code nameToken} — advanced past this
+	 *               command's own {@link BodyToken.Type#COMMAND_END} before throwing, so a
+	 *               caller recovering from the exception finds a clean resynchronization point.
 	 * @return the command name
 	 * @throws LineNumberParseException if the command name can't be read
 	 */
-	private String getCommandName(BodyToken startToken,
-								  @Nullable BodyToken nameToken) throws LineNumberParseException {
+	private String getCommandName(BodyToken startToken, @Nullable BodyToken nameToken,
+								  CurrentIterator<BodyToken> tokens)
+			throws LineNumberParseException {
 		if (nameToken == null) {
+			// Nothing left to skip — the search for a name already ran the iterator to
+			// exhaustion (there's no COMMAND_END to be found).
 			throw new LineNumberParseException("Command not terminated",
 					startToken.getLineNumber(), startToken.getColNumber());
 		}
 		if (nameToken.getType() != BodyToken.Type.TEXT) {
+			BodyToken.skipTo(tokens, BodyToken.Type.COMMAND_END);
 			throw new LineNumberParseException(
 					"Expected command name, found token: " +
 					nameToken.getType(), nameToken.getLineNumber(),

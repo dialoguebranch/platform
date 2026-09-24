@@ -9,6 +9,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- Core: parsing a node's body (`BodyParser`/`CommandParser`/`ReplyParser`) now reports every
+  error found within it instead of stopping at the first
+  ([#211](https://github.com/dialoguebranch/platform/issues/211)) — a node with an unrecognized
+  command, a malformed reply, and another bad command further down previously surfaced only the
+  first of the three; all three are now reported together. A node with any error is still excluded
+  from the dialogue exactly as before — this only changes how much gets reported when something's
+  wrong, not whether it counts as broken.
 - **Breaking:** Core: `ActionCommand`'s `type` is now the `ActionType` enum (`IMAGE`/`VIDEO`/`LINK`/`GENERIC`)
   instead of a plain `String` — its constructor, `getType()`, and `setType()` all changed
   signature accordingly, and the `TYPE_IMAGE`/`TYPE_VIDEO`/`TYPE_LINK`/`TYPE_GENERIC`/`VALID_TYPES`

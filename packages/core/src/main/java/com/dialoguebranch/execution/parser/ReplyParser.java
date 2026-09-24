@@ -107,6 +107,11 @@ public class ReplyParser {
 			switch (token.getType()) {
 			case REPLY_SEPARATOR:
 				if (sections.size() == maxSections) {
+					// Unlike every other throw in this method, this one fires before the loop has
+					// reached REPLY_END — skip there now so the caller recovering from this
+					// exception finds the iterator past this reply's own closing ]], not stuck
+					// mid-reply.
+					BodyToken.skipTo(tokens, BodyToken.Type.REPLY_END);
 					throw new LineNumberParseException(String.format(
 							"Exceeded maximum number of %s sections",
 							maxSections), token.getLineNumber(),
@@ -202,26 +207,35 @@ public class ReplyParser {
 		return result;
 	}
 
-	private void parseCommands(Reply reply, ReplySection commandSection)
-			throws LineNumberParseException {
+	private void parseCommands(Reply reply, ReplySection commandSection) {
 		CurrentIterator<BodyToken> it = new CurrentIterator<>(
 				commandSection.tokens.iterator());
 		it.moveNext();
 		BodyToken.skipWhitespace(it);
 		while (it.getCurrent() != null) {
 			BodyToken token = it.getCurrent();
-			if (token.getType() != BodyToken.Type.COMMAND_START) {
-				throw new LineNumberParseException(
-						"Expected <<, found token: " + token.getType(),
-						token.getLineNumber(), token.getColNumber());
+			try {
+				if (token.getType() != BodyToken.Type.COMMAND_START) {
+					throw new LineNumberParseException(
+							"Expected <<, found token: " + token.getType(),
+							token.getLineNumber(), token.getColNumber());
+				}
+				// Deliberately excludes "if"/"random" — a reply's post-pipe commands run once the
+				// reply is chosen, with no place for conditional logic (express that in the
+				// Node's body instead). See DialogueBranchParser.readNode()'s whitelist comment
+				// (#208): each of the parser's three valid-command-name whitelists differs on
+				// purpose.
+				CommandParser cmdParser = new CommandParser(
+						Arrays.asList("action", "set"), nodeState);
+				reply.addCommand(cmdParser.parseFromStart(it));
+			} catch (LineNumberParseException ex) {
+				nodeState.addError(ex);
+				// A CommandParser failure already leaves "it" positioned past this command's own
+				// COMMAND_END; the manual "Expected <<" check above doesn't touch "it" at all, so
+				// only that case needs an explicit skip — forward to the next likely command start.
+				if (it.getCurrent() == token)
+					BodyToken.skipUntil(it, BodyToken.Type.COMMAND_START);
 			}
-			// Deliberately excludes "if"/"random" — a reply's post-pipe commands run once the
-			// reply is chosen, with no place for conditional logic (express that in the Node's
-			// body instead). See DialogueBranchParser.readNode()'s whitelist comment (#208): each
-			// of the parser's three valid-command-name whitelists differs on purpose.
-			CommandParser cmdParser = new CommandParser(
-					Arrays.asList("action", "set"), nodeState);
-			reply.addCommand(cmdParser.parseFromStart(it));
 			BodyToken.skipWhitespace(it);
 		}
 	}
