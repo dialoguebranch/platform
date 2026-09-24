@@ -1,0 +1,10 @@
+// Demonstrates: an error inside a properly-opened <<if>>'s nested body is still caught, and the
+// if/endif structure around it still closes correctly — the nested body is parsed by a recursive
+// call to the same accumulate-and-continue logic, sharing this node's error list.
+title: Start
+speaker: Narrator
+---
+<<if $x == 1>>
+<<sett $y = 2>>
+<<endif>>
+===

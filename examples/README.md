@@ -31,11 +31,19 @@ Each lesson is a short dialogue demonstrating one part of the language; start fr
 Each script demonstrates one specific mistake and what the parser reports for it.
 
  - `unknown-command.dlb` — a command name the parser doesn't recognize.
+ - `malformed-command-name-token.dlb` — a command with no name at all (`<<>>`).
+ - `malformed-command-expression.dlb` — a recognized command (`set`) with a malformed expression.
  - `multiple-errors-in-one-node.dlb`, `errors-in-different-nodes.dlb` — how the parser handles more
    than one mistake at once.
+ - `error-inside-nested-if.dlb` — a mistake inside a properly-opened `<<if>>`'s nested body.
  - `malformed-header.dlb` — a header line missing its `:` separator.
  - `malformed-reply-statement.dlb`, `malformed-reply-command.dlb` — commands that aren't allowed in
    a reply's statement or command section.
+ - `too-many-reply-sections.dlb` — a reply with more than the three allowed `|`-separated sections.
+ - `content-after-reply.dlb`, `command-after-reply.dlb` — content that isn't allowed after a node's
+   reply options.
+ - `duplicate-autoforward-reply.dlb` — a second reply with no statement (`[[NodeName]]`); a node
+   may have at most one.
  - `unclosed-command.dlb` — a `<<` that's never closed.
  - `broken-pointers.dlb`, `pointer-target.dlb` — replies pointing at nodes or dialogues that don't
    exist.

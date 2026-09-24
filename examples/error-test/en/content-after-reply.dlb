@@ -1,0 +1,10 @@
+// Demonstrates: text appearing after a node's reply options — not allowed, a reply option must
+// be the last thing in a node's body. Followed by a second error (a command, also in "after
+// reply" position), to prove resync here doesn't over- or under-consume.
+title: Start
+speaker: Narrator
+---
+[[Continue.|Start]]
+Trailing text after the reply.
+<<sett $x = 1>>
+===

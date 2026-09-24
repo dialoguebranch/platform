@@ -1,0 +1,11 @@
+// Demonstrates: an "action"/"set" command appearing after a node's reply options — not allowed
+// there (only "if"/"random" may still appear after replies, since they can wrap further reply
+// options). Two instances, to prove resync reports each separately rather than merging or
+// dropping one.
+title: Start
+speaker: Narrator
+---
+[[Continue.|Start]]
+<<set $x = 1>>
+<<sett $y = 2>>
+===

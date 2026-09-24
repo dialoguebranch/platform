@@ -1,0 +1,10 @@
+// Demonstrates: a node may have at most one auto-forward reply (a reply with no statement, i.e.
+// "[[NodeName]]" with no leading text). A second one is an error. Followed by a third error (a
+// command, itself in "after reply" position), to prove resync here doesn't over- or under-consume.
+title: Start
+speaker: Narrator
+---
+[[Start]]
+[[Start]]
+<<sett $x = 1>>
+===

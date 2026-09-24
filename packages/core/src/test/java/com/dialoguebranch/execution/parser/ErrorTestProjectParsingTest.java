@@ -128,6 +128,106 @@ public class ErrorTestProjectParsingTest {
 				errors.size());
 	}
 
+	/**
+	 * The riskiest resync path in #211: a recognized command's own internal validation (not
+	 * {@link CommandParser}'s name check) fails after {@code ExpressionCommand.readCommandContent}
+	 * already consumed through this command's own {@code >>} — no explicit skip is added (or
+	 * needed) at the call site, unlike the unrecognized-command-name case. Two independent
+	 * instances prove neither the first command's failure swallows the second, nor does anything
+	 * double-skip past it.
+	 */
+	@Test
+	public void testMalformedCommandExpressionsAreBothReported() {
+		List<ParseException> errors = errorsFor("malformed-command-expression");
+		assertEquals("Expected both malformed-expression errors to be reported", 2, errors.size());
+		String message = errors.toString();
+		assertEquals("Expected both errors to be the same kind (not an assignment)", 2,
+				countOccurrences(message, "is not an assignment"));
+	}
+
+	@Test
+	public void testErrorInsideNestedIfIsReported() {
+		List<ParseException> errors = errorsFor("error-inside-nested-if");
+		assertEquals("Expected exactly one error, from inside the nested if body", 1,
+				errors.size());
+		assertTrue("Expected the unrecognized command from inside <<if>> to be flagged, got: " +
+				errors, errors.toString().contains("sett"));
+	}
+
+	@Test
+	public void testTooManyReplySectionsIsReportedAndDoesNotOverConsume() {
+		List<ParseException> errors = errorsFor("too-many-reply-sections");
+		assertEquals("Expected both the section-count error and the unrelated error after it", 2,
+				errors.size());
+		String message = errors.toString();
+		assertTrue("Expected the exceeded-sections error, got: " + message,
+				message.contains("Exceeded maximum"));
+		assertTrue("Expected the unrelated error after it too, got: " + message,
+				message.contains("sett"));
+	}
+
+	@Test
+	public void testContentAfterReplyIsReportedAndDoesNotOverConsume() {
+		List<ParseException> errors = errorsFor("content-after-reply");
+		assertEquals("Expected both the content-after-reply error and the one after it", 2,
+				errors.size());
+		String message = errors.toString();
+		assertTrue("Expected \"Found content after reply\", got: " + message,
+				message.contains("Found content after reply"));
+		// The trailing <<sett>> is itself a command in "after reply" position, so it hits that
+		// same check before its own (invalid) name is ever considered — still proof resync here
+		// neither swallows nor duplicates the second error.
+		assertTrue("Expected the second, unrelated-position error too, got: " + message,
+				message.contains("Found << after reply"));
+	}
+
+	@Test
+	public void testCommandAfterReplyIsReportedAndDoesNotOverConsume() {
+		List<ParseException> errors = errorsFor("command-after-reply");
+		assertEquals("Expected both command-after-reply errors, not one merged or dropped", 2,
+				errors.size());
+		// Both commands sit after the reply, so both independently hit the same check — this
+		// proves resync reports each occurrence separately rather than merging or dropping one.
+		assertEquals("Expected two separate \"Found << after reply\" errors", 2,
+				countOccurrences(errors.toString(), "Found << after reply"));
+	}
+
+	@Test
+	public void testDuplicateAutoForwardReplyIsReportedAndDoesNotOverConsume() {
+		List<ParseException> errors = errorsFor("duplicate-autoforward-reply");
+		assertEquals("Expected both the duplicate-autoforward error and the one after it", 2,
+				errors.size());
+		String message = errors.toString();
+		assertTrue("Expected \"Found more than one autoforward reply\", got: " + message,
+				message.contains("Found more than one autoforward reply"));
+		// The trailing <<sett>> is itself a command in "after reply" position (two replies were
+		// already added by the time it's reached), so it hits that check first.
+		assertTrue("Expected the second, unrelated-position error too, got: " + message,
+				message.contains("Found << after reply"));
+	}
+
+	@Test
+	public void testMalformedCommandNameTokenIsReportedAndDoesNotOverConsume() {
+		List<ParseException> errors = errorsFor("malformed-command-name-token");
+		assertEquals("Expected both the empty-command error and the one after it", 2,
+				errors.size());
+		String message = errors.toString();
+		assertTrue("Expected \"Expected command name\", got: " + message,
+				message.contains("Expected command name"));
+		assertTrue("Expected the unrelated error after it too, got: " + message,
+				message.contains("sett"));
+	}
+
+	private int countOccurrences(String haystack, String needle) {
+		int count = 0;
+		int index = 0;
+		while ((index = haystack.indexOf(needle, index)) != -1) {
+			count++;
+			index += needle.length();
+		}
+		return count;
+	}
+
 	@Test
 	public void testBrokenInternalPointerIsReported() {
 		String errors = errorsFor("broken-pointers").toString();

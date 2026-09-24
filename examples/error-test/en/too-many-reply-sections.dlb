@@ -1,0 +1,9 @@
+// Demonstrates: a reply with more than the three allowed pipe-separated sections
+// (statement|node-pointer|commands). Followed by an unrelated second error, to prove this
+// reply's own resync (skip to its closing ]]) doesn't consume more of the body than it should.
+title: Start
+speaker: Narrator
+---
+[[Statement.|Start|<<set $x = 1>>|extra]]
+<<sett $y = 2>>
+===
