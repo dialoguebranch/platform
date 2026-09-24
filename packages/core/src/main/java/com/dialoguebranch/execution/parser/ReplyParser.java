@@ -85,11 +85,11 @@ public class ReplyParser {
 		Sections sections = readSections(tokens);
 		NodeBody statement = parseStatement(sections.statement());
 		NodePointer nodePointer = parseNodePointer(sections.nodePointer());
-		Reply reply = new Reply(nodeState.createNextReplyId(),
+		Reply.Builder builder = new Reply.Builder(nodeState.createNextReplyId(),
 				statement, nodePointer);
 		if (sections.command() != null)
-			parseCommands(reply, sections.command());
-		return reply;
+			parseCommands(builder, sections.command());
+		return builder.build();
 	}
 
 	private Sections readSections(CurrentIterator<BodyToken> tokens)
@@ -207,7 +207,7 @@ public class ReplyParser {
 		return result;
 	}
 
-	private void parseCommands(Reply reply, ReplySection commandSection) {
+	private void parseCommands(Reply.Builder builder, ReplySection commandSection) {
 		CurrentIterator<BodyToken> it = new CurrentIterator<>(
 				commandSection.tokens.iterator());
 		it.moveNext();
@@ -227,7 +227,7 @@ public class ReplyParser {
 				// purpose.
 				CommandParser cmdParser = new CommandParser(
 						Arrays.asList("action", "set"), nodeState);
-				reply.addCommand(cmdParser.parseFromStart(it));
+				builder.addCommand(cmdParser.parseFromStart(it));
 			} catch (LineNumberParseException ex) {
 				nodeState.addError(ex);
 				// A CommandParser failure already leaves "it" positioned past this command's own

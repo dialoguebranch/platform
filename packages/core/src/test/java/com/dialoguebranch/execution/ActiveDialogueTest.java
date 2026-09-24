@@ -172,8 +172,7 @@ public class ActiveDialogueTest {
 	@Test
 	public void startOnADialogueWithoutAStartNodeThrowsNodeNotFound() {
 		Dialogue noStart = new Dialogue("nostart");
-		Node other = new Node(new NodeHeader("Other"));
-		other.setBody(new NodeBody());
+		Node other = new Node(new NodeHeader("Other"), new NodeBody.Builder().build());
 		noStart.addNode(other);
 		ActiveDialogue ad = new ActiveDialogue(
 				new ResourcePointer("en", "nostart", ResourceType.SCRIPT), noStart, store);

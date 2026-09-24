@@ -44,6 +44,7 @@ import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.ExecutableProject;
 import com.dialoguebranch.model.execute.Node;
 import com.dialoguebranch.model.execute.NodeBody;
+import com.dialoguebranch.model.execute.NodeContent;
 import com.dialoguebranch.model.execute.Reply;
 import com.dialoguebranch.model.execute.ResourcePointer;
 import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
@@ -445,7 +446,7 @@ public class DialogueBranchCLI {
 		}
 
 		while (currentNode != null) {
-			NodeBody body = Objects.requireNonNull(currentNode.getBody(),
+			NodeContent body = Objects.requireNonNull(currentNode.getBody(),
 					"An executing node has no body");
 			printAgentStatement(body);
 			List<Reply> replies = body.getReplies();
@@ -574,9 +575,9 @@ public class DialogueBranchCLI {
 	 * Prints the agent's statement text from the given {@link NodeBody} (segments only, not
 	 * replies).
 	 *
-	 * @param body the {@link NodeBody} whose text segments to render
+	 * @param body the body whose text segments to render
 	 */
-	private static void printAgentStatement(NodeBody body) {
+	private static void printAgentStatement(NodeContent body) {
 		StringBuilder sb = new StringBuilder();
 		for (NodeBody.Segment segment : body.getSegments())
 			sb.append(segment);

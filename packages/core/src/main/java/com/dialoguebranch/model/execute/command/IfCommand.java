@@ -38,6 +38,7 @@ import com.dialoguebranch.expression.Value;
 import com.dialoguebranch.expression.types.AssignExpression;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.Reply;
+import com.dialoguebranch.model.execute.ResolvedNodeBody;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import com.dialoguebranch.util.CurrentIterator;
 import org.jspecify.annotations.Nullable;
@@ -167,16 +168,16 @@ public class IfCommand extends ExpressionCommand {
 
 	@Override
 	public void executeBodyCommand(Map<String, Object> variables,
-			NodeBody processedBody) throws EvaluationException {
+			ResolvedNodeBody.Builder processedBody) throws EvaluationException {
 		for (Clause clause : ifClauses) {
 			Value clauseEval = clause.expression.evaluate(variables);
 			if (clauseEval.asBoolean()) {
-				clause.statement.execute(variables, false, processedBody);
+				clause.statement.execute(variables, processedBody);
 				return;
 			}
 		}
 		if (elseClause != null)
-			elseClause.execute(variables, false, processedBody);
+			elseClause.execute(variables, processedBody);
 	}
 
 	@Override

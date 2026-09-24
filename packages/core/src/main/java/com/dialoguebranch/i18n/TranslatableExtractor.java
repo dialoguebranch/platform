@@ -66,7 +66,7 @@ public class TranslatableExtractor {
 	 */
 	public List<SourceTranslatable> extractFromNode(Node node) {
 		NodeHeader header = Objects.requireNonNull(node.getHeader(), "Node has no header");
-		NodeBody body = Objects.requireNonNull(node.getBody(), "Node has no body");
+		NodeBody body = (NodeBody) Objects.requireNonNull(node.getBody(), "Node has no body");
 		return extractFromBody(header.getSpeaker(), SourceTranslatable.USER, body);
 	}
 
@@ -100,14 +100,12 @@ public class TranslatableExtractor {
 				Command cmd = cmdSegment.getCommand();
 				if (cmd instanceof IfCommand) {
 					IfCommand ifCmd = (IfCommand)cmd;
-					finishCurrentTranslatableSegment(speaker, addressee, body,
-							current, result);
+					finishCurrentTranslatableSegment(speaker, addressee, current, result);
 					result.addAll(getTranslatableSegmentsFromIfCommand(speaker,
 							addressee, ifCmd));
 				} else if (cmd instanceof RandomCommand) {
 					RandomCommand rndCmd = (RandomCommand)cmd;
-					finishCurrentTranslatableSegment(speaker, addressee, body,
-							current, result);
+					finishCurrentTranslatableSegment(speaker, addressee, current, result);
 					result.addAll(getTranslatableSegmentsFromRandomCommand(
 							speaker, addressee, rndCmd));
 				} else if (cmd instanceof InputCommand) {
@@ -115,12 +113,11 @@ public class TranslatableExtractor {
 				}
 			}
 		}
-		finishCurrentTranslatableSegment(speaker, addressee, body, current,
-				result);
+		finishCurrentTranslatableSegment(speaker, addressee, current, result);
 		for (Reply reply : body.getReplies()) {
 			if (!reply.isAutoForward()) {
 				result.addAll(extractFromBody(addressee, speaker,
-						Objects.requireNonNull(reply.getStatement())));
+						(NodeBody) Objects.requireNonNull(reply.getStatement())));
 			}
 		}
 		return result;
@@ -151,19 +148,27 @@ public class TranslatableExtractor {
 	}
 
 	private void finishCurrentTranslatableSegment(@Nullable String speaker,
-			@Nullable String addressee, NodeBody parent,
-			List<NodeBody.Segment> current,
+			@Nullable String addressee, List<NodeBody.Segment> current,
 			List<SourceTranslatable> translatables) {
 		if (hasContent(current)) {
 			List<NodeBody.Segment> segments = new ArrayList<>(current);
 			SourceTranslatable translatable = new SourceTranslatable(
-					speaker, addressee, new Translatable(parent, segments));
+					speaker, addressee, new Translatable(segments));
 			translatables.add(translatable);
 		}
 		current.clear();
 	}
 
-	private boolean hasContent(List<NodeBody.Segment> segments) {
+	/**
+	 * Returns whether the given segment list contains anything worth treating as a translatable
+	 * unit — non-empty text, or an {@code <<input>>} command. Package-private: also used by
+	 * {@link Translator}, which groups segments into the same translatable runs this class does
+	 * (but rebuilds the body instead of just reporting on it), so both must agree on what counts.
+	 *
+	 * @param segments the segments to check.
+	 * @return true if the segments have translatable content.
+	 */
+	static boolean hasContent(List<NodeBody.Segment> segments) {
 		for (NodeBody.Segment segment : segments) {
 			if (segment instanceof NodeBody.TextSegment) {
 				NodeBody.TextSegment textSegment =
@@ -181,7 +186,7 @@ public class TranslatableExtractor {
 		return false;
 	}
 
-	private boolean hasContent(VariableString string) {
+	private static boolean hasContent(VariableString string) {
 		return !string.getSegments().isEmpty() && string.hasContents();
 	}
 

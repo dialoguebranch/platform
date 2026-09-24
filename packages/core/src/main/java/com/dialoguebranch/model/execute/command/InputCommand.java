@@ -34,6 +34,7 @@ import com.dialoguebranch.execution.parser.BodyToken;
 import com.dialoguebranch.execution.parser.NodeState;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.Reply;
+import com.dialoguebranch.model.execute.ResolvedNodeBody;
 import com.dialoguebranch.model.execute.VariableString;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import com.dialoguebranch.util.CurrentIterator;
@@ -135,7 +136,7 @@ public abstract class InputCommand extends AttributesCommand {
 	 * Returns the parameters for this input command to send to the client. This
 	 * is a map from parameter names to values. A value can be any JSON type.
 	 * This method should only be called on a command that has already been
-	 * executed with {@link #executeBodyCommand(Map, NodeBody)
+	 * executed with {@link #executeBodyCommand(Map, ResolvedNodeBody.Builder)
 	 * executeBodyCommand()}. This means that any variables in parameter values
 	 * have already been resolved.
 	 *
@@ -147,7 +148,7 @@ public abstract class InputCommand extends AttributesCommand {
 	 * Returns the string to use in the user statement log in place of this
 	 * input command. It can use variable values from the specified variable
 	 * store. This method should only be called on a command that has already
-	 * been executed with {@link #executeBodyCommand(Map, NodeBody)
+	 * been executed with {@link #executeBodyCommand(Map, ResolvedNodeBody.Builder)
 	 * executeBodyCommand()}. This means that any variables in parameter values
 	 * have already been resolved.
 	 *

@@ -105,9 +105,10 @@ public class BodyParser {
 	public ParseUntilCommandClauseResult parseUntilCommandClause(
 			CurrentIterator<BodyToken> tokens, List<String> validCommands,
 			List<String> validCommandClauses) throws LineNumberParseException {
-		ParseUntilCommandClauseResult result =
-				new ParseUntilCommandClauseResult(new NodeBody());
-		while (result.cmdClauseStartToken == null && tokens.getCurrent() != null) {
+		NodeBody.Builder bodyBuilder = new NodeBody.Builder();
+		@Nullable BodyToken cmdClauseStartToken = null;
+		@Nullable String cmdClauseName = null;
+		while (cmdClauseStartToken == null && tokens.getCurrent() != null) {
 			BodyToken token = tokens.getCurrent();
 			switch (token.getType()) {
 			case TEXT:
@@ -118,8 +119,8 @@ public class BodyParser {
 				// mistake in the .dlb script being parsed.
 				try {
 					VariableString text = parseTextSegment(tokens);
-					if (result.body.getReplies().isEmpty()) {
-						result.body.addSegment(new NodeBody.TextSegment(text));
+					if (bodyBuilder.getReplies().isEmpty()) {
+						bodyBuilder.addSegment(new NodeBody.TextSegment(text));
 					} else if (text.hasContents()) {
 						throw new LineNumberParseException(
 								"Found content after reply", token.getLineNumber(),
@@ -134,10 +135,10 @@ public class BodyParser {
 				try {
 					String name = cmdParser.readCommandName(tokens);
 					if (validCommandClauses.contains(name)) {
-						result.cmdClauseStartToken = token;
-						result.cmdClauseName = name;
+						cmdClauseStartToken = token;
+						cmdClauseName = name;
 					} else if (!name.equals("if") && !name.equals("random") &&
-							!result.body.getReplies().isEmpty()) {
+							!bodyBuilder.getReplies().isEmpty()) {
 						// Unlike a failure inside CommandParser, nothing has consumed this
 						// command's tokens yet — skip to its own COMMAND_END before reporting it.
 						BodyToken.skipTo(tokens, BodyToken.Type.COMMAND_END);
@@ -145,7 +146,7 @@ public class BodyParser {
 								token.getLineNumber(), token.getColNumber());
 					} else {
 						Command command = cmdParser.parseFromName(token, tokens);
-						result.body.addSegment(new NodeBody.CommandSegment(command));
+						bodyBuilder.addSegment(new NodeBody.CommandSegment(command));
 					}
 				} catch (LineNumberParseException ex) {
 					nodeState.addError(ex);
@@ -160,12 +161,12 @@ public class BodyParser {
 				ReplyParser replyParser = new ReplyParser(nodeState);
 				try {
 					Reply reply = replyParser.parse(tokens);
-					if (reply.isAutoForward() && hasAutoForwardReply(result.body)) {
+					if (reply.isAutoForward() && hasAutoForwardReply(bodyBuilder.getReplies())) {
 						throw new LineNumberParseException(
 								"Found more than one autoforward reply",
 								token.getLineNumber(), token.getColNumber());
 					}
-					result.body.addReply(reply);
+					bodyBuilder.addReply(reply);
 				} catch (LineNumberParseException ex) {
 					nodeState.addError(ex);
 				}
@@ -176,12 +177,12 @@ public class BodyParser {
 						token.getType(), token.getLineNumber(), token.getColNumber());
 			}
 		}
-		result.body.trimWhitespace();
-		return result;
+		return new ParseUntilCommandClauseResult(bodyBuilder.build(), cmdClauseStartToken,
+				cmdClauseName);
 	}
 
-	private boolean hasAutoForwardReply(NodeBody body) {
-		for (Reply reply : body.getReplies()) {
+	private boolean hasAutoForwardReply(List<Reply> replies) {
+		for (Reply reply : replies) {
 			if (reply.isAutoForward())
 				return true;
 		}
@@ -198,18 +199,23 @@ public class BodyParser {
 		/** The node body parsed up to the command clause or end of tokens. */
 		public final NodeBody body;
 		/** The {@link BodyToken} at which the command clause started, or {@code null}. */
-		public @Nullable BodyToken cmdClauseStartToken = null;
+		public final @Nullable BodyToken cmdClauseStartToken;
 		/** The name of the command clause that was encountered, or {@code null}. */
-		public @Nullable String cmdClauseName = null;
+		public final @Nullable String cmdClauseName;
 
 		/**
-		 * Creates a {@link ParseUntilCommandClauseResult} wrapping the given (initially empty)
-		 * body, which {@code parseUntilCommandClause} then fills in.
+		 * Creates a {@link ParseUntilCommandClauseResult}.
 		 *
-		 * @param body the node body to accumulate into.
+		 * @param body the parsed node body.
+		 * @param cmdClauseStartToken the token at which the command clause started, or {@code
+		 * null}.
+		 * @param cmdClauseName the name of the command clause encountered, or {@code null}.
 		 */
-		public ParseUntilCommandClauseResult(NodeBody body) {
+		public ParseUntilCommandClauseResult(NodeBody body,
+				@Nullable BodyToken cmdClauseStartToken, @Nullable String cmdClauseName) {
 			this.body = body;
+			this.cmdClauseStartToken = cmdClauseStartToken;
+			this.cmdClauseName = cmdClauseName;
 		}
 	}
 

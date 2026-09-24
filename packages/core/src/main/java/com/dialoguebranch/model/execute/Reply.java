@@ -37,6 +37,7 @@ import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -57,53 +58,71 @@ import java.util.Set;
  *   <li>{@link SetCommand}</li>
  * </ul>
  *
+ * <p>Immutable: built via {@link Builder}, since both parsing ({@code ReplyParser}) and execution
+ * ({@link #execute}) accumulate its {@code commands} list incrementally. {@link #getStatement()}
+ * is typed against {@link NodeContent} rather than concretely against {@link NodeBody}, since a
+ * resolved {@link Reply} (the output of {@link #execute}) holds a {@link ResolvedNodeBody}
+ * there instead — unlike {@link NodeBody}, {@link Reply} itself doesn't get a
+ * script/resolved type split, since its {@code commands} list doesn't structurally narrow the
+ * way a body's segments do (a non-{@link ActionCommand} like {@link SetCommand} is deliberately
+ * carried over unresolved by {@link #execute}, since it only actually runs once the reply is
+ * chosen).</p>
+ *
  * @author Dennis Hofs
  * @author Harm op den Akker
  */
 public class Reply {
-	private int replyId;
-	private @Nullable NodeBody statement = null;
-	private NodePointer nodePointer;
-	private List<Command> commands = new ArrayList<>();
+	private final int replyId;
+	private final @Nullable NodeContent statement;
+	private final NodePointer nodePointer;
+	private final List<Command> commands;
+
+	private Reply(int replyId, @Nullable NodeContent statement, NodePointer nodePointer,
+			List<Command> commands) {
+		this.replyId = replyId;
+		this.statement = statement;
+		this.nodePointer = nodePointer;
+		this.commands = commands;
+	}
 
 	/**
-	 * Constructs a new reply.
+	 * Constructs a new reply with no commands.
 	 *
 	 * @param replyId the reply ID
 	 * @param statement the statement or null (auto-forward reply)
 	 * @param nodePointer the next node when the reply is chosen
 	 */
-	public Reply(int replyId, @Nullable NodeBody statement, NodePointer nodePointer) {
-		this.replyId = replyId;
-		this.statement = statement;
-		this.nodePointer = nodePointer;
+	public Reply(int replyId, @Nullable NodeContent statement, NodePointer nodePointer) {
+		this(replyId, statement, nodePointer, new ArrayList<>());
 	}
 
 	/**
-	 * Constructs an auto-forward reply without a statement.
+	 * Constructs an auto-forward reply without a statement or commands.
 	 *
 	 * @param replyId the reply ID
 	 * @param nodePointer the next node when the reply is chosen
 	 */
 	public Reply(int replyId, NodePointer nodePointer) {
-		this.replyId = replyId;
-		this.nodePointer = nodePointer;
+		this(replyId, null, nodePointer, new ArrayList<>());
 	}
 
 	/**
-	 * Creates a deep copy of the given {@link Reply}, cloning its statement body, node pointer,
-	 * and all commands.
+	 * Creates a deep copy of the given {@link Reply}, cloning its statement body (if it's a
+	 * {@link NodeBody} — a resolved {@link ResolvedNodeBody} statement is copied by reference,
+	 * since resolved content is never mutated or re-executed), node pointer, and all commands.
 	 *
 	 * @param other the {@link Reply} to copy.
 	 */
 	public Reply(Reply other) {
 		this.replyId = other.replyId;
-		if (other.statement != null)
-			this.statement = new NodeBody(other.statement);
+		this.statement = other.statement instanceof NodeBody body ? new NodeBody(body)
+				: other.statement;
 		this.nodePointer = other.nodePointer.clone();
+		List<Command> commands = new ArrayList<>();
 		for (Command cmd : other.commands) {
-			this.commands.add(cmd.clone());
+			commands.add(cmd.clone());
 		}
+		this.commands = commands;
 	}
 
 	/**
@@ -113,15 +132,6 @@ public class Reply {
 	 */
 	public int getReplyId() {
 		return replyId;
-	}
-
-	/**
-	 * Sets the reply ID. The ID is unique within a node.
-	 *
-	 * @param replyId the reply ID
-	 */
-	public void setReplyId(int replyId) {
-		this.replyId = replyId;
 	}
 
 	/**
@@ -135,23 +145,14 @@ public class Reply {
 	}
 
 	/**
-	 * Returns the statement. If this reply is an auto-forward reply, then this
-	 * method returns null.
+	 * Returns the statement. If this reply is an auto-forward reply, then this method returns
+	 * null. Holds a {@link NodeBody} before this reply has been through {@link #execute}, a
+	 * {@link ResolvedNodeBody} after.
 	 *
 	 * @return the statement or null
 	 */
-	public @Nullable NodeBody getStatement() {
+	public @Nullable NodeContent getStatement() {
 		return statement;
-	}
-
-	/**
-	 * Sets the statement. If this reply is an auto-forward reply, then the
-	 * statement can be null.
-	 *
-	 * @param statement the statement or null
-	 */
-	public void setStatement(@Nullable NodeBody statement) {
-		this.statement = statement;
 	}
 
 	/**
@@ -165,66 +166,39 @@ public class Reply {
 	}
 
 	/**
-	 * Sets the next node when this reply is chosen.
-	 *
-	 * @param nodePointer the next node when this reply is chosen
-	 */
-	public void setNodePointer(NodePointer nodePointer) {
-		this.nodePointer = nodePointer;
-	}
-
-	/**
-	 * Returns the commands that should be executed when this reply is chosen.
+	 * Returns the commands that should be executed when this reply is chosen, as an unmodifiable
+	 * list.
 	 *
 	 * @return the commands that should be executed when this reply is chosen
 	 */
 	public List<Command> getCommands() {
-		return commands;
+		return Collections.unmodifiableList(commands);
 	}
 
 	/**
-	 * Sets the commands that should be executed when this reply is chosen.
-	 *
-	 * @param commands the commands that should be executed when this reply is
-	 * chosen
-	 */
-	public void setCommands(List<Command> commands) {
-		this.commands = commands;
-	}
-
-	/**
-	 * Adds a command that should be executed when this reply is chosen.
-	 *
-	 * @param command the command that should be executed when this reply is
-	 * chosen
-	 */
-	public void addCommand(Command command) {
-		commands.add(command);
-	}
-
-	/**
-	 * Retrieves all variable names that are read in this reply and adds them to
-	 * the specified set.
+	 * Retrieves all variable names that are read in this reply and adds them to the specified
+	 * set. Only meaningful before {@link #execute} — a resolved reply's statement has no
+	 * unresolved variable references left to report.
 	 *
 	 * @param varNames the set to which the variable names are added
 	 */
 	public void getReadVariableNames(Set<String> varNames) {
-		if (statement != null)
-			statement.getReadVariableNames(varNames);
+		if (statement instanceof NodeBody body)
+			body.getReadVariableNames(varNames);
 		for (Command command : commands) {
 			command.getReadVariableNames(varNames);
 		}
 	}
 
 	/**
-	 * Retrieves all variable names that are written in this reply and adds them
-	 * to the specified set.
+	 * Retrieves all variable names that are written in this reply and adds them to the specified
+	 * set. Only meaningful before {@link #execute} — see {@link #getReadVariableNames}.
 	 *
 	 * @param varNames the set to which the variable names are added
 	 */
 	public void getWriteVariableNames(Set<String> varNames) {
-		if (statement != null)
-			statement.getWriteVariableNames(varNames);
+		if (statement instanceof NodeBody body)
+			body.getWriteVariableNames(varNames);
 		for (Command command : commands) {
 			command.getWriteVariableNames(varNames);
 		}
@@ -237,6 +211,10 @@ public class Reply {
 	 * reply statement. This content can be text or client commands, with all
 	 * variables resolved.
 	 *
+	 * <p>Must only be called on a not-yet-executed {@link Reply} — {@link #getStatement()} is
+	 * guaranteed to be a {@link NodeBody} (never a {@link ResolvedNodeBody}) on any {@link Reply}
+	 * this hasn't already been called on.</p>
+	 *
 	 * @param variables the variable map
 	 * @return the processed reply
 	 * @throws EvaluationException if an expression cannot be evaluated
@@ -245,18 +223,17 @@ public class Reply {
 			throws EvaluationException {
 		if (statement == null)
 			return this;
-		NodeBody processedStatement = new NodeBody();
-		statement.execute(variables, false, processedStatement);
-		Reply result = new Reply(replyId, processedStatement,
-				nodePointer);
+		ResolvedNodeBody processedStatement =
+				((NodeBody) statement).execute(variables, false);
+		Reply.Builder builder = new Reply.Builder(replyId, processedStatement, nodePointer);
 		for (Command command : commands) {
 			if (command instanceof ActionCommand actionCmd) {
-				result.addCommand(actionCmd.executeReplyCommand(variables));
+				builder.addCommand(actionCmd.executeReplyCommand(variables));
 			} else {
-				result.addCommand(command);
+				builder.addCommand(command);
 			}
 		}
-		return result;
+		return builder.build();
 	}
 
 	@Override
@@ -273,5 +250,50 @@ public class Reply {
 		}
 		result.append("]]");
 		return result.toString();
+	}
+
+	/**
+	 * Accumulates commands incrementally, then produces an immutable {@link Reply} via
+	 * {@link #build}. Used by {@code ReplyParser} at parse time and by {@link #execute} at
+	 * execution time — the {@code replyId}/{@code statement}/{@code nodePointer} are always known
+	 * upfront in both cases, only the command list is built up incrementally.
+	 */
+	public static class Builder {
+		private final int replyId;
+		private final @Nullable NodeContent statement;
+		private final NodePointer nodePointer;
+		private final List<Command> commands = new ArrayList<>();
+
+		/**
+		 * Creates a {@link Builder} for a reply with the given {@code replyId}, {@code statement}
+		 * (or {@code null} for an auto-forward reply), and {@code nodePointer}.
+		 *
+		 * @param replyId the reply ID.
+		 * @param statement the statement, or {@code null} for an auto-forward reply.
+		 * @param nodePointer the next node when the reply is chosen.
+		 */
+		public Builder(int replyId, @Nullable NodeContent statement, NodePointer nodePointer) {
+			this.replyId = replyId;
+			this.statement = statement;
+			this.nodePointer = nodePointer;
+		}
+
+		/**
+		 * Appends a command that should be executed when this reply is chosen.
+		 *
+		 * @param command the command to add.
+		 */
+		public void addCommand(Command command) {
+			commands.add(command);
+		}
+
+		/**
+		 * Builds the immutable {@link Reply}.
+		 *
+		 * @return the built {@link Reply}.
+		 */
+		public Reply build() {
+			return new Reply(replyId, statement, nodePointer, new ArrayList<>(commands));
+		}
 	}
 }

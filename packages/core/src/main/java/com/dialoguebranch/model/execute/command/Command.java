@@ -29,8 +29,8 @@
 package com.dialoguebranch.model.execute.command;
 
 import com.dialoguebranch.expression.EvaluationException;
-import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.Reply;
+import com.dialoguebranch.model.execute.ResolvedNodeBody;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import org.jspecify.annotations.Nullable;
 
@@ -83,16 +83,15 @@ public abstract class Command implements Cloneable {
 
 	/**
 	 * This method is called if this command occurs in a statement body. It executes the command
-	 * with respect to the specified variable map. Any content in the body that should be sent to
-	 * the client, is added to the {@code processedBody} {@link NodeBody} object. This content can
-	 * be text or client commands, with all variables resolved.
+	 * with respect to the specified variable map. Any content that should be sent to the client is
+	 * appended to the {@code processedBody} builder, with all variables resolved.
 	 *
 	 * @param variables the variable map
-	 * @param processedBody the processed body
+	 * @param processedBody the builder for the body being resolved
 	 * @throws EvaluationException if an expression cannot be evaluated
 	 */
 	public abstract void executeBodyCommand(Map<String,Object> variables,
-			NodeBody processedBody) throws EvaluationException;
+			ResolvedNodeBody.Builder processedBody) throws EvaluationException;
 
 	/**
 	 * Returns a deep copy of this command.

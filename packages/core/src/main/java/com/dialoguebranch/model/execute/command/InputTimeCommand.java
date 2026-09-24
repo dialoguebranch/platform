@@ -32,6 +32,7 @@ import com.dialoguebranch.exception.LineNumberParseException;
 import com.dialoguebranch.execution.parser.BodyToken;
 import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.model.execute.NodeBody;
+import com.dialoguebranch.model.execute.ResolvedNodeBody;
 import com.dialoguebranch.model.execute.VariableString;
 import org.jspecify.annotations.Nullable;
 
@@ -174,7 +175,7 @@ public class InputTimeCommand extends InputVariableCommand {
 
 	@Override
 	public void executeBodyCommand(Map<String, Object> variables,
-			NodeBody processedBody) throws EvaluationException {
+			ResolvedNodeBody.Builder processedBody) throws EvaluationException {
 		InputTimeCommand processedCmd = new InputTimeCommand(
 				getVariableName());
 		processedCmd.granularityMinutes = granularityMinutes;

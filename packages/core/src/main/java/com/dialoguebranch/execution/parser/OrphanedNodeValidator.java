@@ -30,6 +30,7 @@ package com.dialoguebranch.execution.parser;
 
 import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.Node;
+import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.ResourcePointer;
 import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
@@ -85,8 +86,8 @@ class OrphanedNodeValidator {
 			if (startNode != null)
 				reachable.add(Objects.requireNonNull(startNode.getTitle()).toLowerCase());
 			for (Node node : dlg.getNodes()) {
-				for (NodePointer pointer
-						: Objects.requireNonNull(node.getBody()).getNodePointers()) {
+				NodeBody body = (NodeBody) Objects.requireNonNull(node.getBody());
+				for (NodePointer pointer : body.getNodePointers()) {
 					if (pointer instanceof InternalNodePointer)
 						reachable.add(pointer.getTargetNodeId().toLowerCase());
 				}

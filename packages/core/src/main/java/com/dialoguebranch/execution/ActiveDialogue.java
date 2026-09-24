@@ -239,8 +239,8 @@ public class ActiveDialogue {
 			throws EvaluationException {
 		Node current = Objects.requireNonNull(currentNode,
 				"Dialogue has not been started");
-		NodeBody currentBody = Objects.requireNonNull(current.getBody(),
-				"Current node has no body");
+		ResolvedNodeBody currentBody = (ResolvedNodeBody) Objects.requireNonNull(
+				current.getBody(), "Current node has no body");
 		Reply selectedReply = Objects.requireNonNull(currentBody.findReplyById(replyId),
 				"No reply with id " + replyId + " in the current node");
 		Map<String,Object> variableMap =
@@ -315,8 +315,8 @@ public class ActiveDialogue {
 	public String getUserStatementFromReplyId(int replyId) throws ExecutionException {
 		Node current = Objects.requireNonNull(currentNode,
 				"Dialogue has not been started");
-		NodeBody currentBody = Objects.requireNonNull(current.getBody(),
-				"Current node has no body");
+		ResolvedNodeBody currentBody = (ResolvedNodeBody) Objects.requireNonNull(
+				current.getBody(), "Current node has no body");
 		Reply selectedReply = currentBody.findReplyById(replyId);
 		if (selectedReply == null) {
 			throw new ExecutionException(ExecutionException.Type.REPLY_NOT_FOUND,
@@ -356,17 +356,13 @@ public class ActiveDialogue {
 	 * @throws EvaluationException if an expression cannot be evaluated
 	 */
 	public Node executeNode(Node node, ZonedDateTime eventTime) throws EvaluationException {
-		Node processedNode = new Node();
-		processedNode.setHeader(Objects.requireNonNull(node.getHeader(),
-				"Node has no header"));
-		NodeBody processedBody = new NodeBody();
+		NodeHeader header = Objects.requireNonNull(node.getHeader(), "Node has no header");
+		NodeBody body = (NodeBody) Objects.requireNonNull(node.getBody(), "Node has no body");
 		Map<String,Object> variables =
 				variableStore.getModifiableMap(true, eventTime,
 						VariableUpdatedSource.DLB_SCRIPT);
-		Objects.requireNonNull(node.getBody(), "Node has no body")
-				.execute(variables, true, processedBody);
-		processedNode.setBody(processedBody);
-		return processedNode;
+		ResolvedNodeBody processedBody = body.execute(variables, true);
+		return new Node(header, processedBody);
 	}
 
 	/**
@@ -386,16 +382,12 @@ public class ActiveDialogue {
 	 */
 	public Node executeNodeStateless(Node node, ZonedDateTime eventTime)
 			throws EvaluationException {
-		Node processedNode = new Node();
-		processedNode.setHeader(Objects.requireNonNull(node.getHeader(),
-				"Node has no header"));
-		NodeBody processedBody = new NodeBody();
+		NodeHeader header = Objects.requireNonNull(node.getHeader(), "Node has no header");
+		NodeBody body = (NodeBody) Objects.requireNonNull(node.getBody(), "Node has no body");
 		Map<String,Object> variables = new LinkedHashMap<>(
 				variableStore.getModifiableMap(false,eventTime));
-		Objects.requireNonNull(node.getBody(), "Node has no body")
-				.execute(variables, true, processedBody);
-		processedNode.setBody(processedBody);
-		return processedNode;
+		ResolvedNodeBody processedBody = body.execute(variables, true);
+		return new Node(header, processedBody);
 	}
 
 }

@@ -33,6 +33,7 @@ import com.dialoguebranch.execution.parser.DialogueBranchParser;
 import com.dialoguebranch.execution.parser.ParserResult;
 import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.NodeBody;
+import com.dialoguebranch.model.execute.ResolvedNodeBody;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -153,8 +154,9 @@ public class RandomCommandTest {
 		RandomCommand command = randomCommandOf(parse(TWO_CLAUSES));
 		command.setRandom(fixedNextFloat(0.1f));
 
-		NodeBody processed = new NodeBody();
-		command.executeBodyCommand(new LinkedHashMap<>(), processed);
+		ResolvedNodeBody.Builder builder = new ResolvedNodeBody.Builder();
+		command.executeBodyCommand(new LinkedHashMap<>(), builder);
+		ResolvedNodeBody processed = builder.build();
 
 		assertTrue(processed.toString(), processed.toString().contains("Option one."));
 		assertFalse(processed.toString(), processed.toString().contains("Option two."));
@@ -165,8 +167,9 @@ public class RandomCommandTest {
 		RandomCommand command = randomCommandOf(parse(TWO_CLAUSES));
 		command.setRandom(fixedNextFloat(0.99f));
 
-		NodeBody processed = new NodeBody();
-		command.executeBodyCommand(new LinkedHashMap<>(), processed);
+		ResolvedNodeBody.Builder builder = new ResolvedNodeBody.Builder();
+		command.executeBodyCommand(new LinkedHashMap<>(), builder);
+		ResolvedNodeBody processed = builder.build();
 
 		assertTrue(processed.toString(), processed.toString().contains("Option two."));
 		assertFalse(processed.toString(), processed.toString().contains("Option one."));
@@ -183,8 +186,9 @@ public class RandomCommandTest {
 		RandomCommand command = randomCommandOf(parse(TWO_CLAUSES));
 		command.setRandom(fixedNextFloat(0.1f));
 
-		NodeBody processed = new NodeBody();
-		command.executeBodyCommand(new LinkedHashMap<>(), processed);
+		ResolvedNodeBody.Builder builder = new ResolvedNodeBody.Builder();
+		command.executeBodyCommand(new LinkedHashMap<>(), builder);
+		ResolvedNodeBody processed = builder.build();
 
 		assertEquals(1, processed.getSegments().size());
 		assertTrue(processed.getSegments().get(0) instanceof NodeBody.TextSegment);

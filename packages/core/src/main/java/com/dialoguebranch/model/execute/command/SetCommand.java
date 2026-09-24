@@ -36,6 +36,7 @@ import com.dialoguebranch.expression.Expression;
 import com.dialoguebranch.expression.types.AssignExpression;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.Reply;
+import com.dialoguebranch.model.execute.ResolvedNodeBody;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import com.dialoguebranch.util.CurrentIterator;
 import org.jspecify.annotations.Nullable;
@@ -111,7 +112,7 @@ public class SetCommand extends ExpressionCommand {
 
 	@Override
 	public void executeBodyCommand(Map<String, Object> variables,
-			NodeBody processedBody) throws EvaluationException {
+			ResolvedNodeBody.Builder processedBody) throws EvaluationException {
 		expression.evaluate(variables);
 	}
 

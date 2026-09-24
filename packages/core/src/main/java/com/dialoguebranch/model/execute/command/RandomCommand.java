@@ -35,6 +35,7 @@ import com.dialoguebranch.execution.parser.NodeState;
 import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.Reply;
+import com.dialoguebranch.model.execute.ResolvedNodeBody;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import com.dialoguebranch.util.CurrentIterator;
 import org.jspecify.annotations.Nullable;
@@ -138,7 +139,7 @@ public class RandomCommand extends AttributesCommand {
 
 	@Override
 	public void executeBodyCommand(Map<String, Object> variables,
-			NodeBody processedBody) throws EvaluationException {
+			ResolvedNodeBody.Builder processedBody) throws EvaluationException {
 		float totalWeight = 0;
 		for (Clause clause : clauses) {
 			totalWeight += clause.weight;
@@ -154,7 +155,7 @@ public class RandomCommand extends AttributesCommand {
 		}
 		if (selClause == null)
 			selClause = clauses.get(clauses.size() - 1);
-		selClause.statement.execute(variables, false, processedBody);
+		selClause.statement.execute(variables, processedBody);
 	}
 
 	@Override
