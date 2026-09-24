@@ -172,6 +172,25 @@ public class RandomCommandTest {
 		assertFalse(processed.toString(), processed.toString().contains("Option one."));
 	}
 
+	/**
+	 * #293: the other tests here check the selected clause's text via {@code toString()}, which
+	 * would still pass even if the resulting {@code NodeBody} had the right text merged into the
+	 * wrong number of segments. This asserts on {@code getSegments()} directly instead — exactly
+	 * one clause's content, not zero and not both merged together.
+	 */
+	@Test
+	public void selectedClauseContributesExactlyOneSegment() throws Exception {
+		RandomCommand command = randomCommandOf(parse(TWO_CLAUSES));
+		command.setRandom(fixedNextFloat(0.1f));
+
+		NodeBody processed = new NodeBody();
+		command.executeBodyCommand(new LinkedHashMap<>(), processed);
+
+		assertEquals(1, processed.getSegments().size());
+		assertTrue(processed.getSegments().get(0) instanceof NodeBody.TextSegment);
+		assertEquals("Option one.", processed.getSegments().get(0).toString().trim());
+	}
+
 	@Test
 	public void toStringRoundTripsTheRandomBlock() throws Exception {
 		String s = randomCommandOf(parse(TWO_CLAUSES)).toString();
