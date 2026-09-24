@@ -30,6 +30,7 @@ package com.dialoguebranch.model.execute;
 
 import org.jspecify.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -39,52 +40,71 @@ import java.util.Map;
  * delivering the node's content, and may carry arbitrary key-value metadata via
  * {@code optionalTags}.
  *
+ * <p>Immutable: every field is set at construction and never changes afterward.</p>
+ *
  * @author Harm op den Akker
  */
 public class NodeHeader {
 
-	/** The unique title that identifies this node within its dialogue, or {@code null} if not yet set. */
-	private @Nullable String title;
+	/** The unique title that identifies this node within its dialogue. */
+	private final String title;
 
 	/** The name of the speaker delivering this node's content, or {@code null} if unspecified. */
-	private @Nullable String speaker;
+	private final @Nullable String speaker;
 
 	/**
 	 * Arbitrary key-value metadata tags declared in the node header beyond the standard
 	 * {@code title} and {@code speaker} fields. Insertion order is preserved.
 	 */
-	private Map<String,String> optionalTags;
+	private final Map<String,String> optionalTags;
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
 
 	/**
-	 * Creates an empty {@link NodeHeader} with no title, no speaker, and an empty optional-tags
-	 * map.
-	 */
-	public NodeHeader() {
-		optionalTags = new LinkedHashMap<>();
-	}
-
-	/**
 	 * Creates a {@link NodeHeader} with the given {@code title} and an empty optional-tags map.
+	 * The speaker is left unset.
 	 *
 	 * @param title the unique title identifying this node within its dialogue
 	 */
 	public NodeHeader(String title) {
-		this.title = title;
-		optionalTags = new LinkedHashMap<>();
+		this(title, null, new LinkedHashMap<>());
 	}
 
 	/**
-	 * Creates a {@link NodeHeader} with the given {@code title} and {@code optionalTags} map.
+	 * Creates a {@link NodeHeader} with the given {@code title} and {@code speaker}, and an empty
+	 * optional-tags map.
+	 *
+	 * @param title the unique title identifying this node within its dialogue
+	 * @param speaker the name of the speaker delivering this node's content, or {@code null}
+	 */
+	public NodeHeader(String title, @Nullable String speaker) {
+		this(title, speaker, new LinkedHashMap<>());
+	}
+
+	/**
+	 * Creates a {@link NodeHeader} with the given {@code title} and {@code optionalTags} map. The
+	 * speaker is left unset.
 	 *
 	 * @param title the unique title identifying this node within its dialogue
 	 * @param optionalTags a map of additional key-value metadata declared in the header
 	 */
 	public NodeHeader(String title, Map<String,String> optionalTags) {
+		this(title, null, optionalTags);
+	}
+
+	/**
+	 * Creates a {@link NodeHeader} with the given {@code title}, {@code speaker}, and
+	 * {@code optionalTags} map.
+	 *
+	 * @param title the unique title identifying this node within its dialogue
+	 * @param speaker the name of the speaker delivering this node's content, or {@code null}
+	 * @param optionalTags a map of additional key-value metadata declared in the header
+	 */
+	public NodeHeader(String title, @Nullable String speaker, Map<String,String> optionalTags) {
 		this.title = title;
+		this.speaker = speaker;
 		this.optionalTags = optionalTags;
 	}
 
@@ -104,12 +124,11 @@ public class NodeHeader {
 	// ------------------------------------------------- //
 
 	/**
-	 * Returns the title that uniquely identifies this node within its dialogue, or {@code null} if
-	 * this header was created without one and none has been set since.
+	 * Returns the title that uniquely identifies this node within its dialogue.
 	 *
-	 * @return the node title, or {@code null}
+	 * @return the node title
 	 */
-	public @Nullable String getTitle() {
+	public String getTitle() {
 		return title;
 	}
 
@@ -124,60 +143,13 @@ public class NodeHeader {
 	}
 
 	/**
-	 * Returns the map of optional key-value metadata tags declared in this node header. The
-	 * returned map is the live backing map; modifications affect this header directly.
+	 * Returns the map of optional key-value metadata tags declared in this node header, as an
+	 * unmodifiable view.
 	 *
 	 * @return the optional tags map, never {@code null}
 	 */
 	public Map<String,String> getOptionalTags() {
-		return optionalTags;
-	}
-
-	// ------------------------------------------------- //
-	// -------------------- Setters -------------------- //
-	// ------------------------------------------------- //
-
-	/**
-	 * Sets the title that uniquely identifies this node within its dialogue.
-	 *
-	 * @param title the node title
-	 */
-	public void setTitle(String title) {
-		this.title = title;
-	}
-
-	/**
-	 * Sets the name of the speaker delivering this node's content. Pass {@code null} to indicate
-	 * no specific speaker.
-	 *
-	 * @param speaker the speaker name, or {@code null}
-	 */
-	public void setSpeaker(@Nullable String speaker) {
-		this.speaker = speaker;
-	}
-
-	/**
-	 * Replaces the optional-tags map with the given map.
-	 *
-	 * @param optionalTags the new optional tags map; must not be {@code null}
-	 */
-	public void setOptionalTags(Map<String,String> optionalTags) {
-		this.optionalTags = optionalTags;
-	}
-
-	// ------------------------------------------------- //
-	// -------------------- Utility -------------------- //
-	// ------------------------------------------------- //
-
-	/**
-	 * Adds a single key-value metadata tag to this node header's optional-tags map, replacing any
-	 * existing entry with the same {@code key}.
-	 *
-	 * @param key   the tag name
-	 * @param value the tag value
-	 */
-	public void addOptionalTag(String key, String value) {
-		optionalTags.put(key,value);
+		return Collections.unmodifiableMap(optionalTags);
 	}
 
 	/**

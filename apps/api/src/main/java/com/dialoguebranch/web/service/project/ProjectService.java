@@ -188,8 +188,7 @@ public class ProjectService {
 				sourceLanguageCode, sourceLanguageName);
 
 		DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, DEFAULT_DIALOGUE_NAME);
-		NodeHeader header = new NodeHeader(DEFAULT_NODE_TITLE);
-		header.setSpeaker(DEFAULT_NODE_SPEAKER);
+		NodeHeader header = new NodeHeader(DEFAULT_NODE_TITLE, DEFAULT_NODE_SPEAKER);
 		draftDialogueService.createNode(dialogue, DEFAULT_NODE_TITLE, header.toString(), DEFAULT_NODE_BODY);
 
 		return project;

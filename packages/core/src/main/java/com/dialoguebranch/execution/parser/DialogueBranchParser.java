@@ -405,9 +405,7 @@ public class DialogueBranchParser implements AutoCloseable {
 						nodeState.getSpeakerColumn());
 			}
 		}
-		NodeHeader header = new NodeHeader(title, headerMap);
-		header.setSpeaker(speaker);
-		return header;
+		return new NodeHeader(title, speaker, headerMap);
 	}
 
 	/**
