@@ -9,6 +9,14 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- **Breaking:** Core: `NodeHeader` is now immutable — `setTitle()`, `setSpeaker()`,
+  `setOptionalTags()`, and `addOptionalTag()` are removed, `getOptionalTags()` now returns an
+  unmodifiable view, and the no-arg constructor is gone in favor of `NodeHeader(title)`,
+  `NodeHeader(title, speaker)`, `NodeHeader(title, optionalTags)`, and
+  `NodeHeader(title, speaker, optionalTags)` ([#304](https://github.com/dialoguebranch/platform/issues/304),
+  part of #210's "immutable runtime model" cleanup). Every field is now set at construction and
+  never changes afterward, matching how `Dialogue`'s own getters already defensively wrap their
+  results — `NodeHeader` was the one place that claim didn't actually hold.
 - Core: parsing a node's body (`BodyParser`/`CommandParser`/`ReplyParser`) now reports every
   error found within it instead of stopping at the first
   ([#211](https://github.com/dialoguebranch/platform/issues/211)) — a node with an unrecognized
