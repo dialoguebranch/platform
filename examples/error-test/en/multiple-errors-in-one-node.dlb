@@ -1,9 +1,8 @@
-// Demonstrates: two independent errors in the same node's body. The parser is fail-fast within
-// a node, so only the FIRST error is reported today — see #211 about changing this.
+// Demonstrates: two independent errors in the same node's body. The parser recovers from the
+// first (resynchronizing to the next "<<...>>"'s end) and keeps going, so both are reported.
 title: Start
 speaker: Narrator
 ---
 <<sett $x = 1>>
-<<ift $x == 1>>
-<<endif>>
+<<foo $y = 2>>
 ===

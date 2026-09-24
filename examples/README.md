@@ -32,7 +32,7 @@ Each script demonstrates one specific mistake and what the parser reports for it
 
  - `unknown-command.dlb` — a command name the parser doesn't recognize.
  - `multiple-errors-in-one-node.dlb`, `errors-in-different-nodes.dlb` — how the parser handles more
-   than one mistake at once, today.
+   than one mistake at once.
  - `malformed-header.dlb` — a header line missing its `:` separator.
  - `malformed-reply-statement.dlb`, `malformed-reply-command.dlb` — commands that aren't allowed in
    a reply's statement or command section.
