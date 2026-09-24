@@ -33,6 +33,7 @@ import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.expression.Value;
 import com.dialoguebranch.model.execute.NodeBody;
+import com.dialoguebranch.model.execute.ResolvedNodeBody;
 
 import java.util.Map;
 import java.util.Objects;
@@ -118,8 +119,8 @@ public abstract class InputVariableCommand extends InputCommand {
 	 * resolve its own expression-valued attributes first (e.g. {@link InputTimeCommand}).
 	 */
 	@Override
-	public void executeBodyCommand(Map<String, Object> variables, NodeBody processedBody)
-			throws EvaluationException {
+	public void executeBodyCommand(Map<String, Object> variables,
+			ResolvedNodeBody.Builder processedBody) throws EvaluationException {
 		processedBody.addSegment(new NodeBody.CommandSegment(this));
 	}
 }

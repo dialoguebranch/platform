@@ -62,7 +62,12 @@ import java.util.*;
  * </ul>
  *
  * <p>The segments are always normalized so that subsequent text segments are
- * automatically merged into one.</p>
+ * automatically merged into one — see {@link Builder#addSegment}.</p>
+ *
+ * <p>Immutable: built via {@link Builder}, since both parsing ({@code BodyParser}/
+ * {@code ReplyParser}) and translation ({@code Translator}) construct one incrementally.
+ * Executing a {@link NodeBody} produces a separate, also-immutable {@link ResolvedNodeBody} —
+ * see {@link #execute}.</p>
  *
  * <p>The type of commands depend on the context. Directly in the node or in a
  * {@link IfCommand} or {@link RandomCommand}, it can be:</p>
@@ -87,14 +92,13 @@ import java.util.*;
  * @author Dennis Hofs
  * @author Harm op den Akker
  */
-public class NodeBody {
-	private List<Segment> segments = new ArrayList<>();
-	private List<Reply> replies = new ArrayList<>();
+public class NodeBody implements NodeContent {
+	private final List<Segment> segments;
+	private final List<Reply> replies;
 
-	/**
-	 * Creates an empty {@link NodeBody} with no segments and no replies.
-	 */
-	public NodeBody() {
+	private NodeBody(List<Segment> segments, List<Reply> replies) {
+		this.segments = segments;
+		this.replies = replies;
 	}
 
 	/**
@@ -103,12 +107,16 @@ public class NodeBody {
 	 * @param other the {@link NodeBody} to copy.
 	 */
 	public NodeBody(NodeBody other) {
+		List<Segment> segments = new ArrayList<>();
 		for (Segment segment : other.segments) {
-			this.segments.add(segment.clone());
+			segments.add(segment.clone());
 		}
+		List<Reply> replies = new ArrayList<>();
 		for (Reply reply : other.replies) {
-			this.replies.add(new Reply(reply));
+			replies.add(new Reply(reply));
 		}
+		this.segments = segments;
+		this.replies = replies;
 	}
 
 	/**
@@ -116,65 +124,19 @@ public class NodeBody {
 	 *
 	 * @return the segments as an unmodifiable list
 	 */
+	@Override
 	public List<Segment> getSegments() {
 		return Collections.unmodifiableList(segments);
 	}
 
 	/**
-	 * Appends the given {@link Segment} to this body. If the new segment and the current last
-	 * segment are both {@link TextSegment}s, they are merged into a single segment to maintain
-	 * the normalized invariant.
+	 * Returns the replies as an unmodifiable list.
 	 *
-	 * @param segment the {@link Segment} to append.
+	 * @return the replies as an unmodifiable list.
 	 */
-	public void addSegment(Segment segment) {
-		Segment lastSegment = null;
-		if (!segments.isEmpty())
-			lastSegment = segments.get(segments.size() - 1);
-		if (lastSegment instanceof TextSegment &&
-				segment instanceof TextSegment) {
-			TextSegment lastTextSegment = (TextSegment)lastSegment;
-			TextSegment textSegment = (TextSegment)segment;
-			VariableString text = new VariableString();
-			text.addSegments(lastTextSegment.text.getSegments());
-			text.addSegments(textSegment.text.getSegments());
-			TextSegment mergedSegment = new TextSegment(text);
-			segments.remove(segments.size() - 1);
-			segments.add(mergedSegment);
-		} else {
-			segments.add(segment);
-		}
-	}
-
-	/**
-	 * Removes all segments from this {@link NodeBody}.
-	 */
-	public void clearSegments() {
-		segments.clear();
-	}
-
-	private void trimText() {
-		if (!segments.isEmpty() && segments.get(0) instanceof TextSegment) {
-			TextSegment segment = (TextSegment)segments.get(0);
-			String text = segment.text.evaluate(null).replaceAll("^\\s+", "");
-			segment.text = new VariableString(text);
-		}
-		if (!segments.isEmpty() && segments.get(segments.size() - 1)
-				instanceof TextSegment) {
-			TextSegment segment = (TextSegment)segments.get(
-					segments.size() - 1);
-			String text = segment.text.evaluate(null).replaceAll("\\s+$", "");
-			segment.text = new VariableString(text);
-		}
-	}
-
-	/**
-	 * Returns the live list of {@link Reply} objects attached to this body.
-	 *
-	 * @return the list of replies.
-	 */
+	@Override
 	public List<Reply> getReplies() {
-		return replies;
+		return Collections.unmodifiableList(replies);
 	}
 
 	/**
@@ -195,15 +157,6 @@ public class NodeBody {
 				return reply;
 		}
 		return null;
-	}
-
-	/**
-	 * Appends the given {@link Reply} to this body's reply list.
-	 *
-	 * @param reply the {@link Reply} to add.
-	 */
-	public void addReply(Reply reply) {
-		replies.add(reply);
 	}
 
 	/**
@@ -315,12 +268,10 @@ public class NodeBody {
 	}
 
 	/**
-	 * Executes the agent statement and reply statements in this body with
-	 * respect to the specified variable map. It executes ("if" and "set")
-	 * commands and resolves variables. Any resulting body content that should
-	 * be sent to the client, is added to agent and reply statements in
-	 * "processedBody". This content can be text or client commands, with all
-	 * variables resolved.
+	 * Executes the agent statement and reply statements in this body with respect to the
+	 * specified variable map. It executes ("if" and "set") commands and resolves variables,
+	 * returning a new {@link ResolvedNodeBody} holding only the content that should be sent to
+	 * the client — text or client commands, with all variables resolved.
 	 *
 	 * <p>This method also normalizes whitespace in the text segments. It
 	 * removes empty lines and makes sure that lines end with "\n". Within each
@@ -331,49 +282,47 @@ public class NodeBody {
 	 * segments have been resolved.</p>
 	 *
 	 * @param variables the variable map
-	 * @param trimText true if trailing new lines should be trimmed, false if
-	 * they should be preserved. This should be set to true for the body that is
-	 * directly in the node. If the body is in an "if" clause or in a reply, it
-	 * should be set to false.
-	 * @param processedBody the processed body
+	 * @param trimText true if leading/trailing whitespace should be trimmed from the result,
+	 * false if it should be preserved. This should be set to true for the body that is directly
+	 * in the node. If the body is in an "if" clause or in a reply, it should be set to false.
+	 * @return the resolved body.
 	 * @throws EvaluationException if an expression cannot be evaluated
 	 */
-	public void execute(Map<String,Object> variables, boolean trimText,
-			NodeBody processedBody) throws EvaluationException {
+	public ResolvedNodeBody execute(Map<String,Object> variables, boolean trimText)
+			throws EvaluationException {
+		ResolvedNodeBody.Builder builder = new ResolvedNodeBody.Builder();
+		execute(variables, builder);
+		if (trimText)
+			builder.trimText();
+		return builder.build();
+	}
+
+	/**
+	 * Executes this body the same way as {@link #execute(Map, boolean)}, but appends the result
+	 * into the given {@code processedBody} builder instead of returning a new, freestanding
+	 * {@link ResolvedNodeBody}. Used when resolving a nested body (an {@code <<if>>}/
+	 * {@code <<random>>} clause) so its content merges seamlessly with whatever the enclosing
+	 * body has already produced, exactly as if it had never been in a separate clause to begin
+	 * with — see {@code IfCommand}/{@code RandomCommand}'s own {@code executeBodyCommand}.
+	 *
+	 * @param variables the variable map
+	 * @param processedBody the builder to append this body's resolved content into.
+	 * @throws EvaluationException if an expression cannot be evaluated
+	 */
+	public void execute(Map<String,Object> variables, ResolvedNodeBody.Builder processedBody)
+			throws EvaluationException {
 		for (Segment segment : segments) {
-			if (segment instanceof TextSegment) {
-				executeTextSegment((TextSegment)segment, variables,
-						processedBody);
+			if (segment instanceof TextSegment textSegment) {
+				processedBody.addSegment(new TextSegment(
+						textSegment.text.execute(variables)));
 			} else {
-				executeCommandSegment((CommandSegment)segment, variables,
-						processedBody);
+				CommandSegment commandSegment = (CommandSegment) segment;
+				commandSegment.command.executeBodyCommand(variables, processedBody);
 			}
 		}
 		for (Reply reply : replies) {
 			processedBody.addReply(reply.execute(variables));
 		}
-		if (trimText)
-			processedBody.trimText();
-	}
-
-	private void executeTextSegment(TextSegment segment,
-			Map<String,Object> variables, NodeBody processedBody) {
-		TextSegment processedText = new TextSegment(
-				segment.text.execute(variables));
-		processedBody.addSegment(processedText);
-	}
-
-	private void executeCommandSegment(CommandSegment segment,
-			Map<String,Object> variables, NodeBody processedBody)
-			throws EvaluationException {
-		segment.command.executeBodyCommand(variables, processedBody);
-	}
-
-	/**
-	 * Removes leading and trailing whitespace from this body's segment list.
-	 */
-	public void trimWhitespace() {
-		trimWhitespace(segments);
 	}
 
 	/**
@@ -384,13 +333,6 @@ public class NodeBody {
 	public static void trimWhitespace(List<NodeBody.Segment> segments) {
 		removeLeadingWhitespace(segments);
 		removeTrailingWhitespace(segments);
-	}
-
-	/**
-	 * Removes leading whitespace from this body's segment list.
-	 */
-	public void removeLeadingWhitespace() {
-		removeLeadingWhitespace(segments);
 	}
 
 	/**
@@ -411,13 +353,6 @@ public class NodeBody {
 				return;
 			segments.remove(0);
 		}
-	}
-
-	/**
-	 * Removes trailing whitespace from this body's segment list.
-	 */
-	public void removeTrailingWhitespace() {
-		removeTrailingWhitespace(segments);
 	}
 
 	/**
@@ -504,7 +439,7 @@ public class NodeBody {
 	 * variable references.
 	 */
 	public static class TextSegment extends Segment {
-		private VariableString text;
+		private final VariableString text;
 
 		/**
 		 * Creates a {@link TextSegment} with the given {@link VariableString}.
@@ -531,15 +466,6 @@ public class NodeBody {
 		 */
 		public VariableString getText() {
 			return text;
-		}
-
-		/**
-		 * Sets the {@link VariableString} held by this segment.
-		 *
-		 * @param text the new text content.
-		 */
-		public void setText(VariableString text) {
-			this.text = text;
 		}
 
 		@Override
@@ -572,7 +498,7 @@ public class NodeBody {
 	 * {@code <<if>>}, {@code <<set>>}, or {@code <<action>>} command).
 	 */
 	public static class CommandSegment extends Segment {
-		private Command command;
+		private final Command command;
 
 		/**
 		 * Creates a {@link CommandSegment} wrapping the given {@link Command}.
@@ -624,6 +550,89 @@ public class NodeBody {
 		@Override
 		public CommandSegment clone() {
 			return new CommandSegment(this);
+		}
+	}
+
+	/**
+	 * Accumulates segments and replies incrementally, then produces an immutable {@link NodeBody}
+	 * via {@link #build}. Used by {@code BodyParser}/{@code ReplyParser} at parse time and by
+	 * {@code Translator} when rebuilding a body with translated content in place of the original.
+	 *
+	 * <p>Also exposes {@link #getReplies} so a caller mid-parse can inspect what's been added so
+	 * far — e.g. {@code BodyParser} rejects a command or text segment found after a reply, which
+	 * needs to know whether any reply has been added yet.</p>
+	 */
+	public static class Builder {
+		private final List<Segment> segments = new ArrayList<>();
+		private final List<Reply> replies = new ArrayList<>();
+
+		/**
+		 * Creates an empty {@link Builder} with no segments and no replies.
+		 */
+		public Builder() {
+		}
+
+		/**
+		 * Appends the given {@link Segment}. If it and the current last segment are both
+		 * {@link TextSegment}s, they are merged into a single segment to maintain the normalized
+		 * invariant every {@link NodeBody} holds.
+		 *
+		 * @param segment the {@link Segment} to append.
+		 */
+		public void addSegment(Segment segment) {
+			mergeAddSegment(segments, segment);
+		}
+
+		/**
+		 * Appends the given {@link Reply}.
+		 *
+		 * @param reply the {@link Reply} to add.
+		 */
+		public void addReply(Reply reply) {
+			replies.add(reply);
+		}
+
+		/**
+		 * Returns the replies added so far, as an unmodifiable list.
+		 *
+		 * @return the replies added so far.
+		 */
+		public List<Reply> getReplies() {
+			return Collections.unmodifiableList(replies);
+		}
+
+		/**
+		 * Builds the immutable {@link NodeBody}, trimming leading and trailing whitespace from
+		 * the accumulated segments first.
+		 *
+		 * @return the built {@link NodeBody}.
+		 */
+		public NodeBody build() {
+			List<Segment> builtSegments = new ArrayList<>(segments);
+			trimWhitespace(builtSegments);
+			return new NodeBody(builtSegments, new ArrayList<>(replies));
+		}
+	}
+
+	/**
+	 * Appends {@code segment} to {@code segments}, merging it with the current last entry if both
+	 * it and {@code segment} are {@link TextSegment}s. Shared by {@link Builder#addSegment} and
+	 * {@link ResolvedNodeBody.Builder#addSegment} — the one piece of this that's genuinely risky
+	 * to duplicate, since it's what keeps either body's segment list normalized.
+	 *
+	 * @param segments the segment list to append to, modified in place.
+	 * @param segment the segment to append.
+	 */
+	static void mergeAddSegment(List<Segment> segments, Segment segment) {
+		Segment lastSegment = segments.isEmpty() ? null : segments.get(segments.size() - 1);
+		if (lastSegment instanceof TextSegment lastTextSegment &&
+				segment instanceof TextSegment textSegment) {
+			VariableString text = new VariableString();
+			text.addSegments(lastTextSegment.text.getSegments());
+			text.addSegments(textSegment.text.getSegments());
+			segments.set(segments.size() - 1, new TextSegment(text));
+		} else {
+			segments.add(segment);
 		}
 	}
 }

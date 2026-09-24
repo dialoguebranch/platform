@@ -136,7 +136,7 @@ public class Dialogue {
 	 */
 	public void addNode(Node node) {
 		NodeHeader header = Objects.requireNonNull(node.getHeader(), "Node has no header");
-		NodeBody body = Objects.requireNonNull(node.getBody(), "Node has no body");
+		NodeBody body = (NodeBody) Objects.requireNonNull(node.getBody(), "Node has no body");
 		nodes.put(Objects.requireNonNull(node.getTitle(), "Node has no title").toLowerCase(),
 				node);
 		String speaker = header.getSpeaker();

@@ -34,21 +34,21 @@ import org.jspecify.annotations.Nullable;
 /**
  * A {@link Node} represents a single step in a {@link Dialogue} definition.
  *
+ * <p>Immutable: every field is set at construction and never changes afterward. {@link #getBody()}
+ * is typed against {@link NodeContent} rather than concretely against {@link NodeBody}, since an
+ * executed node (the result of {@code ActiveDialogue.executeNode()}) holds a
+ * {@link ResolvedNodeBody} there instead — see {@link NodeContent}.</p>
+ *
  * @author Harm op den Akker
  */
 public class Node {
 
-	private @Nullable NodeHeader header;
-	private @Nullable NodeBody body;
+	private final @Nullable NodeHeader header;
+	private final @Nullable NodeContent body;
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
-
-	/**
-	 * Creates an instance of an empty {@link Node}.
-	 */
-	public Node() { }
 
 	/**
 	 * Creates an instance of a {@link Node} with the given {@code header}.
@@ -57,15 +57,17 @@ public class Node {
 	 */
 	public Node(NodeHeader header) {
 		this.header = header;
+		this.body = null;
 	}
 
 	/**
 	 * Creates an instance of a {@link Node} with the given {@code header} and {@code body}.
 	 *
 	 * @param header the {@link NodeHeader} for this {@link Node}
-	 * @param body the {@link NodeBody} for this {@link Node}
+	 * @param body the body for this {@link Node} — a {@link NodeBody} before execution, a
+	 * {@link ResolvedNodeBody} after.
 	 */
-	public Node(NodeHeader header, NodeBody body) {
+	public Node(NodeHeader header, NodeContent body) {
 		this.header = header;
 		this.body = body;
 	}
@@ -77,10 +79,11 @@ public class Node {
 	 * @param other the {@link Node} from which to copy its contents into this {@link Node}
 	 */
 	public Node(Node other) {
-		if (other.header != null)
-			header = new NodeHeader(other.header);
-		if (other.body != null)
-			body = new NodeBody(other.body);
+		this.header = other.header == null ? null : new NodeHeader(other.header);
+		// A ResolvedNodeBody is copied by reference — resolved content is never mutated or
+		// re-executed, so there's nothing a deep copy would protect against.
+		this.body = other.body instanceof NodeBody otherBody ? new NodeBody(otherBody)
+				: other.body;
 	}
 
 	// ------------------------------------------------- //
@@ -89,7 +92,7 @@ public class Node {
 
 	/**
 	 * Returns the {@link NodeHeader} of this {@link Node}, or {@code null} if this node was
-	 * created without one and none has been set since.
+	 * created without one.
 	 *
 	 * @return the {@link NodeHeader} of this {@link Node}, or {@code null}.
 	 */
@@ -98,35 +101,13 @@ public class Node {
 	}
 
 	/**
-	 * Returns the {@link NodeBody} of this {@link Node}, or {@code null} if this node was created
-	 * without one and none has been set since.
+	 * Returns the body of this {@link Node} — a {@link NodeBody} before execution, a
+	 * {@link ResolvedNodeBody} after — or {@code null} if this node was created without one.
 	 *
-	 * @return the {@link NodeBody} of this {@link Node}, or {@code null}.
+	 * @return the body of this {@link Node}, or {@code null}.
 	 */
-	public @Nullable NodeBody getBody() {
+	public @Nullable NodeContent getBody() {
 		return body;
-	}
-
-	// ------------------------------------------------- //
-	// -------------------- Setters -------------------- //
-	// ------------------------------------------------- //
-
-	/**
-	 * Sets the {@link NodeHeader} for this {@link Node}.
-	 *
-	 * @param header the {@link NodeHeader} for this {@link Node}.
-	 */
-	public void setHeader(NodeHeader header) {
-		this.header = header;
-	}
-
-	/**
-	 * Sets the {@link NodeBody} for this {@link Node}.
-	 *
-	 * @param body the {@link NodeBody} for this {@link Node}.
-	 */
-	public void setBody(NodeBody body) {
-		this.body = body;
 	}
 
 	// ------------------------------------------------- //

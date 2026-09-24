@@ -36,6 +36,7 @@ import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.expression.Value;
 import com.dialoguebranch.json.JsonMapper;
 import com.dialoguebranch.model.execute.NodeBody;
+import com.dialoguebranch.model.execute.ResolvedNodeBody;
 import com.dialoguebranch.model.execute.VariableString;
 
 import java.util.*;
@@ -127,7 +128,7 @@ public class InputSetCommand extends InputCommand {
 
 	@Override
 	public void executeBodyCommand(Map<String, Object> variables,
-			NodeBody processedBody) throws EvaluationException {
+			ResolvedNodeBody.Builder processedBody) throws EvaluationException {
 		InputSetCommand processedCmd = new InputSetCommand();
 		for (Option option : options) {
 			Option processedOption = new Option();

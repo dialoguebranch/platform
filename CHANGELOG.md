@@ -9,6 +9,28 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- **Breaking:** Core: `NodeBody` is now immutable, and execution now produces a separate
+  `ResolvedNodeBody` instead of the same `NodeBody` type — the result of `NodeBody.execute()`
+  is structurally narrower than a script's own `NodeBody` (a `<<set>>`/`<<if>>`/`<<random>>`
+  segment can never legitimately survive execution; only text and resolved
+  `ActionCommand`/`InputCommand` segments can), and `dlb-core-java` had no type distinguishing
+  the two ([#305](https://github.com/dialoguebranch/platform/issues/305), part of #210's
+  "immutable runtime model" cleanup). Highlights:
+  - `NodeBody`/`Reply` construction moves to `NodeBody.Builder`/`Reply.Builder` — `addSegment()`,
+    `addReply()`, `addCommand()`, `setStatement()`, `setNodePointer()`, `setReplyId()`,
+    `setCommands()`, and `clearSegments()` are all removed from the built types.
+  - `NodeBody.execute(Map, boolean, NodeBody)` (void, writing into a caller-supplied body) is
+    replaced by `NodeBody.execute(Map, boolean)`, returning a new `ResolvedNodeBody`.
+  - `Command.executeBodyCommand(Map, NodeBody)` is now `executeBodyCommand(Map, ResolvedNodeBody.Builder)`
+    — affects every command subclass (`SetCommand`, `ActionCommand`, `IfCommand`, `RandomCommand`,
+    the `InputCommand` family).
+  - `Node.getBody()` and `Reply.getStatement()` are now typed against a new shared `NodeContent`
+    interface, since each legitimately holds a `NodeBody` before execution and a
+    `ResolvedNodeBody` after — code that already knows which one it has should cast.
+  - `Node` itself is immutable now too (`setHeader()`/`setBody()`/the no-arg constructor are gone)
+    — a direct consequence of `NodeBody.execute()` no longer needing a mutable body to write into.
+  - `Translatable` no longer carries a `parent` field — it was used only to splice a translation
+    back into a mutable tree in place, which no longer happens (`Translator` rebuilds instead).
 - **Breaking:** Core: `NodeHeader` is now immutable — `setTitle()`, `setSpeaker()`,
   `setOptionalTags()`, and `addOptionalTag()` are removed, `getOptionalTags()` now returns an
   unmodifiable view, and the no-arg constructor is gone in favor of `NodeHeader(title)`,

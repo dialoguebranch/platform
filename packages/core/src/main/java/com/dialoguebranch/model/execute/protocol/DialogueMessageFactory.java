@@ -34,6 +34,7 @@ import com.dialoguebranch.model.execute.Node;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.NodeHeader;
 import com.dialoguebranch.model.execute.Reply;
+import com.dialoguebranch.model.execute.ResolvedNodeBody;
 import com.dialoguebranch.model.execute.command.ActionCommand;
 import com.dialoguebranch.model.execute.command.Command;
 import com.dialoguebranch.model.execute.command.InputCommand;
@@ -68,7 +69,7 @@ public class DialogueMessageFactory {
 		Node node = executedNode.node();
 		// An executed node on its way to the client always has a header, a body and a title,
 		// and its dialogue always has a name; fail loudly here rather than downstream if not.
-		NodeBody body = Objects.requireNonNull(node.getBody(),
+		ResolvedNodeBody body = (ResolvedNodeBody) Objects.requireNonNull(node.getBody(),
 				"Executed node has no body");
 		NodeHeader header = Objects.requireNonNull(node.getHeader(),
 				"Executed node has no header");
@@ -93,7 +94,7 @@ public class DialogueMessageFactory {
 	}
 
 	private static DialogueStatement generateDialogueStatement(
-			NodeBody body) {
+			ResolvedNodeBody body) {
 		DialogueStatement statement = new DialogueStatement();
 		for (NodeBody.Segment segment : body.getSegments()) {
 			if (segment instanceof NodeBody.TextSegment) {
@@ -118,7 +119,9 @@ public class DialogueMessageFactory {
 	private static ReplyMessage generateDialogueReply(Reply reply) {
 		ReplyMessage replyMsg = new ReplyMessage();
 		replyMsg.setReplyId(reply.getReplyId());
-		NodeBody replyStatement = reply.getStatement();
+		// By the time a Reply reaches this factory it came from an already-executed node's
+		// body, so its statement (if any) is guaranteed to already be resolved too.
+		ResolvedNodeBody replyStatement = (ResolvedNodeBody) reply.getStatement();
 		if (replyStatement != null) {
 			replyMsg.setStatement(generateDialogueStatement(replyStatement));
 		}

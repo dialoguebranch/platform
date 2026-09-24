@@ -32,7 +32,12 @@ import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.Node;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.NodeHeader;
+import com.dialoguebranch.model.execute.Reply;
 import com.dialoguebranch.model.execute.VariableString;
+import com.dialoguebranch.model.execute.command.Command;
+import com.dialoguebranch.model.execute.command.IfCommand;
+import com.dialoguebranch.model.execute.command.InputCommand;
+import com.dialoguebranch.model.execute.command.RandomCommand;
 import org.jspecify.annotations.Nullable;
 
 import java.util.*;
@@ -44,7 +49,15 @@ import java.util.regex.Pattern;
  * The translation map can be obtained from a translation file using the {@link
  * TranslationParser}.
  *
+ * <p>Rebuilds every {@link NodeBody} it touches from scratch via {@link NodeBody.Builder} rather
+ * than mutating the original in place — {@link NodeBody}/{@link Reply} are immutable, so there's
+ * nothing to mutate. Translatable runs are identified and grouped exactly the way
+ * {@link TranslatableExtractor} does (see {@link TranslatableExtractor#hasContent}), but matched
+ * against a translation and rebuilt in the same recursive pass, rather than extracting a flat
+ * list first and splicing each one back into a shared mutable tree second.</p>
+ *
  * @author Dennis Hofs
+ * @author Harm op den Akker
  */
 public class Translator {
 	private TranslationContext context;
@@ -88,8 +101,10 @@ public class Translator {
 		dialogue = new Dialogue(dialogue);
 		for (Node node : dialogue.getNodes()) {
 			NodeHeader header = Objects.requireNonNull(node.getHeader(), "Node has no header");
-			NodeBody body = Objects.requireNonNull(node.getBody(), "Node has no body");
-			translateBody(header.getSpeaker(), SourceTranslatable.USER, body);
+			NodeBody body = (NodeBody) Objects.requireNonNull(node.getBody(), "Node has no body");
+			NodeBody translated = translateBody(header.getSpeaker(), SourceTranslatable.USER,
+					body);
+			dialogue.addNode(new Node(header, translated));
 		}
 		return dialogue;
 	}
@@ -105,23 +120,122 @@ public class Translator {
 	public Node translate(Node node) {
 		node = new Node(node);
 		NodeHeader header = Objects.requireNonNull(node.getHeader(), "Node has no header");
-		NodeBody body = Objects.requireNonNull(node.getBody(), "Node has no body");
-		translateBody(header.getSpeaker(), SourceTranslatable.USER, body);
-		return node;
+		NodeBody body = (NodeBody) Objects.requireNonNull(node.getBody(), "Node has no body");
+		NodeBody translated = translateBody(header.getSpeaker(), SourceTranslatable.USER, body);
+		return new Node(header, translated);
 	}
 
-	private void translateBody(@Nullable String speaker, String addressee,
+	/**
+	 * Rebuilds {@code body}, substituting a translation for every translatable run of segments
+	 * found — recursing into {@code <<if>>}/{@code <<random>>} clause bodies (mutating their
+	 * already-cloned {@code Clause.statement} in place, same as before this class was rewritten —
+	 * only {@link NodeBody}/{@link Reply} themselves are immutable, {@code Clause} isn't) and
+	 * rebuilding reply statements — and leaving everything else exactly as it was.
+	 *
+	 * @param speaker the name of the agent delivering the top-level statements in {@code body}.
+	 * @param addressee the name of the agent being addressed at the top level.
+	 * @param body the body to translate.
+	 * @return the translated body.
+	 */
+	private NodeBody translateBody(@Nullable String speaker, @Nullable String addressee,
 			NodeBody body) {
-		TranslatableExtractor extractor = new TranslatableExtractor();
-		List<SourceTranslatable> translatables = extractor.extractFromBody(
-				speaker, addressee, body);
-		for (SourceTranslatable translatable : translatables) {
-			translateText(translatable);
+		NodeBody.Builder builder = new NodeBody.Builder();
+		// "current" accumulates the text/input segments that make up the run currently being
+		// matched against a translation; "interposed" buffers any other command segment (e.g.
+		// "<<set>>") found in between, which doesn't itself get translated but must still appear
+		// in the output — right after the run it interrupted resolves, same position it would
+		// end up in were this a splice into a flat list rather than a rebuild.
+		List<NodeBody.Segment> current = new ArrayList<>();
+		List<NodeBody.Segment> interposed = new ArrayList<>();
+		for (NodeBody.Segment segment : body.getSegments()) {
+			if (segment instanceof NodeBody.TextSegment) {
+				current.add(segment);
+			} else {
+				NodeBody.CommandSegment cmdSegment = (NodeBody.CommandSegment) segment;
+				Command cmd = cmdSegment.getCommand();
+				if (cmd instanceof IfCommand ifCmd) {
+					flushRun(speaker, addressee, current, interposed, builder);
+					translateIfCommand(speaker, addressee, ifCmd);
+					builder.addSegment(segment);
+				} else if (cmd instanceof RandomCommand rndCmd) {
+					flushRun(speaker, addressee, current, interposed, builder);
+					translateRandomCommand(speaker, addressee, rndCmd);
+					builder.addSegment(segment);
+				} else if (cmd instanceof InputCommand) {
+					current.add(segment);
+				} else {
+					interposed.add(segment);
+				}
+			}
+		}
+		flushRun(speaker, addressee, current, interposed, builder);
+		for (Reply reply : body.getReplies()) {
+			builder.addReply(translateReply(addressee, speaker, reply));
+		}
+		return builder.build();
+	}
+
+	private void translateIfCommand(@Nullable String speaker, @Nullable String addressee,
+			IfCommand ifCmd) {
+		for (IfCommand.Clause clause : ifCmd.getIfClauses()) {
+			clause.setStatement(translateBody(speaker, addressee, clause.getStatement()));
+		}
+		if (ifCmd.getElseClause() != null) {
+			ifCmd.setElseClause(translateBody(speaker, addressee, ifCmd.getElseClause()));
 		}
 	}
 
-	private void translateText(SourceTranslatable text) {
-		String textPlain = text.translatable().toString();
+	private void translateRandomCommand(@Nullable String speaker, @Nullable String addressee,
+			RandomCommand rndCmd) {
+		for (RandomCommand.Clause clause : rndCmd.getClauses()) {
+			clause.setStatement(translateBody(speaker, addressee, clause.getStatement()));
+		}
+	}
+
+	private Reply translateReply(@Nullable String speaker, @Nullable String addressee,
+			Reply reply) {
+		if (reply.isAutoForward())
+			return reply;
+		NodeBody statement = (NodeBody) Objects.requireNonNull(reply.getStatement());
+		NodeBody translatedStatement = translateBody(speaker, addressee, statement);
+		Reply.Builder builder = new Reply.Builder(reply.getReplyId(), translatedStatement,
+				reply.getNodePointer());
+		for (Command command : reply.getCommands()) {
+			builder.addCommand(command);
+		}
+		return builder.build();
+	}
+
+	/**
+	 * Resolves {@code current} (if it has any translatable content — see
+	 * {@link TranslatableExtractor#hasContent}) against the translation map and appends the
+	 * result to {@code builder}, followed by whatever was buffered in {@code interposed}. Both
+	 * lists are cleared afterward, ready for the next run.
+	 */
+	private void flushRun(@Nullable String speaker, @Nullable String addressee,
+			List<NodeBody.Segment> current, List<NodeBody.Segment> interposed,
+			NodeBody.Builder builder) {
+		List<NodeBody.Segment> resolved = TranslatableExtractor.hasContent(current)
+				? resolveTranslation(speaker, addressee, current) : current;
+		for (NodeBody.Segment segment : resolved) {
+			builder.addSegment(segment);
+		}
+		for (NodeBody.Segment segment : interposed) {
+			builder.addSegment(segment);
+		}
+		current.clear();
+		interposed.clear();
+	}
+
+	/**
+	 * Looks up a translation for {@code runSegments} and returns its replacement (leading/trailing
+	 * whitespace preserved from the original), or {@code runSegments} itself unchanged if no
+	 * translation is found.
+	 */
+	private List<NodeBody.Segment> resolveTranslation(@Nullable String speaker,
+			@Nullable String addressee, List<NodeBody.Segment> runSegments) {
+		Translatable translatable = new Translatable(new ArrayList<>(runSegments));
+		String textPlain = translatable.toString();
 		String preWhitespace = "";
 		String postWhitespace = "";
 		Matcher m = preWhitespaceRegex.matcher(textPlain);
@@ -130,40 +244,23 @@ public class Translator {
 		m = postWhitespaceRegex.matcher(textPlain);
 		if (m.find())
 			postWhitespace = m.group();
-		List<ContextTranslation> transList = exactTranslations.get(
-				text.translatable().toString().trim());
+		List<ContextTranslation> transList = exactTranslations.get(textPlain.trim());
 		if (transList == null) {
-			transList = normalizedTranslations.get(
-					text.translatable().toNormalizedString());
+			transList = normalizedTranslations.get(translatable.toNormalizedString());
 		}
 		if (transList == null)
-			return;
-		Translatable translation = findContextTranslation(text, transList);
-		NodeBody body = text.translatable().parent();
-		List<NodeBody.Segment> bodySegments = new ArrayList<>(
-				body.getSegments());
-		List<NodeBody.Segment> textSegments = text.translatable()
-				.segments();
-		int insertIndex = body.getSegments().indexOf(textSegments.get(0));
-		for (NodeBody.Segment segment : textSegments) {
-			bodySegments.remove(segment);
+			return runSegments;
+		SourceTranslatable source = new SourceTranslatable(speaker, addressee, translatable);
+		Translatable translation = findContextTranslation(source, transList);
+		List<NodeBody.Segment> result = new ArrayList<>();
+		if (!preWhitespace.isEmpty()) {
+			result.add(new NodeBody.TextSegment(new VariableString(preWhitespace)));
 		}
-		if (preWhitespace.length() > 0) {
-			bodySegments.add(insertIndex++, new NodeBody.TextSegment(
-					new VariableString(preWhitespace)));
+		result.addAll(translation.segments());
+		if (!postWhitespace.isEmpty()) {
+			result.add(new NodeBody.TextSegment(new VariableString(postWhitespace)));
 		}
-		List<NodeBody.Segment> transSegments = translation.segments();
-		for (NodeBody.Segment transSegment : transSegments) {
-			bodySegments.add(insertIndex++, transSegment);
-		}
-		if (postWhitespace.length() > 0) {
-			bodySegments.add(insertIndex, new NodeBody.TextSegment(
-					new VariableString(postWhitespace)));
-		}
-		body.clearSegments();
-		for (NodeBody.Segment segment : bodySegments) {
-			body.addSegment(segment);
-		}
+		return result;
 	}
 
 	private Translatable findContextTranslation(
