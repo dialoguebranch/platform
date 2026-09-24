@@ -143,6 +143,10 @@ public class ReplyParser {
 		if (statementSection == null)
 			return null;
 		BodyParser bodyParser = new BodyParser(nodeState);
+		// Only "input" is valid here — a reply's own statement is what the user "says" when
+		// choosing it, which can capture input but has no place for action/if/random/set. See
+		// DialogueBranchParser.readNode()'s whitelist comment (#208): each of the parser's three
+		// valid-command-name whitelists differs on purpose, per the .dlb grammar's real rules.
 		NodeBody result = bodyParser.parse(statementSection.tokens,
 				Arrays.asList("input"));
 		if (result.getSegments().isEmpty())
@@ -211,6 +215,10 @@ public class ReplyParser {
 						"Expected <<, found token: " + token.getType(),
 						token.getLineNumber(), token.getColNumber());
 			}
+			// Deliberately excludes "if"/"random" — a reply's post-pipe commands run once the
+			// reply is chosen, with no place for conditional logic (express that in the Node's
+			// body instead). See DialogueBranchParser.readNode()'s whitelist comment (#208): each
+			// of the parser's three valid-command-name whitelists differs on purpose.
 			CommandParser cmdParser = new CommandParser(
 					Arrays.asList("action", "set"), nodeState);
 			reply.addCommand(cmdParser.parseFromStart(it));
