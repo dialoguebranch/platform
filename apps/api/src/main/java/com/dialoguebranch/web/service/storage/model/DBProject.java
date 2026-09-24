@@ -61,7 +61,7 @@ public class DBProject {
 	@Column(name = "draft_display_name")
 	private String draftDisplayName;
 
-	@Column(name = "draft_description")
+	@Column(name = "draft_description", columnDefinition = "TEXT")
 	private String draftDescription;
 
 	@OneToOne(fetch = FetchType.EAGER)
