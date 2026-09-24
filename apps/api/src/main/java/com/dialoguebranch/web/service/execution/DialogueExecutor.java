@@ -297,9 +297,10 @@ public class DialogueExecutor {
 	 */
 	private void updateLoggedDialogue(Node node, ServerLoggedDialogue serverLoggedDialogue,
 									  int previousIndex) {
+		ResolvedNodeBody body = node == null ? null : (ResolvedNodeBody) node.getBody();
 		if (node != null) {
 			StringBuilder agentStatement = new StringBuilder();
-			for (NodeBody.Segment segment : node.getBody().getSegments()) {
+			for (NodeBody.Segment segment : body.getSegments()) {
 				agentStatement.append(segment.toString());
 			}
 			String readableAgentStatement = agentStatement.toString();
@@ -316,7 +317,7 @@ public class DialogueExecutor {
 			);
 
 		}
-		if (node == null || node.getBody().getReplies().isEmpty()) {
+		if (node == null || body.getReplies().isEmpty()) {
 			serverLoggedDialogue.setCompleted(true);
 		}
 
