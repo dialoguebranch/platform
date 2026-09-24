@@ -267,6 +267,11 @@ public class DialogueBranchParser implements AutoCloseable {
 				}
 			}
 			BodyParser bodyParser = new BodyParser(nodeState);
+			// Deliberately excludes "input" — that only makes sense inside a reply's own
+			// statement (see ReplyParser.parseStatement()'s whitelist), never in a node's own
+			// body. Each of the three valid-command-name whitelists in the parser (this one, and
+			// ReplyParser's two) differs on purpose, reflecting the .dlb grammar's real
+			// per-context rules — not accidental drift between them (#208).
 			NodeBody body = bodyParser.parse(bodyTokens, Arrays.asList(
 					"action", "if", "random", "set"));
 			if (Objects.requireNonNull(header.getTitle())
