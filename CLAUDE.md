@@ -23,7 +23,7 @@ The version for the entire monorepo is declared once in `global.json` at the roo
 
 ## Build Commands
 
-All Gradle commands use the wrapper (`./gradlew`). Docker builds must be run from the **repo root** (`platform/`) because the build context spans both `apps/api/` and `packages/core/`.
+All Gradle commands use the wrapper (`./gradlew`). Docker builds must be run from the **repo root** (`platform/`) because the build context spans `apps/api/`, `packages/core/`, and `examples/project-test/` (copied in at build time as `apps/api`'s `default-test` seed project).
 
 All four JVM modules (`packages/core`, `apps/api`, `apps/bff`, `apps/mock-variable-service`) run the [Spotless](https://github.com/diffplug/spotless) plugin for mechanical style hygiene only — unused-import removal, import ordering, trailing-whitespace and final-newline normalisation; **no line-reflowing formatter**, the tab-indented house style is unchanged. `spotlessCheck` runs as part of `check` (so `./gradlew build` fails on a style deviation); `./gradlew spotlessApply` fixes it. Run `spotlessApply` in the affected module before committing Java changes.
 
@@ -153,7 +153,7 @@ The service is a pure OAuth2 resource server: it validates bearer tokens issued 
 
 Variable storage is `VariableStoreDatabaseStorageHandler` (MariaDB via Hibernate) — the file-based `VariableStoreJSONStorageHandler` this section once described as a pluggable alternative no longer exists in the codebase. An optional external variable service can be enabled via `DLB_EXTERNAL_VARIABLE_SERVICE_ENABLED`.
 
-Projects are seeded into the database from `src/main/resources/projects-seed/` (one sub-directory per project, each a standard `.dlb`/`dlb-project.xml` file tree) by `ProjectSeedService` on first startup only; from then on, dialogue content lives in MariaDB, not on disk.
+Projects are seeded into the database from the `projects-seed/` classpath directory (one sub-directory per project, each a standard `.dlb`/`dlb-project.xml` file tree) by `ProjectSeedService` on first startup only; from then on, dialogue content lives in MariaDB, not on disk. The `default-test` seed project isn't checked in under `src/main/resources` — `build.gradle`'s `processResources` copies it in from the monorepo-shared `examples/project-test/` at build time, so the two stay identical without hand-duplication.
 
 API configuration flows: `application.yml` → overridable at runtime by environment variables following the pattern `dlb.<property.path>` → `DLB_PROPERTY_PATH`.
 
