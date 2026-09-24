@@ -213,6 +213,50 @@ public class ParserErrorHandlingBaselineTest {
 	}
 
 	/**
+	 * The riskiest resync path in #211: a recognized command's own internal validation fails —
+	 * not {@link CommandParser}'s name check — after {@code ExpressionCommand.readCommandContent}
+	 * already consumed through this command's own {@code >>}. No explicit skip is added (or
+	 * needed) at the {@link BodyParser} call site for this case, unlike an unrecognized name; two
+	 * independent instances prove neither swallows the other and nothing double-skips past one.
+	 */
+	@Test
+	public void testMultipleMalformedCommandExpressionsAreBothReported() throws IOException {
+		Map<String, String> scripts = new LinkedHashMap<>();
+		scripts.put("main",
+				"title: Start\nspeaker: Narrator\n---\n<<set $x>>\n<<set $y>>\n===\n");
+
+		ProjectParserResult result = parse(scripts);
+
+		assertEquals("Expected both malformed-expression errors to be reported", 2,
+				totalErrorCount(result));
+		String allErrors = result.getParseErrors().toString();
+		int occurrences = allErrors.split("is not an assignment", -1).length - 1;
+		assertEquals("Expected two separate \"not an assignment\" errors, got: " + allErrors, 2,
+				occurrences);
+	}
+
+	/**
+	 * #211's recovery is recursive: an error inside a properly-opened {@code <<if>>}'s nested body
+	 * is caught by the same accumulate-and-continue loop the outer body uses (nested bodies parse
+	 * via a recursive {@code BodyParser.parseUntilCommandClause} call), and the surrounding
+	 * if/endif structure still closes normally afterward.
+	 */
+	@Test
+	public void testErrorInsideNestedIfIsReported() throws IOException {
+		Map<String, String> scripts = new LinkedHashMap<>();
+		scripts.put("main",
+				"title: Start\nspeaker: Narrator\n---\n<<if $x == 1>>\n<<sett $y = 2>>\n<<endif>>\n" +
+				"===\n");
+
+		ProjectParserResult result = parse(scripts);
+
+		assertEquals("Expected exactly one error, from inside the nested if body", 1,
+				totalErrorCount(result));
+		assertTrue("Expected the unrecognized command from inside <<if>> to be flagged, got: " +
+				result.getParseErrors(), result.getParseErrors().toString().contains("sett"));
+	}
+
+	/**
 	 * #211's own risk, verified: a single root-cause error (here, an unclosed {@code <<}) early in
 	 * a node body, followed by otherwise-valid content, still produces exactly one error — not a
 	 * flood of spurious follow-on errors from a poorly-chosen resynchronization point. With no

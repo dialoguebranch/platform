@@ -1,0 +1,12 @@
+// Demonstrates: a recognized command with a malformed internal expression — "set" needs an
+// assignment ("$x = ..."), a bare variable reference isn't one. Two independent instances, to
+// prove the parser recovers from the first and still catches the second (this error site
+// resynchronizes differently from an unrecognized command name: readCommandContent() already
+// consumes through this command's own ">>" before the assignment check runs, so no explicit skip
+// is needed — or should be added — at the call site).
+title: Start
+speaker: Narrator
+---
+<<set $x>>
+<<set $y>>
+===

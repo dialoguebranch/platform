@@ -1,0 +1,10 @@
+// Demonstrates: a command with no name at all — "<<" immediately followed by its own closing
+// ">>", so the token where a name was expected is the command's end token, not text. Distinct
+// from unknown-command.dlb, where a name IS present but unrecognized. Followed by an unrelated
+// second error, to prove resync here doesn't over- or under-consume.
+title: Start
+speaker: Narrator
+---
+<<>>
+<<sett $x = 1>>
+===
