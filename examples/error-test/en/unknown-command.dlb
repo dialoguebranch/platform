@@ -1,0 +1,8 @@
+// Demonstrates: a node-body command name the parser doesn't recognize.
+title: Start
+speaker: Narrator
+---
+This node's body uses a command the parser doesn't know.
+
+<<sett $counter = 1>>
+===

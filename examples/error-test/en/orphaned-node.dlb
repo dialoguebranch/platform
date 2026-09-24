@@ -1,0 +1,13 @@
+// Demonstrates: a node that no reply link points to, and that isn't this dialogue's Start node —
+// reported as a WARNING, not an error, since a dialogue isn't required to link every node it
+// defines.
+title: Start
+speaker: Narrator
+---
+Hello.
+===
+title: Disconnected
+speaker: Narrator
+---
+Nobody links here.
+===

@@ -1,0 +1,9 @@
+// Demonstrates: two independent errors in the same node's body. The parser is fail-fast within
+// a node, so only the FIRST error is reported today — see #211 about changing this.
+title: Start
+speaker: Narrator
+---
+<<sett $x = 1>>
+<<ift $x == 1>>
+<<endif>>
+===

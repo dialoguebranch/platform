@@ -26,3 +26,17 @@ Each lesson is a short dialogue demonstrating one part of the language; start fr
  - `inputs.dlb` — the six `input` reply types and their parameters.
  - `external-variable-service.dlb` — retrieving variable values from an external service.
  - `poe.dlb`, `bg1/*` — longer, real-feeling showcase conversations.
+
+## What can go wrong (in `error-test/en/`)
+Each script demonstrates one specific mistake and what the parser reports for it.
+
+ - `unknown-command.dlb` — a command name the parser doesn't recognize.
+ - `multiple-errors-in-one-node.dlb`, `errors-in-different-nodes.dlb` — how the parser handles more
+   than one mistake at once, today.
+ - `malformed-header.dlb` — a header line missing its `:` separator.
+ - `malformed-reply-statement.dlb`, `malformed-reply-command.dlb` — commands that aren't allowed in
+   a reply's statement or command section.
+ - `unclosed-command.dlb` — a `<<` that's never closed.
+ - `broken-pointers.dlb`, `pointer-target.dlb` — replies pointing at nodes or dialogues that don't
+   exist.
+ - `orphaned-node.dlb` — a node nothing links to (a warning, not an error).

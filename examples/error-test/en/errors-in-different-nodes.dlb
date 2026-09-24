@@ -1,0 +1,14 @@
+// Demonstrates: errors in different nodes of the same dialogue are already accumulated today, at
+// per-node granularity — both nodes below are reported, unlike the two errors within one node in
+// multiple-errors-in-one-node.dlb.
+title: Start
+speaker: Narrator
+---
+<<sett $x = 1>>
+===
+title: Second
+speaker: Narrator
+---
+<<ift $x == 1>>
+<<endif>>
+===
