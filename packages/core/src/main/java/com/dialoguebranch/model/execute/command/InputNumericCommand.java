@@ -43,17 +43,22 @@ import java.util.Map;
  * @author Harm op den Akker
  */
 public class InputNumericCommand extends InputVariableCommand {
-	private @Nullable Integer min = null;
-	private @Nullable Integer max = null;
+	private final @Nullable Integer min;
+	private final @Nullable Integer max;
 
 	/**
 	 * Creates an {@link InputNumericCommand} that stores the user's numeric input in
-	 * {@code variableName}.
+	 * {@code variableName}, constrained by the given {@code min}/{@code max}.
 	 *
 	 * @param variableName the Dialogue Branch variable name in which to store the input.
+	 * @param min the minimum value allowed, or {@code null} for no minimum.
+	 * @param max the maximum value allowed, or {@code null} for no maximum.
 	 */
-	public InputNumericCommand(String variableName) {
+	public InputNumericCommand(String variableName, @Nullable Integer min,
+			@Nullable Integer max) {
 		super(TYPE_NUMERIC, variableName);
+		this.min = min;
+		this.max = max;
 	}
 
 	/**
@@ -76,27 +81,11 @@ public class InputNumericCommand extends InputVariableCommand {
 	}
 
 	/**
-	 * Sets the minimum numeric value allowed, or {@code null} for no minimum.
-	 * @param min the minimum value, or {@code null}.
-	 */
-	public void setMin(@Nullable Integer min) {
-		this.min = min;
-	}
-
-	/**
 	 * Returns the maximum numeric value allowed, or {@code null} if no maximum is set.
 	 * @return the maximum value, or {@code null}.
 	 */
 	public @Nullable Integer getMax() {
 		return max;
-	}
-
-	/**
-	 * Sets the maximum numeric value allowed, or {@code null} for no maximum.
-	 * @param max the maximum value, or {@code null}.
-	 */
-	public void setMax(@Nullable Integer max) {
-		this.max = max;
 	}
 
 	@Override
@@ -137,14 +126,10 @@ public class InputNumericCommand extends InputVariableCommand {
 	public static InputCommand parse(BodyToken cmdStartToken,
 									 Map<String, BodyToken> attrs) throws LineNumberParseException {
 		String variableName = requireVariableAttr("value", attrs, cmdStartToken);
-		InputNumericCommand command = new InputNumericCommand(
-				variableName);
 		Integer min = readIntAttr("min", attrs, cmdStartToken, false, null,
 				null);
-		command.setMin(min);
 		Integer max = readIntAttr("max", attrs, cmdStartToken, false, null,
 				null);
-		command.setMax(max);
-		return command;
+		return new InputNumericCommand(variableName, min, max);
 	}
 }

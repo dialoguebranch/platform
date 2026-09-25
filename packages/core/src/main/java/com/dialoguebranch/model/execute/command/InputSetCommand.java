@@ -49,11 +49,16 @@ import java.util.*;
  * @author Harm op den Akker
  */
 public class InputSetCommand extends InputCommand {
-	private List<Option> options = new ArrayList<>();
+	private final List<Option> options;
 
-	/** Creates an empty {@link InputSetCommand}. */
-	public InputSetCommand() {
+	/**
+	 * Creates an {@link InputSetCommand} with the given {@code options}.
+	 *
+	 * @param options the selectable options for this input command.
+	 */
+	public InputSetCommand(List<Option> options) {
 		super(TYPE_SET);
+		this.options = Collections.unmodifiableList(new ArrayList<>(options));
 	}
 
 	/**
@@ -63,9 +68,11 @@ public class InputSetCommand extends InputCommand {
 	 */
 	public InputSetCommand(InputSetCommand other) {
 		super(other);
+		List<Option> copiedOptions = new ArrayList<>();
 		for (Option option : other.options) {
-			this.options.add(new Option(option));
+			copiedOptions.add(new Option(option));
 		}
+		this.options = Collections.unmodifiableList(copiedOptions);
 	}
 
 	/**
@@ -74,14 +81,6 @@ public class InputSetCommand extends InputCommand {
 	 */
 	public List<Option> getOptions() {
 		return options;
-	}
-
-	/**
-	 * Sets the list of selectable options for this input command.
-	 * @param options the list of options.
-	 */
-	public void setOptions(List<Option> options) {
-		this.options = options;
 	}
 
 	@Override
@@ -129,14 +128,13 @@ public class InputSetCommand extends InputCommand {
 	@Override
 	public void executeBodyCommand(Map<String, Object> variables,
 			ResolvedNodeBody.Builder processedBody) throws EvaluationException {
-		InputSetCommand processedCmd = new InputSetCommand();
+		List<Option> processedOptions = new ArrayList<>();
 		for (Option option : options) {
-			Option processedOption = new Option();
-			processedOption.setVariableName(option.getVariableName());
-			processedOption.setText(option.getText().execute(variables));
-			processedCmd.options.add(processedOption);
+			processedOptions.add(new Option(option.getVariableName(),
+					option.getText().execute(variables)));
 		}
-		processedBody.addSegment(new NodeBody.CommandSegment(processedCmd));
+		processedBody.addSegment(new NodeBody.CommandSegment(
+				new InputSetCommand(processedOptions)));
 	}
 
 	@Override
@@ -170,13 +168,13 @@ public class InputSetCommand extends InputCommand {
 	 */
 	public static InputSetCommand parse(BodyToken cmdStartToken,
 										Map<String, BodyToken> attrs) throws LineNumberParseException {
-		InputSetCommand result = new InputSetCommand();
+		List<Option> options = new ArrayList<>();
 		int index = 1;
 		while (true) {
 			BodyToken valueToken = attrs.get("value" + index);
 			BodyToken optionToken = attrs.get("option" + index);
 			if (valueToken == null && optionToken == null) {
-				return result;
+				return new InputSetCommand(options);
 			} else if (valueToken != null && optionToken == null) {
 				throw new LineNumberParseException(String.format(
 						"Found attribute \"%s\" without attribute \"%s\"",
@@ -188,11 +186,9 @@ public class InputSetCommand extends InputCommand {
 						"option" + index, "value" + index),
 						cmdStartToken.getLineNumber(), cmdStartToken.getColNumber());
 			}
-			Option option = new Option();
-			option.setVariableName(requireVariableAttr("value" + index, attrs,
-					cmdStartToken));
-			option.setText(requireAttr("option" + index, attrs, cmdStartToken));
-			result.options.add(option);
+			options.add(new Option(
+					requireVariableAttr("value" + index, attrs, cmdStartToken),
+					requireAttr("option" + index, attrs, cmdStartToken)));
 			index++;
 		}
 	}
@@ -202,14 +198,19 @@ public class InputSetCommand extends InputCommand {
 	 * backing Dialogue Branch variable (set to {@code true} when selected) and a display label.
 	 */
 	public static class Option {
-		private String variableName;
-		private VariableString text;
+		private final String variableName;
+		private final VariableString text;
 
-		/** Creates an empty {@link Option}. */
-		// variableName and text have no sensible default: the parser and executeBodyCommand
-		// both set them (via required attributes) before the option is read.
-		@SuppressWarnings("NullAway.Init")
-		public Option() {
+		/**
+		 * Creates an {@link Option} with the given {@code variableName} and {@code text}.
+		 *
+		 * @param variableName the name of the Dialogue Branch variable that stores whether this
+		 * option was selected.
+		 * @param text the display label of this option.
+		 */
+		public Option(String variableName, VariableString text) {
+			this.variableName = variableName;
+			this.text = text;
 		}
 
 		/**
@@ -231,27 +232,11 @@ public class InputSetCommand extends InputCommand {
 		}
 
 		/**
-		 * Sets the name of the Dialogue Branch variable that stores whether this option was selected.
-		 * @param variableName the variable name.
-		 */
-		public void setVariableName(String variableName) {
-			this.variableName = variableName;
-		}
-
-		/**
 		 * Returns the display label of this option as a {@link VariableString}.
 		 * @return the display label.
 		 */
 		public VariableString getText() {
 			return text;
-		}
-
-		/**
-		 * Sets the display label of this option.
-		 * @param text the display label.
-		 */
-		public void setText(VariableString text) {
-			this.text = text;
 		}
 	}
 }

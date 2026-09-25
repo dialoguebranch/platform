@@ -55,7 +55,7 @@ import java.util.Set;
  * @author Dennis Hofs
  */
 public class SetCommand extends ExpressionCommand {
-	private AssignExpression expression;
+	private final AssignExpression expression;
 
 	/**
 	 * Creates a {@link SetCommand} that evaluates the given assignment expression.
@@ -81,14 +81,6 @@ public class SetCommand extends ExpressionCommand {
 	 */
 	public AssignExpression getExpression() {
 		return expression;
-	}
-
-	/**
-	 * Sets the assignment expression for this command.
-	 * @param expression the assignment expression.
-	 */
-	public void setExpression(AssignExpression expression) {
-		this.expression = expression;
 	}
 
 	@Override

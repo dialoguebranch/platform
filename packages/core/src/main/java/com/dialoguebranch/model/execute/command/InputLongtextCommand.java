@@ -42,13 +42,12 @@ import java.util.Map;
 public class InputLongtextCommand extends InputAbstractTextCommand {
 
 	/**
-	 * Creates an {@link InputLongtextCommand} that stores the user's text input in
-	 * {@code variableName}.
+	 * Creates an {@link InputLongtextCommand} from the given {@code builder}.
 	 *
-	 * @param variableName the Dialogue Branch variable name in which to store the input.
+	 * @param builder the builder holding this command's configured fields.
 	 */
-	public InputLongtextCommand(String variableName) {
-		super(TYPE_LONGTEXT, variableName);
+	public InputLongtextCommand(Builder builder) {
+		super(TYPE_LONGTEXT, builder);
 	}
 
 	/**
@@ -76,9 +75,8 @@ public class InputLongtextCommand extends InputAbstractTextCommand {
 	public static InputCommand parse(BodyToken cmdStartToken,
 									 Map<String, BodyToken> attrs) throws LineNumberParseException {
 		String variableName = requireVariableAttr("value", attrs, cmdStartToken);
-		InputLongtextCommand command = new InputLongtextCommand(variableName);
-		parseAttributes(command, cmdStartToken,
-				attrs);
-		return command;
+		Builder builder = new Builder(variableName);
+		parseAttributes(builder, cmdStartToken, attrs);
+		return new InputLongtextCommand(builder);
 	}
 }

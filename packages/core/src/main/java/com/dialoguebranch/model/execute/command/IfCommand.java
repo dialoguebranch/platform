@@ -52,11 +52,19 @@ import java.util.*;
  * @author Dennis Hofs
  */
 public class IfCommand extends ExpressionCommand {
-	private List<Clause> ifClauses = new ArrayList<>();
-	private @Nullable NodeBody elseClause = null;
+	private final List<Clause> ifClauses;
+	private final @Nullable NodeBody elseClause;
 
-	/** Creates an empty {@link IfCommand} with no clauses set. */
-	public IfCommand() {
+	/**
+	 * Creates an {@link IfCommand} with the given {@code ifClauses} and {@code elseClause}.
+	 *
+	 * @param ifClauses the if clauses, processed from first to last. There should be at least
+	 * one clause — the "if" clause; any subsequent clauses are "elseif" clauses.
+	 * @param elseClause the else clause, or {@code null} if there is none.
+	 */
+	public IfCommand(List<Clause> ifClauses, @Nullable NodeBody elseClause) {
+		this.ifClauses = Collections.unmodifiableList(new ArrayList<>(ifClauses));
+		this.elseClause = elseClause;
 	}
 
 	/**
@@ -65,11 +73,12 @@ public class IfCommand extends ExpressionCommand {
 	 * @param other the {@link IfCommand} to copy.
 	 */
 	public IfCommand(IfCommand other) {
+		List<Clause> copiedClauses = new ArrayList<>();
 		for (Clause ifClause : other.ifClauses) {
-			this.ifClauses.add(new Clause(ifClause));
+			copiedClauses.add(new Clause(ifClause));
 		}
-		if (other.elseClause != null)
-			this.elseClause = new NodeBody(other.elseClause);
+		this.ifClauses = Collections.unmodifiableList(copiedClauses);
+		this.elseClause = other.elseClause == null ? null : new NodeBody(other.elseClause);
 	}
 
 	/**
@@ -84,28 +93,6 @@ public class IfCommand extends ExpressionCommand {
 	}
 
 	/**
-	 * Sets the if clauses. They should be processed from first to last. There
-	 * should be at least one clause. That is the "if" clause. Any subsequent
-	 * clauses are "elseif" clauses.
-	 *
-	 * @param ifClauses the if clauses
-	 */
-	public void setIfClauses(List<Clause> ifClauses) {
-		this.ifClauses = ifClauses;
-	}
-
-	/**
-	 * Adds an if clause. The clauses should be processed from first to last.
-	 * There should be at least one clause.That is the "if" clause. Any
-	 * subsequent clauses are "elseif" clauses.
-	 *
-	 * @param ifClause the if clause
-	 */
-	public void addIfClause(Clause ifClause) {
-		ifClauses.add(ifClause);
-	}
-
-	/**
 	 * Returns the else clause. If there is no else clause, then this method
 	 * returns null (default).
 	 *
@@ -113,16 +100,6 @@ public class IfCommand extends ExpressionCommand {
 	 */
 	public @Nullable NodeBody getElseClause() {
 		return elseClause;
-	}
-
-	/**
-	 * Sets the else clause. If there is no else clause, this can be set to
-	 * null (default).
-	 *
-	 * @param elseClause the else clause or null
-	 */
-	public void setElseClause(@Nullable NodeBody elseClause) {
-		this.elseClause = elseClause;
 	}
 
 	@Override
@@ -213,7 +190,8 @@ public class IfCommand extends ExpressionCommand {
 	public static IfCommand parse(BodyToken cmdStartToken,
 								  CurrentIterator<BodyToken> tokens, NodeState nodeState)
 			throws LineNumberParseException {
-		IfCommand command = new IfCommand();
+		List<Clause> ifClauses = new ArrayList<>();
+		NodeBody elseClause = null;
 		ReadContentResult content = readCommandContent(cmdStartToken, tokens);
 		ParseContentResult parsedIf = parseCommandContentExpression(
 				cmdStartToken, content, "if");
@@ -230,18 +208,18 @@ public class IfCommand extends ExpressionCommand {
 						cmdStartToken.getLineNumber(), cmdStartToken.getColNumber());
 			}
 			if (parsedIf.name.equals("if") || parsedIf.name.equals("elseif")) {
-				command.addIfClause(new Clause(
+				ifClauses.add(new Clause(
 						Objects.requireNonNull(parsedIf.expression),
 						bodyParse.body));
 			} else {
-				command.setElseClause(bodyParse.body);
+				elseClause = bodyParse.body;
 			}
 			BodyToken clauseStartToken = bodyParse.cmdClauseStartToken;
 			String clauseName = Objects.requireNonNull(bodyParse.cmdClauseName);
 			content = readCommandContent(clauseStartToken, tokens);
 			switch (clauseName) {
 			case "elseif":
-				if (command.elseClause != null) {
+				if (elseClause != null) {
 					throw new LineNumberParseException(
 							"Found \"elseif\" after \"else\"",
 							clauseStartToken.getLineNumber(),
@@ -253,7 +231,7 @@ public class IfCommand extends ExpressionCommand {
 						parsedIf.expression);
 				break;
 			case "else":
-				if (command.elseClause != null) {
+				if (elseClause != null) {
 					throw new LineNumberParseException(
 							"Found more than one \"else\"",
 							clauseStartToken.getLineNumber(),
@@ -264,7 +242,7 @@ public class IfCommand extends ExpressionCommand {
 				break;
 			case "endif":
 				parseCommandContentName(clauseStartToken, content, clauseName);
-				return command;
+				return new IfCommand(ifClauses, elseClause);
 			}
 		}
 	}
@@ -296,8 +274,8 @@ public class IfCommand extends ExpressionCommand {
 	 * or an "elseif" clause.
 	 */
 	public static class Clause {
-		private Expression expression;
-		private NodeBody statement;
+		private final Expression expression;
+		private final NodeBody statement;
 
 		/**
 		 * Constructs a new if clause.
@@ -332,15 +310,6 @@ public class IfCommand extends ExpressionCommand {
 		}
 
 		/**
-		 * Sets the if expression that should be evaluated as a boolean.
-		 *
-		 * @param expression the if expression
-		 */
-		public void setExpression(Expression expression) {
-			this.expression = expression;
-		}
-
-		/**
 		 * Returns the statement that should be output if the expression
 		 * evaluates to true.
 		 *
@@ -350,14 +319,5 @@ public class IfCommand extends ExpressionCommand {
 			return statement;
 		}
 
-		/**
-		 * Sets the statement that should be output if the expression evaluates
-		 * to true.
-		 *
-		 * @param statement the statement
-		 */
-		public void setStatement(NodeBody statement) {
-			this.statement = statement;
-		}
 	}
 }

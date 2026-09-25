@@ -51,7 +51,7 @@ import java.util.Set;
  */
 public abstract class InputVariableCommand extends InputCommand {
 
-	private String variableName;
+	private final String variableName;
 
 	/**
 	 * Creates an {@link InputVariableCommand} of the given {@code type} that stores the user's
@@ -82,14 +82,6 @@ public abstract class InputVariableCommand extends InputCommand {
 	 */
 	public String getVariableName() {
 		return variableName;
-	}
-
-	/**
-	 * Sets the name of the Dialogue Branch variable in which the user's input is stored.
-	 * @param variableName the variable name.
-	 */
-	public void setVariableName(String variableName) {
-		this.variableName = variableName;
 	}
 
 	/**
