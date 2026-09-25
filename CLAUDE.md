@@ -122,7 +122,7 @@ Service URLs:
 The `com.dialoguebranch` package is divided into:
 
 - **`model/common`** — Shared types (`ProjectMetaData`, `StorageSource`)
-- **`model/execute`** — Immutable runtime model (`ExecutableProject`, `Dialogue`, `Node`, `NodeBody`, `Reply`, `VariableString`, `LoggedDialogue`, `DialogueState`) plus command types (`SetCommand`, `IfCommand`, `RandomCommand`, `ActionCommand`, `InputCommand` variants) and API protocol types (`DialogueMessage`, `DialogueStatement`, `ReplyMessage`)
+- **`model/execute`** — Immutable runtime model (`ExecutableProject`, `Dialogue`, `Node`, `NodeHeader`, `NodeBody`, `ResolvedNodeBody`, `Reply`, `VariableString`, `LoggedDialogue`, `DialogueState`) plus command types (`SetCommand`, `IfCommand`, `RandomCommand`, `ActionCommand`, `InputCommand` variants) and API protocol types (`DialogueMessage`, `DialogueStatement`, `ReplyMessage`)
 - **`execution`** — Runtime engine: `ActiveDialogue` drives a live session, `VariableStore` holds session variables; `parser/` contains `DialogueBranchParser`, `BodyParser`, `CommandParser`, `ProjectParser`, etc.
 - **`editing`** — `ProjectMetaDataWriter`, used to export a project's metadata
 - **`i18n`** — Translation: `Translator` applies `.json` translation files to a `Dialogue`; `TranslatableExtractor` walks node bodies to extract translatable segments
