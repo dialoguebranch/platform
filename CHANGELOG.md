@@ -10,7 +10,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 ### Changed
 
 - **Breaking:** Core: the `Command` hierarchy (`ActionCommand`, `SetCommand`, `IfCommand`,
-  `RandomCommand`, `InputSetCommand`) is immutable now, with dead setters removed
+  `RandomCommand`, `InputSetCommand`, `InputVariableCommand` and its subclasses) is immutable
+  now, with dead setters removed
   ([#306](https://github.com/dialoguebranch/platform/issues/306), part of #210's "immutable
   runtime model" cleanup — an investigation pass found most of the hierarchy's setters were
   already unused, including at parse time, so this landed as a smaller change than #210
@@ -19,12 +20,22 @@ and this project adheres to a single monorepo-wide version declared in `global.j
     `IfCommand.setIfClauses()`/`addIfClause()`/`setElseClause()`,
     `IfCommand.Clause.setExpression()`/`setStatement()`,
     `RandomCommand.setClauses()`/`addClause()`, `RandomCommand.Clause.setWeight()`/`setStatement()`,
-    `InputTimeCommand.setGranularityMinutes()`/`setStartTime()`/`setMinTime()`/`setMaxTime()`, and
-    `InputSetCommand.setOptions()`/`Option.setVariableName()`/`Option.setText()` are all removed.
+    `InputTimeCommand.setGranularityMinutes()`/`setStartTime()`/`setMinTime()`/`setMaxTime()`,
+    `InputSetCommand.setOptions()`/`Option.setVariableName()`/`Option.setText()`,
+    `InputVariableCommand.setVariableName()`, `InputNumericCommand.setMin()`/`setMax()`, and
+    `InputAbstractTextCommand`'s eleven setters are all removed.
   - `IfCommand`/`RandomCommand`/`InputSetCommand` lose their no-arg constructor in favor of a
     full constructor (`IfCommand(List<Clause>, NodeBody)`, `RandomCommand(List<Clause>)`,
     `InputSetCommand(List<Option>)`); `InputSetCommand.Option` similarly loses its no-arg
     constructor in favor of `Option(String, VariableString)`.
+  - `InputNumericCommand`'s single-arg constructor is replaced by
+    `InputNumericCommand(String, Integer, Integer)`.
+  - `InputAbstractTextCommand`'s eleven optional fields (length bounds, capitalization/character
+    hints) move to a new `InputAbstractTextCommand.Builder`, populated via
+    `InputAbstractTextCommand.parseAttributes(Builder, ...)` (previously
+    `parseAttributes(InputAbstractTextCommand, ...)`) and passed to
+    `InputTextCommand`/`InputLongtextCommand`'s constructor — replacing their previous
+    single-arg constructor plus eleven individual setter calls.
   - `Translator` no longer mutates a cloned `IfCommand`/`RandomCommand`'s clauses in place during
     translation — it rebuilds a new one via the constructors above, same as it already did for
     `NodeBody`/`Reply`.

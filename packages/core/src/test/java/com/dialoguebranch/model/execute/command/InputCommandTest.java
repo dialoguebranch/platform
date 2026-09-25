@@ -53,6 +53,7 @@ import java.util.Set;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -194,9 +195,8 @@ public class InputCommandTest {
 	public void textInputCloneIsAnIndependentCopy() {
 		InputAbstractTextCommand original = (InputAbstractTextCommand) inputCommand(0);
 		InputAbstractTextCommand copy = (InputAbstractTextCommand) original.clone();
-		copy.setVariableName("other");
-		assertEquals("name", original.getVariableName());
-		assertEquals("other", copy.getVariableName());
+		assertNotSame(original, copy);
+		assertEquals(original.getVariableName(), copy.getVariableName());
 	}
 
 	// ---------------------------------------------------------------- //
