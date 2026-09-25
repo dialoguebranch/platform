@@ -46,6 +46,7 @@ import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -211,8 +212,7 @@ public class RandomCommandTest {
 		RandomCommand copy = original.clone();
 
 		assertEquals(2, copy.getClauses().size());
-		copy.getClauses().get(0).setWeight(9f);
-		assertEquals(1f, original.getClauses().get(0).getWeight(), 0f);
+		assertNotSame(original.getClauses().get(0), copy.getClauses().get(0));
 	}
 
 	@Test

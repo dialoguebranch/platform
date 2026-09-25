@@ -51,10 +51,15 @@ import java.util.*;
 public class RandomCommand extends AttributesCommand {
 	private Random random = new Random();
 
-	private List<Clause> clauses = new ArrayList<>();
+	private final List<Clause> clauses;
 
-	/** Creates an empty {@link RandomCommand} with no clauses. */
-	public RandomCommand() {
+	/**
+	 * Creates a {@link RandomCommand} with the given {@code clauses}.
+	 *
+	 * @param clauses the clauses. There should be at least one.
+	 */
+	public RandomCommand(List<Clause> clauses) {
+		this.clauses = Collections.unmodifiableList(new ArrayList<>(clauses));
 	}
 
 	/**
@@ -63,9 +68,11 @@ public class RandomCommand extends AttributesCommand {
 	 * @param other the command to copy.
 	 */
 	public RandomCommand(RandomCommand other) {
+		List<Clause> copiedClauses = new ArrayList<>();
 		for (Clause clause : other.clauses) {
-			this.clauses.add(new Clause(clause));
+			copiedClauses.add(new Clause(clause));
 		}
+		this.clauses = Collections.unmodifiableList(copiedClauses);
 	}
 
 	/**
@@ -75,24 +82,6 @@ public class RandomCommand extends AttributesCommand {
 	 */
 	public List<Clause> getClauses() {
 		return clauses;
-	}
-
-	/**
-	 * Sets the clauses. There should be at least one clause.
-	 *
-	 * @param clauses the clauses
-	 */
-	public void setClauses(List<Clause> clauses) {
-		this.clauses = clauses;
-	}
-
-	/**
-	 * Adds a clause. There should be at least one clause.
-	 *
-	 * @param clause the clause
-	 */
-	public void addClause(Clause clause) {
-		clauses.add(clause);
 	}
 
 	/**
@@ -194,7 +183,7 @@ public class RandomCommand extends AttributesCommand {
 			throws LineNumberParseException {
 		Map<String, BodyToken> attrs = parseAttributesCommand(cmdStartToken,
 				tokens);
-		RandomCommand command = new RandomCommand();
+		List<Clause> clauses = new ArrayList<>();
 		Float weight = readFloatAttr("weight", attrs, cmdStartToken, false, 0f,
 				null);
 		if (weight == null)
@@ -210,7 +199,7 @@ public class RandomCommand extends AttributesCommand {
 						"Command \"random\" not terminated",
 						cmdStartToken.getLineNumber(), cmdStartToken.getColNumber());
 			}
-			command.addClause(new Clause(weight, bodyParse.body));
+			clauses.add(new Clause(weight, bodyParse.body));
 			BodyToken clauseStartToken = bodyParse.cmdClauseStartToken;
 			String clauseName = Objects.requireNonNull(bodyParse.cmdClauseName);
 			attrs = parseAttributesCommand(clauseStartToken, tokens);
@@ -222,7 +211,7 @@ public class RandomCommand extends AttributesCommand {
 					weight = 1f;
 				break;
 			case "endrandom":
-				return command;
+				return new RandomCommand(clauses);
 			}
 		}
 	}
@@ -237,8 +226,8 @@ public class RandomCommand extends AttributesCommand {
 	 * clause or an "or" clause.
 	 */
 	public static class Clause {
-		private float weight;
-		private NodeBody statement;
+		private final float weight;
+		private final NodeBody statement;
 
 		/**
 		 * Constructs a new clause.
@@ -272,15 +261,6 @@ public class RandomCommand extends AttributesCommand {
 		}
 
 		/**
-		 * Sets the weight for this clause.
-		 *
-		 * @param weight the weight for this clause
-		 */
-		public void setWeight(float weight) {
-			this.weight = weight;
-		}
-
-		/**
 		 * Returns the statement that should be output if the expression
 		 * evaluates to true.
 		 *
@@ -290,14 +270,5 @@ public class RandomCommand extends AttributesCommand {
 			return statement;
 		}
 
-		/**
-		 * Sets the statement that should be output if the expression evaluates
-		 * to true.
-		 *
-		 * @param statement the statement
-		 */
-		public void setStatement(NodeBody statement) {
-			this.statement = statement;
-		}
 	}
 }

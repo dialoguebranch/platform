@@ -75,13 +75,13 @@ import java.util.Set;
 public class ActionCommand extends AttributesCommand {
 
 	/** The specific type of this ActionCommand. */
-	private ActionType type;
+	private final ActionType type;
 
 	/** The contents of the ActionCommand modelled as a {@link VariableString}. */
-	private VariableString value;
+	private final VariableString value;
 
 	/** The set of "other" free parameters defined in this ActionCommand. */
-	private Map<String, VariableString> parameters = new LinkedHashMap<>();
+	private final Map<String, VariableString> parameters = new LinkedHashMap<>();
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
@@ -127,15 +127,6 @@ public class ActionCommand extends AttributesCommand {
 	}
 
 	/**
-	 * Sets the type of this {@link ActionCommand}.
-	 *
-	 * @param type the type of this {@link ActionCommand}.
-	 */
-	public void setType(ActionType type) {
-		this.type = type;
-	}
-
-	/**
 	 * Return the contents of the 'value' part of the ActionCommand as a VariableString.
 	 *
 	 * @return the contents of the 'value' part of the ActionCommand as a VariableString.
@@ -145,30 +136,12 @@ public class ActionCommand extends AttributesCommand {
 	}
 
 	/**
-	 * Sets the contents of the 'value' part of the ActionCommand as a VariableString.
-	 *
-	 * @param value the contents of the 'value' part of the ActionCommand as a VariableString.
-	 */
-	public void setValue(VariableString value) {
-		this.value = value;
-	}
-
-	/**
 	 * Returns the map of optional parameters that are part of this ActionCommand.
 	 *
 	 * @return the map of optional parameters that are part of this ActionCommand.
 	 */
 	public Map<String, VariableString> getParameters() {
 		return parameters;
-	}
-
-	/**
-	 * Sets the optional parameters that are part of this ActionCommand.
-	 *
-	 * @param parameters the optional parameters that are part of this ActionCommand.
-	 */
-	public void setParameters(Map<String, VariableString> parameters) {
-		this.parameters = parameters;
 	}
 
 	// ------------------------------------------------------- //

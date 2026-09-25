@@ -94,27 +94,11 @@ public class InputTimeCommand extends InputVariableCommand {
 	}
 
 	/**
-	 * Sets the time picker granularity in minutes (e.g. {@code 1}, {@code 5}, {@code 15}).
-	 * @param granularityMinutes the granularity in minutes.
-	 */
-	public void setGranularityMinutes(int granularityMinutes) {
-		this.granularityMinutes = granularityMinutes;
-	}
-
-	/**
 	 * Returns the initial time shown in the time picker, or {@code null} if not set.
 	 * @return the start time, or {@code null}.
 	 */
 	public @Nullable VariableString getStartTime() {
 		return startTime;
-	}
-
-	/**
-	 * Sets the initial time shown in the time picker, or {@code null} for no initial value.
-	 * @param startTime the start time, or {@code null}.
-	 */
-	public void setStartTime(@Nullable VariableString startTime) {
-		this.startTime = startTime;
 	}
 
 	/**
@@ -126,27 +110,11 @@ public class InputTimeCommand extends InputVariableCommand {
 	}
 
 	/**
-	 * Sets the earliest time the user may select, or {@code null} for no lower bound.
-	 * @param minTime the minimum time, or {@code null}.
-	 */
-	public void setMinTime(@Nullable VariableString minTime) {
-		this.minTime = minTime;
-	}
-
-	/**
 	 * Returns the latest time the user may select, or {@code null} if not set.
 	 * @return the maximum time, or {@code null}.
 	 */
 	public @Nullable VariableString getMaxTime() {
 		return maxTime;
-	}
-
-	/**
-	 * Sets the latest time the user may select, or {@code null} for no upper bound.
-	 * @param maxTime the maximum time, or {@code null}.
-	 */
-	public void setMaxTime(@Nullable VariableString maxTime) {
-		this.maxTime = maxTime;
 	}
 
 	@Override

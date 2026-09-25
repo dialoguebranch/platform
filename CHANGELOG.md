@@ -9,6 +9,25 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- **Breaking:** Core: the `Command` hierarchy (`ActionCommand`, `SetCommand`, `IfCommand`,
+  `RandomCommand`, `InputSetCommand`) is immutable now, with dead setters removed
+  ([#306](https://github.com/dialoguebranch/platform/issues/306), part of #210's "immutable
+  runtime model" cleanup — an investigation pass found most of the hierarchy's setters were
+  already unused, including at parse time, so this landed as a smaller change than #210
+  originally scoped). Highlights:
+  - `ActionCommand.setType()`/`setValue()`/`setParameters()`, `SetCommand.setExpression()`,
+    `IfCommand.setIfClauses()`/`addIfClause()`/`setElseClause()`,
+    `IfCommand.Clause.setExpression()`/`setStatement()`,
+    `RandomCommand.setClauses()`/`addClause()`, `RandomCommand.Clause.setWeight()`/`setStatement()`,
+    `InputTimeCommand.setGranularityMinutes()`/`setStartTime()`/`setMinTime()`/`setMaxTime()`, and
+    `InputSetCommand.setOptions()`/`Option.setVariableName()`/`Option.setText()` are all removed.
+  - `IfCommand`/`RandomCommand`/`InputSetCommand` lose their no-arg constructor in favor of a
+    full constructor (`IfCommand(List<Clause>, NodeBody)`, `RandomCommand(List<Clause>)`,
+    `InputSetCommand(List<Option>)`); `InputSetCommand.Option` similarly loses its no-arg
+    constructor in favor of `Option(String, VariableString)`.
+  - `Translator` no longer mutates a cloned `IfCommand`/`RandomCommand`'s clauses in place during
+    translation — it rebuilds a new one via the constructors above, same as it already did for
+    `NodeBody`/`Reply`.
 - **Breaking:** Core: `NodeBody` is now immutable, and execution now produces a separate
   `ResolvedNodeBody` instead of the same `NodeBody` type — the result of `NodeBody.execute()`
   is structurally narrower than a script's own `NodeBody` (a `<<set>>`/`<<if>>`/`<<random>>`

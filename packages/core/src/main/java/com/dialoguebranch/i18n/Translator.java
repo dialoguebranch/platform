@@ -49,12 +49,14 @@ import java.util.regex.Pattern;
  * The translation map can be obtained from a translation file using the {@link
  * TranslationParser}.
  *
- * <p>Rebuilds every {@link NodeBody} it touches from scratch via {@link NodeBody.Builder} rather
- * than mutating the original in place — {@link NodeBody}/{@link Reply} are immutable, so there's
- * nothing to mutate. Translatable runs are identified and grouped exactly the way
- * {@link TranslatableExtractor} does (see {@link TranslatableExtractor#hasContent}), but matched
- * against a translation and rebuilt in the same recursive pass, rather than extracting a flat
- * list first and splicing each one back into a shared mutable tree second.</p>
+ * <p>Rebuilds every {@link NodeBody} — and every {@code <<if>>}/{@code <<random>>} command nested
+ * inside one — from scratch via their respective builders/constructors, rather than mutating the
+ * original in place: {@link NodeBody}, {@link Reply}, {@link IfCommand} and {@link RandomCommand}
+ * (and their nested {@code Clause} types) are all immutable, so there's nothing to mutate.
+ * Translatable runs are identified and grouped exactly the way {@link TranslatableExtractor} does
+ * (see {@link TranslatableExtractor#hasContent}), but matched against a translation and rebuilt in
+ * the same recursive pass, rather than extracting a flat list first and splicing each one back
+ * into a shared mutable tree second.</p>
  *
  * @author Dennis Hofs
  * @author Harm op den Akker
@@ -127,10 +129,9 @@ public class Translator {
 
 	/**
 	 * Rebuilds {@code body}, substituting a translation for every translatable run of segments
-	 * found — recursing into {@code <<if>>}/{@code <<random>>} clause bodies (mutating their
-	 * already-cloned {@code Clause.statement} in place, same as before this class was rewritten —
-	 * only {@link NodeBody}/{@link Reply} themselves are immutable, {@code Clause} isn't) and
-	 * rebuilding reply statements — and leaving everything else exactly as it was.
+	 * found — recursing into {@code <<if>>}/{@code <<random>>} clause bodies (rebuilding a new
+	 * {@code IfCommand}/{@code RandomCommand} with translated clause statements) and rebuilding
+	 * reply statements — and leaving everything else exactly as it was.
 	 *
 	 * @param speaker the name of the agent delivering the top-level statements in {@code body}.
 	 * @param addressee the name of the agent being addressed at the top level.
@@ -155,12 +156,12 @@ public class Translator {
 				Command cmd = cmdSegment.getCommand();
 				if (cmd instanceof IfCommand ifCmd) {
 					flushRun(speaker, addressee, current, interposed, builder);
-					translateIfCommand(speaker, addressee, ifCmd);
-					builder.addSegment(segment);
+					builder.addSegment(new NodeBody.CommandSegment(
+							translateIfCommand(speaker, addressee, ifCmd)));
 				} else if (cmd instanceof RandomCommand rndCmd) {
 					flushRun(speaker, addressee, current, interposed, builder);
-					translateRandomCommand(speaker, addressee, rndCmd);
-					builder.addSegment(segment);
+					builder.addSegment(new NodeBody.CommandSegment(
+							translateRandomCommand(speaker, addressee, rndCmd)));
 				} else if (cmd instanceof InputCommand) {
 					current.add(segment);
 				} else {
@@ -175,21 +176,27 @@ public class Translator {
 		return builder.build();
 	}
 
-	private void translateIfCommand(@Nullable String speaker, @Nullable String addressee,
+	private IfCommand translateIfCommand(@Nullable String speaker, @Nullable String addressee,
 			IfCommand ifCmd) {
+		List<IfCommand.Clause> translatedClauses = new ArrayList<>();
 		for (IfCommand.Clause clause : ifCmd.getIfClauses()) {
-			clause.setStatement(translateBody(speaker, addressee, clause.getStatement()));
+			translatedClauses.add(new IfCommand.Clause(clause.getExpression(),
+					translateBody(speaker, addressee, clause.getStatement())));
 		}
-		if (ifCmd.getElseClause() != null) {
-			ifCmd.setElseClause(translateBody(speaker, addressee, ifCmd.getElseClause()));
-		}
+		NodeBody elseClause = ifCmd.getElseClause();
+		NodeBody translatedElseClause = elseClause == null
+				? null : translateBody(speaker, addressee, elseClause);
+		return new IfCommand(translatedClauses, translatedElseClause);
 	}
 
-	private void translateRandomCommand(@Nullable String speaker, @Nullable String addressee,
-			RandomCommand rndCmd) {
+	private RandomCommand translateRandomCommand(@Nullable String speaker,
+			@Nullable String addressee, RandomCommand rndCmd) {
+		List<RandomCommand.Clause> translatedClauses = new ArrayList<>();
 		for (RandomCommand.Clause clause : rndCmd.getClauses()) {
-			clause.setStatement(translateBody(speaker, addressee, clause.getStatement()));
+			translatedClauses.add(new RandomCommand.Clause(clause.getWeight(),
+					translateBody(speaker, addressee, clause.getStatement())));
 		}
+		return new RandomCommand(translatedClauses);
 	}
 
 	private Reply translateReply(@Nullable String speaker, @Nullable String addressee,
