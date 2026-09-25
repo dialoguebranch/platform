@@ -239,7 +239,7 @@ public class ActiveDialogue {
 			throws EvaluationException {
 		Node current = Objects.requireNonNull(currentNode,
 				"Dialogue has not been started");
-		ResolvedNodeBody currentBody = (ResolvedNodeBody) Objects.requireNonNull(
+		NodeContent currentBody = Objects.requireNonNull(
 				current.getBody(), "Current node has no body");
 		Reply selectedReply = Objects.requireNonNull(currentBody.findReplyById(replyId),
 				"No reply with id " + replyId + " in the current node");
@@ -315,7 +315,7 @@ public class ActiveDialogue {
 	public String getUserStatementFromReplyId(int replyId) throws ExecutionException {
 		Node current = Objects.requireNonNull(currentNode,
 				"Dialogue has not been started");
-		ResolvedNodeBody currentBody = (ResolvedNodeBody) Objects.requireNonNull(
+		NodeContent currentBody = Objects.requireNonNull(
 				current.getBody(), "Current node has no body");
 		Reply selectedReply = currentBody.findReplyById(replyId);
 		if (selectedReply == null) {

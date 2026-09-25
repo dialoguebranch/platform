@@ -28,6 +28,8 @@
 
 package com.dialoguebranch.model.execute;
 
+import org.jspecify.annotations.Nullable;
+
 import java.util.List;
 
 /**
@@ -61,4 +63,17 @@ public interface NodeContent {
 	 * @return the replies as an unmodifiable list
 	 */
 	List<Reply> getReplies();
+
+	/**
+	 * Searches this content and all nested command segments for a {@link Reply} with the given
+	 * {@code replyId}. Reply IDs are assigned once, sequentially, at parse time (see {@code
+	 * NodeState#createNextReplyId()}) and never reassigned, so this search is equally valid
+	 * against script-stage content (every {@code <<if>>}/{@code <<random>>} branch present) or
+	 * resolved content (only the chosen branch present) — the same ID resolves to the same
+	 * {@link Reply} either way.
+	 *
+	 * @param replyId the reply identifier to look up.
+	 * @return the matching {@link Reply}, or {@code null} if not found.
+	 */
+	@Nullable Reply findReplyById(int replyId);
 }

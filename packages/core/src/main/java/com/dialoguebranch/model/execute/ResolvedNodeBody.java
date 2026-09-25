@@ -87,6 +87,7 @@ public class ResolvedNodeBody implements NodeContent {
 	 * @param replyId the reply identifier to look up.
 	 * @return the matching {@link Reply}, or {@code null} if not found.
 	 */
+	@Override
 	public @Nullable Reply findReplyById(int replyId) {
 		for (Reply reply : replies) {
 			if (reply.getReplyId() == replyId)
