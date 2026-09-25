@@ -87,6 +87,19 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   and the `type` field the web service sends clients) is unaffected — both still use the same
   lowercase strings as before.
 
+### Fixed
+
+- Web service: fixed a `ClassCastException` that broke every dialogue interaction past the first
+  node. `UserService.getDialogueState()` reconstructs an `ActiveDialogue` per request (the API is
+  stateless between calls) and restores its current node straight from the raw dialogue
+  definition — script-stage content, not yet executed. `ActiveDialogue.getUserStatementFromReplyId()`/
+  `processReplyAndGetNodePointer()` assumed that node was always already-executed content and cast
+  it accordingly, which threw on every restored session. **Breaking:** fixed by adding
+  `findReplyById(int)` to the shared `NodeContent` interface (`NodeBody`/`ResolvedNodeBody` already
+  implemented it identically; only the interface declaration was missing) — reply IDs are assigned
+  once at parse time and never reassigned, so the lookup is valid against either script-stage or
+  resolved content, removing the need to know which one a `Node` is currently holding.
+
 ## [0.2.1] - 2026-09-23
 
 ### Added
