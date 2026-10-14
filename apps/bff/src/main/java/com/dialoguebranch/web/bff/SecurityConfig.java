@@ -316,9 +316,12 @@ public class SecurityConfig {
 
 		@Override
 		public String resolveCsrfTokenValue(HttpServletRequest request, CsrfToken csrfToken) {
+			// Only look for the parameter when there is no header: reading a parameter makes the
+			// servlet container parse the request body, which the proxy has to pass on unchanged.
 			String headerValue = request.getHeader(csrfToken.getHeaderName());
-			String paramValue = request.getParameter(csrfToken.getParameterName());
-			return (StringUtils.hasText(headerValue) || StringUtils.hasText(paramValue))
+			boolean hasToken = StringUtils.hasText(headerValue)
+					|| StringUtils.hasText(request.getParameter(csrfToken.getParameterName()));
+			return hasToken
 					? super.resolveCsrfTokenValue(request, csrfToken)
 					: this.delegate.resolveCsrfTokenValue(request, csrfToken);
 		}

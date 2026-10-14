@@ -28,6 +28,7 @@ The repository's top-level `infrastructure/docker/compose.yml` supports three lo
 
 * **Dialogue rendering** — Once logged in, Studio lets you select a Dialogue Branch Project and start executing one of its dialogues, rendered either as chat "balloons" or as plain text, switchable via a mode selector.
 * **Visual dialogue editor** — A node-graph editor (built on [Vue Flow](https://vueflow.dev/)) for authoring dialogues: reply links between nodes become edges in the graph, and nodes can be dragged, edited (title, speaker, colour, body text), renamed, and connected. Edits operate on a project's *draft* content (see [Authoring API](/web-services/api-service#authoring-api)) — nothing changes for end-users executing the published dialogue until it is explicitly published.
+* **Importing scripts** — In Authoring Mode, *Import Scripts* in the Dialogue Browser imports one or more `.dlb` files into a folder of the project as draft dialogues, named after the folder and each file name. It shows which dialogues already exist (including ones pending deletion) and only replaces those when you choose to; the import is all or nothing, and scripts with syntax errors are imported but listed with their errors, to fix before publishing.
 * **Project selector** — Lists the Dialogue Branch Projects available on the connected Web Service (for users with the `editor` or `admin` role), so you can switch between projects without redeploying the client.
 
 ::: info Note

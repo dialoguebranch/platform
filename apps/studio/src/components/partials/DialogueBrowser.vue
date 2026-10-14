@@ -21,6 +21,7 @@ import IconButton from '../widgets/IconButton.vue';
 import MainPagePanelHeader from '../widgets/MainPagePanelHeader.vue';
 import MainPagePanelContainer from '../widgets/MainPagePanelContainer.vue';
 import DialogueTreeNode from './DialogueTreeNode.vue';
+import ImportScriptsModal from './ImportScriptsModal.vue';
 
 const props = defineProps({
     openTabs: { type: Array, default: () => [] },
@@ -31,6 +32,7 @@ const emit = defineEmits([
     'activateTab',
     'hasUnpublishedChanges',
     'openDialogue',
+    'dialoguesReplaced',
 ]);
 
 const client = useClient();
@@ -114,6 +116,17 @@ function entriesKey(entries) {
     );
 }
 
+// ---- Script import (#339) ----
+
+const draftDialogues = ref([]);
+const showImportScripts = ref(false);
+
+function onScriptsImported(results) {
+    listDialogues();
+    const replaced = results.filter((result) => result.replaced).map((result) => result.dialogueName);
+    if (replaced.length) emit('dialoguesReplaced', replaced);
+}
+
 function listDialogues() {
     const projectSlug = state.value.selectedProject?.slug;
     dismissError();
@@ -135,6 +148,7 @@ function listDialogues() {
             // a dialogue that's new, changed, or pending deletion — not merely because a draft row
             // exists (it may already be perfectly in sync with what's published).
             emit('hasUnpublishedChanges', drafts.some((d) => d.isNew || d.isChanged || d.isDeleted));
+            draftDialogues.value = drafts.map((d) => ({ name: d.name, isDeleted: d.isDeleted }));
             entries = drafts.map((d) => ({
                 name: d.name,
                 isPublished: !d.isNew,
@@ -288,10 +302,17 @@ defineExpose({
 
 <template>
     <div class="flex flex-col gap-1" v-bind="attrs">
+        <ImportScriptsModal
+            v-if="showImportScripts"
+            :dialogues="draftDialogues"
+            @close="showImportScripts = false"
+            @imported="onScriptsImported"
+        />
         <MainPagePanelHeader title="Dialogue Browser" class="sm:ml-2">
             <template #buttons>
                 <IconButton v-if="!isDraftMode" icon="fa-solid fa-rotate-left" title="Retrieve most recent ongoing (server-side) dialogue" :disabled="hasActiveDialogue" @click="checkOngoingDialogue" />
                 <IconButton v-if="isDraftMode" icon="fa-solid fa-plus" title="New Dialogue" @click="onNewDialogueClick" />
+                <IconButton v-if="isDraftMode" icon="fa-solid fa-file-import" title="Import Scripts" @click="showImportScripts = true" />
                 <IconButton
                     icon="fa-solid fa-arrows-rotate"
                     :class="{ 'animate-spin': reloading }"

@@ -7,7 +7,24 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Added
+
+- Studio and web service: import `.dlb` scripts into a folder of an existing project, as draft
+  dialogues ([#339](https://github.com/dialoguebranch/platform/issues/339)). *Import Scripts* in
+  the Dialogue Browser (Authoring Mode) previews the resulting dialogue names, shows which already
+  exist, and only replaces those (keeping their translations, and restoring one pending deletion)
+  when asked; open tabs of replaced dialogues reload. The new `POST /authoring/import-scripts`
+  imports all or nothing, refuses files that aren't UTF-8 `.dlb` files of at most 1 MB, don't make
+  a valid dialogue name, or can't be stored as draft nodes, and reports syntax errors per file
+  without refusing them. client-js gains `importScripts`.
+
 ### Fixed
+
+- Studio: importing a project archive (*Import Project*) failed, because the BFF passed the
+  upload on to the web service without its contents
+  ([#339](https://github.com/dialoguebranch/platform/issues/339)). The BFF no longer handles
+  multipart requests itself (its CSRF check made the servlet container read the request body
+  first), so uploads now reach the web service unchanged.
 
 - Studio: a collapsed dialogue preamble now leaves a small comment icon on the graph canvas. Hover
   shows the preamble; clicking expands it again ([#361](https://github.com/dialoguebranch/platform/issues/361)).

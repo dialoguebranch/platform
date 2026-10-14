@@ -507,6 +507,36 @@ class DraftDialogueServiceTest {
 	}
 
 	@Test
+	void replaceDialogueFromScriptReplacesNodesAndPreambleButKeepsTranslations() throws Exception {
+		DBProject project = projectService.createProject("replace-script", "Replace", "", "en", "English");
+		DBDraftDialogue dialogue = draftDialogueService.createDialogueFromScript(project, "main",
+				"// Old preamble.\ntitle: Start\n---\nOld.\n===\ntitle: Gone\n---\nBye.\n===\n");
+		DBDraftTranslationLanguage language =
+				draftProjectService.addDraftLanguage(project, "Dutch", "nl-NL");
+		draftDialogueService.createOrUpdateTranslation(dialogue, language, "{\"Old.\":\"Oud.\"}");
+		draftDialogueService.deleteDialogue(dialogue);
+		dialogue.setIsChanged(false);
+
+		draftDialogueService.replaceDialogueFromScript(dialogue,
+				"title: Start\nspeaker: Robin\n---\nNew.\n===\ntitle: Added\n---\nHi.\n===\n");
+
+		List<DBDraftNode> nodes = draftDialogueService.listNodes(dialogue);
+		assertEquals(List.of("Start", "Added"), nodes.stream().map(DBDraftNode::getTitle).toList());
+		assertEquals("New.", nodes.get(0).getBody());
+		assertEquals("", dialogue.getPreamble());
+		assertFalse(dialogue.getIsDeleted());
+		assertTrue(dialogue.getIsChanged());
+		assertEquals(1, draftDialogueService.listTranslations(dialogue).size());
+	}
+
+	@Test
+	void checkScriptForDraftReportsDuplicateTitles() {
+		assertEquals(List.of("line 5: duplicate node title: Start"),
+				draftDialogueService.checkScriptForDraft(
+						"title: Start\n---\nHi.\n===\ntitle: Start\n---\nAgain.\n===\n"));
+	}
+
+	@Test
 	void reconstructScriptWritesTheStandardFormat() {
 		DBProject project = projectService.createProject("reconstruct-format", "Format", "", "en", "English");
 		DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "main");
