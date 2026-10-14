@@ -116,3 +116,34 @@ describe('importScripts', () => {
         expect(init.body.get('folder')).toBe('');
     });
 });
+
+describe('exportDialogue', () => {
+    function clientDownloading(response) {
+        const fetch = vi.fn(async () => response);
+        return { client: new DialogueBranchAuthoringClient({ baseUrl: '/api/v1', fetch }), fetch };
+    }
+
+    it('GETs the dialogue and returns the script as a blob', async () => {
+        const script = '// About.\ntitle: Start\n---\nHé.\n===\n';
+        const { client, fetch } = clientDownloading(new Response(script, {
+            status: 200, headers: { 'content-type': 'text/plain;charset=UTF-8' },
+        }));
+        const blob = await client.exportDialogue('proj', 'onboarding/welcome');
+        const [url, init] = fetch.mock.calls[0];
+        expect(url).toBe('/api/v1/authoring/export-dialogue?projectSlug=proj&dialogueName=onboarding%2Fwelcome');
+        expect(init.method).toBe('GET');
+        expect(blob).toBeInstanceOf(Blob);
+        expect(await blob.text()).toBe(script);
+    });
+
+    it('rejects with the server\'s error when the export is refused', async () => {
+        const { client } = clientDownloading(new Response(JSON.stringify({
+            code: 'NOT_FOUND', message: 'Dialogue not found: nope',
+        }), { status: 404, headers: { 'content-type': 'application/json' } }));
+        const error = await client.exportDialogue('proj', 'nope').catch((e) => e);
+        expect(error).toBeInstanceOf(Error);
+        expect(error.status).toBe(404);
+        expect(error.code).toBe('NOT_FOUND');
+        expect(error.message).toBe('Dialogue not found: nope');
+    });
+});

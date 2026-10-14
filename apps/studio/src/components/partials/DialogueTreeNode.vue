@@ -3,6 +3,7 @@ import { computed, inject, ref } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useAuthoringClient } from '@/composables/client.js';
 import { describeError } from '@/composables/error-message.js';
+import { downloadBlob } from '@/composables/download-blob.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
 import { DLB_APP_MODE_DRAFT } from '@/StudioClientState.js';
 import { sortTreeLevel } from '@/composables/dialogue-tree.js';
@@ -39,6 +40,27 @@ const children = computed(() => {
     if (isFile.value) return [];
     return sortTreeLevel(Object.entries(props.node._children), props.sortMode);
 });
+
+// ---- Export as .dlb (#341) ----
+// Downloads the dialogue's current draft as a script. The file is named after the dialogue's last
+// name segment (not its folder), so importing it back into that folder gives the same name.
+
+const exporting = ref(false);
+
+function exportDialogue() {
+    if (exporting.value) return;
+    exporting.value = true;
+    dismissError();
+    const fileName = props.node._file.split('/').pop() + '.dlb';
+    client.exportDialogue(state.value.selectedProject?.slug, props.node._file)
+        .then((blob) => downloadBlob(blob, fileName))
+        .catch((error) => {
+            showError(describeError(error));
+        })
+        .finally(() => {
+            exporting.value = false;
+        });
+}
 
 // ---- Restore (revert a pending deletion) ----
 
@@ -206,6 +228,16 @@ function referenceDialogueCount(references) {
                 </button>
             </template>
             <template v-else>
+                <button
+                    v-if="isDraftMode"
+                    type="button"
+                    title="Export as .dlb"
+                    class="shrink-0 cursor-pointer text-grey-dark hover:text-orange-dark"
+                    :disabled="exporting"
+                    @click="exportDialogue"
+                >
+                    <FontAwesomeIcon :icon="exporting ? 'fa-solid fa-circle-notch' : 'fa-solid fa-file-export'" :class="['w-3', { 'animate-spin': exporting }]" />
+                </button>
                 <button
                     v-if="isDraftMode"
                     type="button"
