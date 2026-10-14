@@ -184,16 +184,9 @@ export class DialogueBranchAuthoringClient extends BaseClient {
 
     // Deliberately bypasses _fetch/_handleResponse: those read the response body as text (to log
     // it) and reconstruct a new Response from that string, which would corrupt binary content —
-    // this stays on the raw fetch Response and reads it as a blob instead.
-    /**
-     * Downloads a project's currently *published* content (not draft) as a `.zip` archive.
-     *
-     * @param {string} projectSlug The project's slug.
-     * @returns {Promise<Blob>} The archive.
-     */
-    async exportProject(projectSlug) {
-        const url = this._baseUrl + "/project/export-project?projectSlug=" + encodeURIComponent(projectSlug);
-
+    // downloads stay on the raw fetch Response and read it as a blob instead. Shared by
+    // exportProject and exportDialogue.
+    async _downloadBlob(url) {
         const response = await this._fetchImpl(url, {
             method: "GET",
             credentials: this._credentials,
@@ -218,6 +211,17 @@ export class DialogueBranchAuthoringClient extends BaseClient {
         }
 
         return response.blob();
+    }
+
+    /**
+     * Downloads a project's currently *published* content (not draft) as a `.zip` archive.
+     *
+     * @param {string} projectSlug The project's slug.
+     * @returns {Promise<Blob>} The archive.
+     */
+    exportProject(projectSlug) {
+        return this._downloadBlob(
+            this._baseUrl + "/project/export-project?projectSlug=" + encodeURIComponent(projectSlug));
     }
 
     /**
@@ -417,6 +421,25 @@ export class DialogueBranchAuthoringClient extends BaseClient {
             method: "POST",
             body: formData,
         }).then((response) => this._handleResponse(response));
+    }
+
+    /**
+     * Downloads one dialogue's current *draft* content (what an author sees in Authoring Mode,
+     * not the published version) as a `.dlb` script, with its preamble and nodes in their current
+     * order. The counterpart of {@link importScripts}: the file imports again, unchanged, as a
+     * dialogue of the same name. The dialogue's translations are not part of it.
+     *
+     * Name the file after the dialogue's last name segment (the part after any folder) plus
+     * `.dlb`, so it imports back under the same name.
+     *
+     * @param {string} projectSlug The project's slug.
+     * @param {string} dialogueName The dialogue's name, including its folder (e.g.
+     * `onboarding/welcome`).
+     * @returns {Promise<Blob>} The script, as UTF-8 text.
+     */
+    exportDialogue(projectSlug, dialogueName) {
+        return this._downloadBlob(this._baseUrl + "/authoring/export-dialogue?projectSlug="
+            + encodeURIComponent(projectSlug) + "&dialogueName=" + encodeURIComponent(dialogueName));
     }
 
     /**

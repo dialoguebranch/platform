@@ -32,6 +32,7 @@ import { ref } from 'vue';
 import { DLB_APP_MODE_DRAFT, DLB_APP_MODE_LIVE } from '@/StudioClientState.js';
 
 const authoring = {
+    exportDialogue: vi.fn(),
     restoreDraftDialogue: vi.fn(),
     findDialogueReferences: vi.fn(),
     renameDraftDialogue: vi.fn(),
@@ -42,7 +43,11 @@ vi.mock('@/composables/client.js', () => ({
     useAuthoringClient: () => authoring,
 }));
 
+vi.mock('@/composables/download-blob.js', () => ({ downloadBlob: vi.fn() }));
+
 const { default: DialogueTreeNode } = await import('./DialogueTreeNode.vue');
+const { downloadBlob } = await import('@/composables/download-blob.js');
+const { errorToast } = await import('@/composables/error-toast.js');
 
 function mountNode(props = {}, stateMode = DLB_APP_MODE_DRAFT) {
     const defaultProps = {
@@ -192,5 +197,83 @@ describe('DialogueTreeNode', () => {
 
         expect(authoring.renameDraftDialogue).toHaveBeenCalledWith('test-project', 'folder/test-dialogue', 'folder/renamed-dialogue', true);
         expect(wrapper.emitted('dialoguesChanged')).toBeTruthy();
+    });
+});
+
+describe('DialogueTreeNode — Export as .dlb (#341)', () => {
+    const exportButton = (wrapper) => wrapper.find('button[title="Export as .dlb"]');
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        errorToast.value = null;
+    });
+
+    it('offers the export on a dialogue in Authoring Mode', () => {
+        expect(exportButton(mountNode()).exists()).toBe(true);
+    });
+
+    it('does not offer it in Live Mode, where there is no draft to export', () => {
+        expect(exportButton(mountNode({}, DLB_APP_MODE_LIVE)).exists()).toBe(false);
+    });
+
+    it('does not offer it on a dialogue pending deletion', () => {
+        const wrapper = mountNode({ node: { _file: 'folder/test-dialogue', _isDeleted: true } });
+        expect(exportButton(wrapper).exists()).toBe(false);
+    });
+
+    it('does not offer it on a folder', () => {
+        const wrapper = mountNode({ name: 'folder', node: { _children: {} }, path: 'folder' });
+        expect(exportButton(wrapper).exists()).toBe(false);
+    });
+
+    it('downloads the dialogue, named after its last name segment and not its folder', async () => {
+        const blob = new Blob(['title: Start\n---\nHi.\n===\n']);
+        authoring.exportDialogue.mockResolvedValue(blob);
+        const wrapper = mountNode();
+
+        await exportButton(wrapper).trigger('click');
+        await flushPromises();
+
+        expect(authoring.exportDialogue).toHaveBeenCalledWith('test-project', 'folder/test-dialogue');
+        expect(downloadBlob).toHaveBeenCalledWith(blob, 'test-dialogue.dlb');
+        expect(errorToast.value).toBeNull();
+    });
+
+    it('names the file after a dialogue at the project root as it is', async () => {
+        authoring.exportDialogue.mockResolvedValue(new Blob(['']));
+        const wrapper = mountNode({ node: { _file: 'main', _isDeleted: false } });
+
+        await exportButton(wrapper).trigger('click');
+        await flushPromises();
+
+        expect(downloadBlob.mock.calls[0][1]).toBe('main.dlb');
+    });
+
+    it('shows an error when the export fails, and downloads nothing', async () => {
+        authoring.exportDialogue.mockRejectedValue(Object.assign(new Error('Dialogue not found: x'),
+            { status: 404, statusText: 'Not Found' }));
+        const wrapper = mountNode();
+
+        await exportButton(wrapper).trigger('click');
+        await flushPromises();
+
+        expect(downloadBlob).not.toHaveBeenCalled();
+        expect(errorToast.value).toBeTruthy();
+    });
+
+    it('ignores a second click while the export is still running', async () => {
+        let finish;
+        authoring.exportDialogue.mockReturnValue(new Promise((resolve) => { finish = resolve; }));
+        const wrapper = mountNode();
+
+        await exportButton(wrapper).trigger('click');
+        expect(exportButton(wrapper).attributes('disabled')).toBeDefined();
+        await exportButton(wrapper).trigger('click');
+        expect(authoring.exportDialogue).toHaveBeenCalledTimes(1);
+
+        finish(new Blob(['']));
+        await flushPromises();
+        expect(exportButton(wrapper).attributes('disabled')).toBeUndefined();
+        expect(downloadBlob).toHaveBeenCalledTimes(1);
     });
 });

@@ -9,6 +9,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Studio, web service and client-js: export a single dialogue as a `.dlb` file
+  ([#341](https://github.com/dialoguebranch/platform/issues/341)). *Export as .dlb* on a dialogue in
+  the Dialogue Browser (Authoring Mode) downloads its current draft: the preamble and nodes as an
+  author sees them, not the published version, without translations. The file is named after the
+  dialogue without its folder, and imports again with *Import Scripts* as the same dialogue. The new
+  `GET /authoring/export-dialogue` needs the `editor` or `admin` role; client-js gains
+  `exportDialogue`.
 - Studio: the Variable Browser's History view can be filtered by a date range
   ([#371](https://github.com/dialoguebranch/platform/issues/371)). Pick a **Start date** and an
   **End date** (whole days in your time zone, the one the entries are shown in; the end date is

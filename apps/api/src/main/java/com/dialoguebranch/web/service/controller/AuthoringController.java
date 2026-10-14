@@ -54,11 +54,15 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 
@@ -400,6 +404,58 @@ public class AuthoringController {
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectSlug));
 					return scriptImportService.importScripts(project, folder, files, replace);
+				},
+				version, response, "", Permission.DIALOGUE_AUTHOR);
+	}
+
+	/**
+	 * Exports one draft dialogue as a downloadable {@code .dlb} script (#341): its current
+	 * <em>draft</em> content (what an author sees in Authoring Mode, not the published version),
+	 * with its preamble and nodes in their current order. It is the counterpart of {@code
+	 * /import-scripts}: the file imports again, unchanged, as a dialogue of the same name. The
+	 * dialogue's translations are not part of the file.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project the dialogue belongs to.
+	 * @param dialogueName the name of the draft dialogue to export, including its folder.
+	 * @return the script as UTF-8 text, with a {@code Content-Disposition: attachment} header
+	 * naming the file after the dialogue (without its folder) and {@code .dlb}.
+	 * @throws HttpException if the project or dialogue does not exist, or the user is not
+	 * authorized.
+	 */
+	@Operation(summary = "Export a draft dialogue as a downloadable .dlb script.")
+	@Parameter(name = "version", hidden = true)
+	@GetMapping("/export-dialogue")
+	public ResponseEntity<byte[]> exportDialogue(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug,
+			@RequestParam(value = "dialogueName") String dialogueName
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("GET /v{}/authoring/export-dialogue [user: {}]", version, user);
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					DBDraftDialogue dialogue = draftDialogueService
+							.findDialogue(project, dialogueName)
+							.orElseThrow(() -> new NotFoundException(
+									"Dialogue not found: " + dialogueName));
+					// Dialogue names only hold letters, digits, '_' and '-' (and '/' for folders),
+					// so the file name is plain ASCII.
+					String fileName = dialogueName.substring(dialogueName.lastIndexOf('/') + 1)
+							+ ".dlb";
+					return ResponseEntity.ok()
+							.contentType(new MediaType("text", "plain", StandardCharsets.UTF_8))
+							.header(HttpHeaders.CONTENT_DISPOSITION,
+									ContentDisposition.attachment().filename(fileName).build().toString())
+							.body(draftDialogueService.reconstructScript(dialogue)
+									.getBytes(StandardCharsets.UTF_8));
 				},
 				version, response, "", Permission.DIALOGUE_AUTHOR);
 	}

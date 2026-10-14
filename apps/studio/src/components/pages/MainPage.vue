@@ -15,6 +15,7 @@ import VariableBrowser from '../partials/VariableBrowser.vue';
 import { DLB_APP_MODE_LIVE, DLB_APP_MODE_DRAFT } from '../../StudioClientState.js';
 import { showError } from '../../composables/error-toast.js';
 import { describeError } from '../../composables/error-message.js';
+import { downloadBlob } from '../../composables/download-blob.js';
 
 const config = inject('config');
 const state = inject('state');
@@ -238,16 +239,7 @@ function onExportProjectClick() {
     const slug = state.value.selectedProject.slug;
     exporting.value = true;
     authoringClient.exportProject(slug)
-        .then((blob) => {
-            const url = URL.createObjectURL(blob);
-            const anchor = document.createElement('a');
-            anchor.href = url;
-            anchor.download = slug + '.zip';
-            document.body.appendChild(anchor);
-            anchor.click();
-            anchor.remove();
-            URL.revokeObjectURL(url);
-        })
+        .then((blob) => downloadBlob(blob, slug + '.zip'))
         .catch((error) => {
             showError(describeError(error));
         })
