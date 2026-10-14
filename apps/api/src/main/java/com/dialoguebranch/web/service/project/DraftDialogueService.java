@@ -1114,8 +1114,9 @@ public class DraftDialogueService {
 		} catch (IOException e) {
 			problems.add("could not be read: " + e.getMessage());
 		} catch (RuntimeException e) {
-			// A crash in the parser, not a problem it reports: still refuse the content, since
-			// testing or publishing the project would run into the same crash.
+			// A crash in the parser, not a problem it reports (as a command other than <<input>>
+			// was until #379): still refuse the content, since testing or publishing the project
+			// would run into the same crash.
 			logger.warn("TranslationParser failed on translation content", e);
 			problems.add("could not be read as a translation file");
 		}
