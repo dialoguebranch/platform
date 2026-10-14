@@ -896,7 +896,9 @@ public class AuthoringController {
 	// ----------------------------------------------------------------------- //
 
 	/**
-	 * Creates or updates the translation for a draft dialogue in a given language.
+	 * Creates or updates the translation for a draft dialogue in a given language. The content
+	 * is checked and stored re-serialised, see {@link DraftDialogueService#checkTranslationContent}
+	 * (#376).
 	 *
 	 * @param request the HTTP request (to retrieve authentication headers).
 	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
@@ -907,8 +909,8 @@ public class AuthoringController {
 	 * @param language the language code of the translation to create or update.
 	 * @param payload the raw JSON translation content.
 	 * @return the created or updated translation.
-	 * @throws HttpException if the dialogue is pending deletion, the project or dialogue does
-	 * not exist, or the user is not authorized.
+	 * @throws HttpException if the content isn't a valid translation, the dialogue is pending
+	 * deletion, the project or dialogue does not exist, or the user is not authorized.
 	 */
 	@Operation(summary = "Create or update a translation for a draft dialogue.")
 	@Parameter(name = "version", hidden = true)
@@ -937,8 +939,10 @@ public class AuthoringController {
 					DBDraftTranslationLanguage translationLanguage =
 							resolveTranslationLanguage(project, language);
 					checkNotDeleted(translationLanguage);
+					String content = DraftDialogueService.requireValidTranslationContent(
+							dialogueName, payload.getContent());
 					return draftDialogueService.createOrUpdateTranslation(dialogue,
-							translationLanguage, payload.getContent());
+							translationLanguage, content);
 				},
 				version, response, "", Permission.DIALOGUE_AUTHOR);
 	}

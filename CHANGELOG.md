@@ -40,6 +40,12 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Web service: `update-translation` stored any content it received, so invalid content was only
+  noticed later, when testing a dialogue or publishing the project failed
+  ([#376](https://github.com/dialoguebranch/platform/issues/376)). It now refuses content that
+  isn't a valid translation file, including entries outside a speaker group, with the problems
+  listed, and stores valid content re-serialised, without empty translations.
+
 - Studio: importing a project archive (*Import Project*) failed, because the BFF passed the
   upload on to the web service without its contents
   ([#339](https://github.com/dialoguebranch/platform/issues/339)). The BFF no longer handles

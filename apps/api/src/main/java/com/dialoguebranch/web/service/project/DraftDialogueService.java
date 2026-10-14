@@ -38,6 +38,8 @@ import com.dialoguebranch.execution.parser.ParserResult;
 import com.dialoguebranch.i18n.SourceTranslatable;
 import com.dialoguebranch.i18n.Translatable;
 import com.dialoguebranch.i18n.TranslatableExtractor;
+import com.dialoguebranch.i18n.TranslationParser;
+import com.dialoguebranch.i18n.TranslationParserResult;
 import com.dialoguebranch.i18n.Translator;
 import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.execute.Node;
@@ -57,6 +59,11 @@ import com.dialoguebranch.web.service.storage.model.DBDraftNode;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslation;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslationLanguage;
 import com.dialoguebranch.web.service.storage.model.DBProject;
+import com.fasterxml.jackson.core.JsonLocation;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -92,6 +99,9 @@ public class DraftDialogueService {
 	private static final Logger logger = LoggerFactory.getLogger(DraftDialogueService.class);
 
 	/** Matches a {@code [[...]]} reply bracket; group 1 is everything between the brackets. */
+	/** Reads and writes translation file content, see {@link #checkTranslationContent}. */
+	private static final ObjectMapper TRANSLATION_JSON = new ObjectMapper();
+
 	private static final Pattern REPLY_PATTERN = Pattern.compile("\\[\\[(.*?)]]");
 
 	private final DBDraftDialogueRepository dialogueRepository;
@@ -1037,6 +1047,142 @@ public class DraftDialogueService {
 	public Optional<DBDraftTranslation> findTranslation(DBDraftDialogue dialogue,
 			DBDraftTranslationLanguage language) {
 		return translationRepository.findByDraftDialogueAndLanguage(dialogue, language);
+	}
+
+	/**
+	 * The outcome of {@link #checkTranslationContent}: the content re-serialised, with the number
+	 * of translations it holds, or the problems that make it unusable.
+	 *
+	 * @param content          the re-serialised content, or {@code null} if there are problems.
+	 * @param translationCount the number of (non-empty) translations in {@code content}.
+	 * @param problems         what makes the content unusable; empty if it's valid.
+	 */
+	public record CheckedTranslationContent(String content, int translationCount,
+			List<String> problems) {
+	}
+
+	/**
+	 * Checks translation file content and re-serialises it (#376), so invalid content is refused
+	 * where it's stored instead of failing later, when the project is tested or published.
+	 *
+	 * <p>Valid content is a JSON object of speaker groups (for example {@code {"Martin":
+	 * {"Hello.": "Hallo."}}}, with {@code _user} for the user's replies), possibly with context
+	 * groups nested inside, that {@link TranslationParser} reads without errors. An entry without
+	 * a speaker (a string value at the top level, which the POEditor format allows) is refused: a
+	 * translation only applies to its own speaker, so it could never be used (#377).</p>
+	 *
+	 * <p>The re-serialised content keeps the structure and order of the original, without
+	 * entries whose translation is empty (which {@link TranslationParser} skips anyway) and the
+	 * groups left empty by that.</p>
+	 *
+	 * @param content the translation file content.
+	 * @return the re-serialised content, or the problems with it.
+	 */
+	public static CheckedTranslationContent checkTranslationContent(String content) {
+		if (content == null || content.isBlank()) {
+			return new CheckedTranslationContent(null, 0, List.of("the translation is empty"));
+		}
+		JsonNode root;
+		try {
+			root = TRANSLATION_JSON.readTree(content);
+		} catch (JsonProcessingException e) {
+			JsonLocation location = e.getLocation();
+			return new CheckedTranslationContent(null, 0, List.of("not valid JSON" +
+					(location != null ? " (line " + location.getLineNr() + ", column " +
+							location.getColumnNr() + ")" : "") + ": " + e.getOriginalMessage()));
+		}
+		if (!(root instanceof ObjectNode rootObject)) {
+			return new CheckedTranslationContent(null, 0,
+					List.of("not a JSON object of speakers and their translations"));
+		}
+
+		List<String> problems = new ArrayList<>();
+		checkTranslationStructure(rootObject, true, problems);
+		if (!problems.isEmpty()) return new CheckedTranslationContent(null, 0, problems);
+
+		try {
+			TranslationParserResult parsed = TranslationParser.parse(new StringReader(content));
+			parsed.getParseErrors().forEach(e -> problems.add(e.getMessage()));
+		} catch (IOException e) {
+			problems.add("could not be read: " + e.getMessage());
+		} catch (RuntimeException e) {
+			// A crash in the parser, not a problem it reports: still refuse the content, since
+			// testing or publishing the project would run into the same crash.
+			logger.warn("TranslationParser failed on translation content", e);
+			problems.add("could not be read as a translation file");
+		}
+		if (!problems.isEmpty()) return new CheckedTranslationContent(null, 0, problems);
+
+		int[] count = {0};
+		ObjectNode cleaned = withoutEmptyTranslations(rootObject, count);
+		try {
+			return new CheckedTranslationContent(
+					TRANSLATION_JSON.writerWithDefaultPrettyPrinter().writeValueAsString(cleaned),
+					count[0], List.of());
+		} catch (JsonProcessingException e) {
+			throw new IllegalStateException("Failed to write translation content", e);
+		}
+	}
+
+	/**
+	 * Adds a problem for every value in {@code group} that is neither a translation (a string)
+	 * nor a group (an object), and, at the top level, for every translation outside a speaker
+	 * group.
+	 */
+	private static void checkTranslationStructure(ObjectNode group, boolean topLevel,
+			List<String> problems) {
+		group.properties().forEach(entry -> {
+			JsonNode value = entry.getValue();
+			if (value.isObject()) {
+				checkTranslationStructure((ObjectNode) value, false, problems);
+			} else if (!value.isTextual()) {
+				problems.add("\"" + entry.getKey() + "\" must have a translation text or a " +
+						"group as its value");
+			} else if (topLevel) {
+				problems.add("\"" + entry.getKey() + "\" has no speaker: put it inside the " +
+						"group of the speaker it translates");
+			}
+		});
+	}
+
+	/**
+	 * Returns a copy of {@code group} without empty translations and the groups left empty,
+	 * adding the number of translations kept to {@code count[0]}.
+	 */
+	private static ObjectNode withoutEmptyTranslations(ObjectNode group, int[] count) {
+		ObjectNode result = TRANSLATION_JSON.createObjectNode();
+		group.properties().forEach(entry -> {
+			JsonNode value = entry.getValue();
+			if (value.isObject()) {
+				ObjectNode nested = withoutEmptyTranslations((ObjectNode) value, count);
+				if (!nested.isEmpty()) result.set(entry.getKey(), nested);
+			} else if (!value.asText().isBlank()) {
+				result.set(entry.getKey(), value);
+				count[0]++;
+			}
+		});
+		return result;
+	}
+
+	/**
+	 * Returns translation content checked and re-serialised by {@link #checkTranslationContent},
+	 * or refuses it.
+	 *
+	 * @param dialogueName the dialogue the translation is for, used in the error.
+	 * @param content      the translation file content.
+	 * @return the re-serialised content.
+	 * @throws BadRequestException if the content is invalid; its errors list the problems under
+	 * {@code dialogueName}.
+	 */
+	public static String requireValidTranslationContent(String dialogueName, String content)
+			throws BadRequestException {
+		CheckedTranslationContent checked = checkTranslationContent(content);
+		if (!checked.problems().isEmpty()) {
+			throw new BadRequestException(new ProjectParseHttpError("The translation of '" +
+					dialogueName + "' contains errors and was not saved.",
+					Map.of(dialogueName, checked.problems())));
+		}
+		return checked.content();
 	}
 
 	/**
