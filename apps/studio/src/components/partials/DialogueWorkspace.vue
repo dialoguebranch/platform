@@ -469,6 +469,21 @@ function dialoguesReplaced(dialogueNames) {
     }
 }
 
+// Called after an import replaced or added the draft translations of these dialogues (#340): the
+// open Translation Editor reloads them, and a test running in a tab is reconciled the same way as
+// after editing its dialogue (see handleReturnFromEdit).
+function translationsReplaced(dialogueNames) {
+    for (const tab of tabs.value) {
+        if (dialogueNames.includes(tab.dialogueName)) tab.dialogueEdited = true;
+    }
+    if (!dialogueNames.includes(activeTab.value?.dialogueName)) return;
+    if (selectedMode.value === 'translate') {
+        translationEditor.value?.reload();
+    } else if (selectedMode.value !== 'edit') {
+        handleReturnFromEdit(activeTab.value);
+    }
+}
+
 // Called whenever the mode switches away from 'edit' back to Balloon/Text. If the dialogue in the
 // tab being left was edited and already had a test running, that test's content is now stale:
 // a "live" (published, logged) test is force-switched to an ephemeral draft test (with a notice,
@@ -658,6 +673,7 @@ defineExpose({
     openDialogue,
     loadAvailableLanguages,
     dialoguesReplaced,
+    translationsReplaced,
 });
 
 // ---- Tab bar scroll ----

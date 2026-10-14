@@ -41,9 +41,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.charset.CharacterCodingException;
-import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -61,12 +58,6 @@ import java.util.Set;
  */
 @Service
 public class ScriptImportService {
-
-	/** The most files one import may contain. */
-	static final int MAX_FILES = 100;
-
-	/** The largest file one import may contain, in bytes. */
-	static final long MAX_FILE_SIZE_BYTES = 1024 * 1024;
 
 	private static final String SCRIPT_EXTENSION = ".dlb";
 
@@ -103,23 +94,14 @@ public class ScriptImportService {
 	@Transactional(rollbackFor = Exception.class)
 	public List<ImportedScript> importScripts(DBProject project, String folder,
 			List<MultipartFile> files, boolean replace) throws BadRequestException {
-		String folderPath = normalizeFolder(folder);
-		if (folderPath == null) {
-			throw new BadRequestException("Invalid folder '" + folder + "': use names of " +
-					"letters, digits, '_' and '-', separated by '/'.");
-		}
-		if (files == null || files.isEmpty()) {
-			throw new BadRequestException("No files to import.");
-		}
-		if (files.size() > MAX_FILES) {
-			throw new BadRequestException("Too many files: at most " + MAX_FILES + " per import.");
-		}
+		String folderPath = ImportFiles.requireFolder(folder);
+		ImportFiles.requireFileCount(files);
 
 		Map<String, List<String>> problems = new LinkedHashMap<>();
 		Set<String> namesInImport = new HashSet<>();
 		List<CheckedScript> checked = new ArrayList<>();
 		for (MultipartFile file : files) {
-			String fileName = baseName(file.getOriginalFilename());
+			String fileName = ImportFiles.baseName(file.getOriginalFilename());
 			List<String> fileProblems = new ArrayList<>();
 			CheckedScript script = check(project, folderPath, fileName, file, replace,
 					namesInImport, fileProblems);
@@ -165,20 +147,8 @@ public class ScriptImportService {
 			problems.add("more than one file in this import is named '" + fileName + "'");
 			return null;
 		}
-		if (file.getSize() > MAX_FILE_SIZE_BYTES) {
-			problems.add("larger than " + (MAX_FILE_SIZE_BYTES / 1024) + " KB");
-			return null;
-		}
-		String content;
-		try {
-			content = decodeUtf8(file.getBytes());
-		} catch (CharacterCodingException e) {
-			problems.add("not a UTF-8 text file");
-			return null;
-		} catch (IOException e) {
-			problems.add("could not be read: " + e.getMessage());
-			return null;
-		}
+		String content = ImportFiles.readText(file, problems);
+		if (content == null) return null;
 		Optional<DBDraftDialogue> existing = draftDialogueService.findDialogue(project,
 				dialogueName);
 		if (existing.isPresent() && !replace) {
@@ -188,35 +158,6 @@ public class ScriptImportService {
 		problems.addAll(draftDialogueService.checkScriptForDraft(content));
 		return new CheckedScript(fileName, dialogueName, content, existing,
 				parseErrors(dialogueName, content));
-	}
-
-	/**
-	 * Returns the folder as a dialogue name prefix, without leading or trailing slashes; empty
-	 * for the project root, or {@code null} if it isn't a valid folder.
-	 */
-	static String normalizeFolder(String folder) {
-		if (folder == null) return "";
-		String trimmed = folder.trim();
-		while (trimmed.startsWith("/")) trimmed = trimmed.substring(1);
-		while (trimmed.endsWith("/")) trimmed = trimmed.substring(0, trimmed.length() - 1);
-		if (trimmed.isEmpty()) return "";
-		return trimmed.matches(DialogueBranchParser.DIALOGUE_NAME_REGEX) ? trimmed : null;
-	}
-
-	/** The file name without any directory part a browser or client may have sent along. */
-	private static String baseName(String originalFilename) {
-		if (originalFilename == null) return "";
-		String name = originalFilename.replace('\\', '/');
-		return name.substring(name.lastIndexOf('/') + 1);
-	}
-
-	/** Strict UTF-8 decoding, without a leading byte order mark. */
-	static String decodeUtf8(byte[] bytes) throws CharacterCodingException {
-		String text = StandardCharsets.UTF_8.newDecoder()
-				.onMalformedInput(CodingErrorAction.REPORT)
-				.onUnmappableCharacter(CodingErrorAction.REPORT)
-				.decode(ByteBuffer.wrap(bytes)).toString();
-		return text.startsWith("﻿") ? text.substring(1) : text;
 	}
 
 	private static List<String> parseErrors(String dialogueName, String content) {

@@ -31,7 +31,10 @@ package com.dialoguebranch.web.service.repository;
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslation;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslationLanguage;
+import com.dialoguebranch.web.service.storage.model.DBProject;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -72,5 +75,18 @@ public interface DBDraftTranslationRepository extends JpaRepository<DBDraftTrans
 	 * @return the list of translations targeting {@code language}.
 	 */
 	List<DBDraftTranslation> findByLanguage(DBDraftTranslationLanguage language);
+
+	/**
+	 * Lists which draft dialogue of the given project has a translation in which language,
+	 * without loading any translation content.
+	 *
+	 * @param project the project whose draft translations should be listed.
+	 * @return one {@link DraftDialogueTranslationLanguage} per draft translation.
+	 */
+	@Query("SELECT t.draftDialogue.id AS dialogueId, " +
+			"t.language.translationLanguageCode AS languageCode " +
+			"FROM DBDraftTranslation t WHERE t.draftDialogue.project = :project")
+	List<DraftDialogueTranslationLanguage> findLanguagesByProject(
+			@Param("project") DBProject project);
 
 }

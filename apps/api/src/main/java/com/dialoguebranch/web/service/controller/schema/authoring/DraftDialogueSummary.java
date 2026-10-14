@@ -30,6 +30,8 @@ package com.dialoguebranch.web.service.controller.schema.authoring;
 
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
 
+import java.util.List;
+
 /**
  * Summary of a draft dialogue as returned by the {@code /list-dialogues} end-point, exposing its
  * name, last-updated time, node count and persisted status flags rather than the full entity.
@@ -46,15 +48,19 @@ public class DraftDialogueSummary {
 	private final boolean isDeleted;
 	private final String previousPublishedName;
 	private final String preamble;
+	private final List<String> translatedInto;
 
 	/**
 	 * Creates a {@link DraftDialogueSummary} from the given {@link DBDraftDialogue} entity and a
 	 * separately-computed node count (the entity's node collection is not touched).
 	 *
-	 * @param dialogue  the draft dialogue entity to summarize.
-	 * @param nodeCount the number of nodes the draft dialogue contains.
+	 * @param dialogue             the draft dialogue entity to summarize.
+	 * @param nodeCount            the number of nodes the draft dialogue contains.
+	 * @param translatedInto       the codes of the project's translation languages this draft
+	 *                             dialogue already has a translation in.
 	 */
-	public DraftDialogueSummary(DBDraftDialogue dialogue, int nodeCount) {
+	public DraftDialogueSummary(DBDraftDialogue dialogue, int nodeCount,
+			List<String> translatedInto) {
 		this.name = dialogue.getName();
 		this.updatedAt = dialogue.getUpdatedAt() != null ? dialogue.getUpdatedAt().toString() : null;
 		this.nodeCount = nodeCount;
@@ -63,6 +69,7 @@ public class DraftDialogueSummary {
 		this.isDeleted = dialogue.getIsDeleted();
 		this.previousPublishedName = dialogue.getPreviousPublishedName();
 		this.preamble = dialogue.getPreamble();
+		this.translatedInto = translatedInto;
 	}
 
 	/**
@@ -140,6 +147,17 @@ public class DraftDialogueSummary {
 	 */
 	public String getPreamble() {
 		return preamble;
+	}
+
+	/**
+	 * Returns the codes of the project's translation languages this draft dialogue already has a
+	 * translation in, sorted (#340). The project defines its translation languages; a dialogue
+	 * only has a translation in one once it has been translated (in Studio, or by an import).
+	 *
+	 * @return the translation language codes, empty if the dialogue has no translations yet.
+	 */
+	public List<String> getTranslatedInto() {
+		return translatedInto;
 	}
 
 }

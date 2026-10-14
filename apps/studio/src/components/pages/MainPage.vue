@@ -6,6 +6,8 @@ import { useStateManagement } from '../../composables/state-management.js';
 import DialogueBrowser from '../partials/DialogueBrowser.vue';
 import ConfigureProjectModal from '../partials/ConfigureProjectModal.vue';
 import PublishProjectWizardModal from '../partials/PublishProjectWizardModal.vue';
+import ImportScriptsModal from '../partials/ImportScriptsModal.vue';
+import ImportTranslationsModal from '../partials/ImportTranslationsModal.vue';
 import SetDelegateUserModal from '../partials/SetDelegateUserModal.vue';
 import TechnicalInfoModal from '../partials/TechnicalInfoModal.vue';
 import HeaderMenuItem from '../widgets/HeaderMenuItem.vue';
@@ -259,6 +261,59 @@ function onProjectPublished(version) {
     dialogueBrowser.value?.listDialogues();
 }
 
+// ---- Importing scripts (#339) and translations (#340) ----
+// Both import into the draft content, so like Configure/Publish they're Authoring-Mode-only; any
+// author may import (DIALOGUE_AUTHOR), not only an admin.
+
+const isAuthor = computed(() => isAdmin.value || !!state.value.user?.roles?.includes('editor'));
+const canImport = computed(() => isAuthor.value && state.value.mode === DLB_APP_MODE_DRAFT);
+const importDisabledReason = computed(() => {
+    if (!isAuthor.value) return "You don't have permission to import into this project.";
+    if (state.value.mode !== DLB_APP_MODE_DRAFT) return 'Switch to Authoring Mode to import.';
+    return '';
+});
+
+// 'scripts' or 'translations' while that import modal is open.
+const importKind = ref(null);
+const importDialogues = ref([]);
+const importLanguages = ref([]);
+
+function onImportClick(kind) {
+    if (!canImport.value) return;
+    closeProjectMenu();
+    const slug = state.value.selectedProject?.slug;
+    // The modals preview against the current draft dialogues (and, for translations, the
+    // project's translation languages), so fetch them fresh rather than relying on whatever the
+    // Dialogue Browser last loaded.
+    Promise.all([
+        authoringClient.listDraftDialogues(slug),
+        kind === 'translations' ? authoringClient.getProject(slug) : Promise.resolve(null),
+    ])
+        .then(([dialogues, project]) => {
+            importDialogues.value = (dialogues ?? []).map((d) => ({
+                name: d.name, isDeleted: d.isDeleted, translatedInto: d.translatedInto ?? [],
+            }));
+            importLanguages.value = (project?.draftTranslationLanguages ?? [])
+                .filter((l) => !l.isDeleted)
+                .map((l) => ({ code: l.translationLanguageCode, name: l.translationLanguageName }));
+            importKind.value = kind;
+        })
+        .catch((error) => {
+            showError(describeError(error));
+        });
+}
+
+function onScriptsImported(results) {
+    dialogueBrowser.value?.listDialogues();
+    const replaced = results.filter((result) => result.replaced).map((result) => result.dialogueName);
+    if (replaced.length) dialogueWorkspace.value?.dialoguesReplaced(replaced);
+}
+
+function onTranslationsImported(results) {
+    dialogueBrowser.value?.listDialogues();
+    dialogueWorkspace.value?.translationsReplaced(results.map((result) => result.dialogueName));
+}
+
 const activeDelegateUser = ref(null);
 const showDelegateModal = ref(false);
 const delegateConfirmAction = ref(null);
@@ -308,10 +363,6 @@ function onOpenDialogue(dialogueName) {
 
 function onNewDialogueStep() {
     variableBrowser.value?.loadVariables();
-}
-
-function onDialoguesReplaced(dialogueNames) {
-    dialogueWorkspace.value?.dialoguesReplaced(dialogueNames);
 }
 
 function onDialogueSaved() {
@@ -442,6 +493,29 @@ function onWorkspaceModeChanged(mode) {
                         Export Project
                     </button>
                     <div class="border-t border-grey-light mx-3"></div>
+                    <button
+                        type="button"
+                        :class="['flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm transition-colors', canImport ? 'text-orange-darker hover:bg-grey-lighter cursor-pointer' : 'text-grey-light cursor-not-allowed']"
+                        :disabled="!canImport"
+                        :title="importDisabledReason"
+                        data-test="menu-import-scripts"
+                        @click="onImportClick('scripts')"
+                    >
+                        <FontAwesomeIcon icon="fa-solid fa-file-import" class="w-4" :class="canImport ? 'text-orange-medium' : 'text-grey-light'" />
+                        Import Scripts
+                    </button>
+                    <button
+                        type="button"
+                        :class="['flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm transition-colors', canImport ? 'text-orange-darker hover:bg-grey-lighter cursor-pointer' : 'text-grey-light cursor-not-allowed']"
+                        :disabled="!canImport"
+                        :title="importDisabledReason"
+                        data-test="menu-import-translations"
+                        @click="onImportClick('translations')"
+                    >
+                        <FontAwesomeIcon icon="fa-solid fa-language" class="w-4" :class="canImport ? 'text-orange-medium' : 'text-grey-light'" />
+                        Import Translations
+                    </button>
+                    <div class="border-t border-grey-light mx-3"></div>
                     <button type="button" class="flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm text-orange-darker hover:bg-grey-lighter cursor-pointer transition-colors" @click="onSwitchProjectClick">
                         <FontAwesomeIcon icon="fa-solid fa-folder-minus" class="w-4 text-orange-medium" />
                         Close Project
@@ -519,6 +593,20 @@ function onWorkspaceModeChanged(mode) {
             @published="onProjectPublished"
         />
 
+        <ImportScriptsModal
+            v-if="importKind === 'scripts'"
+            :dialogues="importDialogues"
+            @close="importKind = null"
+            @imported="onScriptsImported"
+        />
+        <ImportTranslationsModal
+            v-if="importKind === 'translations'"
+            :dialogues="importDialogues"
+            :languages="importLanguages"
+            @close="importKind = null"
+            @imported="onTranslationsImported"
+        />
+
         <ResizablePanels
             ref="panels"
             class="grow"
@@ -536,7 +624,6 @@ function onWorkspaceModeChanged(mode) {
                     @activateTab="onActivateTab"
                     @hasUnpublishedChanges="hasUnpublishedDialogueChanges = $event"
                     @openDialogue="onOpenDialogue"
-                    @dialoguesReplaced="onDialoguesReplaced"
                 />
             </template>
             <template #main>

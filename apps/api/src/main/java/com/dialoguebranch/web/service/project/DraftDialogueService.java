@@ -54,6 +54,7 @@ import com.dialoguebranch.web.service.repository.DBDraftDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBDraftNodeRepository;
 import com.dialoguebranch.web.service.repository.DBDraftTranslationRepository;
 import com.dialoguebranch.web.service.repository.DraftDialogueNodeCount;
+import com.dialoguebranch.web.service.repository.DraftDialogueTranslationLanguage;
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
 import com.dialoguebranch.web.service.storage.model.DBDraftNode;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslation;
@@ -139,9 +140,9 @@ public class DraftDialogueService {
 
 	/**
 	 * Returns a {@link DraftDialogueSummary} for every draft dialogue in the given project —
-	 * name, last-updated time, node count and status flags — ordered "folders first" (see
-	 * {@link DialogueNameComparator}). Node counts come from a single grouped query, so no node
-	 * content is loaded.
+	 * name, last-updated time, node count, status flags and translation languages — ordered
+	 * "folders first" (see {@link DialogueNameComparator}). Node counts and translation languages
+	 * come from one query each, so no node or translation content is loaded.
 	 *
 	 * @param project the owning project.
 	 * @return the project's draft dialogues, summarized and ordered.
@@ -150,9 +151,16 @@ public class DraftDialogueService {
 		Map<UUID, Long> nodeCounts = nodeRepository.countNodesByProject(project).stream()
 				.collect(Collectors.toMap(DraftDialogueNodeCount::getDialogueId,
 						DraftDialogueNodeCount::getNodeCount));
+		Map<UUID, List<String>> languages = translationRepository.findLanguagesByProject(project)
+				.stream().collect(Collectors.groupingBy(
+						DraftDialogueTranslationLanguage::getDialogueId,
+						Collectors.mapping(DraftDialogueTranslationLanguage::getLanguageCode,
+								Collectors.toList())));
 		return dialogueRepository.findByProject(project).stream()
 				.map(dialogue -> new DraftDialogueSummary(dialogue,
-						nodeCounts.getOrDefault(dialogue.getId(), 0L).intValue()))
+						nodeCounts.getOrDefault(dialogue.getId(), 0L).intValue(),
+						languages.getOrDefault(dialogue.getId(), List.of()).stream()
+								.sorted().toList()))
 				.sorted(Comparator.comparing(DraftDialogueSummary::getName,
 						DialogueNameComparator.FOLDERS_FIRST))
 				.toList();
