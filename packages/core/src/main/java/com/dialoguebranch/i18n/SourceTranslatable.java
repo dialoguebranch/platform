@@ -28,6 +28,7 @@
 
 package com.dialoguebranch.i18n;
 
+import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.execute.NodeBody;
 import org.jspecify.annotations.Nullable;
 
@@ -40,10 +41,10 @@ import org.jspecify.annotations.Nullable;
  * NodeBody NodeBody}, and are consumed by {@link Translator} to look up
  * and apply the correct translation from a translation map.</p>
  *
- * @param speaker   the name of the agent delivering the statement, {@link #USER} when the
+ * @param speaker   the name of the agent delivering the statement, {@link DialogueBranchConstants#DLB_USER_SPEAKER} when the
  *                  statement belongs to the end-user, or {@code null} when there is no
  *                  conversational context (e.g. a bare translation string).
- * @param addressee the name of the agent being addressed, {@link #USER} when the end-user is
+ * @param addressee the name of the agent being addressed, {@link DialogueBranchConstants#DLB_USER_SPEAKER} when the end-user is
  *                  being addressed, or {@code null} when there is no conversational context.
  * @param translatable the {@link Translatable} segment (text, variables, and optional
  *                     {@code <<input>>} commands) that may need to be translated.
@@ -53,7 +54,4 @@ import org.jspecify.annotations.Nullable;
  */
 public record SourceTranslatable(@Nullable String speaker, @Nullable String addressee,
 		Translatable translatable) {
-
-	/** The string to use when the speaker of a statement is the user of the system. */
-	public static final String USER = "_user";
 }

@@ -50,6 +50,15 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   a valid dialogue name, or can't be stored as draft nodes, and reports syntax errors per file
   without refusing them. client-js gains `importScripts`.
 
+### Changed
+
+- **Breaking:** Language: the speaker name `_user` is reserved
+  ([#383](https://github.com/dialoguebranch/platform/issues/383)). Translation files use it for
+  the user's replies, so a node with `speaker: _user` collided with them; the parser now refuses
+  it (except on an `End` node, whose speaker is ignored), and Studio's node edit panel refuses it
+  before saving. In `dlb-core-java`, the reserved name is `DialogueBranchConstants.DLB_USER_SPEAKER`,
+  which replaces `SourceTranslatable.USER`.
+
 ### Fixed
 
 - Core: a translation containing a command other than `<<input>>` (for example `<<if>>` or

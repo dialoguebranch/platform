@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { tagsToMap, mapToTags, getPosition, setPosition, RESERVED_HEADER_TAGS } from './DlbHeaderTags.js';
+import { tagsToMap, mapToTags, getPosition, setPosition, RESERVED_HEADER_TAGS, USER_SPEAKER } from './DlbHeaderTags.js';
 
 const TAGS = [
     { key: 'title', value: 'Start' },
@@ -48,5 +48,14 @@ describe('RESERVED_HEADER_TAGS', () => {
         const coreTags = [...declaration.matchAll(/"([^"]+)"/g)].map((match) => match[1]);
         expect(RESERVED_HEADER_TAGS).toEqual(coreTags);
         expect(RESERVED_HEADER_TAGS).toContain('comment');
+    });
+});
+
+describe('USER_SPEAKER', () => {
+    it('matches DialogueBranchConstants.DLB_USER_SPEAKER in core', () => {
+        const constants = readFileSync(resolve(process.cwd(),
+            '../../packages/core/src/main/java/com/dialoguebranch/model/common/DialogueBranchConstants.java'),
+            'utf8');
+        expect(USER_SPEAKER).toBe(constants.match(/DLB_USER_SPEAKER\s*=\s*"([^"]*)"/)[1]);
     });
 });

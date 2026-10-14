@@ -73,6 +73,29 @@ async function save(wrapper) {
 
 const savedTags = () => authoring.updateDraftNode.mock.calls.at(-1)[3];
 
+describe('NodeEditPanel speaker', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        authoring.updateDraftNode.mockImplementation(async (slug, dialogue, title, tags, body) =>
+            ({ title, tags, body }));
+    });
+
+    it('refuses the reserved speaker name _user without saving', async () => {
+        const wrapper = mountPanel();
+        await wrapper.find('[data-test="node-speaker"]').setValue(' _user ');
+        await save(wrapper);
+        expect(authoring.updateDraftNode).not.toHaveBeenCalled();
+        expect(wrapper.text()).toContain('Speaker name "_user" is reserved');
+    });
+
+    it('saves a similar speaker name', async () => {
+        const wrapper = mountPanel();
+        await wrapper.find('[data-test="node-speaker"]').setValue('_User');
+        await save(wrapper);
+        expect(savedTags().find((tag) => tag.key === 'speaker').value).toBe('_User');
+    });
+});
+
 describe('NodeEditPanel comment', () => {
     beforeEach(() => {
         vi.clearAllMocks();

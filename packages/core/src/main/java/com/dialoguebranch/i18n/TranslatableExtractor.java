@@ -28,6 +28,7 @@
 
 package com.dialoguebranch.i18n;
 
+import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.execute.Node;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.NodeHeader;
@@ -59,7 +60,7 @@ public class TranslatableExtractor {
 
 	/**
 	 * Extracts all translatable segments from the given {@link Node}, using the node's configured
-	 * speaker as the speaker and {@link SourceTranslatable#USER} as the addressee.
+	 * speaker as the speaker and {@link DialogueBranchConstants#DLB_USER_SPEAKER} as the addressee.
 	 *
 	 * @param node the {@link Node} from which to extract translatable segments.
 	 * @return a {@link List} of {@link SourceTranslatable}s found in the node body.
@@ -67,7 +68,7 @@ public class TranslatableExtractor {
 	public List<SourceTranslatable> extractFromNode(Node node) {
 		NodeHeader header = Objects.requireNonNull(node.getHeader(), "Node has no header");
 		NodeBody body = (NodeBody) Objects.requireNonNull(node.getBody(), "Node has no body");
-		return extractFromBody(header.getSpeaker(), SourceTranslatable.USER, body);
+		return extractFromBody(header.getSpeaker(), DialogueBranchConstants.DLB_USER_SPEAKER, body);
 	}
 
 	/**
@@ -77,9 +78,9 @@ public class TranslatableExtractor {
 	 * of the surrounding translatable segment.
 	 *
 	 * @param speaker   the name of the agent delivering the top-level statements in {@code body},
-	 *                  or {@link SourceTranslatable#USER} when statements belong to the end-user.
+	 *                  or {@link DialogueBranchConstants#DLB_USER_SPEAKER} when statements belong to the end-user.
 	 * @param addressee the name of the agent being addressed at the top level, or
-	 *                  {@link SourceTranslatable#USER} when the end-user is addressed.
+	 *                  {@link DialogueBranchConstants#DLB_USER_SPEAKER} when the end-user is addressed.
 	 * @param body      the {@link NodeBody} to extract translatable segments from.
 	 * @return a {@link List} of {@link SourceTranslatable}s found in the body and its nested
 	 *         commands and replies.

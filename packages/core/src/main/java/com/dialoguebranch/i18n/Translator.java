@@ -28,6 +28,7 @@
 
 package com.dialoguebranch.i18n;
 
+import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.Node;
 import com.dialoguebranch.model.execute.NodeBody;
@@ -104,7 +105,7 @@ public class Translator {
 		for (Node node : dialogue.getNodes()) {
 			NodeHeader header = Objects.requireNonNull(node.getHeader(), "Node has no header");
 			NodeBody body = (NodeBody) Objects.requireNonNull(node.getBody(), "Node has no body");
-			NodeBody translated = translateBody(header.getSpeaker(), SourceTranslatable.USER,
+			NodeBody translated = translateBody(header.getSpeaker(), DialogueBranchConstants.DLB_USER_SPEAKER,
 					body);
 			dialogue.addNode(new Node(header, translated));
 		}
@@ -123,7 +124,7 @@ public class Translator {
 		node = new Node(node);
 		NodeHeader header = Objects.requireNonNull(node.getHeader(), "Node has no header");
 		NodeBody body = (NodeBody) Objects.requireNonNull(node.getBody(), "Node has no body");
-		NodeBody translated = translateBody(header.getSpeaker(), SourceTranslatable.USER, body);
+		NodeBody translated = translateBody(header.getSpeaker(), DialogueBranchConstants.DLB_USER_SPEAKER, body);
 		return new Node(header, translated);
 	}
 
@@ -290,7 +291,7 @@ public class Translator {
 	}
 
 	private TranslationContext.Gender getGenderForSpeaker(@Nullable String speaker) {
-		if (SourceTranslatable.USER.equals(speaker))
+		if (DialogueBranchConstants.DLB_USER_SPEAKER.equals(speaker))
 			return context.getUserGender();
 		if (context.getAgentGenders().containsKey(speaker))
 			return context.getAgentGenders().get(speaker);
@@ -311,7 +312,7 @@ public class Translator {
 	}
 
 	private String getSpeakerContext(String speaker) {
-		if (speaker.equals(SourceTranslatable.USER))
+		if (speaker.equals(DialogueBranchConstants.DLB_USER_SPEAKER))
 			return "_user";
 		else
 			return speaker;

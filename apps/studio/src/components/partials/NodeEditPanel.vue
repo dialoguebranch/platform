@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useAuthoringClient } from '@/composables/client.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError } from '@/composables/error-toast.js';
-import { tagsToMap, mapToTags } from '@/authoring/DlbHeaderTags.js';
+import { tagsToMap, mapToTags, USER_SPEAKER } from '@/authoring/DlbHeaderTags.js';
 import { COLOR_PALETTE, colorForId } from '@/composables/node-colors.js';
 import TextInput from '../widgets/TextInput.vue';
 import PushButton from '../widgets/PushButton.vue';
@@ -63,6 +63,11 @@ function onSave() {
     }
     if (!NODE_NAME_REGEX.test(newTitle)) {
         error.value = 'Title may only contain letters, digits, underscores, and hyphens.';
+        return;
+    }
+    if (speaker.value.trim() === USER_SPEAKER) {
+        // Reserved for the user's replies in translation files (#383); the parser refuses it too.
+        error.value = `Speaker name "${USER_SPEAKER}" is reserved for the user's replies in translations.`;
         return;
     }
     error.value = '';
@@ -311,7 +316,7 @@ defineExpose({
                         </div>
                         <div class="flex-1 min-w-0">
                             <label class="block font-title font-bold text-sm text-orange-darker mb-1">Speaker</label>
-                            <TextInput class="w-full" v-model="speaker" placeholder="Speaker name..." />
+                            <TextInput class="w-full" v-model="speaker" data-test="node-speaker" placeholder="Speaker name..." />
                         </div>
                     </div>
 

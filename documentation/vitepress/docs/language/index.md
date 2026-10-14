@@ -30,7 +30,7 @@ The header consists of a series of lines, each with a `key: value`-pair (a *tag*
 The two required key-value pairs are:
 
 * `title` — a String matching `[A-Za-z0-9_-]+` that uniquely identifies this *Node* within this dialogue (matching is case-insensitive).
-* `speaker` — a String that defines the name of the *Agent* speaking in this *Node*. Required for every node, **except** a node titled [`End`](#ending-a-dialogue), whose speaker is ignored even if present.
+* `speaker` — a String that defines the name of the *Agent* speaking in this *Node*. Required for every node, **except** a node titled [`End`](#ending-a-dialogue), whose speaker is ignored even if present. The name `_user` is reserved: translation files use it for the user's replies, so it can't be a speaker name.
 
 You are free to define other key-value pairs that might serve as meta-data in your application. The following tags are reserved; the first two are used by the visual editor in Dialogue Branch Studio (see [Dialogue Branch Web Services](/web-services/)):
 
