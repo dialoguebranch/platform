@@ -52,6 +52,12 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Core: a translation containing a command other than `<<input>>` (for example `<<if>>` or
+  `<<set>>`) made `TranslationParser` crash instead of reporting a parse error
+  ([#379](https://github.com/dialoguebranch/platform/issues/379)), so loading, verifying,
+  publishing or draft-testing a project with such a translation failed with an internal error.
+  It is now reported as an invalid translation string, naming the command.
+
 - Web service: `update-translation` stored any content it received, so invalid content was only
   noticed later, when testing a dialogue or publishing the project failed
   ([#376](https://github.com/dialoguebranch/platform/issues/376)). It now refuses content that

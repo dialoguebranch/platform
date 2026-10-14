@@ -103,9 +103,8 @@ class TranslationContentCheckTest {
 	}
 
 	@Test
-	void contentTheParserCrashesOnIsRefused() {
-		// TranslationParser currently crashes on a command other than <<input>> in a translation
-		// instead of reporting it; the content must be refused either way.
-		assertRefused("{\"Martin\":{\"Hello.\":\"Hallo <<if $x>>.\"}}", "could not be read");
+	void aCommandOtherThanInputIsRefusedWithTheParseError() {
+		// TranslationParser crashed on this before #379; it now reports it as a parse error.
+		assertRefused("{\"Martin\":{\"Hello.\":\"Hallo <<if $x>>.\"}}", "Unexpected command: if");
 	}
 }

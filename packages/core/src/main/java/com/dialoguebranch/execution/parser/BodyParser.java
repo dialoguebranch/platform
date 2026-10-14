@@ -69,6 +69,20 @@ public class BodyParser {
 	}
 
 	/**
+	 * Records an authoring mistake on the {@link NodeState}, so parsing can continue (#211). A
+	 * translation string has no node, so {@link com.dialoguebranch.i18n.TranslationParser} parses
+	 * it without a {@link NodeState}; the mistake is then thrown instead, and reported as an
+	 * invalid translation string (#379).
+	 *
+	 * @param ex the parse error.
+	 * @throws LineNumberParseException {@code ex}, when there is no {@link NodeState}.
+	 */
+	private void recordError(LineNumberParseException ex) throws LineNumberParseException {
+		if (nodeState == null) throw ex;
+		nodeState.addError(ex);
+	}
+
+	/**
 	 * Parses the given set of {@link BodyToken}s into a {@link NodeBody}.
 	 * @param tokens the list of {@link BodyToken}s making up the node body.
 	 * @param validCommands a list of command names that are valid within the current context.
@@ -127,7 +141,7 @@ public class BodyParser {
 								token.getColNumber());
 					}
 				} catch (LineNumberParseException ex) {
-					nodeState.addError(ex);
+					recordError(ex);
 				}
 				break;
 			case COMMAND_START:
@@ -149,7 +163,7 @@ public class BodyParser {
 						bodyBuilder.addSegment(new NodeBody.CommandSegment(command));
 					}
 				} catch (LineNumberParseException ex) {
-					nodeState.addError(ex);
+					recordError(ex);
 				}
 				break;
 			case REPLY_START:
@@ -168,7 +182,7 @@ public class BodyParser {
 					}
 					bodyBuilder.addReply(reply);
 				} catch (LineNumberParseException ex) {
-					nodeState.addError(ex);
+					recordError(ex);
 				}
 				break;
 			default:
