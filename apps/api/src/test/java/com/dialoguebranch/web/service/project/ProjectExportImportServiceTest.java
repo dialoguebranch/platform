@@ -118,7 +118,7 @@ class ProjectExportImportServiceTest {
 		assertEquals(1, publishedDialogue.getTranslations().size());
 		DBPublishedTranslation translation = publishedDialogue.getTranslations().iterator().next();
 		assertEquals("nl-NL", translation.getTranslationLanguage().getTranslationLanguageCode());
-		assertEquals("{\"Hello there!\":\"Hallo daar!\"}", translation.getContent());
+		assertEquals("{\"Narrator\":{\"Hello there!\":\"Hallo daar!\"}}", translation.getContent());
 
 		// The import must also seed a draft copy, not just the published snapshot — the same
 		// guarantee ProjectSeedService.createAndPublishProject gives classpath-seeded projects.
@@ -361,7 +361,7 @@ class ProjectExportImportServiceTest {
 		draftDialogueService.createNode(dialogue, "Start", "title: Start\nspeaker: Narrator",
 				"Hello there!");
 		draftDialogueService.createOrUpdateTranslation(dialogue, dutch,
-				"{\"Hello there!\":\"Hallo daar!\"}");
+				"{\"Narrator\":{\"Hello there!\":\"Hallo daar!\"}}");
 
 		PublishService.PublishResult publishResult = publishService.publish(project, null);
 		if (!publishResult.isSuccess()) {

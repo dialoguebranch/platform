@@ -23,6 +23,38 @@ my-project/
       dragon-quest.json
 ```
 
+## Translation Files
+
+A translation file (`.json`) holds the translations of one dialogue in one translation language, and has the same path below its language folder as the dialogue's `.dlb` script below the source language folder (`nl-NL/quests/dragon-quest.json` translates `en/quests/dragon-quest.dlb`).
+
+It is a JSON object of **speaker groups**. Each key is the name of a speaker, exactly as it appears in the `speaker` tag of the dialogue's nodes, spaces included; the group `_user` holds the translations of the user's replies. Inside a group, each key is a text of that speaker in the source language, and its value is the translation:
+
+```json
+{
+    "Martin McOwl": {
+        "Hello, how are you?": "Hallo, hoe gaat het?"
+    },
+    "_user": {
+        "I'm fine, thanks.": "Goed, dank je."
+    }
+}
+```
+
+A translation only applies to text of its own speaker: the same text spoken by two speakers can have two different translations, and a text whose speaker has no entry for it stays in the source language. An entry outside a speaker group is an error.
+
+Inside a speaker group, a nested group can narrow a translation down by gender, for languages where a text changes with the gender of the speaker or of the one addressed. Its key is one or more of `male_speaker`, `female_speaker`, `male_addressee` and `female_addressee`, separated by spaces, and groups can be nested further. Among the entries of a speaker, the first one whose contexts fit the genders in the conversation is used; an entry without gender contexts always fits.
+
+```json
+{
+    "Martin McOwl": {
+        "female_addressee": {
+            "You look tired.": "Je ziet er moe uit, meid."
+        },
+        "You look tired.": "Je ziet er moe uit."
+    }
+}
+```
+
 ## Concepts in a Dialogue Branch Project
 
 Without going into the question of how to store this information, we first describe all the conceptual parts of a Dialogue Branch Project.

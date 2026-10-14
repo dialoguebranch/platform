@@ -52,6 +52,17 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- **Breaking:** Core: a translation entry only applies to text of its own speaker
+  ([#377](https://github.com/dialoguebranch/platform/issues/377)). The `Translator` used an entry
+  of any speaker when the speaker had none for a text, and, through a bug in its gender filter,
+  even when it had one, so two speakers saying the same text got the same translation. A
+  translation file's top-level keys are now read as speaker names as a whole (multi-word names
+  such as `Martin McOwl` were split into separate words that never matched), nested context
+  groups add to their speaker's entries instead of replacing the speaker, and an entry outside a
+  speaker group is a parse error. A text without an entry of its own speaker stays in the source
+  language. In `dlb-core-java`, `ContextTranslation` gains a `speaker` component. The translation
+  file format is now documented in the project reference.
+
 - **Breaking:** Language: the speaker name `_user` is reserved
   ([#383](https://github.com/dialoguebranch/platform/issues/383)). Translation files use it for
   the user's replies, so a node with `speaker: _user` collided with them; the parser now refuses
