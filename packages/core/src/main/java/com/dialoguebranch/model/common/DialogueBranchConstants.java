@@ -80,6 +80,11 @@ public class DialogueBranchConstants {
 	 *  (including the '.') */
 	public static final String DLB_TRANSLATION_FILE_EXTENSION = ".json";
 
+	/** The speaker name of the user: the group of the user's replies in a translation file, and the
+	 * speaker of a reply's text when it is extracted or translated. It is reserved, so no node can
+	 * have it as its {@code speaker} (#383). */
+	public static final String DLB_USER_SPEAKER = "_user";
+
 	/** The list of Strings defining the names of header tags that bear a special meaning within
 	 * Dialogue Branch. {@code comment} is a one-line note about the node, for authors only: it has
 	 * no effect on how a dialogue runs (#347). */
