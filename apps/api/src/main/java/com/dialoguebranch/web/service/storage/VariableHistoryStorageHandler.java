@@ -138,11 +138,15 @@ public class VariableHistoryStorageHandler {
 
 	/**
 	 * Reads a page of a user's variable history within a project, newest first — either for one
-	 * variable, or across all of them.
+	 * variable, or across all of them, optionally restricted to the time range {@code [from, to)}.
 	 *
 	 * @param id the identity of the user whose history to read.
 	 * @param project the project the variables are scoped to.
 	 * @param variableName the variable to read the history of, or {@code null} for all variables.
+	 * @param from only entries recorded at or after this time (epoch millis), or {@code null} for no
+	 *             lower bound.
+	 * @param to only entries recorded before this time (epoch millis), or {@code null} for no upper
+	 *           bound.
 	 * @param page the zero-based page index.
 	 * @param pageSize the number of entries per page.
 	 * @return the matching entries, newest first (empty if the user has no history at all).
@@ -150,16 +154,28 @@ public class VariableHistoryStorageHandler {
 	 */
 	@Transactional(readOnly = true)
 	public List<VariableHistoryEntry> read(DialogueBranchUserId id, DBProject project,
-			@Nullable String variableName, int page, int pageSize) throws ParseException {
+			@Nullable String variableName, @Nullable Long from, @Nullable Long to, int page,
+			int pageSize) throws ParseException {
 		Optional<DBUser> user = userRepository.findByIssuerAndSubject(id.issuer(), id.subject());
 		if (user.isEmpty()) return List.of();
 
 		PageRequest pageRequest = PageRequest.of(page, pageSize);
-		List<DBVariableHistory> rows = variableName == null
-				? historyRepository.findByUserAndProjectOrderByIdDesc(user.get(), project,
-						pageRequest)
-				: historyRepository.findByUserAndProjectAndNameOrderByIdDesc(user.get(), project,
-						variableName, pageRequest);
+		List<DBVariableHistory> rows;
+		if (from == null && to == null) {
+			rows = variableName == null
+					? historyRepository.findByUserAndProjectOrderByIdDesc(user.get(), project,
+							pageRequest)
+					: historyRepository.findByUserAndProjectAndNameOrderByIdDesc(user.get(),
+							project, variableName, pageRequest);
+		} else {
+			long lower = from == null ? Long.MIN_VALUE : from;
+			long upper = to == null ? Long.MAX_VALUE : to;
+			rows = variableName == null
+					? historyRepository.findInRangeOrderByIdDesc(user.get(), project, lower,
+							upper, pageRequest)
+					: historyRepository.findByNameInRangeOrderByIdDesc(user.get(), project,
+							variableName, lower, upper, pageRequest);
+		}
 
 		List<VariableHistoryEntry> result = new ArrayList<>(rows.size());
 		for (DBVariableHistory row : rows) {

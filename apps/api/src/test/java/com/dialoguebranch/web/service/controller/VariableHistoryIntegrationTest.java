@@ -237,6 +237,138 @@ class VariableHistoryIntegrationTest {
 				.andExpect(jsonPath("$[0].value").value("fine"));
 	}
 
+	/**
+	 * Sets a variable and returns the time the Web Service recorded the change at. Pauses first so
+	 * that every change in a test is recorded at a different millisecond.
+	 */
+	private long recordChange(String subject, String name, String value) throws Exception {
+		Thread.sleep(5);
+		setSingle(subject, name, value);
+		String body = mockMvc.perform(history(subject).param("pageSize", "1"))
+				.andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString();
+		return objectMapper.readTree(body).get(0).get("recordedTime").asLong();
+	}
+
+	@Test
+	void fromAloneIncludesTheBoundAndEverythingAfterIt() throws Exception {
+		String subject = newSubject();
+		recordChange(subject, "mood", "a");
+		long second = recordChange(subject, "mood", "b");
+		recordChange(subject, "mood", "c");
+
+		mockMvc.perform(history(subject).param("from", String.valueOf(second)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[*].value", contains("c", "b")));
+	}
+
+	@Test
+	void toAloneExcludesTheBoundAndEverythingAfterIt() throws Exception {
+		String subject = newSubject();
+		recordChange(subject, "mood", "a");
+		long second = recordChange(subject, "mood", "b");
+		recordChange(subject, "mood", "c");
+
+		mockMvc.perform(history(subject).param("to", String.valueOf(second)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[*].value", contains("a")));
+	}
+
+	@Test
+	void fromAndToTogetherSelectAHalfOpenRange() throws Exception {
+		String subject = newSubject();
+		long first = recordChange(subject, "mood", "a");
+		recordChange(subject, "mood", "b");
+		long third = recordChange(subject, "mood", "c");
+
+		mockMvc.perform(history(subject).param("from", String.valueOf(first))
+						.param("to", String.valueOf(third)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[*].value", contains("b", "a")));
+	}
+
+	@Test
+	void consecutiveRangesNeitherOverlapNorLeaveGaps() throws Exception {
+		String subject = newSubject();
+		recordChange(subject, "mood", "a");
+		long second = recordChange(subject, "mood", "b");
+		recordChange(subject, "mood", "c");
+
+		mockMvc.perform(history(subject).param("to", String.valueOf(second)))
+				.andExpect(jsonPath("$", hasSize(1)));
+		mockMvc.perform(history(subject).param("from", String.valueOf(second)))
+				.andExpect(jsonPath("$", hasSize(2)));
+	}
+
+	@Test
+	void aRangeCombinesWithTheVariableNameAndPaging() throws Exception {
+		String subject = newSubject();
+		recordChange(subject, "mood", "a");
+		long energy = recordChange(subject, "energy", "low");
+		recordChange(subject, "mood", "b");
+		recordChange(subject, "mood", "c");
+
+		mockMvc.perform(history(subject).param("variableName", "mood")
+						.param("from", String.valueOf(energy)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[*].value", contains("c", "b")));
+
+		mockMvc.perform(history(subject).param("variableName", "mood")
+						.param("from", String.valueOf(energy))
+						.param("page", "1").param("pageSize", "1"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[*].value", contains("b")));
+
+		mockMvc.perform(history(subject).param("from", String.valueOf(energy))
+						.param("pageSize", "2"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[*].value", contains("c", "b")));
+	}
+
+	@Test
+	void anEmptyRangeReturnsAnEmptyList() throws Exception {
+		String subject = newSubject();
+		long only = recordChange(subject, "mood", "a");
+
+		mockMvc.perform(history(subject).param("from", String.valueOf(only + 1_000_000)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$", hasSize(0)));
+		mockMvc.perform(history(subject).param("from", String.valueOf(only))
+						.param("to", String.valueOf(only)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$", hasSize(0)));
+	}
+
+	@Test
+	void aRangeWorksThroughDelegation() throws Exception {
+		String participant = newSubject();
+		recordChange(participant, "mood", "a");
+		long second = recordChange(participant, "mood", "b");
+
+		mockMvc.perform(as(get("/v1/variables/history").param("projectSlug", PROJECT)
+						.param("delegateUser", participant)
+						.param("from", String.valueOf(second)), newSubject(), "admin"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[*].value", contains("b")));
+	}
+
+	@Test
+	void aFromAfterToIsABadRequest() throws Exception {
+		mockMvc.perform(history(newSubject()).param("from", "2000").param("to", "1000"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+	}
+
+	@Test
+	void anUnparseableTimeIsABadRequest() throws Exception {
+		mockMvc.perform(history(newSubject()).param("from", "yesterday"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+		mockMvc.perform(history(newSubject()).param("to", "2026-10-14T12:00:00Z"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("INVALID_INPUT"));
+	}
+
 	@Test
 	void unknownProjectIsNotFound() throws Exception {
 		mockMvc.perform(as(get("/v1/variables/history").param("projectSlug", "no-such-project"),

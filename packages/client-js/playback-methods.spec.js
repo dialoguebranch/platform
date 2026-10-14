@@ -284,6 +284,37 @@ describe('DialogueBranchClient playback methods', () => {
             + '?projectSlug=default-test&variableName=mood&page=2&pageSize=25');
     });
 
+    it('getVariableHistory() sends from and to as epoch milliseconds, between variableName and page', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(jsonResponse([]));
+        vi.stubGlobal('fetch', fetchMock);
+
+        await client().getVariableHistory({ projectSlug: 'p', variableName: 'mood',
+            from: 1000, to: 2000, page: 1, pageSize: 10 });
+
+        expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/variables/history'
+            + '?projectSlug=p&variableName=mood&from=1000&to=2000&page=1&pageSize=10');
+    });
+
+    it('getVariableHistory() accepts Date objects for from and to', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(jsonResponse([]));
+        vi.stubGlobal('fetch', fetchMock);
+
+        await client().getVariableHistory({ from: new Date(1000), to: new Date(2000) });
+
+        expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/variables/history?from=1000&to=2000');
+    });
+
+    it('getVariableHistory() sends from=0 and either bound on its own', async () => {
+        const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(jsonResponse([])));
+        vi.stubGlobal('fetch', fetchMock);
+
+        await client().getVariableHistory({ from: 0 });
+        await client().getVariableHistory({ to: 5 });
+
+        expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/variables/history?from=0');
+        expect(fetchMock.mock.calls[1][0]).toBe('/api/v1/variables/history?to=5');
+    });
+
     it('getVariableHistory() sends page=0 (a falsy but meaningful value)', async () => {
         const fetchMock = vi.fn().mockResolvedValue(jsonResponse([]));
         vi.stubGlobal('fetch', fetchMock);

@@ -65,6 +65,8 @@ Variables are **scoped to the project**: the same variable name in two different
 
 * `/variables/history` — returns a user's recorded Variable changes within a project (`projectSlug`, required), **newest first** and paginated (`page`, zero-based, and `pageSize`, default 50, at most 200). Pass `variableName` to get the history of a single Variable; leave it out to get the history of all of them, interleaved.
 
+To ask for a period of time, such as every value a Variable had in the last month, pass `from` and/or `to`, both **epoch milliseconds** (the same unit as an entry's `recordedTime`). Only entries recorded in the range `[from, to)` are returned: `from` is inclusive and `to` is exclusive, so consecutive ranges never overlap or leave gaps. Either one can be left out (everything up to `to`, or everything from `from` on). They combine with `variableName`, and with `page` / `pageSize`, which page through what remains, still newest first. A `from` after `to`, or a value that is not a whole number, answers `400`; `from` equal to `to` is simply an empty range.
+
 Each entry has an `id` (unique, and increasing in the order entries were recorded — useful to recognise an entry you've already seen when new entries shift the pages while you're paging), the Variable's `name`, the `value` it was given, the `recordedTime` (epoch milliseconds) and `recordedTimeZone` (IANA name) at which the Web Service recorded the change, and the `source` of the change: `DLB_SCRIPT` (a `<<set>>` in a dialogue), `INPUT_REPLY` (a value entered in a reply's input field), `WEB_SERVICE` (one of the `/variables/set*` end-points), or `EXTERNAL` (an [External Variable Service](/web-services/external-variable-service) update).
 
 A few things to keep in mind when reading the history:

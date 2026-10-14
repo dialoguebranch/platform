@@ -294,17 +294,26 @@ export class DialogueBranchClient extends BaseClient {
      * `projectSlug` for when to omit it.
      * @param {string} [options.variableName] Return only this variable's history (exact name,
      * without the leading `$`); omit for all variables.
+     * @param {number|Date} [options.from] Return only changes recorded at or after this time
+     * (inclusive), as epoch milliseconds or a `Date`; omit for no lower bound. Compared with each
+     * entry's `recordedTime`.
+     * @param {number|Date} [options.to] Return only changes recorded before this time (exclusive),
+     * as epoch milliseconds or a `Date`; omit for no upper bound. Because `from` is inclusive and
+     * `to` exclusive, consecutive ranges never overlap or leave gaps. The server answers `400` if
+     * `from` is after `to`.
      * @param {number} [options.page] The zero-based page index; the server defaults to `0`.
      * @param {number} [options.pageSize] Entries per page; the server defaults to `50` and caps it
      * at `200`.
      * @returns {Promise<VariableHistoryEntry[]>} The requested page — empty past the last one.
      */
-    getVariableHistory({ projectSlug, variableName, page, pageSize } = {}) {
+    getVariableHistory({ projectSlug, variableName, from, to, page, pageSize } = {}) {
         let url = this._baseUrl + "/variables/history";
 
         const params = [];
         if (projectSlug) params.push("projectSlug=" + encodeURIComponent(projectSlug));
         if (variableName) params.push("variableName=" + encodeURIComponent(variableName));
+        if (from != null) params.push("from=" + encodeURIComponent(from instanceof Date ? from.getTime() : from));
+        if (to != null) params.push("to=" + encodeURIComponent(to instanceof Date ? to.getTime() : to));
         if (page != null) params.push("page=" + encodeURIComponent(page));
         if (pageSize != null) params.push("pageSize=" + encodeURIComponent(pageSize));
         // See getVariables()'s equivalent comment on why delegateUser is built as a plain param

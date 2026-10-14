@@ -33,6 +33,8 @@ import com.dialoguebranch.web.service.storage.model.DBUser;
 import com.dialoguebranch.web.service.storage.model.DBVariableHistory;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -66,5 +68,45 @@ public interface DBVariableHistoryRepository extends JpaRepository<DBVariableHis
 	 */
 	List<DBVariableHistory> findByUserAndProjectAndNameOrderByIdDesc(DBUser user,
 			DBProject project, String name, Pageable pageable);
+
+	/**
+	 * Finds a page of a user's variable history within a project, across all variables, restricted
+	 * to entries recorded in the half-open time range {@code [from, to)}, newest first.
+	 *
+	 * @param user the user whose history to retrieve.
+	 * @param project the project the variables are scoped to.
+	 * @param from the earliest recorded time to include (epoch millis, inclusive); pass {@link
+	 *             Long#MIN_VALUE} for no lower bound.
+	 * @param to the recorded time to stop before (epoch millis, exclusive); pass {@link
+	 *           Long#MAX_VALUE} for no upper bound.
+	 * @param pageable the page to retrieve.
+	 * @return the matching entries, newest first.
+	 */
+	@Query("select h from DBVariableHistory h where h.user = :user and h.project = :project "
+			+ "and h.recordedTime >= :from and h.recordedTime < :to order by h.id desc")
+	List<DBVariableHistory> findInRangeOrderByIdDesc(@Param("user") DBUser user,
+			@Param("project") DBProject project, @Param("from") long from,
+			@Param("to") long to, Pageable pageable);
+
+	/**
+	 * Finds a page of the history of a single variable of a user within a project, restricted to
+	 * entries recorded in the half-open time range {@code [from, to)}, newest first.
+	 *
+	 * @param user the user whose history to retrieve.
+	 * @param project the project the variable is scoped to.
+	 * @param name the name of the variable.
+	 * @param from the earliest recorded time to include (epoch millis, inclusive); pass {@link
+	 *             Long#MIN_VALUE} for no lower bound.
+	 * @param to the recorded time to stop before (epoch millis, exclusive); pass {@link
+	 *           Long#MAX_VALUE} for no upper bound.
+	 * @param pageable the page to retrieve.
+	 * @return the matching entries, newest first.
+	 */
+	@Query("select h from DBVariableHistory h where h.user = :user and h.project = :project "
+			+ "and h.name = :name and h.recordedTime >= :from and h.recordedTime < :to "
+			+ "order by h.id desc")
+	List<DBVariableHistory> findByNameInRangeOrderByIdDesc(@Param("user") DBUser user,
+			@Param("project") DBProject project, @Param("name") String name,
+			@Param("from") long from, @Param("to") long to, Pageable pageable);
 
 }

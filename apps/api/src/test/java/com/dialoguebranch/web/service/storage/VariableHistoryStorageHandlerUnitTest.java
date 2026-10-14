@@ -58,6 +58,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -249,7 +250,7 @@ class VariableHistoryStorageHandlerUnitTest {
 		when(historyRepository.findByUserAndProjectOrderByIdDesc(any(), any(), any()))
 				.thenReturn(List.of());
 
-		handler.read(USER_ID, project, null, 2, 25);
+		handler.read(USER_ID, project, null, null, null, 2, 25);
 
 		verify(historyRepository).findByUserAndProjectOrderByIdDesc(user, project,
 				PageRequest.of(2, 25));
@@ -262,7 +263,7 @@ class VariableHistoryStorageHandlerUnitTest {
 		when(historyRepository.findByUserAndProjectAndNameOrderByIdDesc(any(), any(), any(),
 				any())).thenReturn(List.of());
 
-		handler.read(USER_ID, project, "mood", 0, 50);
+		handler.read(USER_ID, project, "mood", null, null, 0, 50);
 
 		verify(historyRepository).findByUserAndProjectAndNameOrderByIdDesc(user, project, "mood",
 				PageRequest.of(0, 50));
@@ -271,12 +272,60 @@ class VariableHistoryStorageHandlerUnitTest {
 	}
 
 	@Test
+	void aRangeWithoutANameQueriesAllVariablesInTheRange() throws Exception {
+		when(historyRepository.findInRangeOrderByIdDesc(any(), any(), anyLong(), anyLong(), any()))
+				.thenReturn(List.of());
+
+		handler.read(USER_ID, project, null, 1000L, 2000L, 1, 10);
+
+		verify(historyRepository).findInRangeOrderByIdDesc(user, project, 1000L, 2000L,
+				PageRequest.of(1, 10));
+		verify(historyRepository, never()).findByUserAndProjectOrderByIdDesc(any(), any(),
+				any(Pageable.class));
+	}
+
+	@Test
+	void aRangeWithANameQueriesThatVariableInTheRange() throws Exception {
+		when(historyRepository.findByNameInRangeOrderByIdDesc(any(), any(), any(), anyLong(),
+				anyLong(), any())).thenReturn(List.of());
+
+		handler.read(USER_ID, project, "mood", 1000L, 2000L, 0, 50);
+
+		verify(historyRepository).findByNameInRangeOrderByIdDesc(user, project, "mood", 1000L,
+				2000L, PageRequest.of(0, 50));
+		verify(historyRepository, never()).findByUserAndProjectAndNameOrderByIdDesc(any(), any(),
+				any(), any(Pageable.class));
+	}
+
+	@Test
+	void aMissingLowerBoundIsOpenEnded() throws Exception {
+		when(historyRepository.findInRangeOrderByIdDesc(any(), any(), anyLong(), anyLong(), any()))
+				.thenReturn(List.of());
+
+		handler.read(USER_ID, project, null, null, 2000L, 0, 50);
+
+		verify(historyRepository).findInRangeOrderByIdDesc(user, project, Long.MIN_VALUE, 2000L,
+				PageRequest.of(0, 50));
+	}
+
+	@Test
+	void aMissingUpperBoundIsOpenEnded() throws Exception {
+		when(historyRepository.findByNameInRangeOrderByIdDesc(any(), any(), any(), anyLong(),
+				anyLong(), any())).thenReturn(List.of());
+
+		handler.read(USER_ID, project, "mood", 1000L, null, 0, 50);
+
+		verify(historyRepository).findByNameInRangeOrderByIdDesc(user, project, "mood", 1000L,
+				Long.MAX_VALUE, PageRequest.of(0, 50));
+	}
+
+	@Test
 	void readParsesStoredJsonBackIntoValuesAndKeepsNullsAndOrder() throws Exception {
 		when(historyRepository.findByUserAndProjectOrderByIdDesc(any(), any(), any()))
 				.thenReturn(List.of(row(12, "mood", null), row(11, "count", "3"),
 						row(10, "mood", "\"fine\"")));
 
-		List<VariableHistoryEntry> entries = handler.read(USER_ID, project, null, 0, 50);
+		List<VariableHistoryEntry> entries = handler.read(USER_ID, project, null, null, null, 0, 50);
 
 		assertEquals(List.of("mood", "count", "mood"),
 				entries.stream().map(VariableHistoryEntry::name).toList());
@@ -295,7 +344,7 @@ class VariableHistoryStorageHandlerUnitTest {
 		when(userRepository.findByIssuerAndSubject(USER_ID.issuer(), USER_ID.subject()))
 				.thenReturn(Optional.empty());
 
-		assertTrue(handler.read(USER_ID, project, null, 0, 50).isEmpty());
+		assertTrue(handler.read(USER_ID, project, null, null, null, 0, 50).isEmpty());
 		verifyNoInteractions(historyRepository);
 	}
 

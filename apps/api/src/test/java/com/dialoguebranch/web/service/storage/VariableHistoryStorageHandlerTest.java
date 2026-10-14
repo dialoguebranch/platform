@@ -84,7 +84,7 @@ class VariableHistoryStorageHandlerTest {
 
 	private List<VariableHistoryEntry> readAll(DialogueBranchUserId id) throws Exception {
 		DBProject project = projectRepository.findBySlug(PROJECT).orElseThrow();
-		return historyHandler.read(id, project, null, 0, 100);
+		return historyHandler.read(id, project, null, null, null, 0, 100);
 	}
 
 	@Test
