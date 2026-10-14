@@ -29,7 +29,6 @@ const saving = ref(false);
 const error = ref('');
 
 const text = computed(() => preambleToText(preamble.value));
-const firstLine = computed(() => text.value.split('\n')[0]);
 
 function load() {
     editing.value = false;
@@ -94,14 +93,26 @@ defineExpose({ reload: load });
             </div>
         </div>
 
+        <!-- Collapsed: keep the canvas clear and expose the preamble on hover. -->
+        <button
+            v-else-if="preamble && collapsed"
+            type="button"
+            class="bg-white/95 rounded-lg shadow p-2 text-grey-dark hover:text-orange-darker cursor-pointer"
+            :title="text"
+            aria-label="Show script comment"
+            data-test="preamble-collapsed"
+            @click="collapsed = false"
+        >
+            <FontAwesomeIcon icon="fa-regular fa-comment" />
+        </button>
+
         <!-- Showing -->
         <div v-else-if="preamble" class="bg-white/95 rounded-lg shadow p-2 pr-3 flex gap-2 items-start">
-            <button type="button" class="text-grey-dark mt-0.5 cursor-pointer" :title="collapsed ? 'Show script comment' : 'Hide script comment'" @click="collapsed = !collapsed">
-                <FontAwesomeIcon :icon="collapsed ? 'fa-solid fa-caret-right' : 'fa-solid fa-caret-down'" />
+            <button type="button" class="text-grey-dark mt-0.5 cursor-pointer" title="Hide script comment" @click="collapsed = true">
+                <FontAwesomeIcon icon="fa-solid fa-caret-down" />
             </button>
             <div class="min-w-0 flex-1">
-                <div v-if="collapsed" class="truncate italic text-grey-dark" data-test="preamble-collapsed">{{ firstLine }}</div>
-                <div v-else class="whitespace-pre-wrap text-grey-dark" data-test="preamble-shown">{{ text }}</div>
+                <div class="whitespace-pre-wrap text-grey-dark" data-test="preamble-shown">{{ text }}</div>
             </div>
             <button type="button" class="text-grey-dark hover:text-orange-darker cursor-pointer" title="Edit script comment" data-test="preamble-edit" @click="startEditing">
                 <FontAwesomeIcon icon="fa-solid fa-pen" />

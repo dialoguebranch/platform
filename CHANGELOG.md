@@ -7,6 +7,11 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Fixed
+
+- Studio: a collapsed dialogue preamble now leaves a small comment icon on the graph canvas. Hover
+  shows the preamble; clicking expands it again ([#361](https://github.com/dialoguebranch/platform/issues/361)).
+
 ## [0.5.0] - 2026-10-14
 
 ### Changed

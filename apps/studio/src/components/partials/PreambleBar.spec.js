@@ -81,7 +81,15 @@ describe('PreambleBar', () => {
         expect(wrapper.find('[data-test="preamble-shown"]').text()).toContain('First line.');
         expect(wrapper.find('[data-test="preamble-shown"]').element.textContent).toBe('First line.\n  Indented.');
         await wrapper.find('button[title="Hide script comment"]').trigger('click');
-        expect(wrapper.find('[data-test="preamble-collapsed"]').text()).toBe('First line.');
+        const collapsedButton = wrapper.find('[data-test="preamble-collapsed"]');
+        expect(collapsedButton.element.tagName).toBe('BUTTON');
+        expect(collapsedButton.text()).toBe('');
+        expect(collapsedButton.attributes('title')).toBe('First line.\n  Indented.');
+        expect(wrapper.find('[data-test="preamble-edit"]').exists()).toBe(false);
+
+        await collapsedButton.trigger('click');
+        expect(wrapper.find('[data-test="preamble-shown"]').element.textContent).toBe('First line.\n  Indented.');
+        expect(wrapper.find('[data-test="preamble-edit"]').exists()).toBe(true);
     });
 
     it('saves edited text as comment lines and reports the save', async () => {
