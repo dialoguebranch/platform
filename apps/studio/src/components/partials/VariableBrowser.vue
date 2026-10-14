@@ -14,6 +14,7 @@ import { useLatestRequest } from '@/composables/latest-request.js';
 import {
     HISTORY_PAGE_SIZE, sourceLabel, formatTimestamp, formatHistoryValue, mergeHistoryPage,
     mayHaveMore, resolveExactName, filterSortHistory, needsLoadedOnlyHint,
+    HISTORY_PRESETS, presetRange, resolveDateRange,
 } from '@/composables/variable-history.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import IconButton from '../widgets/IconButton.vue';
@@ -113,6 +114,30 @@ const historyLoading = ref(false);
 const historyLoadingMore = ref(false);
 const historyOrder = ref('newest');  // 'newest' | 'oldest' — History has its own sort (#323)
 
+// The start / end date range (#371): <input type="date"> values, whole days in the Studio user's
+// time zone — the zone the entries are displayed in. The end date is included in full; the request
+// carries epoch milliseconds (start's midnight up to the midnight after the end date). An invalid
+// range (start after end) is reported in the panel and never sent.
+const historyStartDate = ref('');
+const historyEndDate = ref('');
+const historyRange = computed(() =>
+    resolveDateRange(historyStartDate.value, historyEndDate.value, getBrowserTimeZone()));
+const historyRangeSet = computed(() => !!(historyStartDate.value || historyEndDate.value));
+// A 400 from the server is shown in the panel too, rather than as a generic error toast.
+const historyServerError = ref(null);
+const historyRangeError = computed(() => historyRange.value.error ?? historyServerError.value);
+
+function applyHistoryPreset(presetId) {
+    const range = presetRange(presetId, Date.now(), getBrowserTimeZone());
+    historyStartDate.value = range.start;
+    historyEndDate.value = range.end;
+}
+
+function clearHistoryRange() {
+    historyStartDate.value = '';
+    historyEndDate.value = '';
+}
+
 // Every variable name Studio knows of for this project — what the search box's text is matched
 // against to decide whether it names one variable exactly (asked of the server) or not (filtered
 // in the browser). "Used" names need an editor role; for others that list is simply empty.
@@ -124,7 +149,7 @@ const knownNames = computed(() => new Set([
 const historyExactName = computed(() =>
     mode.value === 'history' ? resolveExactName(searchQuery.value, knownNames.value) : null);
 
-const displayedHistory = computed(() => filterSortHistory(historyEntries.value, {
+const displayedHistory = computed(() => historyRange.value.error ? [] : filterSortHistory(historyEntries.value, {
     query: searchQuery.value, exactName: historyExactName.value, order: historyOrder.value,
 }));
 const showLoadedOnlyHint = computed(() => needsLoadedOnlyHint({
@@ -142,6 +167,8 @@ function historyRequest(page) {
     return client.getVariableHistory({
         projectSlug: state.value.selectedProject?.slug,
         variableName: historyExactName.value ?? undefined,
+        from: historyRange.value.from,
+        to: historyRange.value.to,
         page,
         pageSize: HISTORY_PAGE_SIZE,
     });
@@ -152,7 +179,8 @@ function historyRequest(page) {
 const loadHistory = () => {
     const generation = ++historyGeneration;
     historyLoadingMore.value = false;
-    if (!state.value.selectedProject?.slug) {
+    historyServerError.value = null;
+    if (!state.value.selectedProject?.slug || historyRange.value.error) {
         historyEntries.value = [];
         historyPagesLoaded.value = 0;
         historyHasMore.value = false;
@@ -168,7 +196,8 @@ const loadHistory = () => {
     })
     .catch((error) => {
         if (generation !== historyGeneration) return;
-        showError(describeError(error));
+        if (error?.status === 400) historyServerError.value = describeError(error);
+        else showError(describeError(error));
     })
     .finally(() => {
         if (generation === historyGeneration) historyLoading.value = false;
@@ -201,10 +230,12 @@ function showOnlyVariable(name) {
     searchQuery.value = name;
 }
 
-// Load when History is opened, and start over whenever the server-side filter changes (typing a
-// name in full, or editing it back to a partial one). One watcher for both, since opening History
-// with an exact name already in the search box changes both at once — one request, not two.
-watch([mode, historyExactName], ([newMode]) => {
+// Load when History is opened, and start over whenever a server-side filter changes (typing a
+// name in full, or editing it back to a partial one; or changing the time range). One watcher for
+// all of them, since several can change at once (opening History with an exact name already in the
+// search box; a preset setting From and clearing To) — one request, not several.
+watch([mode, historyExactName, () => historyRange.value.from, () => historyRange.value.to,
+    () => historyRange.value.error], ([newMode]) => {
     if (newMode === 'history') loadHistory();
 });
 
@@ -417,6 +448,36 @@ onMounted(() => {
             </select>
         </div>
 
+        <!-- Date range (#371) — History only. Whole days in the Studio user's time zone; the end date is included. -->
+        <div v-if="mode === 'history'" data-test="history-range" class="flex flex-col gap-1 px-1 sm:mr-1 font-title text-[10px] text-grey-dark">
+            <label class="flex items-center gap-1 min-w-0">
+                <span class="w-14 shrink-0">Start date</span>
+                <input v-model="historyStartDate" type="date" data-test="history-start-date"
+                    title="Only changes recorded on or after this day (your time zone)"
+                    class="min-w-0 flex-1 h-6 px-1 text-[10px] border border-grey-light rounded-lg bg-white focus:outline-none focus:border-orange-dark" />
+            </label>
+            <label class="flex items-center gap-1 min-w-0">
+                <span class="w-14 shrink-0">End date</span>
+                <input v-model="historyEndDate" type="date" data-test="history-end-date"
+                    title="Only changes recorded on or before this day, the whole day (your time zone)"
+                    class="min-w-0 flex-1 h-6 px-1 text-[10px] border border-grey-light rounded-lg bg-white focus:outline-none focus:border-orange-dark" />
+            </label>
+            <div class="flex flex-wrap items-center gap-1">
+                <button v-for="preset in HISTORY_PRESETS" :key="preset.id" type="button"
+                    :data-test="'history-preset-' + preset.id"
+                    class="px-1.5 h-5 rounded border border-grey-light bg-white text-grey-dark hover:bg-grey-lighter cursor-pointer"
+                    @click="applyHistoryPreset(preset.id)">{{ preset.label }}</button>
+                <button v-if="historyRangeSet" type="button" data-test="history-range-clear"
+                    class="px-1.5 h-5 rounded border border-grey-light bg-white text-orange-darker hover:bg-grey-lighter cursor-pointer"
+                    @click="clearHistoryRange">Clear</button>
+            </div>
+            <div v-if="historyRangeSet && !historyRangeError" data-test="history-range-note" class="italic">
+                Showing changes recorded {{ historyStartDate ? 'from ' + historyStartDate : 'up' }}
+                {{ historyEndDate ? (historyStartDate ? 'through ' : 'to and including ') + historyEndDate : 'until now' }}.
+            </div>
+            <div v-if="historyRangeError" data-test="history-range-error" class="text-red-500">{{ historyRangeError }}</div>
+        </div>
+
         <MainPagePanelContainer class="sm:mr-1">
             <div v-if="emptyForFilter" class="font-title text-xs italic text-grey-dark p-2">
                 No variables match “{{ searchQuery.trim() }}”.
@@ -452,9 +513,9 @@ onMounted(() => {
                     class="font-title text-[10px] italic text-grey-dark px-1 pb-0.5">
                     Showing {{ isSearching ? 'matches in ' : '' }}loaded entries only — load more to {{ isSearching ? 'search' : 'look' }} further back.
                 </div>
-                <div v-if="!historyLoading && historyEntries.length === 0 && !isSearching"
+                <div v-if="!historyLoading && !historyRangeError && historyEntries.length === 0 && !isSearching"
                     class="font-title text-xs italic text-grey-dark p-1">
-                    No variable changes recorded yet.
+                    {{ historyRangeSet ? 'No variable changes recorded in this time range.' : 'No variable changes recorded yet.' }}
                 </div>
                 <div v-for="entry in displayedHistory" :key="entry.id" data-test="history-entry"
                     class="flex flex-col min-w-0 bg-grey-lighter px-1 py-0.5">

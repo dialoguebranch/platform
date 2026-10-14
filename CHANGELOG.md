@@ -9,6 +9,12 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Studio: the Variable Browser's History view can be filtered by a date range
+  ([#371](https://github.com/dialoguebranch/platform/issues/371)). Pick a **Start date** and an
+  **End date** (whole days in your time zone, the one the entries are shown in; the end date is
+  included), or use a preset: today, the last 7 days or the last 30 days. It combines with the
+  exact-variable-name filter and *Load more*, and a start date after the end date is reported in
+  the panel instead of being sent.
 - Web service and client-js: `GET /variables/history` accepts optional `from` and `to` (epoch
   milliseconds) to return only the changes recorded in the range `[from, to)`
   ([#352](https://github.com/dialoguebranch/platform/issues/352)). `from` is inclusive and `to`
