@@ -161,51 +161,102 @@ public class DraftDialogueService {
 	}
 
 	/**
+	 * Checks whether a full {@code .dlb} script can be stored as draft nodes as it is, without
+	 * storing anything: every node needs a header separator, a header that is a valid set of tags
+	 * ({@link DialogueBranchHeader#check}) and a {@code title}, and no two nodes may have the same
+	 * title. Syntax errors in node bodies are not checked: drafts may contain them.
+	 *
+	 * @param content the full {@code .dlb} script content.
+	 * @return the problems found, each starting with the line number in the script; empty if
+	 * there are none.
+	 */
+	public List<String> checkScriptForDraft(String content) {
+		List<String> problems = new ArrayList<>();
+		Set<String> titles = new LinkedHashSet<>();
+		for (RawNode rawNode : DialogueBranchScriptSplitter.split(content).nodes()) {
+			String where = "line " + rawNode.startLine() + ": ";
+			if (!rawNode.hasBody()) {
+				problems.add(where + "node has no '" +
+						DialogueBranchConstants.DLB_HEADER_SEPARATOR + "' line");
+				continue;
+			}
+			List<String> headerProblems = DialogueBranchHeader.check(rawNode.header());
+			if (!headerProblems.isEmpty()) {
+				headerProblems.forEach(problem -> problems.add(where + "header " + problem));
+				continue;
+			}
+			String title = DialogueBranchHeader.get(rawNode.header(), "title");
+			if (title == null || title.isEmpty()) {
+				problems.add(where + "node has no 'title'");
+			} else if (!titles.add(title)) {
+				problems.add(where + "duplicate node title: " + title);
+			}
+		}
+		return problems;
+	}
+
+	/**
 	 * Creates a new draft dialogue in {@code project} named {@code name}, populated by splitting
 	 * the given full {@code .dlb} script {@code content} into its preamble and nodes with {@link
 	 * DialogueBranchScriptSplitter}, keeping the preamble on the dialogue and creating a {@link
-	 * DBDraftNode} for each node. Used to seed a
-	 * project's initial drafts directly from its {@code .dlb} source files (see {@code
-	 * ProjectSeedService}), before they're published for the first time.
+	 * DBDraftNode} for each node. Used to seed a project's initial drafts directly from its
+	 * {@code .dlb} source files (see {@code ProjectSeedService}), and to import scripts.
 	 *
 	 * @param project the owning project.
 	 * @param name    the dialogue name.
 	 * @param content the full {@code .dlb} script content to populate the new draft from.
 	 * @return the newly created {@link DBDraftDialogue}.
-	 * @throws IllegalArgumentException if a node has no header separator, a header that isn't a
-	 * valid set of tags ({@link DialogueBranchHeader#check}), or no {@code title}, so the script
-	 * can't be stored as draft nodes as it is.
+	 * @throws IllegalArgumentException if the script can't be stored as draft nodes as it is
+	 * (see {@link #checkScriptForDraft}).
 	 */
 	@Transactional
 	public DBDraftDialogue createDialogueFromScript(DBProject project, String name,
 													String content) {
-		Script script = DialogueBranchScriptSplitter.split(content);
-		List<RawNode> rawNodes = script.nodes();
-		for (RawNode rawNode : rawNodes) {
-			if (!rawNode.hasBody()) {
-				throw new IllegalArgumentException("Dialogue '" + name + "', line " +
-						rawNode.startLine() + ": node has no '" +
-						DialogueBranchConstants.DLB_HEADER_SEPARATOR + "' line.");
-			}
-			List<String> headerProblems = DialogueBranchHeader.check(rawNode.header());
-			if (!headerProblems.isEmpty()) {
-				throw new IllegalArgumentException("Dialogue '" + name + "', node at line " +
-						rawNode.startLine() + ", header " + headerProblems.get(0) + ".");
-			}
-			String title = DialogueBranchHeader.get(rawNode.header(), "title");
-			if (title == null || title.isEmpty()) {
-				throw new IllegalArgumentException("Dialogue '" + name + "', line " +
-						rawNode.startLine() + ": node has no 'title'.");
-			}
-		}
+		requireStorableScript(name, content);
 		DBDraftDialogue dialogue = createDialogue(project, name);
+		writeScript(dialogue, content);
+		return dialogue;
+	}
+
+	/**
+	 * Replaces the content of an existing draft dialogue with a full {@code .dlb} script: its
+	 * nodes and preamble are replaced, its translations are kept, and a pending deletion is
+	 * undone. Like any other edit, it marks the dialogue as changed.
+	 *
+	 * @param dialogue the draft dialogue to replace the content of.
+	 * @param content  the full {@code .dlb} script content.
+	 * @throws IllegalArgumentException if the script can't be stored as draft nodes as it is
+	 * (see {@link #checkScriptForDraft}).
+	 */
+	@Transactional
+	public void replaceDialogueFromScript(DBDraftDialogue dialogue, String content) {
+		requireStorableScript(dialogue.getName(), content);
+		nodeRepository.deleteAll(nodeRepository.findByDraftDialogueOrderByCreatedAt(dialogue));
+		// The new nodes may reuse the old titles; without this, Hibernate would insert them
+		// before deleting the old ones and break the unique (dialogue, title) constraint.
+		nodeRepository.flush();
+		dialogue.setPreamble("");
+		dialogue.setIsDeleted(false);
+		writeScript(dialogue, content);
+		markChanged(dialogue);
+	}
+
+	private void requireStorableScript(String name, String content) {
+		List<String> problems = checkScriptForDraft(content);
+		if (!problems.isEmpty()) {
+			throw new IllegalArgumentException("Dialogue '" + name + "', " + problems.get(0) + ".");
+		}
+	}
+
+	private void writeScript(DBDraftDialogue dialogue, String content) {
+		Script script = DialogueBranchScriptSplitter.split(content);
 		if (!script.preamble().isEmpty()) {
 			dialogue.setPreamble(script.preamble());
 			dialogueRepository.save(dialogue);
 		}
 		Instant now = Instant.now();
 		int index = 0;
-		for (RawNode rawNode : rawNodes) {
+		for (RawNode rawNode : script.nodes()) {
 			DBDraftNode node = new DBDraftNode();
 			node.setDraftDialogue(dialogue);
 			node.setTitle(DialogueBranchHeader.get(rawNode.header(), "title"));
@@ -218,7 +269,6 @@ public class DraftDialogueService {
 			nodeRepository.save(node);
 			index++;
 		}
-		return dialogue;
 	}
 
 	/**

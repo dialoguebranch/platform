@@ -34,6 +34,7 @@ import com.dialoguebranch.web.service.QueryRunner;
 import com.dialoguebranch.web.service.auth.Permission;
 import com.dialoguebranch.web.service.controller.schema.authoring.*;
 import com.dialoguebranch.web.service.controller.schema.authoring.DraftNodeResponse;
+import com.dialoguebranch.web.service.controller.schema.authoring.ImportedScript;
 import com.dialoguebranch.web.service.controller.schema.authoring.PreamblePayload;
 import com.dialoguebranch.web.service.controller.schema.authoring.RenameNodeResponse;
 import com.dialoguebranch.web.service.exception.BadRequestException;
@@ -43,6 +44,7 @@ import com.dialoguebranch.web.service.exception.NotFoundException;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
 import com.dialoguebranch.web.service.project.DraftProjectService;
 import com.dialoguebranch.web.service.project.ProjectService;
+import com.dialoguebranch.web.service.project.ScriptImportService;
 import com.dialoguebranch.web.service.storage.model.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -53,7 +55,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Objects;
@@ -84,6 +88,7 @@ public class AuthoringController {
 	private final ProjectService projectService;
 	private final DraftDialogueService draftDialogueService;
 	private final DraftProjectService draftProjectService;
+	private final ScriptImportService scriptImportService;
 
 	private static final Logger logger = LoggerFactory.getLogger(AuthoringController.class);
 
@@ -96,13 +101,16 @@ public class AuthoringController {
 	 *                             dialogues, nodes, and translations.
 	 * @param draftProjectService service used to resolve a language code into the project's
 	 *                            registered draft translation language a translation targets.
+	 * @param scriptImportService service that imports {@code .dlb} scripts as draft dialogues.
 	 */
 	public AuthoringController(ProjectService projectService,
 							   DraftDialogueService draftDialogueService,
-							   DraftProjectService draftProjectService) {
+							   DraftProjectService draftProjectService,
+							   ScriptImportService scriptImportService) {
 		this.projectService = projectService;
 		this.draftDialogueService = draftDialogueService;
 		this.draftProjectService = draftProjectService;
+		this.scriptImportService = scriptImportService;
 	}
 
 	/**
@@ -348,6 +356,50 @@ public class AuthoringController {
 									"Dialogue not found: " + dialogueName));
 					draftDialogueService.restoreDialogue(dialogue);
 					return dialogue;
+				},
+				version, response, "", Permission.DIALOGUE_AUTHOR);
+	}
+
+	/**
+	 * Imports one or more {@code .dlb} scripts into one folder of a project, as draft content
+	 * (#339). Each file becomes the draft dialogue named after the folder and the file name
+	 * without {@code .dlb}. All or nothing: if any file is refused, nothing is imported, and the
+	 * error lists the problems per file. Syntax errors in node bodies don't refuse a file; they
+	 * are returned per file instead.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project to import into.
+	 * @param folder the folder to import into; empty for the project root.
+	 * @param files the {@code .dlb} files (UTF-8, at most 1 MB each, at most 100 per import).
+	 * @param replace whether a file may replace the content of an existing dialogue (a dialogue
+	 *                pending deletion is then restored); without it, an existing dialogue refuses
+	 *                the import.
+	 * @return the result per file.
+	 * @throws HttpException if the project doesn't exist, any file is refused, or the user is not
+	 * authorized.
+	 */
+	@Operation(summary = "Import .dlb scripts into a folder of a project, as draft dialogues.")
+	@Parameter(name = "version", hidden = true)
+	@PostMapping(value = "/import-scripts", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public List<ImportedScript> importScripts(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug,
+			@RequestParam(value = "folder", defaultValue = "") String folder,
+			@RequestParam(value = "files") List<MultipartFile> files,
+			@RequestParam(value = "replace", defaultValue = "false") boolean replace
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("POST /v{}/authoring/import-scripts [user: {}]", version, user);
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					return scriptImportService.importScripts(project, folder, files, replace);
 				},
 				version, response, "", Permission.DIALOGUE_AUTHOR);
 	}

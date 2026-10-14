@@ -347,8 +347,15 @@ function onNodeRenamed(updatedNode) {
     emit('dialogueSaved');
 }
 
+const preambleBar = useTemplateRef('preamble-bar');
+
+function reload() {
+    loadNodes();
+    preambleBar.value?.reload();
+}
+
 defineExpose({
-    reload: loadNodes,
+    reload,
     addNode,
     isLoading: () => loading.value,
     isCreatingNode: () => creatingNode.value,
@@ -371,7 +378,7 @@ defineExpose({
             @pane-context-menu="onPaneContextMenu"
         >
             <Panel position="top-left">
-                <PreambleBar :dialogue-name="dialogueName" @saved="emit('dialogueSaved')" />
+                <PreambleBar ref="preamble-bar" :dialogue-name="dialogueName" @saved="emit('dialogueSaved')" />
             </Panel>
 
             <template #node-dialogueNode="{ data }">

@@ -318,6 +318,10 @@ function onNewDialogueStep() {
     variableBrowser.value?.loadVariables();
 }
 
+function onDialoguesReplaced(dialogueNames) {
+    dialogueWorkspace.value?.dialoguesReplaced(dialogueNames);
+}
+
 function onDialogueSaved() {
     dialogueBrowser.value?.listDialogues();
 }
@@ -540,6 +544,7 @@ function onWorkspaceModeChanged(mode) {
                     @activateTab="onActivateTab"
                     @hasUnpublishedChanges="hasUnpublishedDialogueChanges = $event"
                     @openDialogue="onOpenDialogue"
+                    @dialoguesReplaced="onDialoguesReplaced"
                 />
             </template>
             <template #main>

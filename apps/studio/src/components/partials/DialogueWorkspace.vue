@@ -455,6 +455,20 @@ function onEditorNodeDeleted(nodeTitle) {
     if (tab.lastEditedNodeTitle === nodeTitle) tab.lastEditedNodeTitle = null;
 }
 
+// Called after an import replaced the draft content of these dialogues (#339): every tab showing
+// one now shows stale content. The open graph editor reloads it; a test running in a tab is
+// reconciled the same way as after editing (see handleReturnFromEdit).
+function dialoguesReplaced(dialogueNames) {
+    for (const tab of tabs.value) {
+        if (dialogueNames.includes(tab.dialogueName)) tab.dialogueEdited = true;
+    }
+    if (selectedMode.value === 'edit' && dialogueNames.includes(activeTab.value?.dialogueName)) {
+        dialogueEditor.value?.reload();
+    } else if (dialogueNames.includes(activeTab.value?.dialogueName)) {
+        handleReturnFromEdit(activeTab.value);
+    }
+}
+
 // Called whenever the mode switches away from 'edit' back to Balloon/Text. If the dialogue in the
 // tab being left was edited and already had a test running, that test's content is now stale:
 // a "live" (published, logged) test is force-switched to an ephemeral draft test (with a notice,
@@ -643,6 +657,7 @@ defineExpose({
     editDialogue,
     openDialogue,
     loadAvailableLanguages,
+    dialoguesReplaced,
 });
 
 // ---- Tab bar scroll ----

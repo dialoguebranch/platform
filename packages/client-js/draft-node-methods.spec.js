@@ -90,3 +90,29 @@ describe('draft preamble', () => {
         expect(result.preamble).toBe('// About.');
     });
 });
+
+describe('importScripts', () => {
+    it('sends the project, folder, replace flag and files as multipart form data', async () => {
+        const { client, fetch } = clientReturning([
+            { fileName: 'welcome.dlb', dialogueName: 'onboarding/welcome', replaced: false, parseErrors: [] },
+        ]);
+        const welcome = new File(['title: Start\n---\nHi.\n===\n'], 'welcome.dlb', { type: 'text/plain' });
+        const results = await client.importScripts('proj', 'onboarding', [welcome], { replace: true });
+        const [url, init] = fetch.mock.calls[0];
+        expect(url).toBe('/api/v1/authoring/import-scripts');
+        expect(init.method).toBe('POST');
+        expect(init.body.get('projectSlug')).toBe('proj');
+        expect(init.body.get('folder')).toBe('onboarding');
+        expect(init.body.get('replace')).toBe('true');
+        expect(init.body.getAll('files').map((f) => f.name)).toEqual(['welcome.dlb']);
+        expect(results[0].dialogueName).toBe('onboarding/welcome');
+    });
+
+    it('does not replace by default and imports into the root for an empty folder', async () => {
+        const { client, fetch } = clientReturning([]);
+        await client.importScripts('proj', '', [new File([''], 'a.dlb')]);
+        const init = fetch.mock.calls[0][1];
+        expect(init.body.get('replace')).toBe('false');
+        expect(init.body.get('folder')).toBe('');
+    });
+});

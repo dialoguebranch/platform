@@ -389,6 +389,37 @@ export class DialogueBranchAuthoringClient extends BaseClient {
     }
 
     /**
+     * Imports `.dlb` scripts into one folder of a project, as draft dialogues: each file becomes
+     * the dialogue named after the folder and its file name without `.dlb`. All or nothing: if any
+     * file is refused, nothing is imported, and the rejection's {@link DialogueBranchError}
+     * carries the problems per file name in `errors`.
+     *
+     * @param {string} projectSlug The project's slug.
+     * @param {string} folder The folder to import into (e.g. `"onboarding"`), or `""` for the
+     * project root.
+     * @param {File[]|Blob[]} files The `.dlb` files (UTF-8, at most 1 MB each, at most 100).
+     * @param {{replace?: boolean}} [options] `replace`: let a file replace the content of an
+     * existing dialogue (a dialogue pending deletion is then restored); without it, an existing
+     * dialogue refuses the import.
+     * @returns {Promise<{fileName: string, dialogueName: string, replaced: boolean,
+     * parseErrors: string[]}[]>} The result per file. `parseErrors` lists syntax errors: those
+     * don't refuse a file, and are reported again when publishing.
+     */
+    importScripts(projectSlug, folder, files, { replace = false } = {}) {
+        const url = this._baseUrl + "/authoring/import-scripts";
+        const formData = new FormData();
+        formData.append('projectSlug', projectSlug);
+        formData.append('folder', folder ?? '');
+        formData.append('replace', String(!!replace));
+        for (const file of files) formData.append('files', file, file.name);
+
+        return this._fetch(url, {
+            method: "POST",
+            body: formData,
+        }).then((response) => this._handleResponse(response));
+    }
+
+    /**
      * Replaces a draft dialogue's preamble: the comment lines at the start of its script. Blank
      * lines are left out; every other line must be a `//` comment line, or the request is refused.
      * Like any draft change, it takes effect on the next publish.
