@@ -5,6 +5,8 @@ import { useAuthoringClient } from '@/composables/client.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
 import { useLatestRequest } from '@/composables/latest-request.js';
+import { findStaleEntries, withoutEntries } from '@/authoring/DlbTranslations.js';
+import StaleTranslationsModal from './StaleTranslationsModal.vue';
 
 // Pure content component — no header of its own, same as DialogueEditor. It's only ever embedded
 // in DialogueWorkspace.vue's "translate" mode.
@@ -108,6 +110,42 @@ function groupedTerms(termList) {
 }
 
 const groups = ref([]);
+const terms = ref([]); // [{ speaker, term }], as listed by the Web Service
+
+// ---- Stale entries (#375) ----
+// Entries of a language's translation that match no term of the dialogue (on speaker and text).
+// The Translator never uses them, and the rows above never show them, so they're listed here,
+// for every translation language, not only the visible columns.
+
+const staleSections = computed(() => translationLanguages.value
+    .map((language) => ({
+        language,
+        entries: findStaleEntries(content.value[language.code] ?? {}, terms.value),
+    }))
+    .filter((section) => section.entries.length > 0));
+const staleCount = computed(() =>
+    staleSections.value.reduce((count, section) => count + section.entries.length, 0));
+const showStale = ref(false);
+const deletingStale = ref(false);
+
+function deleteStaleEntries({ languageCode, entries }) {
+    const projectSlug = state.value.selectedProject?.slug;
+    const next = withoutEntries(content.value[languageCode] ?? {}, entries);
+    deletingStale.value = true;
+    dismissError();
+    client.updateDraftTranslation(projectSlug, props.dialogueName, languageCode, JSON.stringify(next))
+        .then(() => {
+            content.value = { ...content.value, [languageCode]: next };
+            // As for a saved cell: the dialogue is now changed, which the Dialogue Browser shows.
+            emit('dialogueSaved');
+        })
+        .catch((error) => {
+            showError(describeError(error));
+        })
+        .finally(() => {
+            deletingStale.value = false;
+        });
+}
 
 // TranslationEditor is a single persistent instance reused across tabs (see DialogueWorkspace.vue),
 // so switching to a different dialogue before a fetch resolves must not let a stale response
@@ -116,6 +154,8 @@ const { next: nextLoadRequest, isCurrent: isCurrentLoadRequest } = useLatestRequ
 
 function loadTranslations() {
     groups.value = [];
+    terms.value = [];
+    showStale.value = false;
     translationLanguages.value = [];
     content.value = {};
     dirtyCells.value = new Set();
@@ -145,6 +185,7 @@ function loadTranslations() {
             }));
         translationLanguages.value = languages;
         groups.value = groupedTerms(extractedTerms);
+        terms.value = extractedTerms;
 
         // Keep the current column selections if they're still valid (e.g. just switching tabs
         // within the same project); only fall back to defaults if a language disappeared or
@@ -204,6 +245,13 @@ defineExpose({
 
 <template>
     <div class="relative h-full overflow-auto">
+        <StaleTranslationsModal
+            v-if="showStale"
+            :sections="staleSections"
+            :saving="deletingStale"
+            @close="showStale = false"
+            @delete="deleteStaleEntries"
+        />
         <div v-if="!dialogueName" class="flex items-center justify-center h-full text-grey-dark font-title text-sm p-2">
             Open a dialogue from the Dialogue Browser to start translating.
         </div>
@@ -252,6 +300,17 @@ defineExpose({
                         <option v-for="lang in column3Options" :key="lang.code" :value="lang.code">{{ lang.name }}</option>
                     </select>
                 </div>
+                <button
+                    v-if="staleCount > 0"
+                    type="button"
+                    class="ml-auto flex items-center gap-1.5 h-7 px-2 rounded border border-orange-medium/60 bg-orange-light/20 text-xs font-title text-orange-darker hover:bg-orange-light/40 cursor-pointer"
+                    title="Translation entries that match no text of this dialogue"
+                    data-test="stale-entries-button"
+                    @click="showStale = true"
+                >
+                    <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" />
+                    Stale entries ({{ staleCount }})
+                </button>
             </div>
             <div class="flex flex-col gap-4 p-2">
                 <div v-for="group in groups" :key="group.speaker" class="flex flex-col gap-1">

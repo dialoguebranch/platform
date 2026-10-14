@@ -9,6 +9,11 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Studio: the Translation Editor shows a dialogue's stale translation entries and lets you delete
+  them ([#375](https://github.com/dialoguebranch/platform/issues/375)). Entries that match no text
+  of the dialogue on speaker and text (for example after the text changed) are never used and were
+  invisible; a *Stale entries (N)* button now lists them per translation language, with their
+  speaker and any gender contexts, and deletes one, or all of a language's, after a confirmation.
 - Studio, web service and client-js: import translation files (`.json`) into a translation
   language of an existing project, as draft translations
   ([#340](https://github.com/dialoguebranch/platform/issues/340)). *Import Translations* in the
