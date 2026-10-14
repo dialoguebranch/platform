@@ -30,14 +30,20 @@ package com.dialoguebranch.web.bff;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.web.servlet.MultipartAutoConfiguration;
 
 /**
  * The main entry point for the Dialogue Branch Backend-for-Frontend (BFF) as a Spring Boot
  * Application. See {@link SecurityConfig}'s Javadoc for what this service does and why it exists.
  *
+ * <p>Multipart handling is switched off: this service never handles uploads itself, it passes
+ * request bodies on to the Web Service unchanged ({@link ApiProxyController}). With it on, the
+ * servlet container parses (and so consumes) a multipart body as soon as anything reads a request
+ * parameter, and the proxy forwarded uploads (project and script import) without their contents.</p>
+ *
  * @author Dennis Hofs
  */
-@SpringBootApplication
+@SpringBootApplication(exclude = MultipartAutoConfiguration.class)
 public class Application {
 
 	/**
