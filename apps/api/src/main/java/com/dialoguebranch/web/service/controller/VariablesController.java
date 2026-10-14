@@ -218,6 +218,10 @@ public class VariablesController {
 	 * @param version the API version to use, e.g. '1'.
 	 * @param projectSlug the slug of the project the variables are scoped to.
 	 * @param variableName the variable to return the history of, or leave empty for all variables.
+	 * @param from only return entries recorded at or after this time, in epoch milliseconds
+	 *             (inclusive; leave out for no lower bound).
+	 * @param to only return entries recorded before this time, in epoch milliseconds (exclusive;
+	 *           leave out for no upper bound).
 	 * @param page the zero-based page index (default {@code 0}).
 	 * @param pageSize the page size (default {@code 50}, capped at {@value
 	 *                 #MAX_HISTORY_PAGE_SIZE}).
@@ -232,7 +236,10 @@ public class VariablesController {
 			"Variables in a project, newest first and paginated: one entry per variable per " +
 			"change, with the value it was given (or null if it was removed), when the Web " +
 			"Service recorded the change, and its source. Provide a variable name to return the " +
-			"history of that variable only.")
+			"history of that variable only. Provide from and/or to (epoch milliseconds, the same unit " +
+			"as recordedTime) to return only the changes recorded in the range [from, to): " +
+			"from is inclusive, to is exclusive, so consecutive ranges never overlap or leave " +
+			"gaps.")
 	@RequestMapping(value="/history", method=RequestMethod.GET)
 	public List<VariableHistoryEntry> getVariableHistory(
 		HttpServletRequest request,
@@ -251,6 +258,16 @@ public class VariablesController {
 		@RequestParam(value = "variableName", required = false)
 		String variableName,
 
+		@Parameter(description = "Only return changes recorded at or after this time, in epoch " +
+			"milliseconds (inclusive; leave out for no lower bound)")
+		@RequestParam(value = "from", required = false)
+		String from,
+
+		@Parameter(description = "Only return changes recorded before this time, in epoch " +
+			"milliseconds (exclusive; leave out for no upper bound)")
+		@RequestParam(value = "to", required = false)
+		String to,
+
 		@Parameter(description = "The zero-based page index")
 		@RequestParam(value = "page", required = false, defaultValue = "0")
 		int page,
@@ -268,7 +285,8 @@ public class VariablesController {
 			version = ProtocolVersion.getLatestVersion().versionName();
 
 		String logInfo = "GET /v" + version + "/variables/history?projectSlug=" + projectSlug
-				+ "&variableName=" + variableName + "&page=" + page + "&pageSize=" + pageSize;
+				+ "&variableName=" + variableName + "&from=" + from + "&to=" + to + "&page=" + page
+				+ "&pageSize=" + pageSize;
 		if (delegateUser != null && !delegateUser.isEmpty())
 			logInfo += "&delegateUser=" + delegateUser;
 		logger.info(logInfo);
@@ -280,7 +298,8 @@ public class VariablesController {
 				if (delegated && userRepository.findByIssuerAndSubject(user.issuer(),
 						user.subject()).isEmpty())
 					throw ControllerFunctions.unknownDelegateUser(user);
-				return doGetVariableHistory(user, projectSlug, variableName, page, pageSize);
+				return doGetVariableHistory(user, projectSlug, variableName, from, to, page,
+						pageSize);
 			},
 			version, response, delegateUser, Permission.VARIABLE_READ_OWN_HISTORY);
 	}
@@ -293,25 +312,51 @@ public class VariablesController {
 	 * @param userId the Dialogue Branch user whose history to return.
 	 * @param projectSlug the slug of the project the variables are scoped to.
 	 * @param variableName the variable to return the history of, or {@code null}/empty for all.
+	 * @param from the lower bound (inclusive) of the recorded time, in epoch milliseconds, or
+	 *             {@code null}/blank for none.
+	 * @param to the upper bound (exclusive) of the recorded time, in epoch milliseconds, or
+	 *           {@code null}/blank for none.
 	 * @param page the zero-based page index (negative values are treated as {@code 0}).
 	 * @param pageSize the page size (clamped to {@code 1..}{@value #MAX_HISTORY_PAGE_SIZE}).
 	 * @return the requested page of history entries, newest first.
-	 * @throws BadRequestException in case of a malformed {@code variableName}.
+	 * @throws BadRequestException in case of a malformed {@code variableName}, an unparseable
+	 *                             {@code from} or {@code to}, or a {@code from} after {@code to}.
 	 * @throws NotFoundException if no project with the given slug exists.
 	 * @throws ParseException if a stored value cannot be parsed.
 	 */
 	List<VariableHistoryEntry> doGetVariableHistory(DialogueBranchUserId userId,
-			String projectSlug, String variableName, int page, int pageSize)
-			throws BadRequestException, NotFoundException, ParseException {
+			String projectSlug, String variableName, String from, String to, int page,
+			int pageSize) throws BadRequestException, NotFoundException, ParseException {
 		String name = variableName == null || variableName.isBlank() ? null : variableName.trim();
 		if (name != null && !name.matches("[A-Za-z]\\w*")) {
 			throw BadRequestException.withInvalidInput(new HttpFieldError("variableName",
 					"Invalid variable name: " + name));
 		}
+		List<HttpFieldError> rangeErrors = new ArrayList<>();
+		Long fromMillis = parseEpochMillis("from", from, rangeErrors);
+		Long toMillis = parseEpochMillis("to", to, rangeErrors);
+		if (rangeErrors.isEmpty() && fromMillis != null && toMillis != null
+				&& fromMillis > toMillis) {
+			rangeErrors.add(new HttpFieldError("from", "'from' must not be after 'to'"));
+		}
+		if (!rangeErrors.isEmpty())
+			throw BadRequestException.withInvalidInput(rangeErrors);
 		DBProject project = projectRepository.findBySlug(projectSlug)
 				.orElseThrow(() -> new NotFoundException("Project not found: " + projectSlug));
 		int size = Math.max(1, Math.min(pageSize, MAX_HISTORY_PAGE_SIZE));
-		return historyStorageHandler.read(userId, project, name, Math.max(0, page), size);
+		return historyStorageHandler.read(userId, project, name, fromMillis, toMillis,
+				Math.max(0, page), size);
+	}
+
+	private static Long parseEpochMillis(String field, String value, List<HttpFieldError> errors) {
+		if (value == null || value.isBlank()) return null;
+		try {
+			return Long.parseLong(value.trim());
+		} catch (NumberFormatException e) {
+			errors.add(new HttpFieldError(field,
+					"Not a valid time in epoch milliseconds: " + value));
+			return null;
+		}
 	}
 
 	// ------------------------------------------------------------------------------ //

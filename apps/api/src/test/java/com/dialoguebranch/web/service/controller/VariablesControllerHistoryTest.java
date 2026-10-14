@@ -78,53 +78,96 @@ class VariablesControllerHistoryTest {
 
 	@Test
 	void passesTheProjectNameAndPageThrough() throws Exception {
-		controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, "mood", 3, 20);
+		controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, "mood", null, null, 3, 20);
 
-		verify(historyHandler).read(USER_ID, project, "mood", 3, 20);
+		verify(historyHandler).read(USER_ID, project, "mood", null, null, 3, 20);
 	}
 
 	@Test
 	void aMissingOrBlankNameMeansAllVariables() throws Exception {
-		controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, null, 0, 50);
-		controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, "   ", 0, 50);
+		controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, null, null, null, 0, 50);
+		controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, "   ", null, null, 0, 50);
 
-		verify(historyHandler, times(2)).read(USER_ID, project, null, 0, 50);
+		verify(historyHandler, times(2)).read(USER_ID, project, null, null, null, 0, 50);
 	}
 
 	@Test
 	void surroundingWhitespaceIsTrimmedFromTheName() throws Exception {
-		controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, "  mood ", 0, 50);
+		controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, "  mood ", null, null, 0, 50);
 
-		verify(historyHandler).read(USER_ID, project, "mood", 0, 50);
+		verify(historyHandler).read(USER_ID, project, "mood", null, null, 0, 50);
 	}
 
 	@Test
 	void anOversizedPageIsCappedAt200() throws Exception {
-		controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, null, 0, 10_000);
+		controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, null, null, null, 0, 10_000);
 
-		verify(historyHandler).read(USER_ID, project, null, 0, 200);
+		verify(historyHandler).read(USER_ID, project, null, null, null, 0, 200);
 	}
 
 	@Test
 	void aZeroOrNegativePageSizeBecomesOne() throws Exception {
-		controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, null, 0, 0);
-		controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, null, 0, -5);
+		controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, null, null, null, 0, 0);
+		controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, null, null, null, 0, -5);
 
-		verify(historyHandler, times(2)).read(USER_ID, project, null, 0, 1);
+		verify(historyHandler, times(2)).read(USER_ID, project, null, null, null, 0, 1);
 	}
 
 	@Test
 	void aNegativePageIndexBecomesTheFirstPage() throws Exception {
-		controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, null, -2, 50);
+		controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, null, null, null, -2, 50);
 
-		verify(historyHandler).read(USER_ID, project, null, 0, 50);
+		verify(historyHandler).read(USER_ID, project, null, null, null, 0, 50);
+	}
+
+	@Test
+	void parsesTheTimeRangeAsEpochMillisAndPassesItThrough() throws Exception {
+		controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, null, "1000", " 2000 ", 0, 50);
+
+		verify(historyHandler).read(USER_ID, project, null, 1000L, 2000L, 0, 50);
+	}
+
+	@Test
+	void eitherBoundCanBeLeftOutOrBlank() throws Exception {
+		controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, null, "1000", null, 0, 50);
+		controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, null, "  ", "2000", 0, 50);
+
+		verify(historyHandler).read(USER_ID, project, null, 1000L, null, 0, 50);
+		verify(historyHandler).read(USER_ID, project, null, null, 2000L, 0, 50);
+	}
+
+	@Test
+	void anEmptyRangeWithEqualBoundsIsAllowed() throws Exception {
+		controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, null, "1000", "1000", 0, 50);
+
+		verify(historyHandler).read(USER_ID, project, null, 1000L, 1000L, 0, 50);
+	}
+
+	@Test
+	void anUnparseableTimeIsRejectedBeforeAnyLookup() {
+		for (String invalid : new String[] { "yesterday", "2026-10-14T12:00:00Z", "12.5", "1e3" }) {
+			assertThrows(BadRequestException.class, () ->
+					controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, null, invalid, null, 0, 50),
+					"from='" + invalid + "' should be rejected");
+			assertThrows(BadRequestException.class, () ->
+					controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, null, null, invalid, 0, 50),
+					"to='" + invalid + "' should be rejected");
+		}
+		verifyNoInteractions(projectRepository, historyHandler);
+	}
+
+	@Test
+	void aFromAfterToIsRejectedBeforeAnyLookup() {
+		assertThrows(BadRequestException.class, () ->
+				controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, null, "2000", "1000", 0, 50));
+		verifyNoInteractions(projectRepository, historyHandler);
 	}
 
 	@Test
 	void anInvalidNameIsRejectedBeforeAnyLookup() {
 		for (String invalid : new String[] { "1mood", "mood-score", "$mood", "mood score" }) {
 			assertThrows(BadRequestException.class, () ->
-					controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, invalid, 0, 50),
+					controller.doGetVariableHistory(USER_ID, PROJECT_SLUG, invalid, null, null, 0, 50),
 					"'" + invalid + "' should be rejected");
 		}
 		verifyNoInteractions(projectRepository, historyHandler);
@@ -135,8 +178,8 @@ class VariablesControllerHistoryTest {
 		when(projectRepository.findBySlug("nope")).thenReturn(Optional.empty());
 
 		assertThrows(NotFoundException.class, () ->
-				controller.doGetVariableHistory(USER_ID, "nope", null, 0, 50));
-		verify(historyHandler, never()).read(any(), any(), any(), anyInt(),
+				controller.doGetVariableHistory(USER_ID, "nope", null, null, null, 0, 50));
+		verify(historyHandler, never()).read(any(), any(), any(), any(), any(), anyInt(),
 				anyInt());
 	}
 

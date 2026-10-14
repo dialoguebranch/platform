@@ -9,6 +9,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Web service and client-js: `GET /variables/history` accepts optional `from` and `to` (epoch
+  milliseconds) to return only the changes recorded in the range `[from, to)`
+  ([#352](https://github.com/dialoguebranch/platform/issues/352)). `from` is inclusive and `to`
+  exclusive, so consecutive ranges never overlap or leave gaps; either can be left out, and they
+  combine with `variableName` and paging. A `from` after `to`, or a value that is not a whole
+  number, answers `400`. A new database migration (`V9`) adds indexes for the range lookup.
+  `DialogueBranchClient.getVariableHistory` accepts `from` and `to` (a number or a `Date`).
 - Studio and web service: import `.dlb` scripts into a folder of an existing project, as draft
   dialogues ([#339](https://github.com/dialoguebranch/platform/issues/339)). *Import Scripts* in
   the Dialogue Browser (Authoring Mode) previews the resulting dialogue names, shows which already
