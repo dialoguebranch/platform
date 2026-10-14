@@ -171,3 +171,65 @@ describe('TranslationEditor stale entries', () => {
         expect(wrapper.emitted('dialogueSaved')).toBeUndefined();
     });
 });
+
+// Cells match stored entries on whitespace-normalised text, and gender-specific translations in
+// nested context groups show as sub-rows (#386).
+describe('TranslationEditor cells', () => {
+    const HIDDEN = {
+        nl: {
+            'Martin McOwl': {
+                'Hello.': 'Hallo.',
+                female_addressee: { 'Hello.': 'Hallo, meid.' },
+            },
+            _user: { 'Fine,\n thanks.': 'Goed, dank je.' },
+        },
+    };
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        setUp(HIDDEN);
+        authoring.listTranslatableTerms.mockResolvedValue([
+            { speaker: 'Martin McOwl', term: 'Hello.' },
+            { speaker: '_user', term: 'Fine, thanks.' },
+        ]);
+    });
+
+    const rowFor = (wrapper, text) => wrapper.findAll('[data-test="term-row"]')
+        .find((row) => row.text().includes(text));
+
+    it('shows an entry stored with different whitespace', async () => {
+        const wrapper = await mountEditor();
+        expect(rowFor(wrapper, 'Fine, thanks.').find('input').element.value).toBe('Goed, dank je.');
+        expect(staleButton(wrapper).exists()).toBe(false);
+    });
+
+    it('replaces that entry when it is edited, instead of adding one', async () => {
+        const wrapper = await mountEditor();
+        const input = rowFor(wrapper, 'Fine, thanks.').find('input');
+        await input.setValue('Prima, dank je.');
+        await input.trigger('blur');
+        await flushPromises();
+        expect(savedContent()._user).toEqual({ 'Fine, thanks.': 'Prima, dank je.' });
+    });
+
+    it('shows a gender-specific translation as a sub-row under its term', async () => {
+        const wrapper = await mountEditor();
+        const contextRows = wrapper.findAll('[data-test="context-row"]');
+        expect(contextRows).toHaveLength(1);
+        expect(contextRows[0].text()).toContain('female_addressee');
+        expect(contextRows[0].find('input').element.value).toBe('Hallo, meid.');
+        expect(rowFor(wrapper, 'Hello.').find('input').element.value).toBe('Hallo.');
+    });
+
+    it('saves an edited gender-specific translation in its context group', async () => {
+        const wrapper = await mountEditor();
+        const input = wrapper.find('[data-test="context-row"] input');
+        await input.setValue('Hoi, meid.');
+        await input.trigger('blur');
+        await flushPromises();
+        expect(savedContent()['Martin McOwl']).toEqual({
+            'Hello.': 'Hallo.',
+            female_addressee: { 'Hello.': 'Hoi, meid.' },
+        });
+    });
+});

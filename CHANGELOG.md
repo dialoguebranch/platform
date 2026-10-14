@@ -9,6 +9,11 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Studio: the Translation Editor shows translations it used to hide
+  ([#386](https://github.com/dialoguebranch/platform/issues/386)). A translation stored under a
+  source text that differs from the dialogue's text only in whitespace now shows in its row, and
+  editing it replaces it instead of adding a second entry; gender-specific translations (nested
+  context groups such as `female_addressee`) show as editable sub-rows under their text.
 - Studio: the Translation Editor shows a dialogue's stale translation entries and lets you delete
   them ([#375](https://github.com/dialoguebranch/platform/issues/375)). Entries that match no text
   of the dialogue on speaker and text (for example after the text changed) are never used and were

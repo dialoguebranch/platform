@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeText, listEntries, findStaleEntries, withoutEntries } from './DlbTranslations.js';
+import {
+    normalizeText, listEntries, findStaleEntries, withoutEntries, findStoredText, withTranslation,
+    findContextVariants,
+} from './DlbTranslations.js';
 
 const CONTENT = {
     'Martin McOwl': {
@@ -81,5 +84,62 @@ describe('withoutEntries', () => {
         const copy = JSON.parse(JSON.stringify(CONTENT));
         withoutEntries(CONTENT, findStaleEntries(CONTENT, TERMS));
         expect(CONTENT).toEqual(copy);
+    });
+});
+
+describe('findStoredText', () => {
+    const content = {
+        Robin: { 'How are\n you?': 'Hoe gaat het?', 'Hello.': 'Hallo.', male_speaker: { 'Hello.': 'Hoi.' } },
+    };
+
+    it('finds the term itself', () => {
+        expect(findStoredText(content, 'Robin', [], 'Hello.')).toBe('Hello.');
+    });
+
+    it('finds a stored text that differs only in whitespace', () => {
+        expect(findStoredText(content, 'Robin', [], 'How are you?')).toBe('How are\n you?');
+    });
+
+    it('looks in a nested context group', () => {
+        expect(findStoredText(content, 'Robin', ['male_speaker'], 'Hello.')).toBe('Hello.');
+        expect(findStoredText(content, 'Robin', ['female_speaker'], 'Hello.')).toBeNull();
+    });
+
+    it('finds nothing for another speaker or a missing term', () => {
+        expect(findStoredText(content, 'Anna', [], 'Hello.')).toBeNull();
+        expect(findStoredText(content, 'Robin', [], 'Bye.')).toBeNull();
+    });
+});
+
+describe('withTranslation', () => {
+    it('replaces an entry stored with different whitespace, under the term', () => {
+        const content = { Robin: { 'How are\n you?': 'Hoe gaat het?', 'Hello.': 'Hallo.' } };
+        expect(withTranslation(content, 'Robin', [], 'How are you?', 'Alles goed?')).toEqual({
+            Robin: { 'Hello.': 'Hallo.', 'How are you?': 'Alles goed?' },
+        });
+        expect(content.Robin['How are\n you?']).toBe('Hoe gaat het?');
+    });
+
+    it('sets a translation in a nested context group, creating groups as needed', () => {
+        expect(withTranslation({}, 'Robin', ['female_addressee'], 'Hello.', 'Hallo, meid.')).toEqual({
+            Robin: { female_addressee: { 'Hello.': 'Hallo, meid.' } },
+        });
+    });
+});
+
+describe('findContextVariants', () => {
+    it('lists the context groups holding a translation of the term for the speaker', () => {
+        const content = {
+            Robin: {
+                'Hello.': 'Hallo.',
+                female_addressee: { 'Hello.': 'Hallo, meid.' },
+                female_speaker: { male_addressee: { '\nHello. ': 'Hoi.' }, 'Bye.': 'Dag.' },
+            },
+            Anna: { male_speaker: { 'Hello.': 'Hé.' } },
+        };
+        expect(findContextVariants(content, 'Robin', 'Hello.')).toEqual([
+            ['female_addressee'],
+            ['female_speaker', 'male_addressee'],
+        ]);
     });
 });

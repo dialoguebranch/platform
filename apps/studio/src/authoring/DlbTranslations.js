@@ -107,3 +107,79 @@ export function withoutEntries(content, entries) {
     };
     return prune([], content ?? {});
 }
+
+function groupAt(content, path) {
+    let group = content ?? {};
+    for (const key of path) {
+        const next = group[key];
+        if (next === null || typeof next !== 'object') return null;
+        group = next;
+    }
+    return group;
+}
+
+/**
+ * The source text under which a term's translation is stored in a speaker's group (or a context
+ * group nested in it), matching on whitespace-normalised text (#386): the term itself if stored
+ * that way, otherwise a stored text that differs from it only in whitespace.
+ *
+ * @param {Object} content one language's translation content.
+ * @param {string} speaker
+ * @param {string[]} contexts the keys of the nested context groups; empty for the speaker's own.
+ * @param {string} term the term, as the Web Service lists it.
+ * @returns {string|null} the stored source text, or null if the term has no entry there.
+ */
+export function findStoredText(content, speaker, contexts, term) {
+    const group = groupAt(content, [speaker, ...contexts]);
+    if (!group) return null;
+    if (typeof group[term] === 'string') return term;
+    const normalized = normalizeText(term);
+    return Object.keys(group).find((key) =>
+        typeof group[key] === 'string' && normalizeText(key) === normalized) ?? null;
+}
+
+/**
+ * A copy of one language's translation content with a term's translation set in a speaker's group
+ * (or a context group nested in it), stored under the term itself. An entry stored under text that
+ * differs from the term only in whitespace is replaced, not kept next to it (#386).
+ *
+ * @param {Object} content one language's translation content.
+ * @param {string} speaker
+ * @param {string[]} contexts the keys of the nested context groups; empty for the speaker's own.
+ * @param {string} term the term, as the Web Service lists it.
+ * @param {string} translation
+ * @returns {Object}
+ */
+export function withTranslation(content, speaker, contexts, term, translation) {
+    const result = JSON.parse(JSON.stringify(content ?? {}));
+    let group = result;
+    for (const key of [speaker, ...contexts]) {
+        if (group[key] === null || typeof group[key] !== 'object') group[key] = {};
+        group = group[key];
+    }
+    const normalized = normalizeText(term);
+    for (const key of Object.keys(group)) {
+        if (key !== term && typeof group[key] === 'string' && normalizeText(key) === normalized) {
+            delete group[key];
+        }
+    }
+    group[term] = translation;
+    return result;
+}
+
+/**
+ * The gender-specific translations of a term for a speaker: the context groups (nested in the
+ * speaker's group) that hold an entry for it, as lists of their keys, in file order (#386).
+ *
+ * @param {Object} content one language's translation content.
+ * @param {string} speaker
+ * @param {string} term the term, as the Web Service lists it.
+ * @returns {string[][]}
+ */
+export function findContextVariants(content, speaker, term) {
+    const normalized = normalizeText(term);
+    return listEntries(content)
+        .filter((entry) => entry.speaker === speaker && entry.contexts.length > 0
+            && normalizeText(entry.text) === normalized)
+        .map((entry) => entry.contexts);
+}
