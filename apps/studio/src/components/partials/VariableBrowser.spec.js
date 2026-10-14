@@ -29,6 +29,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import { ref } from 'vue';
+import { zonedInputToEpoch } from '@/composables/variable-history.js';
 
 // The Variable Browser's "History" mode (#323), mounted against a mocked client. The pure rules
 // (paging, de-duplication, exact-name resolution, filtering, the hint) have their own spec in
@@ -499,5 +500,266 @@ describe('VariableBrowser — History mode', () => {
         // The zone it was recorded in is still shown, on its own line.
         expect(tooltip).toContain('Europe/Lisbon');
         expect(tooltip).toContain('External Service');
+    });
+});
+
+describe('VariableBrowser — History date range (#371)', () => {
+    // The mocked Studio user's time zone is Asia/Tokyo (UTC+9): a day runs from 15:00Z to 15:00Z.
+    const tokyo = (value) => zonedInputToEpoch(value, 'Asia/Tokyo');
+    const setStart = async (wrapper, value) => {
+        await wrapper.get('[data-test="history-start-date"]').setValue(value);
+        await flushPromises();
+    };
+    const setEnd = async (wrapper, value) => {
+        await wrapper.get('[data-test="history-end-date"]').setValue(value);
+        await flushPromises();
+    };
+
+    it('shows the date inputs and presets in History only, and nothing finer than a date', async () => {
+        const wrapper = mountBrowser();
+        await flushPromises();
+        expect(wrapper.find('[data-test="history-range"]').exists()).toBe(false);
+        await openHistory(wrapper);
+        expect(wrapper.get('[data-test="history-start-date"]').attributes('type')).toBe('date');
+        expect(wrapper.get('[data-test="history-end-date"]').attributes('type')).toBe('date');
+        for (const id of ['today', '7days', '30days'])
+            expect(wrapper.find(`[data-test="history-preset-${id}"]`).exists(), id).toBe(true);
+        await openMode(wrapper, 'Values');
+        expect(wrapper.find('[data-test="history-range"]').exists()).toBe(false);
+    });
+
+    it('sends no range until a date is chosen', async () => {
+        const wrapper = mountBrowser();
+        await flushPromises();
+        await openHistory(wrapper);
+        expect(lastHistoryCall().from).toBeUndefined();
+        expect(lastHistoryCall().to).toBeUndefined();
+    });
+
+    it('applies a start date as soon as it is chosen — no time needed — as that day\'s midnight in the Studio user\'s zone', async () => {
+        const wrapper = mountBrowser();
+        await flushPromises();
+        await openHistory(wrapper);
+        await setStart(wrapper, '2026-10-14');
+
+        expect(playback.getVariableHistory).toHaveBeenCalledTimes(2);
+        expect(lastHistoryCall().from).toBe(tokyo('2026-10-14T00:00:00'));
+        expect(lastHistoryCall().from).toBe(Date.UTC(2026, 9, 13, 15, 0)); // 00:00 JST = 15:00Z the day before
+        expect(lastHistoryCall().to).toBeUndefined();
+        expect(lastHistoryCall().page).toBe(0);
+    });
+
+    it('applies an end date on its own, including that whole day', async () => {
+        const wrapper = mountBrowser();
+        await flushPromises();
+        await openHistory(wrapper);
+        await setEnd(wrapper, '2026-10-06');
+
+        expect(lastHistoryCall().from).toBeUndefined();
+        expect(lastHistoryCall().to).toBe(tokyo('2026-10-07T00:00:00'));
+    });
+
+    it('requests October 5 to 6 as two whole days, so entries from October 14 are not in it', async () => {
+        const wrapper = mountBrowser();
+        await flushPromises();
+        await openHistory(wrapper);
+        await setStart(wrapper, '2026-10-05');
+        await setEnd(wrapper, '2026-10-06');
+
+        const { from, to } = lastHistoryCall();
+        expect(from).toBe(tokyo('2026-10-05T00:00:00'));
+        expect(to).toBe(tokyo('2026-10-07T00:00:00'));
+        const october14 = tokyo('2026-10-14T18:09:15');
+        expect(october14 >= from && october14 < to).toBe(false);
+    });
+
+    it('combines with an exact variable name', async () => {
+        playback.getVariables.mockResolvedValue([{ name: 'mood', value: 'fine' }]);
+        const wrapper = mountBrowser();
+        await flushPromises();
+        await openHistory(wrapper);
+        await wrapper.get('input[type="text"]').setValue('mood');
+        await flushPromises();
+        await setStart(wrapper, '2026-10-14');
+
+        expect(lastHistoryCall().variableName).toBe('mood');
+        expect(lastHistoryCall().from).toBe(tokyo('2026-10-14T00:00:00'));
+    });
+
+    it('starts over from the first page when the range changes, and pages within the new range', async () => {
+        playback.getVariableHistory
+            .mockResolvedValueOnce(fullPage(100))               // opened, no range
+            .mockResolvedValueOnce(fullPage(200, 'ranged'))     // range set: page 0
+            .mockResolvedValueOnce([entry(10, 'ranged-more')]); // "Load more" in that range
+        const wrapper = mountBrowser();
+        await flushPromises();
+        await openHistory(wrapper);
+        await setStart(wrapper, '2026-10-14');
+
+        expect(shownNames(wrapper)).toHaveLength(PAGE_SIZE);
+        expect(new Set(shownNames(wrapper))).toEqual(new Set(['$ranged'])); // the old list is gone
+
+        await wrapper.get('[data-test="history-load-more"]').trigger('click');
+        await flushPromises();
+        expect(lastHistoryCall().page).toBe(1);
+        expect(lastHistoryCall().from).toBe(tokyo('2026-10-14T00:00:00'));
+    });
+
+    it('ignores the response to an older range when a newer one has been chosen', async () => {
+        const slow = deferred();
+        playback.getVariableHistory
+            .mockResolvedValueOnce([])                                   // opened
+            .mockReturnValueOnce(slow.promise)                           // start = A (slow)
+            .mockResolvedValueOnce([entry(7, 'newer-range')]);           // start = B
+        const wrapper = mountBrowser();
+        await flushPromises();
+        await openHistory(wrapper);
+        await setStart(wrapper, '2026-10-13');
+        await setStart(wrapper, '2026-10-14');
+        slow.resolve([entry(1, 'older-range')]);
+        await flushPromises();
+
+        expect(shownNames(wrapper)).toEqual(['$newer-range']);
+    });
+
+    it('fills the start date and clears the end date with a preset, in the Studio user\'s zone', async () => {
+        // 2026-10-14T20:00Z is 2026-10-15 05:00 in Tokyo.
+        vi.spyOn(Date, 'now').mockReturnValue(Date.UTC(2026, 9, 14, 20, 0, 0));
+        const wrapper = mountBrowser();
+        await flushPromises();
+        await openHistory(wrapper);
+        await setEnd(wrapper, '2026-10-16');
+
+        await wrapper.get('[data-test="history-preset-today"]').trigger('click');
+        await flushPromises();
+
+        expect(wrapper.get('[data-test="history-start-date"]').element.value).toBe('2026-10-15');
+        expect(wrapper.get('[data-test="history-end-date"]').element.value).toBe('');
+        expect(lastHistoryCall().from).toBe(tokyo('2026-10-15T00:00:00'));
+        expect(lastHistoryCall().to).toBeUndefined();
+        vi.restoreAllMocks();
+    });
+
+    it('"Last 7 days" starts 6 days before today', async () => {
+        vi.spyOn(Date, 'now').mockReturnValue(Date.UTC(2026, 9, 14, 20, 0, 0)); // 15 Oct in Tokyo
+        const wrapper = mountBrowser();
+        await flushPromises();
+        await openHistory(wrapper);
+
+        await wrapper.get('[data-test="history-preset-7days"]').trigger('click');
+        await flushPromises();
+
+        expect(wrapper.get('[data-test="history-start-date"]').element.value).toBe('2026-10-09');
+        vi.restoreAllMocks();
+    });
+
+    it('sends one request for a preset that changes both dates at once', async () => {
+        vi.spyOn(Date, 'now').mockReturnValue(Date.UTC(2026, 9, 14, 20, 0, 0));
+        const wrapper = mountBrowser();
+        await flushPromises();
+        await openHistory(wrapper);
+        await setEnd(wrapper, '2026-10-16');
+        const callsBefore = playback.getVariableHistory.mock.calls.length;
+
+        await wrapper.get('[data-test="history-preset-7days"]').trigger('click');
+        await flushPromises();
+
+        expect(playback.getVariableHistory.mock.calls.length - callsBefore).toBe(1);
+        vi.restoreAllMocks();
+    });
+
+    it('offers Clear only while a range is set, and Clear removes it', async () => {
+        const wrapper = mountBrowser();
+        await flushPromises();
+        await openHistory(wrapper);
+        expect(wrapper.find('[data-test="history-range-clear"]').exists()).toBe(false);
+        await setStart(wrapper, '2026-10-14');
+        await setEnd(wrapper, '2026-10-15');
+
+        await wrapper.get('[data-test="history-range-clear"]').trigger('click');
+        await flushPromises();
+
+        expect(wrapper.get('[data-test="history-start-date"]').element.value).toBe('');
+        expect(wrapper.get('[data-test="history-end-date"]').element.value).toBe('');
+        expect(lastHistoryCall().from).toBeUndefined();
+        expect(lastHistoryCall().to).toBeUndefined();
+        expect(wrapper.find('[data-test="history-range-clear"]').exists()).toBe(false);
+    });
+
+    it('describes the active range, with the end date included', async () => {
+        const wrapper = mountBrowser();
+        await flushPromises();
+        await openHistory(wrapper);
+        await setStart(wrapper, '2026-10-05');
+        await setEnd(wrapper, '2026-10-06');
+        expect(wrapper.get('[data-test="history-range-note"]').text())
+            .toBe('Showing changes recorded from 2026-10-05 through 2026-10-06.');
+    });
+
+    it('reports a start date after the end date in the panel and sends no request', async () => {
+        playback.getVariableHistory.mockResolvedValue([entry(1, 'mood')]);
+        const wrapper = mountBrowser();
+        await flushPromises();
+        await openHistory(wrapper);
+        await setStart(wrapper, '2026-10-16');
+        const callsBefore = playback.getVariableHistory.mock.calls.length;
+        await setEnd(wrapper, '2026-10-15');
+
+        expect(playback.getVariableHistory.mock.calls.length).toBe(callsBefore);
+        expect(wrapper.get('[data-test="history-range-error"]').text()).toMatch(/start date must not be after the end date/i);
+        expect(wrapper.findAll('[data-test="history-entry"]')).toHaveLength(0); // not a stale list
+        expect(errorToast.value).toBeNull();
+
+        // Fixing the range loads again and clears the message.
+        await setEnd(wrapper, '2026-10-17');
+        expect(wrapper.find('[data-test="history-range-error"]').exists()).toBe(false);
+        expect(lastHistoryCall().to).toBe(tokyo('2026-10-18T00:00:00'));
+        expect(wrapper.findAll('[data-test="history-entry"]')).toHaveLength(1);
+    });
+
+    it('shows a 400 from the server in the panel, not as an error toast', async () => {
+        const wrapper = mountBrowser();
+        await flushPromises();
+        await openHistory(wrapper);
+        playback.getVariableHistory.mockRejectedValueOnce(Object.assign(
+            new Error("'from' must not be after 'to'"), { status: 400, statusText: 'Bad Request' }));
+        await setStart(wrapper, '2026-10-14');
+
+        expect(wrapper.get('[data-test="history-range-error"]').text()).toContain("'from' must not be after 'to'");
+        expect(errorToast.value).toBeNull();
+    });
+
+    it('still shows other failures as an error toast', async () => {
+        const wrapper = mountBrowser();
+        await flushPromises();
+        await openHistory(wrapper);
+        playback.getVariableHistory.mockRejectedValueOnce(apiError('boom'));
+        await setStart(wrapper, '2026-10-14');
+
+        expect(wrapper.find('[data-test="history-range-error"]').exists()).toBe(false);
+        expect(errorToast.value).not.toBeNull();
+    });
+
+    it('says so when nothing was recorded in the range', async () => {
+        const wrapper = mountBrowser();
+        await flushPromises();
+        await openHistory(wrapper);
+        await setStart(wrapper, '2026-10-05');
+        await setEnd(wrapper, '2026-10-06');
+        expect(wrapper.text()).toContain('No variable changes recorded in this time range.');
+        expect(wrapper.text()).not.toContain('No variable changes recorded yet.');
+    });
+
+    it('keeps the range when a dialogue step reloads the history', async () => {
+        const wrapper = mountBrowser();
+        await flushPromises();
+        await openHistory(wrapper);
+        await setStart(wrapper, '2026-10-14');
+
+        wrapper.vm.loadVariables();
+        await flushPromises();
+
+        expect(lastHistoryCall().from).toBe(tokyo('2026-10-14T00:00:00'));
+        expect(lastHistoryCall().page).toBe(0);
     });
 });

@@ -30,6 +30,7 @@ import { describe, it, expect } from 'vitest';
 import {
     HISTORY_PAGE_SIZE, sourceLabel, formatTimestamp, formatHistoryValue, mergeHistoryPage,
     mayHaveMore, resolveExactName, filterSortHistory, needsLoadedOnlyHint,
+    HISTORY_PRESETS, zonedInputToEpoch, epochToZonedInput, presetRange, resolveDateRange,
 } from './variable-history.js';
 
 const entry = (id, name, value = 'x') => ({ id, name, value });
@@ -206,5 +207,154 @@ describe('needsLoadedOnlyHint', () => {
     it('is still needed for an exact-name search shown oldest first', () => {
         expect(needsLoadedOnlyHint({ query: 'mood', exactName: 'mood', order: 'oldest', hasMore: true }))
             .toBe(true);
+    });
+});
+
+// -------------------- time range (#371) -------------------- //
+
+const iso = (millis) => new Date(millis).toISOString();
+
+describe('zonedInputToEpoch', () => {
+    it('reads a local date-time in the given zone, with or without seconds', () => {
+        // Lisbon is UTC+1 in October (summer time), Tokyo UTC+9, São Paulo UTC-3, Kolkata UTC+5:30.
+        expect(iso(zonedInputToEpoch('2026-10-14T09:30', 'Europe/Lisbon'))).toBe('2026-10-14T08:30:00.000Z');
+        expect(iso(zonedInputToEpoch('2026-10-14T09:30:15', 'Europe/Lisbon'))).toBe('2026-10-14T08:30:15.000Z');
+        expect(iso(zonedInputToEpoch('2026-10-14T09:30', 'Asia/Tokyo'))).toBe('2026-10-14T00:30:00.000Z');
+        expect(iso(zonedInputToEpoch('2026-10-14T09:30', 'America/Sao_Paulo'))).toBe('2026-10-14T12:30:00.000Z');
+        expect(iso(zonedInputToEpoch('2026-10-14T09:30', 'Asia/Kolkata'))).toBe('2026-10-14T04:00:00.000Z');
+    });
+
+    it('uses the zone\'s winter offset in winter', () => {
+        expect(iso(zonedInputToEpoch('2026-01-14T09:30', 'Europe/Lisbon'))).toBe('2026-01-14T09:30:00.000Z');
+    });
+
+    it('returns null for empty, malformed and impossible values', () => {
+        for (const bad of [null, undefined, '', '  ', 'yesterday', '2026-10-14', '2026-10-14 09:30',
+                '2026-02-31T10:00', '2026-13-01T10:00', '2026-10-14T24:00', '2026-10-14T10:60']) {
+            expect(zonedInputToEpoch(bad, 'Europe/Lisbon'), String(bad)).toBeNull();
+        }
+    });
+
+    it('reads a time that happens twice at a daylight-saving change as its first occurrence', () => {
+        // Lisbon: clocks go back 02:00 → 01:00 on 2026-10-25, so 01:30 happens at 00:30Z and 01:30Z.
+        expect(iso(zonedInputToEpoch('2026-10-25T01:30', 'Europe/Lisbon'))).toBe('2026-10-25T00:30:00.000Z');
+    });
+
+    it('reads a skipped time with the offset from before the change', () => {
+        // Lisbon: clocks go forward 01:00 → 02:00 on 2026-03-29, so 01:30 never happens.
+        expect(iso(zonedInputToEpoch('2026-03-29T01:30', 'Europe/Lisbon'))).toBe('2026-03-29T01:30:00.000Z');
+    });
+
+    it('round-trips through epochToZonedInput', () => {
+        for (const zone of ['Europe/Lisbon', 'Asia/Tokyo', 'America/Sao_Paulo', 'Asia/Kolkata']) {
+            const epoch = zonedInputToEpoch('2026-10-14T09:30:15', zone);
+            expect(epochToZonedInput(epoch, zone), zone).toBe('2026-10-14T09:30:15');
+        }
+    });
+});
+
+describe('presetRange', () => {
+    it('always leaves the end date empty, so entries recorded afterwards still show up', () => {
+        for (const preset of HISTORY_PRESETS) {
+            expect(presetRange(preset.id, Date.now(), 'Asia/Tokyo').end, preset.id).toBe('');
+        }
+    });
+
+    it('"today" is the date in the Studio user\'s zone, not in UTC', () => {
+        // 2026-10-14T20:00Z is already the 15th, 05:00, in Tokyo — and still the 14th in Lisbon.
+        const instant = Date.UTC(2026, 9, 14, 20, 0, 0);
+        expect(presetRange('today', instant, 'Asia/Tokyo').start).toBe('2026-10-15');
+        expect(presetRange('today', instant, 'Europe/Lisbon').start).toBe('2026-10-14');
+        expect(presetRange('today', instant, 'America/Sao_Paulo').start).toBe('2026-10-14');
+        // Just after local midnight, and just before it.
+        expect(presetRange('today', zonedInputToEpoch('2026-10-14T00:00:01', 'Europe/Lisbon'), 'Europe/Lisbon').start).toBe('2026-10-14');
+        expect(presetRange('today', zonedInputToEpoch('2026-10-13T23:59:59', 'Europe/Lisbon'), 'Europe/Lisbon').start).toBe('2026-10-13');
+    });
+
+    it('"7days" is today and the 6 days before it; "30days" today and the 29 before it', () => {
+        const instant = zonedInputToEpoch('2026-10-14T12:00:00', 'Europe/Lisbon');
+        expect(presetRange('7days', instant, 'Europe/Lisbon').start).toBe('2026-10-08');
+        expect(presetRange('30days', instant, 'Europe/Lisbon').start).toBe('2026-09-15');
+    });
+
+    it('counts back across month and year boundaries', () => {
+        const instant = zonedInputToEpoch('2026-01-03T12:00:00', 'Europe/Lisbon');
+        expect(presetRange('7days', instant, 'Europe/Lisbon').start).toBe('2025-12-28');
+        expect(presetRange('30days', instant, 'Europe/Lisbon').start).toBe('2025-12-05');
+    });
+
+    it('rejects an unknown preset', () => {
+        expect(() => presetRange('fortnight', Date.now(), 'Asia/Tokyo')).toThrow();
+    });
+});
+
+describe('resolveDateRange', () => {
+    const zone = 'Asia/Tokyo';
+
+    it('is unbounded when both dates are empty', () => {
+        expect(resolveDateRange('', '', zone)).toEqual({ from: undefined, to: undefined, error: null });
+    });
+
+    it('covers whole days: the start\'s midnight up to the midnight after the end date', () => {
+        // October 5 to October 6, in Tokyo (UTC+9): from Oct 5 00:00 JST up to Oct 7 00:00 JST.
+        const range = resolveDateRange('2026-10-05', '2026-10-06', zone);
+        expect(range.error).toBeNull();
+        expect(iso(range.from)).toBe('2026-10-04T15:00:00.000Z');
+        expect(iso(range.to)).toBe('2026-10-06T15:00:00.000Z');
+    });
+
+    it('includes the whole end date: an entry at 23:59:59 on it is in, one at midnight after is out', () => {
+        const range = resolveDateRange('2026-10-05', '2026-10-06', zone);
+        const lastSecond = zonedInputToEpoch('2026-10-06T23:59:59', zone);
+        const nextMidnight = zonedInputToEpoch('2026-10-07T00:00:00', zone);
+        expect(lastSecond >= range.from && lastSecond < range.to).toBe(true);
+        expect(nextMidnight < range.to).toBe(false);
+    });
+
+    it('excludes what was recorded on another day (the October 5 to 6 case)', () => {
+        const range = resolveDateRange('2026-10-05', '2026-10-06', 'Europe/Lisbon');
+        const entry = zonedInputToEpoch('2026-10-14T18:09:15', 'Europe/Lisbon');
+        expect(entry >= range.from && entry < range.to).toBe(false);
+    });
+
+    it('takes either date on its own', () => {
+        const startOnly = resolveDateRange('2026-10-05', '', zone);
+        expect(iso(startOnly.from)).toBe('2026-10-04T15:00:00.000Z');
+        expect(startOnly.to).toBeUndefined();
+        const endOnly = resolveDateRange('', '2026-10-06', zone);
+        expect(endOnly.from).toBeUndefined();
+        expect(iso(endOnly.to)).toBe('2026-10-06T15:00:00.000Z');
+    });
+
+    it('treats the same date as start and end as that one whole day', () => {
+        const range = resolveDateRange('2026-10-05', '2026-10-05', zone);
+        expect(range.error).toBeNull();
+        expect(range.to - range.from).toBe(24 * 60 * 60 * 1000);
+    });
+
+    it('lets a day with a daylight-saving change be 23 or 25 hours long', () => {
+        // Lisbon: clocks go back on 2026-10-25 (25 hours) and forward on 2026-03-29 (23 hours).
+        const back = resolveDateRange('2026-10-25', '2026-10-25', 'Europe/Lisbon');
+        const forward = resolveDateRange('2026-03-29', '2026-03-29', 'Europe/Lisbon');
+        expect((back.to - back.from) / 3600000).toBe(25);
+        expect((forward.to - forward.from) / 3600000).toBe(23);
+    });
+
+    it('rolls the day after the end date over month and year ends', () => {
+        const range = resolveDateRange('2026-12-30', '2026-12-31', 'Europe/Lisbon');
+        expect(iso(range.to)).toBe('2027-01-01T00:00:00.000Z');
+    });
+
+    it('reports a start date after the end date, and sends neither bound', () => {
+        const result = resolveDateRange('2026-10-06', '2026-10-05', zone);
+        expect(result.error).toMatch(/start date must not be after the end date/i);
+        expect(result.from).toBeUndefined();
+        expect(result.to).toBeUndefined();
+    });
+
+    it('reports a value that is not a valid date', () => {
+        expect(resolveDateRange('nonsense', '', zone).error).toMatch(/start date/i);
+        expect(resolveDateRange('', '2026-02-31', zone).error).toMatch(/end date/i);
+        expect(resolveDateRange('2026-10-05T10:00', '', zone).error).toMatch(/start date/i);
     });
 });
