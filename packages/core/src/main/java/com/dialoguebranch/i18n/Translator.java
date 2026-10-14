@@ -48,7 +48,9 @@ import java.util.regex.Pattern;
 /**
  * This class can translate {@link Node}s given a translation map.
  * The translation map can be obtained from a translation file using the {@link
- * TranslationParser}.
+ * TranslationParser}. A text is only translated by an entry of its own speaker (the node's
+ * speaker for statements, {@link DialogueBranchConstants#DLB_USER_SPEAKER} for the user's
+ * replies); without one, it stays in the source language (#377).
  *
  * <p>Rebuilds every {@link NodeBody} — and every {@code <<if>>}/{@code <<random>>} command nested
  * inside one — from scratch via their respective builders/constructors, rather than mutating the
@@ -252,14 +254,15 @@ public class Translator {
 		m = postWhitespaceRegex.matcher(textPlain);
 		if (m.find())
 			postWhitespace = m.group();
-		List<ContextTranslation> transList = exactTranslations.get(textPlain.trim());
-		if (transList == null) {
-			transList = normalizedTranslations.get(translatable.toNormalizedString());
-		}
-		if (transList == null)
-			return runSegments;
 		SourceTranslatable source = new SourceTranslatable(speaker, addressee, translatable);
-		Translatable translation = findContextTranslation(source, transList);
+		Translatable translation = findContextTranslation(source,
+				exactTranslations.get(textPlain.trim()));
+		if (translation == null) {
+			translation = findContextTranslation(source,
+					normalizedTranslations.get(translatable.toNormalizedString()));
+		}
+		if (translation == null)
+			return runSegments;
 		List<NodeBody.Segment> result = new ArrayList<>();
 		if (!preWhitespace.isEmpty()) {
 			result.add(new NodeBody.TextSegment(new VariableString(preWhitespace)));
@@ -271,22 +274,28 @@ public class Translator {
 		return result;
 	}
 
-	private Translatable findContextTranslation(
+	/**
+	 * Returns the translation of {@code source} among {@code transList} (the translations of its
+	 * text, or {@code null} if there are none), or {@code null} if none applies. A translation
+	 * only applies to text of its own speaker (#377); among those, the gender contexts select the
+	 * best one, falling back to the speaker's first translation if none of them fits.
+	 */
+	private @Nullable Translatable findContextTranslation(
 			SourceTranslatable source,
-			List<ContextTranslation> transList) {
+			@Nullable List<ContextTranslation> transList) {
+		if (transList == null)
+			return null;
+		List<ContextTranslation> forSpeaker = filterSpeaker(transList, source.speaker());
+		if (forSpeaker.isEmpty())
+			return null;
 		TranslationContext.Gender speakerGender = getGenderForSpeaker(
 				source.speaker());
 		TranslationContext.Gender addresseeGender = getGenderForSpeaker(
 				source.addressee());
-		List<ContextTranslation> prevFilter = transList;
-		List<ContextTranslation> filtered = filterSpeaker(transList,
-				source.speaker());
+		List<ContextTranslation> filtered = filterGender(forSpeaker, speakerGender,
+				addresseeGender);
 		if (filtered.isEmpty())
-			filtered = prevFilter;
-		prevFilter = filtered;
-		filtered = filterGender(transList, speakerGender, addresseeGender);
-		if (filtered.isEmpty())
-			filtered = prevFilter;
+			filtered = forSpeaker;
 		return filtered.get(0).translation();
 	}
 
@@ -302,20 +311,12 @@ public class Translator {
 			List<ContextTranslation> terms, @Nullable String speaker) {
 		List<ContextTranslation> result = new ArrayList<>();
 		if (speaker == null)
-			return result; // no speaker context — caller falls back to the unfiltered list
-		String speakerContext = getSpeakerContext(speaker);
+			return result; // no speaker, so no translation applies
 		for (ContextTranslation term : terms) {
-			if (term.context().contains(speakerContext))
+			if (term.speaker().equals(speaker))
 				result.add(term);
 		}
 		return result;
-	}
-
-	private String getSpeakerContext(String speaker) {
-		if (speaker.equals(DialogueBranchConstants.DLB_USER_SPEAKER))
-			return "_user";
-		else
-			return speaker;
 	}
 
 	private List<ContextTranslation> filterGender(

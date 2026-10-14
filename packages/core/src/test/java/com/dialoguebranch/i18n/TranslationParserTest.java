@@ -103,4 +103,38 @@ public class TranslationParserTest {
 				"\"Hello.\": \"Hallo <<if $x>>.\", \"Bye.\": \"Dag.\"}}");
 		assertEquals(1, result.getParseErrors().size());
 	}
+
+	@Test
+	public void aSpeakerGroupKeyIsTheSpeakerAsAWhole() throws IOException {
+		TranslationParserResult result = parse(
+				"{\"Martin McOwl\": {\"female_addressee\": {\"Hello.\": \"Hallo.\"}}}");
+		assertEquals(List.of(), result.getParseErrors());
+		ContextTranslation translation = result.getTranslations().values().iterator().next().get(0);
+		assertEquals("Martin McOwl", translation.speaker());
+		assertEquals(java.util.Set.of("female_addressee"), translation.context());
+	}
+
+	@Test
+	public void nestedContextGroupsAccumulate() throws IOException {
+		TranslationParserResult result = parse("{\"Martin\": {\"female_speaker\": " +
+				"{\"male_addressee\": {\"Hello.\": \"Hallo.\"}}}}");
+		assertEquals(List.of(), result.getParseErrors());
+		ContextTranslation translation = result.getTranslations().values().iterator().next().get(0);
+		assertEquals("Martin", translation.speaker());
+		assertEquals(java.util.Set.of("female_speaker", "male_addressee"), translation.context());
+	}
+
+	@Test
+	public void aTranslationWithoutASpeakerIsAParseError() throws IOException {
+		assertParseError("{\"Hello.\": \"Hallo.\"}", "\"Hello.\" has no speaker");
+		assertParseError("{\" \": {\"Hello.\": \"Hallo.\"}}", "without a speaker name");
+	}
+
+	@Test
+	public void theSameTextMayBeTranslatedPerSpeakerButNotTwiceForOne() throws IOException {
+		assertEquals(List.of(), parse("{\"Martin\": {\"Hello.\": \"Hallo.\"}," +
+				"\"Anna\": {\"Hello.\": \"Hoi.\"}}").getParseErrors());
+		assertParseError("{\"Martin\": {\"Hello.\": \"Hallo.\", \"Hello. \": \"Hoi.\"}}",
+				"duplicate translation");
+	}
 }
