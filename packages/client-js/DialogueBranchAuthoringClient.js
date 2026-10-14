@@ -379,8 +379,10 @@ export class DialogueBranchAuthoringClient extends BaseClient {
      *
      * @param {string} projectSlug The project's slug.
      * @returns {Promise<Object[]>} One entry per draft dialogue: `{ name, isNew, isChanged,
-     * isDeleted, updatedAt, nodeCount, preamble, … }`, where `preamble` is the comment lines at
-     * the start of its script (`//` lines joined with `\n`, or `""` for none).
+     * isDeleted, updatedAt, nodeCount, preamble, translatedInto, … }`, where `preamble` is
+     * the comment lines at the start of its script (`//` lines joined with `\n`, or `""` for
+     * none) and `translatedInto` the codes of the project's translation languages it already has
+     * a translation in.
      */
     listDraftDialogues(projectSlug) {
         const url = this._baseUrl + "/authoring/list-dialogues?projectSlug=" + encodeURIComponent(projectSlug);
@@ -413,6 +415,42 @@ export class DialogueBranchAuthoringClient extends BaseClient {
         const url = this._baseUrl + "/authoring/import-scripts";
         const formData = new FormData();
         formData.append('projectSlug', projectSlug);
+        formData.append('folder', folder ?? '');
+        formData.append('replace', String(!!replace));
+        for (const file of files) formData.append('files', file, file.name);
+
+        return this._fetch(url, {
+            method: "POST",
+            body: formData,
+        }).then((response) => this._handleResponse(response));
+    }
+
+    /**
+     * Imports translation files (`.json`) into one translation language of a project, as draft
+     * translations: each file becomes the translation of the existing dialogue named after the
+     * folder and its file name without `.json`. Each file is stored re-serialised, like
+     * {@link updateDraftTranslation} stores it. All or nothing: if any file is refused (not a
+     * valid translation file, no translations, a dialogue that doesn't exist or is pending
+     * deletion, or an existing translation without `replace`), nothing is imported, and the
+     * rejection's {@link DialogueBranchError} carries the problems per file name in `errors`.
+     *
+     * @param {string} projectSlug The project's slug.
+     * @param {string} language The code of the translation language to import into.
+     * @param {string} folder The folder of the dialogues (e.g. `"onboarding"`), or `""` for the
+     * project root.
+     * @param {File[]|Blob[]} files The translation files (UTF-8, at most 1 MB each, at most 100).
+     * @param {{replace?: boolean}} [options] `replace`: let a file replace a dialogue's existing
+     * translation in this language; without it, an existing translation refuses the import.
+     * @returns {Promise<{fileName: string, dialogueName: string, replaced: boolean,
+     * unmatchedEntries: number|null, untranslatedTerms: number|null}[]>} The result per file:
+     * how many entries match no translatable term of the dialogue (kept anyway), and how many of
+     * its terms have no entry; both `null` when the dialogue's draft doesn't parse.
+     */
+    importTranslations(projectSlug, language, folder, files, { replace = false } = {}) {
+        const url = this._baseUrl + "/authoring/import-translations";
+        const formData = new FormData();
+        formData.append('projectSlug', projectSlug);
+        formData.append('language', language);
         formData.append('folder', folder ?? '');
         formData.append('replace', String(!!replace));
         for (const file of files) formData.append('files', file, file.name);

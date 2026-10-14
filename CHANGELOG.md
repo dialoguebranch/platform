@@ -9,6 +9,18 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Studio, web service and client-js: import translation files (`.json`) into a translation
+  language of an existing project, as draft translations
+  ([#340](https://github.com/dialoguebranch/platform/issues/340)). *Import Translations* in the
+  Project menu (Authoring Mode) matches each file to the existing dialogue named after the chosen
+  folder and the file name, shows which already have a translation in the chosen language, and
+  only replaces those when asked; open Translation Editors of those dialogues reload. The new
+  `POST /authoring/import-translations` imports all or nothing, refuses files that aren't valid
+  translation files (the check of `update-translation`, #376), contain no translations, or have no
+  dialogue (or one pending deletion), stores each file re-serialised, and reports per file how
+  many entries match no term of the dialogue (by speaker and text, kept anyway) and how many terms
+  stay untranslated. `list-dialogues` now lists, per dialogue, the translation languages it
+  already has a translation in (`translatedInto`). client-js gains `importTranslations`.
 - Studio, web service and client-js: export a single dialogue as a `.dlb` file
   ([#341](https://github.com/dialoguebranch/platform/issues/341)). *Export as .dlb* on a dialogue in
   the Dialogue Browser (Authoring Mode) downloads its current draft: the preamble and nodes as an
@@ -31,7 +43,7 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `DialogueBranchClient.getVariableHistory` accepts `from` and `to` (a number or a `Date`).
 - Studio and web service: import `.dlb` scripts into a folder of an existing project, as draft
   dialogues ([#339](https://github.com/dialoguebranch/platform/issues/339)). *Import Scripts* in
-  the Dialogue Browser (Authoring Mode) previews the resulting dialogue names, shows which already
+  the Project menu (Authoring Mode, next to *Import Translations*, #340) previews the resulting dialogue names, shows which already
   exist, and only replaces those (keeping their translations, and restoring one pending deletion)
   when asked; open tabs of replaced dialogues reload. The new `POST /authoring/import-scripts`
   imports all or nothing, refuses files that aren't UTF-8 `.dlb` files of at most 1 MB, don't make

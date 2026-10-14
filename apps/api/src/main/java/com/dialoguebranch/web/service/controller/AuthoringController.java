@@ -35,6 +35,7 @@ import com.dialoguebranch.web.service.auth.Permission;
 import com.dialoguebranch.web.service.controller.schema.authoring.*;
 import com.dialoguebranch.web.service.controller.schema.authoring.DraftNodeResponse;
 import com.dialoguebranch.web.service.controller.schema.authoring.ImportedScript;
+import com.dialoguebranch.web.service.controller.schema.authoring.ImportedTranslation;
 import com.dialoguebranch.web.service.controller.schema.authoring.PreamblePayload;
 import com.dialoguebranch.web.service.controller.schema.authoring.RenameNodeResponse;
 import com.dialoguebranch.web.service.exception.BadRequestException;
@@ -45,6 +46,7 @@ import com.dialoguebranch.web.service.project.DraftDialogueService;
 import com.dialoguebranch.web.service.project.DraftProjectService;
 import com.dialoguebranch.web.service.project.ProjectService;
 import com.dialoguebranch.web.service.project.ScriptImportService;
+import com.dialoguebranch.web.service.project.TranslationImportService;
 import com.dialoguebranch.web.service.storage.model.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -93,6 +95,7 @@ public class AuthoringController {
 	private final DraftDialogueService draftDialogueService;
 	private final DraftProjectService draftProjectService;
 	private final ScriptImportService scriptImportService;
+	private final TranslationImportService translationImportService;
 
 	private static final Logger logger = LoggerFactory.getLogger(AuthoringController.class);
 
@@ -106,15 +109,19 @@ public class AuthoringController {
 	 * @param draftProjectService service used to resolve a language code into the project's
 	 *                            registered draft translation language a translation targets.
 	 * @param scriptImportService service that imports {@code .dlb} scripts as draft dialogues.
+	 * @param translationImportService service that imports translation files as draft
+	 *                                 translations.
 	 */
 	public AuthoringController(ProjectService projectService,
 							   DraftDialogueService draftDialogueService,
 							   DraftProjectService draftProjectService,
-							   ScriptImportService scriptImportService) {
+							   ScriptImportService scriptImportService,
+							   TranslationImportService translationImportService) {
 		this.projectService = projectService;
 		this.draftDialogueService = draftDialogueService;
 		this.draftProjectService = draftProjectService;
 		this.scriptImportService = scriptImportService;
+		this.translationImportService = translationImportService;
 	}
 
 	/**
@@ -404,6 +411,59 @@ public class AuthoringController {
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectSlug));
 					return scriptImportService.importScripts(project, folder, files, replace);
+				},
+				version, response, "", Permission.DIALOGUE_AUTHOR);
+	}
+
+	/**
+	 * Imports one or more translation files ({@code .json}) into a translation language of a
+	 * project, as draft translations (#340). Each file becomes the translation of the existing
+	 * draft dialogue named after the folder and the file name without {@code .json}. All or
+	 * nothing: if any file is refused, nothing is imported, and the error lists the problems per
+	 * file. A file is refused when it isn't a valid translation file (the check of {@code
+	 * /update-translation}, #376), has no translations, or its dialogue doesn't exist or is
+	 * pending deletion. Entries that match no term of the dialogue, and terms without an entry,
+	 * don't refuse a file; they are counted in the result.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project to import into.
+	 * @param language the code of the translation language to import into.
+	 * @param folder the folder of the dialogues; empty for the project root.
+	 * @param files the translation files (UTF-8, at most 1 MB each, at most 100 per import).
+	 * @param replace whether a file may replace a dialogue's existing translation in this
+	 *                language; without it, an existing translation refuses the import.
+	 * @return the result per file.
+	 * @throws HttpException if the project or translation language doesn't exist, the language
+	 * is pending deletion, any file is refused, or the user is not authorized.
+	 */
+	@Operation(summary = "Import translation files into a translation language of a project.")
+	@Parameter(name = "version", hidden = true)
+	@PostMapping(value = "/import-translations", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public List<ImportedTranslation> importTranslations(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug,
+			@RequestParam(value = "language") String language,
+			@RequestParam(value = "folder", defaultValue = "") String folder,
+			@RequestParam(value = "files") List<MultipartFile> files,
+			@RequestParam(value = "replace", defaultValue = "false") boolean replace
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("POST /v{}/authoring/import-translations [user: {}]", version,
+							user);
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					DBDraftTranslationLanguage translationLanguage =
+							resolveTranslationLanguage(project, language);
+					checkNotDeleted(translationLanguage);
+					return translationImportService.importTranslations(project,
+							translationLanguage, folder, files, replace);
 				},
 				version, response, "", Permission.DIALOGUE_AUTHOR);
 	}
