@@ -93,7 +93,7 @@ class ProjectExportImportServiceTest {
 
 		// Free up the slug so re-importing this exact archive doesn't hit the already-exists
 		// conflict, which is covered by its own test below.
-		projectService.deleteProject(original);
+		projectService.deleteProject(original, false, false);
 
 		DBProject imported = projectImportService.importProject(zipMultipartFile(archive,
 				"export-roundtrip-test.zip"));
@@ -142,7 +142,7 @@ class ProjectExportImportServiceTest {
 		assertEquals(2, project.getLatestVersion().getVersionNumber());
 
 		byte[] archive = projectExportService.exportProject(project);
-		projectService.deleteProject(project);
+		projectService.deleteProject(project, false, false);
 
 		DBProject imported = projectImportService.importProject(
 				zipMultipartFile(archive, "import-version-test.zip"));
@@ -289,7 +289,7 @@ class ProjectExportImportServiceTest {
 		String exported = new String(readZipEntries(archive).get("en/main.dlb"), StandardCharsets.UTF_8);
 		assertTrue(exported.startsWith(preamble + "\n"), exported);
 
-		projectService.deleteProject(reloaded);
+		projectService.deleteProject(reloaded, false, false);
 		DBProject reimported = projectImportService.importProject(
 				zipMultipartFile(archive, "preamble-again.zip"));
 		assertEquals(preamble,

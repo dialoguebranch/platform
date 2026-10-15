@@ -168,14 +168,21 @@ export class DialogueBranchAuthoringClient extends BaseClient {
     }
 
     /**
-     * Permanently deletes a project — all draft and published content. Requires the `admin`
-     * role. Cannot be undone.
+     * Deletes a project: all of its draft and published dialogues, translations and version
+     * history. Requires the `admin` role. Cannot be undone. Its users' variables, variable
+     * history and dialogue logs are kept unless asked otherwise: the project then stays as a
+     * deleted project under the slug `<slug>__deleted`, and the original slug is free for a new
+     * project. With both options, the project is removed for good.
      *
      * @param {string} projectSlug The project's slug.
+     * @param {{deleteVariables?: boolean, deleteLogs?: boolean}} [options] `deleteVariables`:
+     * also delete all users' variables and variable history in the project; `deleteLogs`: also
+     * delete all users' dialogue logs of the project. Both `false` by default.
      * @returns {Promise<void>}
      */
-    deleteProject(projectSlug) {
-        const url = this._baseUrl + "/project/delete-project?projectSlug=" + encodeURIComponent(projectSlug);
+    deleteProject(projectSlug, { deleteVariables = false, deleteLogs = false } = {}) {
+        const url = this._baseUrl + "/project/delete-project?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&deleteVariables=" + String(!!deleteVariables) + "&deleteLogs=" + String(!!deleteLogs);
 
         return this._fetch(url, {
             method: "POST",

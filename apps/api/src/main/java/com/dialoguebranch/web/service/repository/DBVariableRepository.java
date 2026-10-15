@@ -32,6 +32,9 @@ import com.dialoguebranch.web.service.storage.model.DBProject;
 import com.dialoguebranch.web.service.storage.model.DBUser;
 import com.dialoguebranch.web.service.storage.model.DBVariable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -62,5 +65,17 @@ public interface DBVariableRepository extends JpaRepository<DBVariable, UUID> {
 	 * @return an {@link Optional} containing the matching {@link DBVariable}, or empty if none exists.
 	 */
 	Optional<DBVariable> findByUserAndProjectAndName(DBUser user, DBProject project, String name);
+
+
+	/**
+	 * Deletes all users' variables in the given project, when a project is deleted with its users'
+	 * variables (#315).
+	 *
+	 * @param project the project.
+	 * @return the number of variables deleted.
+	 */
+	@Modifying
+	@Query("delete from DBVariable v where v.project = :project")
+	int deleteByProject(@Param("project") DBProject project);
 
 }

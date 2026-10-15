@@ -92,6 +92,19 @@ public class DBProject {
 	private Instant updatedAt;
 
 	/**
+	 * Whether the project was deleted (#315): its dialogue definitions are gone, but the row stays
+	 * (under a renamed slug, see {@code ProjectService.deleteProject}) so its users' variables,
+	 * variable history and dialogue logs keep referring to it. A deleted project is never found by
+	 * slug and never listed.
+	 */
+	@Column(name = "is_deleted", nullable = false)
+	private boolean isDeleted;
+
+	/** When the project was deleted, or {@code null} if it wasn't. */
+	@Column(name = "deleted_at")
+	private Instant deletedAt;
+
+	/**
 	 * Creates an empty instance of {@link DBProject}.
 	 */
 	public DBProject() {
@@ -323,4 +336,40 @@ public class DBProject {
 		this.updatedAt = updatedAt;
 	}
 
+
+	/**
+	 * Returns whether the project was deleted.
+	 *
+	 * @return {@code true} if the project was deleted.
+	 */
+	public boolean getIsDeleted() {
+		return isDeleted;
+	}
+
+	/**
+	 * Sets whether the project was deleted.
+	 *
+	 * @param isDeleted {@code true} if the project was deleted.
+	 */
+	public void setIsDeleted(boolean isDeleted) {
+		this.isDeleted = isDeleted;
+	}
+
+	/**
+	 * Returns when the project was deleted.
+	 *
+	 * @return the deletion time, or {@code null} if it wasn't deleted.
+	 */
+	public Instant getDeletedAt() {
+		return deletedAt;
+	}
+
+	/**
+	 * Sets when the project was deleted.
+	 *
+	 * @param deletedAt the deletion time, or {@code null}.
+	 */
+	public void setDeletedAt(Instant deletedAt) {
+		this.deletedAt = deletedAt;
+	}
 }

@@ -7,6 +7,27 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** Web service and Studio: deleting a project removes its dialogues, translations and
+  version history, but keeps its users' variables, variable history and dialogue logs by default
+  ([#315](https://github.com/dialoguebranch/platform/issues/315)). The project stays as a deleted
+  project (no longer found or listed) under the slug `<slug>__deleted`, with its logs moved along,
+  so the original slug is free right away. `POST /project/delete-project` takes `deleteVariables`
+  and `deleteLogs` (both `false` by default) to delete that data too; with both, the project is
+  removed for good. Studio's delete confirmation offers both as unticked options. client-js's
+  `deleteProject` takes them as options. A new database migration (`V11`) adds the deleted flag.
+
+### Fixed
+
+- Web service: deleting a project failed as soon as any user had a variable in it
+  ([#315](https://github.com/dialoguebranch/platform/issues/315)); a new project with the slug of a
+  deleted one could inherit its users' cached variables
+  ([#316](https://github.com/dialoguebranch/platform/issues/316)) and its dialogue logs, including
+  an ongoing dialogue to resume ([#317](https://github.com/dialoguebranch/platform/issues/317)); and
+  a deleted project stayed listed and playable until the web service restarted. Deleting a project
+  now succeeds, unloads it, and keeps its users' data away from a new project with the same slug.
+
 ## [0.7.0] - 2026-10-15
 
 ### Added
