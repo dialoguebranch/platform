@@ -91,6 +91,21 @@ describe('draft preamble', () => {
     });
 });
 
+describe('deleteProject', () => {
+    it('keeps the users\' data by default', async () => {
+        const { client, fetch } = clientReturning(null);
+        await client.deleteProject('proj');
+        expect(fetch.mock.calls[0][0]).toBe('/api/v1/project/delete-project?projectSlug=proj&deleteVariables=false&deleteLogs=false');
+        expect(fetch.mock.calls[0][1].method).toBe('POST');
+    });
+
+    it('passes the options to delete the users\' data too', async () => {
+        const { client, fetch } = clientReturning(null);
+        await client.deleteProject('proj', { deleteVariables: true, deleteLogs: true });
+        expect(fetch.mock.calls[0][0]).toBe('/api/v1/project/delete-project?projectSlug=proj&deleteVariables=true&deleteLogs=true');
+    });
+});
+
 describe('discardAllDraftChanges', () => {
     it('POSTs the project and returns the counts', async () => {
         const { client, fetch } = clientReturning({ dialoguesReverted: 4, dialoguesRemoved: 1 });

@@ -30,11 +30,14 @@ package com.dialoguebranch.web.service.project;
 
 import com.dialoguebranch.model.execute.NodeHeader;
 import com.dialoguebranch.web.service.repository.DBDraftTranslationLanguageRepository;
+import com.dialoguebranch.web.service.repository.DBLoggedDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBProjectRepository;
 import com.dialoguebranch.web.service.repository.DBProjectVersionRepository;
 import com.dialoguebranch.web.service.repository.DBPublishedDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBPublishedTranslationLanguageRepository;
 import com.dialoguebranch.web.service.repository.DBPublishedTranslationRepository;
+import com.dialoguebranch.web.service.repository.DBVariableHistoryRepository;
+import com.dialoguebranch.web.service.repository.DBVariableRepository;
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import com.dialoguebranch.web.service.storage.model.DBProjectVersion;
@@ -71,6 +74,9 @@ public class ProjectService {
 	private final DBPublishedTranslationRepository publishedTranslationRepository;
 	private final DBPublishedTranslationLanguageRepository publishedTranslationLanguageRepository;
 	private final DraftDialogueService draftDialogueService;
+	private final DBVariableRepository variableRepository;
+	private final DBVariableHistoryRepository variableHistoryRepository;
+	private final DBLoggedDialogueRepository loggedDialogueRepository;
 
 	/**
 	 * Creates a new {@link ProjectService}.
@@ -90,6 +96,13 @@ public class ProjectService {
 	 * @param draftDialogueService             service used to create a project's starter draft
 	 *                                         dialogue and to delete all of a project's draft
 	 *                                         dialogues when the project itself is deleted.
+	 * @param variableRepository               repository used to delete a deleted project's users'
+	 *                                         variables, when asked to.
+	 * @param variableHistoryRepository        repository used to delete a deleted project's users'
+	 *                                         variable history, when asked to.
+	 * @param loggedDialogueRepository         repository used to delete a deleted project's users'
+	 *                                         dialogue logs when asked to, or to move them to its
+	 *                                         renamed slug.
 	 */
 	public ProjectService(DBProjectRepository projectRepository,
 						  DBDraftTranslationLanguageRepository draftTranslationLanguageRepository,
@@ -97,7 +110,10 @@ public class ProjectService {
 						  DBPublishedDialogueRepository publishedDialogueRepository,
 						  DBPublishedTranslationRepository publishedTranslationRepository,
 						  DBPublishedTranslationLanguageRepository publishedTranslationLanguageRepository,
-						  DraftDialogueService draftDialogueService) {
+						  DraftDialogueService draftDialogueService,
+						  DBVariableRepository variableRepository,
+						  DBVariableHistoryRepository variableHistoryRepository,
+						  DBLoggedDialogueRepository loggedDialogueRepository) {
 		this.projectRepository = projectRepository;
 		this.draftTranslationLanguageRepository = draftTranslationLanguageRepository;
 		this.projectVersionRepository = projectVersionRepository;
@@ -105,6 +121,9 @@ public class ProjectService {
 		this.publishedTranslationRepository = publishedTranslationRepository;
 		this.publishedTranslationLanguageRepository = publishedTranslationLanguageRepository;
 		this.draftDialogueService = draftDialogueService;
+		this.variableRepository = variableRepository;
+		this.variableHistoryRepository = variableHistoryRepository;
+		this.loggedDialogueRepository = loggedDialogueRepository;
 	}
 
 	// ------------------------------------------------------------ //
@@ -112,22 +131,24 @@ public class ProjectService {
 	// ------------------------------------------------------------ //
 
 	/**
-	 * Returns all projects.
+	 * Returns all projects that weren't deleted (#315).
 	 *
-	 * @return list of all {@link DBProject}s.
+	 * @return list of all {@link DBProject}s that weren't deleted.
 	 */
 	public List<DBProject> listProjects() {
-		return projectRepository.findAll();
+		return projectRepository.findByIsDeletedFalse();
 	}
 
 	/**
-	 * Returns the project with the given {@code slug}, or {@link Optional#empty()} if not found.
+	 * Returns the project with the given {@code slug}, or {@link Optional#empty()} if not found or
+	 * deleted (#315): a deleted project is never found by slug, so every project end-point treats
+	 * it as not found.
 	 *
 	 * @param slug the unique project slug.
 	 * @return the matching project, or empty.
 	 */
 	public Optional<DBProject> findBySlug(String slug) {
-		return projectRepository.findBySlug(slug);
+		return projectRepository.findBySlugAndIsDeletedFalse(slug);
 	}
 
 	/**
@@ -205,19 +226,48 @@ public class ProjectService {
 	}
 
 	/**
-	 * Deletes the given project and all its associated data: its draft translation-language
-	 * registry, draft dialogues (and their nodes/translations), and published versions (and their
-	 * published dialogues/translations/translation languages).
+	 * The outcome of {@link #deleteProject}.
+	 *
+	 * @param removed     {@code true} if the project was removed for good, with all its users'
+	 *                    data; {@code false} if it is kept as a deleted project.
+	 * @param deletedSlug the slug the deleted project got, or {@code null} if it was removed.
+	 */
+	public record DeletedProject(boolean removed, String deletedSlug) {
+	}
+
+	/**
+	 * Deletes the given project (#315): the definition of its dialogues, that is its draft
+	 * dialogues (with their nodes and translations), translation-language registry and published
+	 * versions (with their dialogues, translations and translation languages).
+	 *
+	 * <p>Its users' data, their variables and variable history and their dialogue logs, is kept
+	 * unless asked otherwise. The project row then stays, marked as deleted, so that data keeps
+	 * referring to it; its slug is renamed to {@code <slug>__deleted} (or {@code
+	 * <slug>__deleted-2}, …), and its logs (which refer to a project by slug) are moved along, so
+	 * the original slug is free for a new project that can't inherit any of it. Only when both
+	 * kinds of user data are deleted too is nothing left referring to the project, and its row is
+	 * removed for good.</p>
 	 *
 	 * <p>None of these relationships cascade at the database or JPA level, and
 	 * {@code latest_version_id} is a circular reference back into a table that references the
-	 * project — so children must be deleted (and that reference nulled out) before the project
-	 * row itself can be deleted.</p>
+	 * project, so children are deleted (and that reference nulled out) first.</p>
 	 *
-	 * @param project the project to delete.
+	 * @param project         the project to delete.
+	 * @param deleteVariables whether to also delete all users' variables and variable history in
+	 *                        the project.
+	 * @param deleteLogs      whether to also delete all users' dialogue logs of the project.
+	 * @return whether the project was removed for good, or the slug it was kept under.
 	 */
 	@Transactional
-	public void deleteProject(DBProject project) {
+	public DeletedProject deleteProject(DBProject project, boolean deleteVariables,
+			boolean deleteLogs) {
+		// Work on a managed copy: the caller's instance may have been loaded by an earlier,
+		// completed query, and saving it below would merge its stale, eagerly fetched collections
+		// (such as the translation languages deleted here). See PublishService#publish.
+		UUID projectId = project.getId();
+		project = projectRepository.findById(projectId)
+				.orElseThrow(() -> new IllegalStateException("Project disappeared: " + projectId));
+
 		// Break the circular reference back into this project before deleting anything.
 		project.setLatestVersion(null);
 		projectRepository.save(project);
@@ -249,8 +299,43 @@ public class ProjectService {
 		// hardDeleteDialogue) hold a NOT NULL foreign key into this registry.
 		draftTranslationLanguageRepository.deleteAll(
 				draftTranslationLanguageRepository.findByProject(project));
+		// The project's (eagerly fetched) view of them must not keep pointing at deleted rows, or
+		// saving the project below would try to re-resolve them.
+		project.getDraftTranslationLanguages().clear();
 
-		projectRepository.delete(project);
+		String slug = project.getSlug();
+		if (deleteVariables) {
+			variableHistoryRepository.deleteByProject(project);
+			variableRepository.deleteByProject(project);
+		}
+		if (deleteLogs) {
+			loggedDialogueRepository.deleteByProjectSlug(slug);
+		}
+		if (deleteVariables && deleteLogs) {
+			projectRepository.delete(project);
+			return new DeletedProject(true, null);
+		}
+
+		String deletedSlug = freeDeletedSlug(slug);
+		if (!deleteLogs) loggedDialogueRepository.renameProjectSlug(slug, deletedSlug);
+		Instant now = Instant.now();
+		project.setSlug(deletedSlug);
+		project.setIsDeleted(true);
+		project.setDeletedAt(now);
+		project.setUpdatedAt(now);
+		projectRepository.save(project);
+		return new DeletedProject(false, deletedSlug);
+	}
+
+	/**
+	 * The first of {@code <slug>__deleted}, {@code <slug>__deleted-2}, … that no project uses.
+	 */
+	private String freeDeletedSlug(String slug) {
+		String candidate = slug + "__deleted";
+		for (int n = 2; projectRepository.findBySlug(candidate).isPresent(); n++) {
+			candidate = slug + "__deleted-" + n;
+		}
+		return candidate;
 	}
 
 }

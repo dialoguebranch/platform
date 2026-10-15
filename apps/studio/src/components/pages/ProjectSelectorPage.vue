@@ -118,12 +118,18 @@ function onProjectCreated(project) {
 // published versions are all gone), so it should never be a single misclick.
 const deleteConfirm = ref(null); // { slug, displayName }
 const deleteConfirmInput = ref('');
+// Destructive options, off by default (#315): deleting a project removes its dialogues, not its
+// users' data, unless these are ticked.
+const deleteVariables = ref(false);
+const deleteLogs = ref(false);
 const deleting = ref(false);
 const deleteError = ref('');
 
 function openDeleteConfirm(project) {
     deleteConfirm.value = { slug: project.slug, displayName: project.latestVersion?.displayName ?? project.draftDisplayName ?? project.slug };
     deleteConfirmInput.value = '';
+    deleteVariables.value = false;
+    deleteLogs.value = false;
     deleteError.value = '';
 }
 
@@ -136,7 +142,8 @@ function confirmDelete() {
     if (deleteConfirmInput.value.trim() !== deleteConfirm.value.slug) return;
     deleting.value = true;
     deleteError.value = '';
-    client.deleteProject(deleteConfirm.value.slug)
+    client.deleteProject(deleteConfirm.value.slug,
+        { deleteVariables: deleteVariables.value, deleteLogs: deleteLogs.value })
         .then(() => {
             projects.value = projects.value.filter((p) => p.slug !== deleteConfirm.value.slug);
             deleteConfirm.value = null;
@@ -285,7 +292,7 @@ function confirmDelete() {
                 </div>
                 <div class="px-5 py-4 flex flex-col gap-3">
                     <p class="text-sm font-title">
-                        You are about to permanently delete the Dialogue Branch project
+                        You are about to delete the Dialogue Branch project
                         <span class="font-bold text-orange-darker">{{ deleteConfirm.displayName }}</span>
                         (<span class="font-mono">{{ deleteConfirm.slug }}</span>).
                     </p>
@@ -293,9 +300,23 @@ function confirmDelete() {
                         <FontAwesomeIcon icon="fa-solid fa-circle-exclamation" class="shrink-0 mt-0.5" />
                         <span>
                             This will permanently delete all of this project's dialogues (draft
-                            and published) and version history. <strong>This action
+                            and published), translations and version history. <strong>This action
                             cannot be undone.</strong>
                         </span>
+                    </div>
+                    <p class="text-xs font-title text-grey-dark" data-test="delete-keeps-user-data">
+                        Users' data in this project (their variables and dialogue logs) is kept, unless you
+                        choose to delete it too. The project's name becomes free for a new project.
+                    </p>
+                    <div class="flex flex-col gap-1.5 text-xs font-title text-red-dark">
+                        <label class="flex items-start gap-2 cursor-pointer">
+                            <input v-model="deleteVariables" type="checkbox" class="mt-0.5" data-test="delete-variables" />
+                            <span>Also delete <strong>all users' variables</strong> (and their history) in this project</span>
+                        </label>
+                        <label class="flex items-start gap-2 cursor-pointer">
+                            <input v-model="deleteLogs" type="checkbox" class="mt-0.5" data-test="delete-logs" />
+                            <span>Also delete <strong>all users' dialogue logs</strong> of this project</span>
+                        </label>
                     </div>
                     <div>
                         <label class="block font-title text-xs text-grey-dark mb-1">
@@ -325,7 +346,7 @@ function confirmDelete() {
                         @click="confirmDelete"
                     >
                         <FontAwesomeIcon v-if="deleting" icon="fa-solid fa-circle-notch" class="animate-spin" />
-                        Delete Permanently
+                        Delete Project
                     </button>
                 </div>
             </div>

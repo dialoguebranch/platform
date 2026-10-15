@@ -206,6 +206,16 @@ public class UserService {
 		return variableStoresByProject.computeIfAbsent(projectSlug, this::loadVariableStore);
 	}
 
+	/**
+	 * Forgets this user's cached {@link VariableStore} for the given project, if loaded, so it is
+	 * read from storage again on next access. Used when the project is deleted (#316).
+	 *
+	 * @param projectSlug the slug of the project.
+	 */
+	public void evictVariableStore(String projectSlug) {
+		variableStoresByProject.remove(projectSlug);
+	}
+
 	private VariableStore loadVariableStore(String projectSlug) {
 		VariableStore store;
 		try {

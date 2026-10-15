@@ -340,18 +340,25 @@ public class ProjectController {
 	}
 
 	/**
-	 * Deletes a project and all its data (draft and published dialogues, translations, and
-	 * language mappings). This is a permanent, unrecoverable delete of the project entity
-	 * itself — unlike dialogue deletion within a project, there is no restore path.
+	 * Deletes a project (#315): the definition of its dialogues (draft and published dialogues,
+	 * translations, and translation languages), which can't be undone. Its users' variables,
+	 * variable history and dialogue logs are kept unless asked otherwise: the project then stays,
+	 * marked as deleted, under the slug {@code <slug>__deleted} (its logs move along), so the
+	 * original slug is free for a new project that can't inherit any of that data. With both
+	 * {@code deleteVariables} and {@code deleteLogs}, it is removed for good. Either way it is
+	 * unloaded from the running service. See {@link ProjectService#deleteProject}.
 	 *
 	 * @param request the HTTP request (to retrieve authentication headers).
 	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
 	 *                 Unauthorized error).
 	 * @param version the API version to use, e.g. '1'.
 	 * @param projectSlug the unique slug of the project to delete.
+	 * @param deleteVariables also delete all users' variables and variable history in the
+	 *                        project.
+	 * @param deleteLogs also delete all users' dialogue logs of the project.
 	 * @throws HttpException if the project does not exist or the user is not authorized.
 	 */
-	@Operation(summary = "Delete a project and all its data.")
+	@Operation(summary = "Delete a project's dialogues, optionally with its users' data.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/delete-project")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
@@ -359,15 +366,19 @@ public class ProjectController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectSlug") String projectSlug
+			@RequestParam(value = "projectSlug") String projectSlug,
+			@RequestParam(value = "deleteVariables", defaultValue = "false") boolean deleteVariables,
+			@RequestParam(value = "deleteLogs", defaultValue = "false") boolean deleteLogs
 	) throws HttpException {
 		QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info("POST /v{}/project/delete-project [user: {}]", version, user);
+					logger.info("POST /v{}/project/delete-project [user: {}, deleteVariables: {}, "
+							+ "deleteLogs: {}]", version, user, deleteVariables, deleteLogs);
 					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectSlug));
-					projectService.deleteProject(project);
+					projectService.deleteProject(project, deleteVariables, deleteLogs);
+					application.getApplicationManager().unloadProject(projectSlug);
 					return null;
 				},
 				version, response, "", Permission.PROJECT_DELETE);
