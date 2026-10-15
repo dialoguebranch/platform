@@ -50,7 +50,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -261,6 +263,61 @@ class ProjectDeletionIntegrationTest {
 		String slug = "deletion-" + UUID.randomUUID().toString().substring(0, 8);
 		publishProject(slug);
 		mockMvc.perform(as(post("/v1/project/delete-project").param("projectSlug", slug), "editor", "deletion-editor"))
+				.andExpect(status().isForbidden());
+	}
+
+	// ---- Deleted projects (#403) ----
+
+	@Test
+	void deletedProjectsAreListedWithHowMuchUserDataTheyKeep() throws Exception {
+		String slug = "deletion-" + UUID.randomUUID().toString().substring(0, 8);
+		projectWithUserData(slug, "deletion-p-" + UUID.randomUUID().toString().substring(0, 8));
+		mockMvc.perform(delete(slug, false, false)).andExpect(status().isNoContent());
+
+		String entry = "$[?(@.slug == '" + slug + "__deleted')]";
+		mockMvc.perform(asAdmin(get("/v1/project/list-deleted-projects")))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath(entry, hasSize(1)))
+				.andExpect(jsonPath(entry + ".displayName", contains("T")))
+				.andExpect(jsonPath(entry + ".usersWithVariables", contains(1)))
+				.andExpect(jsonPath(entry + ".dialogueLogs", contains(1)))
+				.andExpect(jsonPath(entry + ".deletedAt", contains(org.hamcrest.Matchers.startsWith("20"))));
+		mockMvc.perform(asAdmin(get("/v1/project/list-deleted-projects")))
+				.andExpect(jsonPath("$[?(@.slug == '" + slug + "')]", empty()));
+	}
+
+	@Test
+	void purgingADeletedProjectRemovesItAndAllItsUsersData() throws Exception {
+		String slug = "deletion-" + UUID.randomUUID().toString().substring(0, 8);
+		DBProject project = projectWithUserData(slug, "deletion-p-" + UUID.randomUUID().toString().substring(0, 8));
+		mockMvc.perform(delete(slug, false, false)).andExpect(status().isNoContent());
+
+		mockMvc.perform(asAdmin(post("/v1/project/purge-deleted-project").param("projectSlug", slug + "__deleted")))
+				.andExpect(status().isNoContent());
+
+		assertTrue(projectRepository.findById(project.getId()).isEmpty());
+		assertEquals(0, variablesOf(project.getId()));
+		assertEquals(0, historyOf(project.getId()));
+		assertEquals(0, logsOf(slug + "__deleted"));
+		mockMvc.perform(asAdmin(get("/v1/project/list-deleted-projects")))
+				.andExpect(jsonPath("$[?(@.slug == '" + slug + "__deleted')]", empty()));
+	}
+
+	@Test
+	void anActiveProjectCannotBePurged() throws Exception {
+		String slug = "deletion-" + UUID.randomUUID().toString().substring(0, 8);
+		publishProject(slug);
+		mockMvc.perform(asAdmin(post("/v1/project/purge-deleted-project").param("projectSlug", slug)))
+				.andExpect(status().isNotFound());
+		assertTrue(projectRepository.findBySlug(slug).isPresent());
+	}
+
+	@Test
+	void editorsCannotListOrPurgeDeletedProjects() throws Exception {
+		mockMvc.perform(as(get("/v1/project/list-deleted-projects"), "editor", "deletion-editor"))
+				.andExpect(status().isForbidden());
+		mockMvc.perform(as(post("/v1/project/purge-deleted-project").param("projectSlug", "x__deleted"),
+						"editor", "deletion-editor"))
 				.andExpect(status().isForbidden());
 	}
 }

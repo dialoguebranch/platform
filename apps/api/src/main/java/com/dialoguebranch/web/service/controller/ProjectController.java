@@ -31,6 +31,7 @@ package com.dialoguebranch.web.service.controller;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.QueryRunner;
 import com.dialoguebranch.web.service.auth.Permission;
+import com.dialoguebranch.web.service.controller.schema.DeletedProjectSummary;
 import com.dialoguebranch.web.service.controller.schema.authoring.*;
 import com.dialoguebranch.web.service.controller.schema.authoring.DiscardedProjectChanges;
 import com.dialoguebranch.web.service.exception.BadRequestException;
@@ -295,6 +296,68 @@ public class ProjectController {
 					return draftDiscardService.discardAllChanges(project);
 				},
 				version, response, "", Permission.PUBLISH_CREATE);
+	}
+
+	/**
+	 * Lists the deleted projects (#403): projects whose dialogues were deleted but whose users'
+	 * data was kept, with how much of it they still have. Most recently deleted first.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @return the deleted projects.
+	 * @throws HttpException if the user is not authorized.
+	 */
+	@Operation(summary = "List deleted projects whose users' data was kept.")
+	@Parameter(name = "version", hidden = true)
+	@GetMapping("/list-deleted-projects")
+	public List<DeletedProjectSummary> listDeletedProjects(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("GET /v{}/project/list-deleted-projects [user: {}]", version, user);
+					return projectService.listDeletedProjects();
+				},
+				version, response, "", Permission.PROJECT_DELETE);
+	}
+
+	/**
+	 * Deletes a deleted project for good (#403): all its users' variables, variable history and
+	 * dialogue logs, and the project itself. Can't be undone.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the deleted project's slug ({@code <slug>__deleted}).
+	 * @throws HttpException if there is no deleted project with that slug, or the user is not
+	 * authorized.
+	 */
+	@Operation(summary = "Delete a deleted project for good, with all its users' data.")
+	@Parameter(name = "version", hidden = true)
+	@PostMapping("/purge-deleted-project")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void purgeDeletedProject(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug
+	) throws HttpException {
+		QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("POST /v{}/project/purge-deleted-project [user: {}, project: {}]",
+							version, user, projectSlug);
+					DBProject project = projectService.findDeletedBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Deleted project not found: " + projectSlug));
+					projectService.purgeDeletedProject(project);
+					return null;
+				},
+				version, response, "", Permission.PROJECT_DELETE);
 	}
 
 	/**

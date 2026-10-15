@@ -82,6 +82,7 @@ const showImportModal = ref(false);
 
 onMounted(() => {
     loadProjects();
+    loadDeletedProjects();
 });
 
 function loadProjects() {
@@ -114,8 +115,8 @@ function onProjectCreated(project) {
 }
 
 // Deletion is deliberately buried behind a confirmation modal that requires typing the
-// project's slug back — this is a permanent, irreversible action (project, drafts, and
-// published versions are all gone), so it should never be a single misclick.
+// project's slug back — its dialogues (drafts and published versions) are gone for good, so it
+// should never be a single misclick. Its users' data is kept unless ticked otherwise (#315).
 const deleteConfirm = ref(null); // { slug, displayName }
 const deleteConfirmInput = ref('');
 // Destructive options, off by default (#315): deleting a project removes its dialogues, not its
@@ -147,12 +148,78 @@ function confirmDelete() {
         .then(() => {
             projects.value = projects.value.filter((p) => p.slug !== deleteConfirm.value.slug);
             deleteConfirm.value = null;
+            loadDeletedProjects();
         })
         .catch(() => {
             deleteError.value = 'Failed to delete project. Please try again.';
         })
         .finally(() => {
             deleting.value = false;
+        });
+}
+
+// ---- Deleted projects (#403) ----
+// Projects whose dialogues were deleted but whose users' data was kept, listed for admins in a
+// separate, collapsed section, each with a way to delete it for good, user data and all.
+
+const deletedProjects = ref([]);
+const showDeleted = ref(false);
+const purgeConfirm = ref(null); // the deleted project being confirmed, or null
+const purgeConfirmInput = ref('');
+const purging = ref(false);
+const purgeError = ref('');
+
+function loadDeletedProjects() {
+    if (!isAdmin) return;
+    client.listDeletedProjects()
+        .then((data) => {
+            deletedProjects.value = data ?? [];
+        })
+        .catch(() => {
+            deletedProjects.value = [];
+        });
+}
+
+function formatDeletedAt(deletedAt) {
+    return deletedAt ? new Date(deletedAt).toLocaleDateString() : '';
+}
+
+function userDataSummary(project) {
+    const parts = [];
+    if (project.usersWithVariables > 0) {
+        parts.push(`${project.usersWithVariables} user${project.usersWithVariables === 1 ? '' : 's'} with variables`);
+    }
+    if (project.dialogueLogs > 0) {
+        parts.push(`${project.dialogueLogs} dialogue log${project.dialogueLogs === 1 ? '' : 's'}`);
+    }
+    return parts.length ? parts.join(', ') : 'no user data left';
+}
+
+function openPurgeConfirm(project) {
+    purgeConfirm.value = project;
+    purgeConfirmInput.value = '';
+    purgeError.value = '';
+}
+
+function closePurgeConfirm() {
+    if (purging.value) return;
+    purgeConfirm.value = null;
+}
+
+function confirmPurge() {
+    if (purgeConfirmInput.value.trim() !== purgeConfirm.value.slug) return;
+    purging.value = true;
+    purgeError.value = '';
+    client.purgeDeletedProject(purgeConfirm.value.slug)
+        .then(() => {
+            deletedProjects.value = deletedProjects.value.filter((p) => p.slug !== purgeConfirm.value.slug);
+            purgeConfirm.value = null;
+        })
+        .catch(() => {
+            purgeError.value = 'Failed to delete the project permanently. Please try again.';
+        })
+        .finally(() => {
+            purging.value = false;
         });
 }
 </script>
@@ -280,10 +347,105 @@ function confirmDelete() {
                     <div v-else class="text-xs text-orange-darker mt-2 italic">No published version</div>
                 </button>
             </div>
+
+            <!-- Deleted projects (#403): admins only, kept apart from the active projects -->
+            <section v-if="isAdmin && deletedProjects.length" class="mt-8" data-test="deleted-projects">
+                <button
+                    type="button"
+                    class="flex items-center gap-2 font-title text-sm text-grey-dark hover:text-orange-darker cursor-pointer"
+                    :aria-expanded="showDeleted"
+                    data-test="deleted-projects-toggle"
+                    @click="showDeleted = !showDeleted"
+                >
+                    <FontAwesomeIcon :icon="showDeleted ? 'fa-solid fa-caret-down' : 'fa-solid fa-caret-right'" class="w-3" />
+                    Deleted projects ({{ deletedProjects.length }})
+                </button>
+                <div v-if="showDeleted" class="mt-2 flex flex-col gap-2">
+                    <p class="text-xs font-title text-grey-dark">
+                        Their dialogues are gone, but their users' data was kept. Deleting one permanently removes that data too.
+                    </p>
+                    <div
+                        v-for="project in deletedProjects"
+                        :key="project.slug"
+                        class="flex items-center gap-3 rounded-xl px-4 py-3 border border-dashed border-grey-light bg-grey-lighter/50"
+                        data-test="deleted-project"
+                    >
+                        <div class="flex-1 min-w-0">
+                            <div class="font-title text-sm text-grey-dark truncate">{{ project.displayName ?? project.slug }}</div>
+                            <div class="font-mono text-xs text-grey-dark truncate">{{ project.slug }}</div>
+                            <div class="text-xs text-grey-dark mt-0.5">
+                                Deleted {{ formatDeletedAt(project.deletedAt) }} · {{ userDataSummary(project) }}
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            class="shrink-0 px-3 py-1.5 rounded font-title text-xs text-red-dark border border-red-dark/40 hover:bg-red-dark/10 cursor-pointer"
+                            data-test="purge-project"
+                            @click="openPurgeConfirm(project)"
+                        >Delete permanently…</button>
+                    </div>
+                </div>
+            </section>
         </div>
     </div>
 
     <Teleport to="body">
+        <div v-if="purgeConfirm" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" data-test="purge-confirm" @click.self="closePurgeConfirm">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col">
+                <div class="flex items-center gap-2 px-5 py-4 bg-red-dark rounded-t-xl text-white font-title font-bold">
+                    <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" />
+                    Delete Permanently
+                </div>
+                <div class="px-5 py-4 flex flex-col gap-3">
+                    <p class="text-sm font-title">
+                        You are about to permanently delete the deleted project
+                        <span class="font-bold text-orange-darker">{{ purgeConfirm.displayName ?? purgeConfirm.slug }}</span>
+                        (<span class="font-mono">{{ purgeConfirm.slug }}</span>).
+                    </p>
+                    <div class="flex items-start gap-2 border border-red-dark/40 bg-red-dark/10 text-red-dark rounded-lg px-3 py-2.5 text-xs font-title">
+                        <FontAwesomeIcon icon="fa-solid fa-circle-exclamation" class="shrink-0 mt-0.5" />
+                        <span>
+                            This deletes <strong>all of its users' variables, variable history and dialogue logs</strong>
+                            ({{ userDataSummary(purgeConfirm) }}), and the project itself.
+                            <strong>This action cannot be undone.</strong>
+                        </span>
+                    </div>
+                    <div>
+                        <label class="block font-title text-xs text-grey-dark mb-1">
+                            Type <span class="font-mono font-semibold text-orange-darker">{{ purgeConfirm.slug }}</span> to confirm:
+                        </label>
+                        <input
+                            v-model="purgeConfirmInput"
+                            type="text"
+                            class="w-full font-mono bg-white p-2 rounded-md border-[2px] border-solid border-gray-300 text-sm focus:outline-none focus:border-red-dark"
+                            :placeholder="purgeConfirm.slug"
+                            data-test="purge-confirm-input"
+                            @keyup.enter="confirmPurge"
+                        />
+                    </div>
+                    <div v-if="purgeError" class="text-xs text-red-dark font-title">{{ purgeError }}</div>
+                </div>
+                <div class="flex items-center justify-end gap-3 px-5 py-4 border-t border-grey-light bg-grey-lighter rounded-b-xl">
+                    <button
+                        type="button"
+                        class="px-4 py-2 rounded font-title text-sm text-grey-dark border border-grey-light hover:bg-grey-light cursor-pointer"
+                        :disabled="purging"
+                        @click="closePurgeConfirm"
+                    >Cancel</button>
+                    <button
+                        type="button"
+                        :class="['px-4 py-2 rounded font-title text-sm text-white flex items-center gap-2', (purging || purgeConfirmInput.trim() !== purgeConfirm.slug) ? 'bg-red-dark/50 cursor-not-allowed' : 'bg-red-dark hover:bg-red-900 cursor-pointer']"
+                        :disabled="purging || purgeConfirmInput.trim() !== purgeConfirm.slug"
+                        data-test="purge-confirm-button"
+                        @click="confirmPurge"
+                    >
+                        <FontAwesomeIcon v-if="purging" icon="fa-solid fa-circle-notch" class="animate-spin" />
+                        Delete Permanently
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div v-if="deleteConfirm" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" @click.self="closeDeleteConfirm">
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col">
                 <div class="flex items-center gap-2 px-5 py-4 bg-red-dark rounded-t-xl text-white font-title font-bold">

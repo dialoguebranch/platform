@@ -29,6 +29,7 @@
 package com.dialoguebranch.web.service.project;
 
 import com.dialoguebranch.model.execute.NodeHeader;
+import com.dialoguebranch.web.service.controller.schema.DeletedProjectSummary;
 import com.dialoguebranch.web.service.repository.DBDraftTranslationLanguageRepository;
 import com.dialoguebranch.web.service.repository.DBLoggedDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBProjectRepository;
@@ -325,6 +326,52 @@ public class ProjectService {
 		project.setUpdatedAt(now);
 		projectRepository.save(project);
 		return new DeletedProject(false, deletedSlug);
+	}
+
+	/**
+	 * Returns the deleted projects, most recently deleted first, with how much of their users'
+	 * data they still have (#403).
+	 *
+	 * @return the deleted projects.
+	 */
+	@Transactional(readOnly = true)
+	public List<DeletedProjectSummary> listDeletedProjects() {
+		return projectRepository.findByIsDeletedTrueOrderByDeletedAtDesc().stream()
+				.map(project -> new DeletedProjectSummary(project.getSlug(),
+						project.getDraftDisplayName(),
+						project.getDeletedAt() != null ? project.getDeletedAt().toString() : null,
+						variableRepository.countUsersByProject(project),
+						loggedDialogueRepository.countByProjectSlug(project.getSlug())))
+				.toList();
+	}
+
+	/**
+	 * Returns the deleted project with the given slug (the one it was given when deleted).
+	 *
+	 * @param slug the deleted project's slug.
+	 * @return the deleted project, or empty if there is no deleted project with that slug.
+	 */
+	public Optional<DBProject> findDeletedBySlug(String slug) {
+		return projectRepository.findBySlugAndIsDeletedTrue(slug);
+	}
+
+	/**
+	 * Deletes a deleted project for good (#403): all its users' variables, variable history and
+	 * dialogue logs, and then the project itself. All or nothing, and can't be undone.
+	 *
+	 * @param project the deleted project.
+	 * @throws IllegalArgumentException if the project wasn't deleted.
+	 */
+	@Transactional
+	public void purgeDeletedProject(DBProject project) {
+		if (!project.getIsDeleted()) {
+			throw new IllegalArgumentException("Project '" + project.getSlug() +
+					"' wasn't deleted.");
+		}
+		variableHistoryRepository.deleteByProject(project);
+		variableRepository.deleteByProject(project);
+		loggedDialogueRepository.deleteByProjectSlug(project.getSlug());
+		projectRepository.delete(project);
 	}
 
 	/**

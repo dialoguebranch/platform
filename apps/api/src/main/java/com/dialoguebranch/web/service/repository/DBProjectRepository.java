@@ -67,4 +67,20 @@ public interface DBProjectRepository extends JpaRepository<DBProject, UUID> {
 	 */
 	List<DBProject> findByIsDeletedFalse();
 
+
+	/**
+	 * Finds all deleted projects, most recently deleted first (#403).
+	 *
+	 * @return the deleted projects.
+	 */
+	List<DBProject> findByIsDeletedTrueOrderByDeletedAtDesc();
+
+	/**
+	 * Finds the deleted project with the given slug (#403).
+	 *
+	 * @param slug the slug the project was given when deleted.
+	 * @return the matching deleted project, or empty.
+	 */
+	Optional<DBProject> findBySlugAndIsDeletedTrue(String slug);
+
 }
