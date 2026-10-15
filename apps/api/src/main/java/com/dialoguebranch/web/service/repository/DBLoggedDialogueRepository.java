@@ -151,4 +151,15 @@ public interface DBLoggedDialogueRepository extends JpaRepository<DBLoggedDialog
 	 */
 	long countByProjectSlug(String projectSlug);
 
+	/**
+	 * Deletes all logged dialogues of the given user, in every project, when the user's data is
+	 * erased (#320).
+	 *
+	 * @param user the user.
+	 * @return the number of logged dialogues deleted.
+	 */
+	@Modifying
+	@Query("delete from DBLoggedDialogue l where l.user = :user")
+	int deleteByUser(@Param("user") DBUser user);
+
 }

@@ -15,6 +15,11 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   all, after typing the slug to confirm ([#403](https://github.com/dialoguebranch/platform/issues/403)).
   New `GET /project/list-deleted-projects` and `POST /project/purge-deleted-project`; client-js
   gains `listDeletedProjects` and `purgeDeletedProject`.
+- Web service and client-js: an admin can erase everything stored about a user — their variables,
+  variable history and dialogue logs in every project, and the user itself — with
+  `POST /users/erase-user` (new admin-only `USER_ERASE` permission); a configured External
+  Variable Service is sent `notify-cleared` for each project the user had variables in
+  ([#320](https://github.com/dialoguebranch/platform/issues/320)). client-js gains `eraseUser`.
 
 ### Changed
 

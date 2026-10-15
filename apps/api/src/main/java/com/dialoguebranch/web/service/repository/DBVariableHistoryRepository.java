@@ -122,4 +122,15 @@ public interface DBVariableHistoryRepository extends JpaRepository<DBVariableHis
 	@Query("delete from DBVariableHistory h where h.project = :project")
 	int deleteByProject(@Param("project") DBProject project);
 
+	/**
+	 * Deletes the variable history of the given user, in every project, when the user's data is
+	 * erased (#320).
+	 *
+	 * @param user the user.
+	 * @return the number of history entries deleted.
+	 */
+	@Modifying
+	@Query("delete from DBVariableHistory h where h.user = :user")
+	int deleteByUser(@Param("user") DBUser user);
+
 }

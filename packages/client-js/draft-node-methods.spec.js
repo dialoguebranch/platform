@@ -229,3 +229,14 @@ describe('exportDialogue', () => {
         expect(error.message).toBe('Dialogue not found: nope');
     });
 });
+
+describe('eraseUser', () => {
+    it('POSTs the subject and returns the counts', async () => {
+        const { client, fetch } = clientReturning({ variables: 3, variableHistory: 5, dialogueLogs: 2 });
+        const result = await client.eraseUser('a b/c');
+        const [url, init] = fetch.mock.calls[0];
+        expect(url).toBe('/api/v1/users/erase-user?subject=a%20b%2Fc');
+        expect(init.method).toBe('POST');
+        expect(result).toEqual({ variables: 3, variableHistory: 5, dialogueLogs: 2 });
+    });
+});

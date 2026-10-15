@@ -1021,6 +1021,24 @@ export class DialogueBranchAuthoringClient extends BaseClient {
     }
 
     /**
+     * Erases everything the Web Service stores about one user of the caller's realm: their
+     * variables, variable history and dialogue logs in every project, and the user itself. If an
+     * External Variable Service is configured, it is told the user's variables were cleared.
+     * Requires the `admin` role. Cannot be undone.
+     *
+     * @param {string} subject The user's `subject` (see {@link listUsers}).
+     * @returns {Promise<{variables: number, variableHistory: number, dialogueLogs: number}>} How
+     * much was erased.
+     */
+    eraseUser(subject) {
+        const url = this._baseUrl + "/users/erase-user?subject=" + encodeURIComponent(subject);
+
+        return this._fetch(url, {
+            method: "POST",
+        }).then((response) => this._handleResponse(response));
+    }
+
+    /**
      * Returns the sorted list of variable names referenced anywhere in the given project's
      * dialogues (read or written), regardless of whether any user has a stored value for them —
      * a static, authoring-time view, unlike {@link DialogueBranchClient#getVariables}'s runtime

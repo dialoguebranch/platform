@@ -34,6 +34,8 @@ Every call the Web Service makes to the External Variable Service (`retrieve-upd
 | `projectSlug` | The slug of the Dialogue Branch project the variables belong to. Variables are project-scoped — the same variable name in two projects is two independent values. |
 | `timeZone` | The user's current IANA time zone (e.g. `Europe/Lisbon`). |
 
+`notify-cleared` is also sent when an admin erases a user's data ([`POST /users/erase-user`](/web-services/api-service)), once for each project the user had variables in. If your service keeps its own copy of a user's variables, erase it then too.
+
 ::: warning Breaking change
 The earlier single `userId` parameter (a bare username) has been replaced by `subject` + `issuer` + `projectSlug`. Update your External Variable Service implementation accordingly; there is no API-version bump.
 :::

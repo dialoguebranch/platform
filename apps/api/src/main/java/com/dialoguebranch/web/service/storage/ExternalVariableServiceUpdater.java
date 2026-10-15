@@ -78,9 +78,43 @@ public class ExternalVariableServiceUpdater implements VariableStoreOnChangeList
 		this.projectSlug = projectSlug;
 	}
 
+	/**
+	 * Tells the configured External Variable Service that a user's variables in a project were
+	 * cleared ({@code notify-cleared}). Also used when a user's data is erased (#320).
+	 *
+	 * @param dlbProperties the application configuration properties (external service URL +
+	 *                      credentials).
+	 * @param issuer the token issuer of the user.
+	 * @param subject the OIDC {@code sub} of the user.
+	 * @param projectSlug the slug of the project the variables were scoped to.
+	 * @param timeZone the user's IANA time zone.
+	 */
+	public static void notifyCleared(DlbProperties dlbProperties, String issuer, String subject,
+			String projectSlug, String timeZone) {
+		DlbProperties.ExternalVariableService evs = dlbProperties.getExternalVariableService();
+		RestTemplate restTemplate = new RestTemplate();
+		HttpHeaders requestHeaders = new HttpHeaders();
+		requestHeaders.set("Authorization", "Bearer " + evs.getApiKey());
+
+		String notifyClearedUrl = evs.getUrl()
+				+ "/v" + evs.getApiVersion()
+				+ "/variables/notify-cleared";
+
+		LinkedMultiValueMap<String, String> allRequestParams = new LinkedMultiValueMap<>();
+		addIdentityParams(allRequestParams, issuer, subject, projectSlug, timeZone);
+
+		HttpEntity<?> entity = new HttpEntity<>(requestHeaders);
+		UriComponentsBuilder builder =
+				UriComponentsBuilder.fromUriString(notifyClearedUrl)
+						.queryParams(allRequestParams);
+		UriComponents uriComponents = builder.build().encode();
+
+		restTemplate.exchange(uriComponents.toUri(), HttpMethod.POST, entity, Object.class);
+	}
+
 	/** Adds the {@code (issuer, subject, projectSlug)} identity parameters to an EVS request. */
-	private void addIdentityParams(LinkedMultiValueMap<String, String> params,
-			String userTimeZoneString) {
+	private static void addIdentityParams(LinkedMultiValueMap<String, String> params,
+			String issuer, String subject, String projectSlug, String userTimeZoneString) {
 		params.put("issuer", Arrays.asList(issuer));
 		params.put("subject", Arrays.asList(subject));
 		params.put("projectSlug", Arrays.asList(projectSlug));
@@ -112,30 +146,8 @@ public class ExternalVariableServiceUpdater implements VariableStoreOnChangeList
 							evs.getUrl(), evs.getApiVersion());
 
 					if (change instanceof VariableStoreChange.Clear) {
-						RestTemplate restTemplate = new RestTemplate();
-						HttpHeaders requestHeaders = new HttpHeaders();
-						requestHeaders.set("Authorization", "Bearer " + evs.getApiKey());
-
-						String notifyClearedUrl = evs.getUrl()
-								+ "/v" + evs.getApiVersion()
-								+ "/variables/notify-cleared";
-
-						LinkedMultiValueMap<String, String> allRequestParams =
-								new LinkedMultiValueMap<>();
-						addIdentityParams(allRequestParams, userTimeZoneString);
-
-						HttpEntity<?> entity = new HttpEntity<>(requestHeaders);
-						UriComponentsBuilder builder =
-								UriComponentsBuilder.fromUriString(notifyClearedUrl)
-										.queryParams(
-												(LinkedMultiValueMap<String, String>) allRequestParams);
-						UriComponents uriComponents = builder.build().encode();
-
-						ResponseEntity<Object> response = restTemplate.exchange(
-								uriComponents.toUri(),
-								HttpMethod.POST,
-								entity,
-								Object.class);
+						notifyCleared(dlbProperties, issuer, subject, projectSlug,
+								userTimeZoneString);
 
 					} else if (change instanceof VariableStoreChange.Remove) {
 						Collection<String> variableNames =
@@ -175,7 +187,7 @@ public class ExternalVariableServiceUpdater implements VariableStoreOnChangeList
 					+ "/variables/notify-updated";
 
 			LinkedMultiValueMap<String, String> allRequestParams = new LinkedMultiValueMap<>();
-			addIdentityParams(allRequestParams, userTimeZoneString);
+			addIdentityParams(allRequestParams, issuer, subject, projectSlug, userTimeZoneString);
 
 			HttpEntity<?> entity = new HttpEntity<>(variablesToUpdate, requestHeaders);
 			UriComponentsBuilder builder =
