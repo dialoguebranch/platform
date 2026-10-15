@@ -215,6 +215,61 @@ const publishDisabledReason = computed(() => {
 
 const showPublishWizard = ref(false);
 
+// ---- Discard All Draft Changes (#364) ----
+// The inverse of Publish: brings the whole draft back to the latest published version, so it has
+// the same permission and needs a published version to go back to.
+
+const canDiscardAll = computed(() => canPublish.value && !!state.value.selectedProject?.latestVersion);
+const discardAllDisabledReason = computed(() => {
+    if (!isAdmin.value) return "You don't have permission to discard the project's draft changes.";
+    if (state.value.mode !== DLB_APP_MODE_DRAFT) return 'Switch to Authoring Mode to discard draft changes.';
+    if (!state.value.selectedProject?.latestVersion) {
+        return "This project hasn't been published yet, so there are no published changes to go back to.";
+    }
+    if (!hasUnpublishedChanges.value) return 'There are no draft changes to discard.';
+    return '';
+});
+
+// { changed, added, deleted } dialogue counts while the confirmation is open, or null.
+const discardAllPrompt = ref(null);
+const discardingAll = ref(false);
+
+function onDiscardAllClick() {
+    if (!canDiscardAll.value) return;
+    closeProjectMenu();
+    authoringClient.listDraftDialogues(state.value.selectedProject.slug)
+        .then((dialogues) => {
+            discardAllPrompt.value = {
+                changed: dialogues.filter((d) => !d.isNew && !d.isDeleted && d.isChanged).length,
+                added: dialogues.filter((d) => d.isNew).length,
+                deleted: dialogues.filter((d) => d.isDeleted && !d.isNew).length,
+            };
+        })
+        .catch((error) => {
+            showError(describeError(error));
+        });
+}
+
+function confirmDiscardAll() {
+    const slug = state.value.selectedProject.slug;
+    discardingAll.value = true;
+    authoringClient.discardAllDraftChanges(slug)
+        .then(() => {
+            discardAllPrompt.value = null;
+            // Dialogues may have been removed or renamed back, so no open tab can be trusted.
+            dialogueWorkspace.value?.clearAllTabs();
+            dialogueBrowser.value?.listDialogues();
+            dialogueWorkspace.value?.loadAvailableLanguages();
+            return authoringClient.getProject(slug).then((project) => refreshProjectMetadataChanged(project));
+        })
+        .catch((error) => {
+            showError(describeError(error));
+        })
+        .finally(() => {
+            discardingAll.value = false;
+        });
+}
+
 function onPublishProjectClick() {
     if (!canPublish.value) return;
     closeProjectMenu();
@@ -484,6 +539,17 @@ function onWorkspaceModeChanged(mode) {
                     </button>
                     <button
                         type="button"
+                        :class="['flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm transition-colors', canDiscardAll ? 'text-orange-darker hover:bg-grey-lighter cursor-pointer' : 'text-grey-light cursor-not-allowed']"
+                        :disabled="!canDiscardAll"
+                        :title="discardAllDisabledReason"
+                        data-test="menu-discard-all"
+                        @click="onDiscardAllClick"
+                    >
+                        <FontAwesomeIcon icon="fa-solid fa-rotate-left" class="w-4" :class="canDiscardAll ? 'text-orange-medium' : 'text-grey-light'" />
+                        Discard All Draft Changes…
+                    </button>
+                    <button
+                        type="button"
                         :class="['flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm transition-colors', (canExportProject && !exporting) ? 'text-orange-darker hover:bg-grey-lighter cursor-pointer' : 'text-grey-light cursor-not-allowed']"
                         :disabled="!canExportProject || exporting"
                         :title="exportProjectDisabledReason"
@@ -580,6 +646,43 @@ function onWorkspaceModeChanged(mode) {
                     <div class="flex gap-2 justify-end">
                         <button type="button" class="px-3 py-1.5 rounded border border-grey-light text-grey-dark hover:bg-grey-lighter text-xs font-semibold cursor-pointer" @click="delegateConfirmAction = null">Cancel</button>
                         <button type="button" class="px-3 py-1.5 rounded bg-orange-darker text-white hover:bg-orange-dark text-xs font-semibold cursor-pointer" @click="confirmDelegateAction">Okay, proceed</button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
+        <Teleport to="body">
+            <div v-if="discardAllPrompt" class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50" data-test="discard-all-prompt">
+                <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col">
+                    <div class="flex items-center gap-2 px-5 py-4 bg-orange-darker rounded-t-xl text-white font-title font-bold">
+                        <FontAwesomeIcon icon="fa-solid fa-rotate-left" />
+                        Discard All Draft Changes
+                    </div>
+                    <div class="px-5 py-4 flex flex-col gap-3 text-sm font-title">
+                        <p>
+                            Discard every draft change in <span class="font-bold text-orange-darker">{{ state.selectedProject?.displayName }}</span>?
+                            The whole draft becomes identical to its published version (v{{ state.selectedProject?.latestVersion?.versionNumber }}) again:
+                        </p>
+                        <ul class="list-disc ml-5 text-xs">
+                            <li>{{ discardAllPrompt.changed }} changed dialogue(s) go back to their published content and name;</li>
+                            <li>{{ discardAllPrompt.added }} new dialogue(s) are removed;</li>
+                            <li>{{ discardAllPrompt.deleted }} dialogue(s) pending deletion are restored;</li>
+                            <li>the project's name, description and translation languages go back to the published ones.</li>
+                        </ul>
+                        <div class="flex items-start gap-2 border border-orange-medium/40 bg-orange-light/10 text-orange-darker rounded-lg px-3 py-2.5 text-xs">
+                            <FontAwesomeIcon icon="fa-solid fa-circle-exclamation" class="shrink-0 mt-0.5" />
+                            <span>This can't be undone, and it discards everyone's draft changes in this project. Open tabs are closed.</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-end gap-3 px-5 py-4 border-t border-grey-light bg-grey-lighter rounded-b-xl">
+                        <button type="button" class="px-3 py-2 rounded font-title text-sm text-grey-dark border border-grey-light hover:bg-grey-light cursor-pointer" :disabled="discardingAll" @click="discardAllPrompt = null">Cancel</button>
+                        <button
+                            type="button"
+                            class="px-3 py-2 rounded font-title text-sm text-white bg-orange-darker hover:bg-orange-dark cursor-pointer disabled:opacity-40"
+                            :disabled="discardingAll"
+                            data-test="discard-all-confirm"
+                            @click="confirmDiscardAll"
+                        >{{ discardingAll ? 'Discarding…' : 'Discard all changes' }}</button>
                     </div>
                 </div>
             </div>

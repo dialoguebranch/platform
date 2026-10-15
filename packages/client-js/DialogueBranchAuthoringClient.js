@@ -318,6 +318,24 @@ export class DialogueBranchAuthoringClient extends BaseClient {
     }
 
     /**
+     * Discards all of a project's draft changes: its draft becomes identical to its latest
+     * published version again (display name and description, translation languages, and every
+     * dialogue; dialogues that were never published are removed). Cannot be undone. Needs the
+     * permission to publish; refused for a project that was never published.
+     *
+     * @param {string} projectSlug The project's slug.
+     * @returns {Promise<{dialoguesReverted: number, dialoguesRemoved: number}>} How many
+     * dialogues were brought back to their published version, and how many were removed.
+     */
+    discardAllDraftChanges(projectSlug) {
+        const url = this._baseUrl + "/project/discard-draft-changes?projectSlug=" + encodeURIComponent(projectSlug);
+
+        return this._fetch(url, {
+            method: "POST",
+        }).then((response) => this._handleResponse(response));
+    }
+
+    /**
      * Validates all of the project's draft dialogues and, if valid, publishes them as a new,
      * immutable project version — replacing what's currently live and cannot be undone. Consider
      * calling {@link verifyProject} first to check for errors without actually publishing.
