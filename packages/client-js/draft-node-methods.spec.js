@@ -91,6 +91,17 @@ describe('draft preamble', () => {
     });
 });
 
+describe('discardDraftDialogueChanges', () => {
+    it('POSTs the project and dialogue and returns the names', async () => {
+        const { client, fetch } = clientReturning({ dialogueName: 'main', discardedName: 'intro/renamed' });
+        const result = await client.discardDraftDialogueChanges('proj', 'intro/renamed');
+        const [url, init] = fetch.mock.calls[0];
+        expect(url).toBe('/api/v1/authoring/discard-dialogue-changes?projectSlug=proj&dialogueName=intro%2Frenamed');
+        expect(init.method).toBe('POST');
+        expect(result).toEqual({ dialogueName: 'main', discardedName: 'intro/renamed' });
+    });
+});
+
 describe('importScripts', () => {
     it('sends the project, folder, replace flag and files as multipart form data', async () => {
         const { client, fetch } = clientReturning([

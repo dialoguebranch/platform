@@ -33,6 +33,7 @@ import com.dialoguebranch.execution.parser.DialogueBranchParser;
 import com.dialoguebranch.web.service.QueryRunner;
 import com.dialoguebranch.web.service.auth.Permission;
 import com.dialoguebranch.web.service.controller.schema.authoring.*;
+import com.dialoguebranch.web.service.controller.schema.authoring.DiscardedDialogueChanges;
 import com.dialoguebranch.web.service.controller.schema.authoring.DraftNodeResponse;
 import com.dialoguebranch.web.service.controller.schema.authoring.ImportedScript;
 import com.dialoguebranch.web.service.controller.schema.authoring.ImportedTranslation;
@@ -43,6 +44,7 @@ import com.dialoguebranch.web.service.exception.ConflictException;
 import com.dialoguebranch.web.service.exception.HttpException;
 import com.dialoguebranch.web.service.exception.NotFoundException;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
+import com.dialoguebranch.web.service.project.DraftDiscardService;
 import com.dialoguebranch.web.service.project.DraftProjectService;
 import com.dialoguebranch.web.service.project.ProjectService;
 import com.dialoguebranch.web.service.project.ScriptImportService;
@@ -96,6 +98,7 @@ public class AuthoringController {
 	private final DraftProjectService draftProjectService;
 	private final ScriptImportService scriptImportService;
 	private final TranslationImportService translationImportService;
+	private final DraftDiscardService draftDiscardService;
 
 	private static final Logger logger = LoggerFactory.getLogger(AuthoringController.class);
 
@@ -111,17 +114,20 @@ public class AuthoringController {
 	 * @param scriptImportService service that imports {@code .dlb} scripts as draft dialogues.
 	 * @param translationImportService service that imports translation files as draft
 	 *                                 translations.
+	 * @param draftDiscardService service that discards a draft dialogue's changes.
 	 */
 	public AuthoringController(ProjectService projectService,
 							   DraftDialogueService draftDialogueService,
 							   DraftProjectService draftProjectService,
 							   ScriptImportService scriptImportService,
-							   TranslationImportService translationImportService) {
+							   TranslationImportService translationImportService,
+							   DraftDiscardService draftDiscardService) {
 		this.projectService = projectService;
 		this.draftDialogueService = draftDialogueService;
 		this.draftProjectService = draftProjectService;
 		this.scriptImportService = scriptImportService;
 		this.translationImportService = translationImportService;
+		this.draftDiscardService = draftDiscardService;
 	}
 
 	/**
@@ -367,6 +373,50 @@ public class AuthoringController {
 									"Dialogue not found: " + dialogueName));
 					draftDialogueService.restoreDialogue(dialogue);
 					return dialogue;
+				},
+				version, response, "", Permission.DIALOGUE_AUTHOR);
+	}
+
+	/**
+	 * Discards a draft dialogue's changes (#363): makes it identical to its latest published
+	 * version again (nodes, headers and positions, preamble, translations, and its published name
+	 * if it was renamed), so it is no longer marked as changed. See {@link
+	 * DraftDiscardService#discardChanges}.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project the dialogue belongs to.
+	 * @param dialogueName the draft name of the dialogue.
+	 * @return the dialogue's name now (its published name) and before.
+	 * @throws HttpException if the project or dialogue does not exist, the dialogue was never
+	 * published or is pending deletion, its published name is taken, a translation language was
+	 * renamed since it was published, or the user is not authorized.
+	 */
+	@Operation(summary = "Discard a draft dialogue's changes, back to its published version.")
+	@Parameter(name = "version", hidden = true)
+	@PostMapping("/discard-dialogue-changes")
+	public DiscardedDialogueChanges discardDialogueChanges(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug,
+			@RequestParam(value = "dialogueName") String dialogueName
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("POST /v{}/authoring/discard-dialogue-changes [user: {}]",
+							version, user);
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					DBDraftDialogue dialogue = draftDialogueService
+							.findDialogue(project, dialogueName)
+							.orElseThrow(() -> new NotFoundException(
+									"Dialogue not found: " + dialogueName));
+					checkNotDeleted(dialogue);
+					return draftDiscardService.discardChanges(project, dialogue);
 				},
 				version, response, "", Permission.DIALOGUE_AUTHOR);
 	}

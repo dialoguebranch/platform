@@ -7,6 +7,17 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Added
+
+- Studio, web service and client-js: discard a draft dialogue's changes
+  ([#363](https://github.com/dialoguebranch/platform/issues/363)). *Discard changes* on a dialogue
+  marked *Changed* in the Dialogue Browser (Authoring Mode) makes its draft identical to its
+  published version again: nodes and their layout, preamble, translations, and its published name
+  if it was renamed; it is then no longer marked as changed. The new
+  `POST /authoring/discard-dialogue-changes` refuses a dialogue that was never published or is
+  pending deletion, a published name another dialogue has taken, and a translation language
+  renamed since publishing. client-js gains `discardDraftDialogueChanges`.
+
 ## [0.6.0] - 2026-10-15
 
 ### Added

@@ -31,6 +31,7 @@ const emit = defineEmits([
     'activateTab',
     'hasUnpublishedChanges',
     'openDialogue',
+    'dialoguesReplaced',
 ]);
 
 const client = useClient();
@@ -88,6 +89,7 @@ function buildTree(entries) {
             _isNew: entry.isNew,
             _isChanged: entry.isChanged,
             _isDeleted: entry.isDeleted,
+            _previousPublishedName: entry.previousPublishedName ?? null,
             _updatedAt: entry.updatedAt,
             _nodeCount: entry.nodeCount,
         };
@@ -141,6 +143,7 @@ function listDialogues() {
                 isNew: d.isNew,
                 isChanged: d.isChanged,
                 isDeleted: d.isDeleted,
+                previousPublishedName: d.previousPublishedName,
                 updatedAt: d.updatedAt,
                 nodeCount: d.nodeCount,
             }));
@@ -279,6 +282,13 @@ function doCancel() {
     });
 }
 
+// A dialogue's draft content was replaced (its changes discarded, #363): the list changes, and
+// open tabs of it (under its old or new name) must reload.
+function onDialoguesReplaced(dialogueNames) {
+    listDialogues();
+    emit('dialoguesReplaced', dialogueNames);
+}
+
 listDialogues();
 
 defineExpose({
@@ -365,6 +375,7 @@ defineExpose({
                 @toggleFolder="toggleFolder"
                 @openDialogue="(name) => $emit('openDialogue', name)"
                 @dialoguesChanged="listDialogues"
+                @dialoguesReplaced="onDialoguesReplaced"
             />
         </MainPagePanelContainer>
     </div>
