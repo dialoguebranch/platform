@@ -7,6 +7,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-15
+
 ### Added
 
 - Studio: delete a dialogue ([#390](https://github.com/dialoguebranch/platform/issues/390)).
