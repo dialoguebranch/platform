@@ -32,11 +32,13 @@ import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.QueryRunner;
 import com.dialoguebranch.web.service.auth.Permission;
 import com.dialoguebranch.web.service.controller.schema.authoring.*;
+import com.dialoguebranch.web.service.controller.schema.authoring.DiscardedProjectChanges;
 import com.dialoguebranch.web.service.exception.BadRequestException;
 import com.dialoguebranch.web.service.exception.ConflictException;
 import com.dialoguebranch.web.service.exception.HttpException;
 import com.dialoguebranch.web.service.exception.NotFoundException;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
+import com.dialoguebranch.web.service.project.DraftDiscardService;
 import com.dialoguebranch.web.service.project.DraftProjectService;
 import com.dialoguebranch.web.service.project.ProjectExportService;
 import com.dialoguebranch.web.service.project.ProjectImportService;
@@ -89,6 +91,7 @@ public class ProjectController {
 	private final DraftProjectService draftProjectService;
 	private final DraftDialogueService draftDialogueService;
 	private final ProjectExportService projectExportService;
+	private final DraftDiscardService draftDiscardService;
 	private final ProjectImportService projectImportService;
 
 	private static final Logger logger = LoggerFactory.getLogger(ProjectController.class);
@@ -107,15 +110,17 @@ public class ProjectController {
 	 *                             archive.
 	 * @param projectImportService service used to create a new project from an uploaded export
 	 *                             archive.
+	 * @param draftDiscardService  service used to discard all of a project's draft changes.
 	 */
 	public ProjectController(ProjectService projectService, DraftProjectService draftProjectService,
 			DraftDialogueService draftDialogueService, ProjectExportService projectExportService,
-			ProjectImportService projectImportService) {
+			ProjectImportService projectImportService, DraftDiscardService draftDiscardService) {
 		this.projectService = projectService;
 		this.draftProjectService = draftProjectService;
 		this.draftDialogueService = draftDialogueService;
 		this.projectExportService = projectExportService;
 		this.projectImportService = projectImportService;
+		this.draftDiscardService = draftDiscardService;
 	}
 
 	// ---------------------------------------------------------------- //
@@ -254,6 +259,42 @@ public class ProjectController {
 							payload.getDisplayName(), payload.getDescription());
 				},
 				version, response, "", Permission.PROJECT_UPDATE);
+	}
+
+	/**
+	 * Discards all of a project's draft changes (#364): its draft becomes identical to its latest
+	 * published version again (display name and description, translation languages, and every
+	 * dialogue; dialogues that were never published are removed). Needs the permission to publish,
+	 * since it is its inverse. See {@link DraftDiscardService#discardAllChanges}.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project.
+	 * @return how many dialogues were reverted and removed.
+	 * @throws HttpException if the project does not exist or was never published, or the user is
+	 * not authorized.
+	 */
+	@Operation(summary = "Discard all of a project's draft changes, back to its published version.")
+	@Parameter(name = "version", hidden = true)
+	@PostMapping("/discard-draft-changes")
+	public DiscardedProjectChanges discardDraftChanges(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("POST /v{}/project/discard-draft-changes [user: {}]", version,
+							user);
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					return draftDiscardService.discardAllChanges(project);
+				},
+				version, response, "", Permission.PUBLISH_CREATE);
 	}
 
 	/**

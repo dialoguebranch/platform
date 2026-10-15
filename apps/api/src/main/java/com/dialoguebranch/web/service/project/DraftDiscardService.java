@@ -29,10 +29,13 @@
 package com.dialoguebranch.web.service.project;
 
 import com.dialoguebranch.web.service.controller.schema.authoring.DiscardedDialogueChanges;
+import com.dialoguebranch.web.service.controller.schema.authoring.DiscardedProjectChanges;
 import com.dialoguebranch.web.service.exception.BadRequestException;
 import com.dialoguebranch.web.service.exception.ConflictException;
 import com.dialoguebranch.web.service.repository.DBDraftTranslationLanguageRepository;
+import com.dialoguebranch.web.service.repository.DBProjectRepository;
 import com.dialoguebranch.web.service.repository.DBPublishedDialogueRepository;
+import com.dialoguebranch.web.service.repository.DBPublishedTranslationLanguageRepository;
 import com.dialoguebranch.web.service.repository.DBPublishedTranslationRepository;
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslation;
@@ -41,18 +44,22 @@ import com.dialoguebranch.web.service.storage.model.DBProject;
 import com.dialoguebranch.web.service.storage.model.DBProjectVersion;
 import com.dialoguebranch.web.service.storage.model.DBPublishedDialogue;
 import com.dialoguebranch.web.service.storage.model.DBPublishedTranslation;
+import com.dialoguebranch.web.service.storage.model.DBPublishedTranslationLanguage;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Discards a draft dialogue's changes: makes the draft identical to the dialogue's latest
- * published version again (#363).
+ * Discards draft changes: makes a draft dialogue (#363), or a whole project's draft (#364),
+ * identical to its latest published version again.
  *
  * @author Harm op den Akker
  */
@@ -63,6 +70,8 @@ public class DraftDiscardService {
 	private final DBPublishedDialogueRepository publishedDialogueRepository;
 	private final DBPublishedTranslationRepository publishedTranslationRepository;
 	private final DBDraftTranslationLanguageRepository draftLanguageRepository;
+	private final DBPublishedTranslationLanguageRepository publishedLanguageRepository;
+	private final DBProjectRepository projectRepository;
 
 	/**
 	 * Creates the service.
@@ -71,15 +80,21 @@ public class DraftDiscardService {
 	 * @param publishedDialogueRepository    the published dialogues.
 	 * @param publishedTranslationRepository the published translations.
 	 * @param draftLanguageRepository        the draft translation languages.
+	 * @param publishedLanguageRepository    the published translation languages.
+	 * @param projectRepository              the projects.
 	 */
 	public DraftDiscardService(DraftDialogueService draftDialogueService,
 			DBPublishedDialogueRepository publishedDialogueRepository,
 			DBPublishedTranslationRepository publishedTranslationRepository,
-			DBDraftTranslationLanguageRepository draftLanguageRepository) {
+			DBDraftTranslationLanguageRepository draftLanguageRepository,
+			DBPublishedTranslationLanguageRepository publishedLanguageRepository,
+			DBProjectRepository projectRepository) {
 		this.draftDialogueService = draftDialogueService;
 		this.publishedDialogueRepository = publishedDialogueRepository;
 		this.publishedTranslationRepository = publishedTranslationRepository;
 		this.draftLanguageRepository = draftLanguageRepository;
+		this.publishedLanguageRepository = publishedLanguageRepository;
+		this.projectRepository = projectRepository;
 	}
 
 	/**
@@ -124,6 +139,141 @@ public class DraftDiscardService {
 					"dialogue first.");
 		}
 
+		restoreFromPublished(project, dialogue, published, publishedName);
+		return new DiscardedDialogueChanges(publishedName, draftName);
+	}
+
+	/**
+	 * Discards all of a project's draft changes (#364): makes its draft identical to its latest
+	 * published version again. Its display name and description, and its translation languages
+	 * (added ones removed, removed ones restored, renamed ones renamed back), become the published
+	 * ones; dialogues that were never published are removed; and every other dialogue, including
+	 * one pending deletion, is rebuilt from its published version, with its published name.
+	 *
+	 * @param project the project.
+	 * @return how many dialogues were reverted and removed.
+	 * @throws BadRequestException if the project was never published.
+	 */
+	@Transactional(rollbackFor = Exception.class)
+	public DiscardedProjectChanges discardAllChanges(DBProject project)
+			throws BadRequestException {
+		// Work on a managed copy: the caller's instance was loaded by an earlier, completed query.
+		UUID projectId = project.getId();
+		project = projectRepository.findById(projectId)
+				.orElseThrow(() -> new IllegalStateException("Project disappeared: " + projectId));
+		DBProjectVersion latest = project.getLatestVersion();
+		if (latest == null) {
+			throw new BadRequestException("Project '" + project.getSlug() + "' was never " +
+					"published, so there are no published changes to go back to.");
+		}
+
+		project.setDraftDisplayName(latest.getDisplayName());
+		project.setDraftDescription(latest.getDescription());
+		project.setUpdatedAt(Instant.now());
+		projectRepository.save(project);
+
+		// Dialogues that were never published go first, freeing the names they may have taken.
+		int removed = 0;
+		List<DBDraftDialogue> remaining = new ArrayList<>();
+		for (DBDraftDialogue dialogue : draftDialogueService.listDialogues(project)) {
+			if (dialogue.getIsNew()) {
+				draftDialogueService.hardDeleteDialogue(dialogue);
+				removed++;
+			} else {
+				remaining.add(dialogue);
+			}
+		}
+
+		restorePublishedLanguages(project, latest);
+
+		Map<String, DBPublishedDialogue> published = new HashMap<>();
+		for (DBPublishedDialogue dialogue : publishedDialogueRepository.findByVersion(latest)) {
+			published.put(dialogue.getName(), dialogue);
+		}
+		// Renamed dialogues first take a temporary name, so swapped names can't collide with the
+		// unique (project, name) constraint while they're put back.
+		List<DBDraftDialogue> reverting = new ArrayList<>();
+		for (DBDraftDialogue dialogue : remaining) {
+			String publishedName = publishedName(dialogue);
+			if (!published.containsKey(publishedName)) {
+				draftDialogueService.hardDeleteDialogue(dialogue);
+				removed++;
+				continue;
+			}
+			if (!publishedName.equals(dialogue.getName())) {
+				dialogue.setName("~discard~" + dialogue.getId());
+				draftDialogueService.save(dialogue);
+			}
+			reverting.add(dialogue);
+		}
+		draftLanguageRepository.flush();
+		for (DBDraftDialogue dialogue : reverting) {
+			String publishedName = publishedName(dialogue);
+			restoreFromPublished(project, dialogue, published.get(publishedName), publishedName);
+		}
+		return new DiscardedProjectChanges(reverting.size(), removed);
+	}
+
+	private static String publishedName(DBDraftDialogue dialogue) {
+		return Objects.requireNonNullElse(dialogue.getPreviousPublishedName(), dialogue.getName());
+	}
+
+	/**
+	 * Makes the project's draft translation languages the published ones: a draft language whose
+	 * code the published version doesn't have is removed with its translations, the others get
+	 * their published name back and are no longer new or pending deletion, and a published
+	 * language missing from the draft is added.
+	 */
+	private void restorePublishedLanguages(DBProject project, DBProjectVersion latest) {
+		Map<String, DBPublishedTranslationLanguage> publishedByCode = new LinkedHashMap<>();
+		for (DBPublishedTranslationLanguage language :
+				publishedLanguageRepository.findByVersion(latest)) {
+			publishedByCode.put(language.getTranslationLanguageCode(), language);
+		}
+		Instant now = Instant.now();
+		List<String> draftCodes = new ArrayList<>();
+		for (DBDraftTranslationLanguage language : draftLanguageRepository.findByProject(project)) {
+			DBPublishedTranslationLanguage published =
+					publishedByCode.get(language.getTranslationLanguageCode());
+			if (published == null) {
+				draftDialogueService.deleteAllTranslationsInLanguage(language);
+				draftLanguageRepository.delete(language);
+				continue;
+			}
+			draftCodes.add(language.getTranslationLanguageCode());
+			language.setTranslationLanguageName(published.getTranslationLanguageName());
+			language.setIsNew(false);
+			language.setIsDeleted(false);
+			language.setUpdatedAt(now);
+			draftLanguageRepository.save(language);
+		}
+		draftLanguageRepository.flush();
+		for (DBPublishedTranslationLanguage published : publishedByCode.values()) {
+			if (draftCodes.contains(published.getTranslationLanguageCode())) continue;
+			DBDraftTranslationLanguage language = new DBDraftTranslationLanguage();
+			language.setProject(project);
+			language.setTranslationLanguageName(published.getTranslationLanguageName());
+			language.setTranslationLanguageCode(published.getTranslationLanguageCode());
+			language.setIsNew(false);
+			language.setIsDeleted(false);
+			language.setCreatedAt(now);
+			language.setUpdatedAt(now);
+			draftLanguageRepository.save(language);
+		}
+	}
+
+	/**
+	 * Rebuilds a draft dialogue from its published version: nodes and preamble from the published
+	 * script, translations from the published translations (matched by language code; a draft
+	 * translation in a language the published version has none in is removed), and the published
+	 * name. It is then no longer changed, renamed or pending deletion.
+	 *
+	 * @throws BadRequestException if a language the published version has a translation in no
+	 * longer exists in the draft under that code; nothing is changed then.
+	 */
+	private void restoreFromPublished(DBProject project, DBDraftDialogue dialogue,
+			DBPublishedDialogue published, String publishedName) throws BadRequestException {
+		String draftName = dialogue.getName();
 		// Keyed by the draft language's id: entities have no equals of their own.
 		Map<UUID, DBDraftTranslationLanguage> languages = new LinkedHashMap<>();
 		Map<UUID, String> translations = new LinkedHashMap<>();
@@ -151,9 +301,9 @@ public class DraftDiscardService {
 
 		dialogue.setName(publishedName);
 		dialogue.setPreviousPublishedName(null);
+		dialogue.setIsDeleted(false);
 		dialogue.setIsChanged(false);
 		dialogue.setUpdatedAt(Instant.now());
 		draftDialogueService.save(dialogue);
-		return new DiscardedDialogueChanges(publishedName, draftName);
 	}
 }

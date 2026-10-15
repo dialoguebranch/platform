@@ -9,6 +9,14 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Studio, web service and client-js: discard all of a project's draft changes
+  ([#364](https://github.com/dialoguebranch/platform/issues/364)). *Discard All Draft Changes…* in
+  the Project menu makes the whole draft identical to the latest published version again: every
+  dialogue goes back to its published content and name, dialogues that were never published are
+  removed, dialogues pending deletion are restored, and the project's name, description and
+  translation languages go back to the published ones. The new
+  `POST /project/discard-draft-changes` needs the permission to publish, and refuses a project
+  that was never published. client-js gains `discardAllDraftChanges`.
 - Studio, web service and client-js: discard a draft dialogue's changes
   ([#363](https://github.com/dialoguebranch/platform/issues/363)). *Discard changes* on a dialogue
   marked *Changed* in the Dialogue Browser (Authoring Mode) makes its draft identical to its

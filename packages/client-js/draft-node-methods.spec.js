@@ -91,6 +91,17 @@ describe('draft preamble', () => {
     });
 });
 
+describe('discardAllDraftChanges', () => {
+    it('POSTs the project and returns the counts', async () => {
+        const { client, fetch } = clientReturning({ dialoguesReverted: 4, dialoguesRemoved: 1 });
+        const result = await client.discardAllDraftChanges('proj');
+        const [url, init] = fetch.mock.calls[0];
+        expect(url).toBe('/api/v1/project/discard-draft-changes?projectSlug=proj');
+        expect(init.method).toBe('POST');
+        expect(result).toEqual({ dialoguesReverted: 4, dialoguesRemoved: 1 });
+    });
+});
+
 describe('discardDraftDialogueChanges', () => {
     it('POSTs the project and dialogue and returns the names', async () => {
         const { client, fetch } = clientReturning({ dialogueName: 'main', discardedName: 'intro/renamed' });
