@@ -24,7 +24,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['toggleFolder', 'openDialogue', 'dialoguesChanged', 'dialoguesReplaced']);
+const emit = defineEmits(['toggleFolder', 'openDialogue', 'dialoguesChanged', 'dialoguesReplaced', 'dialogueDeleted']);
 
 const state = inject('state');
 const client = useAuthoringClient();
@@ -180,6 +180,8 @@ const menuItems = computed(() => {
     if (props.node._isChanged && !props.node._isNew) {
         items.push({ id: 'discard', label: 'Discard changes…', icon: 'fa-solid fa-rotate-left', test: 'menu-discard' });
     }
+    items.push({ separator: true });
+    items.push({ id: 'delete', label: 'Delete…', icon: 'fa-solid fa-trash', danger: true, test: 'menu-delete' });
     return items;
 });
 
@@ -199,7 +201,44 @@ function onMenuSelect(item) {
     case 'rename': startRename(); break;
     case 'export': exportDialogue(); break;
     case 'discard': discardPrompt.value = true; break;
+    case 'delete': askDelete(); break;
     }
+}
+
+// ---- Delete (#390) ----
+// Marks the dialogue pending deletion, restorable until the next publish. The confirmation says
+// how many replies in other dialogues link to it, since those links break.
+
+const deletePrompt = ref(null); // { references } while confirming, or null
+const deleting = ref(false);
+
+function askDelete() {
+    dismissError();
+    client.findDialogueReferences(state.value.selectedProject?.slug, props.node._file)
+        .then((references) => {
+            deletePrompt.value = {
+                references: references.filter((r) => r.dialogueName !== props.node._file),
+            };
+        })
+        .catch((error) => {
+            showError(describeError(error));
+        });
+}
+
+function deleteDialogue() {
+    deletePrompt.value = null;
+    deleting.value = true;
+    dismissError();
+    client.deleteDraftDialogue(state.value.selectedProject?.slug, props.node._file)
+        .then(() => {
+            emit('dialogueDeleted', props.node._file);
+        })
+        .catch((error) => {
+            showError(describeError(error));
+        })
+        .finally(() => {
+            deleting.value = false;
+        });
 }
 
 function referenceDialogueCount(references) {
@@ -237,6 +276,7 @@ function referenceDialogueCount(references) {
                 @openDialogue="(name) => $emit('openDialogue', name)"
                 @dialoguesChanged="$emit('dialoguesChanged')"
                 @dialoguesReplaced="$emit('dialoguesReplaced', $event)"
+                @dialogueDeleted="$emit('dialogueDeleted', $event)"
             />
         </template>
 
@@ -314,7 +354,7 @@ function referenceDialogueCount(references) {
                     data-test="row-menu-button"
                     @click="openMenuFromButton"
                 >
-                    <FontAwesomeIcon :icon="exporting || discarding ? 'fa-solid fa-circle-notch' : 'fa-solid fa-ellipsis'" :class="['w-3', { 'animate-spin': exporting || discarding }]" />
+                    <FontAwesomeIcon :icon="exporting || discarding || deleting ? 'fa-solid fa-circle-notch' : 'fa-solid fa-ellipsis'" :class="['w-3', { 'animate-spin': exporting || discarding || deleting }]" />
                 </button>
                 <button
                     type="button"
@@ -336,6 +376,47 @@ function referenceDialogueCount(references) {
             @select="onMenuSelect"
             @close="menu = null"
         />
+
+        <!-- Delete confirmation -->
+        <Teleport to="body">
+            <div v-if="deletePrompt" class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50" data-test="delete-prompt">
+                <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col">
+                    <div class="flex items-center gap-2 px-5 py-4 bg-orange-darker rounded-t-xl text-white font-title font-bold">
+                        <FontAwesomeIcon icon="fa-solid fa-trash" />
+                        Delete Dialogue
+                    </div>
+                    <div class="px-5 py-4 flex flex-col gap-3 text-sm font-title">
+                        <p>
+                            Delete <span class="font-bold text-orange-darker">{{ node._file }}</span>?
+                            It is marked for deletion and can be restored until the project is published next, which
+                            removes it for good<template v-if="!node._isNew">; until then the published version stays live</template>.
+                            Its open tabs are closed.
+                        </p>
+                        <div
+                            v-if="deletePrompt.references.length"
+                            class="flex items-start gap-2 border border-orange-medium/40 bg-orange-light/10 text-orange-darker rounded-lg px-3 py-2.5 text-xs"
+                            data-test="delete-references"
+                        >
+                            <FontAwesomeIcon icon="fa-solid fa-circle-exclamation" class="shrink-0 mt-0.5" />
+                            <span>
+                                {{ deletePrompt.references.length }} repl{{ deletePrompt.references.length === 1 ? 'y' : 'ies' }}
+                                in {{ referenceDialogueCount(deletePrompt.references) }} other dialogue{{ referenceDialogueCount(deletePrompt.references) === 1 ? '' : 's' }}
+                                link{{ deletePrompt.references.length === 1 ? 's' : '' }} to it; those links will break.
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-end gap-3 px-5 py-4 border-t border-grey-light bg-grey-lighter rounded-b-xl">
+                        <button type="button" class="px-3 py-2 rounded font-title text-sm text-grey-dark border border-grey-light hover:bg-grey-light cursor-pointer" @click="deletePrompt = null">Cancel</button>
+                        <button
+                            type="button"
+                            class="px-3 py-2 rounded font-title text-sm text-white bg-red-dark hover:opacity-90 cursor-pointer"
+                            data-test="delete-confirm"
+                            @click="deleteDialogue"
+                        >Delete</button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
 
         <!-- Discard changes confirmation -->
         <Teleport to="body">

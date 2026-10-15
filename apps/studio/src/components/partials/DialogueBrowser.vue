@@ -32,6 +32,7 @@ const emit = defineEmits([
     'hasUnpublishedChanges',
     'openDialogue',
     'dialoguesReplaced',
+    'dialogueDeleted',
 ]);
 
 const client = useClient();
@@ -289,6 +290,12 @@ function onDialoguesReplaced(dialogueNames) {
     emit('dialoguesReplaced', dialogueNames);
 }
 
+// A dialogue was deleted (#390): it shows as pending deletion now, and its open tabs close.
+function onDialogueDeleted(dialogueName) {
+    listDialogues();
+    emit('dialogueDeleted', dialogueName);
+}
+
 listDialogues();
 
 defineExpose({
@@ -376,6 +383,7 @@ defineExpose({
                 @openDialogue="(name) => $emit('openDialogue', name)"
                 @dialoguesChanged="listDialogues"
                 @dialoguesReplaced="onDialoguesReplaced"
+                @dialogueDeleted="onDialogueDeleted"
             />
         </MainPagePanelContainer>
     </div>

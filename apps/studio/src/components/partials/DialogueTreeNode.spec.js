@@ -370,7 +370,7 @@ describe('DialogueTreeNode row menu', () => {
         const wrapper = mountNode({ node: { _file: 'folder/test-dialogue', _isChanged: true, _isNew: false } });
         await openMenu(wrapper);
         expect(wrapper.findAll('[role="menuitem"]').map((b) => b.text()))
-            .toEqual(['Open', 'Rename…', 'Export as .dlb', 'Discard changes…']);
+            .toEqual(['Open', 'Rename…', 'Export as .dlb', 'Discard changes…', 'Delete…']);
     });
 
     it('opens on a right-click on the row, at the pointer', async () => {
@@ -402,5 +402,78 @@ describe('DialogueTreeNode row menu', () => {
     it('keeps Restore as the only button on a dialogue pending deletion, without a menu', () => {
         const wrapper = mountNode({ node: { _file: 'folder/test-dialogue', _isDeleted: true } });
         expect(rowButtons(wrapper)).toEqual(['Restore (undo deletion)']);
+    });
+});
+
+// Deleting a dialogue from its row menu (#390).
+describe('DialogueTreeNode delete', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        errorToast.value = null;
+    });
+
+    it('offers Delete… as a destructive item, after a separator', async () => {
+        const wrapper = mountNode();
+        const item = await menuItem(wrapper, 'menu-delete');
+        expect(item.exists()).toBe(true);
+        expect(item.classes()).toContain('text-red-dark');
+        expect(wrapper.find('[role="separator"]').exists()).toBe(true);
+    });
+
+    it('asks for confirmation, without links from other dialogues', async () => {
+        authoring.findDialogueReferences.mockResolvedValue([
+            { dialogueName: 'folder/test-dialogue', nodeTitle: 'Start', snippet: '[[Again|folder/test-dialogue.Start]]' },
+        ]);
+        const wrapper = mountNode();
+        await choose(wrapper, 'menu-delete');
+        expect(authoring.findDialogueReferences).toHaveBeenCalledWith('test-project', 'folder/test-dialogue');
+        const prompt = wrapper.find('[data-test="delete-prompt"]');
+        expect(prompt.text()).toContain('can be restored until the project is published next');
+        expect(prompt.find('[data-test="delete-references"]').exists()).toBe(false);
+        expect(authoring.deleteDraftDialogue).not.toHaveBeenCalled();
+    });
+
+    it('warns about the replies in other dialogues that link to it', async () => {
+        authoring.findDialogueReferences.mockResolvedValue([
+            { dialogueName: 'other', nodeTitle: 'A', snippet: '[[Go|folder/test-dialogue.Start]]' },
+            { dialogueName: 'other', nodeTitle: 'B', snippet: '[[Go|folder/test-dialogue.Start]]' },
+            { dialogueName: 'third', nodeTitle: 'C', snippet: '[[Go|folder/test-dialogue.Start]]' },
+        ]);
+        const wrapper = mountNode();
+        await choose(wrapper, 'menu-delete');
+        expect(wrapper.find('[data-test="delete-references"]').text())
+            .toMatch(/3 replies\s+in 2 other dialogues\s+link to it; those links will break/);
+    });
+
+    it('deletes after confirming and reports the deleted dialogue', async () => {
+        authoring.findDialogueReferences.mockResolvedValue([]);
+        authoring.deleteDraftDialogue.mockResolvedValue();
+        const wrapper = mountNode();
+        await choose(wrapper, 'menu-delete');
+        await wrapper.find('[data-test="delete-confirm"]').trigger('click');
+        await flushPromises();
+        expect(authoring.deleteDraftDialogue).toHaveBeenCalledWith('test-project', 'folder/test-dialogue');
+        expect(wrapper.emitted('dialogueDeleted')[0]).toEqual(['folder/test-dialogue']);
+        expect(wrapper.find('[data-test="delete-prompt"]').exists()).toBe(false);
+    });
+
+    it('deletes nothing when cancelled', async () => {
+        authoring.findDialogueReferences.mockResolvedValue([]);
+        const wrapper = mountNode();
+        await choose(wrapper, 'menu-delete');
+        await wrapper.find('[data-test="delete-prompt"]').findAll('button').find((b) => b.text() === 'Cancel').trigger('click');
+        expect(authoring.deleteDraftDialogue).not.toHaveBeenCalled();
+        expect(wrapper.find('[data-test="delete-prompt"]').exists()).toBe(false);
+    });
+
+    it('shows the error when deleting fails', async () => {
+        authoring.findDialogueReferences.mockResolvedValue([]);
+        authoring.deleteDraftDialogue.mockRejectedValue({ status: 404, message: 'Dialogue not found: x' });
+        const wrapper = mountNode();
+        await choose(wrapper, 'menu-delete');
+        await wrapper.find('[data-test="delete-confirm"]').trigger('click');
+        await flushPromises();
+        expect(wrapper.emitted('dialogueDeleted')).toBeUndefined();
+        expect(errorToast.value).toBeTruthy();
     });
 });
