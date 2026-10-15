@@ -655,6 +655,27 @@ export class DialogueBranchAuthoringClient extends BaseClient {
     }
 
     /**
+     * Discards a draft dialogue's changes: makes it identical to its latest published version
+     * again (nodes and their layout, preamble, translations, and its published name if it was
+     * renamed), so it is no longer marked as changed. Refused for a dialogue that was never
+     * published or is pending deletion, when another dialogue has taken its published name, or
+     * when a translation language was renamed since it was published.
+     *
+     * @param {string} projectSlug The project's slug.
+     * @param {string} dialogueName The dialogue's (draft) name.
+     * @returns {Promise<{dialogueName: string, discardedName: string}>} The dialogue's name now
+     * (its published name), and the name it had before.
+     */
+    discardDraftDialogueChanges(projectSlug, dialogueName) {
+        const url = this._baseUrl + "/authoring/discard-dialogue-changes?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&dialogueName=" + encodeURIComponent(dialogueName);
+
+        return this._fetch(url, {
+            method: "POST",
+        }).then((response) => this._handleResponse(response));
+    }
+
+    /**
      * Reverts a pending deletion previously made via {@link deleteDraftDialogue}.
      *
      * @param {string} projectSlug The project's slug.

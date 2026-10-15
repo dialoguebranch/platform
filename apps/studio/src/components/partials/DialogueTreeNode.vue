@@ -23,7 +23,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['toggleFolder', 'openDialogue', 'dialoguesChanged']);
+const emit = defineEmits(['toggleFolder', 'openDialogue', 'dialoguesChanged', 'dialoguesReplaced']);
 
 const state = inject('state');
 const client = useAuthoringClient();
@@ -132,6 +132,30 @@ function performRename(newFullName, updateReferences) {
         });
 }
 
+// ---- Discard changes (#363) ----
+// Makes a changed dialogue identical to its published version again. A dialogue renamed since it
+// was published gets its published name back; links in other dialogues that were updated for a
+// rename (of the dialogue or its nodes) then no longer match, which the confirmation warns about.
+
+const discardPrompt = ref(false);
+const discarding = ref(false);
+
+function discardChanges() {
+    discardPrompt.value = false;
+    discarding.value = true;
+    dismissError();
+    client.discardDraftDialogueChanges(state.value.selectedProject?.slug, props.node._file)
+        .then((result) => {
+            emit('dialoguesReplaced', [...new Set([result.discardedName, result.dialogueName])]);
+        })
+        .catch((error) => {
+            showError(describeError(error));
+        })
+        .finally(() => {
+            discarding.value = false;
+        });
+}
+
 function referenceDialogueCount(references) {
     return new Set((references ?? []).map((r) => r.dialogueName)).size;
 }
@@ -166,6 +190,7 @@ function referenceDialogueCount(references) {
                 @toggleFolder="$emit('toggleFolder', $event)"
                 @openDialogue="(name) => $emit('openDialogue', name)"
                 @dialoguesChanged="$emit('dialoguesChanged')"
+                @dialoguesReplaced="$emit('dialoguesReplaced', $event)"
             />
         </template>
 
@@ -239,6 +264,17 @@ function referenceDialogueCount(references) {
                     <FontAwesomeIcon :icon="exporting ? 'fa-solid fa-circle-notch' : 'fa-solid fa-file-export'" :class="['w-3', { 'animate-spin': exporting }]" />
                 </button>
                 <button
+                    v-if="isDraftMode && node._isChanged && !node._isNew"
+                    type="button"
+                    title="Discard changes (back to the published version)"
+                    class="shrink-0 cursor-pointer text-grey-dark hover:text-orange-dark"
+                    data-test="discard-changes"
+                    :disabled="discarding"
+                    @click="discardPrompt = true"
+                >
+                    <FontAwesomeIcon :icon="discarding ? 'fa-solid fa-circle-notch' : 'fa-solid fa-rotate-left'" :class="['w-3', { 'animate-spin': discarding }]" />
+                </button>
+                <button
                     v-if="isDraftMode"
                     type="button"
                     title="Rename dialogue"
@@ -257,6 +293,44 @@ function referenceDialogueCount(references) {
                 </button>
             </template>
         </div>
+
+        <!-- Discard changes confirmation -->
+        <Teleport to="body">
+            <div v-if="discardPrompt" class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50" data-test="discard-prompt">
+                <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col">
+                    <div class="flex items-center gap-2 px-5 py-4 bg-orange-darker rounded-t-xl text-white font-title font-bold">
+                        <FontAwesomeIcon icon="fa-solid fa-rotate-left" />
+                        Discard Changes
+                    </div>
+                    <div class="px-5 py-4 flex flex-col gap-3 text-sm font-title">
+                        <p>
+                            Discard the draft changes of <span class="font-bold text-orange-darker">{{ node._file }}</span>?
+                            It becomes identical to its published version again: its nodes and their layout, its script
+                            comment and its translations. This can't be undone.
+                        </p>
+                        <p v-if="node._previousPublishedName" data-test="discard-renamed">
+                            It gets its published name back: <span class="font-bold text-orange-darker">{{ node._previousPublishedName }}</span>.
+                        </p>
+                        <div class="flex items-start gap-2 border border-orange-medium/40 bg-orange-light/10 text-orange-darker rounded-lg px-3 py-2.5 text-xs">
+                            <FontAwesomeIcon icon="fa-solid fa-circle-exclamation" class="shrink-0 mt-0.5" />
+                            <span>
+                                If you renamed this dialogue or any of its nodes and updated the references in other
+                                dialogues, those links will no longer match.
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-end gap-3 px-5 py-4 border-t border-grey-light bg-grey-lighter rounded-b-xl">
+                        <button type="button" class="px-3 py-2 rounded font-title text-sm text-grey-dark border border-grey-light hover:bg-grey-light cursor-pointer" @click="discardPrompt = false">Cancel</button>
+                        <button
+                            type="button"
+                            class="px-3 py-2 rounded font-title text-sm text-white bg-orange-darker hover:bg-orange-dark cursor-pointer"
+                            data-test="discard-confirm"
+                            @click="discardChanges"
+                        >Discard changes</button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
 
         <!-- Rename reference confirmation -->
         <Teleport to="body">

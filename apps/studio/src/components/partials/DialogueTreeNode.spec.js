@@ -37,6 +37,7 @@ const authoring = {
     findDialogueReferences: vi.fn(),
     renameDraftDialogue: vi.fn(),
     deleteDraftDialogue: vi.fn(),
+    discardDraftDialogueChanges: vi.fn(),
 };
 
 vi.mock('@/composables/client.js', () => ({
@@ -275,5 +276,67 @@ describe('DialogueTreeNode — Export as .dlb (#341)', () => {
         await flushPromises();
         expect(exportButton(wrapper).attributes('disabled')).toBeUndefined();
         expect(downloadBlob).toHaveBeenCalledTimes(1);
+    });
+});
+
+// Discarding a changed dialogue's draft changes (#363).
+describe('DialogueTreeNode discard changes', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    const changedNode = (extra = {}) => ({
+        _file: 'folder/test-dialogue', _isPublished: true, _isNew: false, _isChanged: true,
+        _isDeleted: false, _previousPublishedName: null, ...extra,
+    });
+
+    it('is only offered for a changed dialogue that was published, in Authoring Mode', () => {
+        expect(mountNode({ node: changedNode() }).find('[data-test="discard-changes"]').exists()).toBe(true);
+        expect(mountNode().find('[data-test="discard-changes"]').exists()).toBe(false);
+        expect(mountNode({ node: changedNode({ _isNew: true, _isPublished: false }) })
+            .find('[data-test="discard-changes"]').exists()).toBe(false);
+        expect(mountNode({ node: changedNode({ _isDeleted: true }) })
+            .find('[data-test="discard-changes"]').exists()).toBe(false);
+        expect(mountNode({ node: changedNode() }, DLB_APP_MODE_LIVE)
+            .find('[data-test="discard-changes"]').exists()).toBe(false);
+    });
+
+    it('asks for confirmation, warning about links in other dialogues', async () => {
+        const wrapper = mountNode({ node: changedNode() });
+        await wrapper.find('[data-test="discard-changes"]').trigger('click');
+        const prompt = wrapper.find('[data-test="discard-prompt"]');
+        expect(prompt.text()).toContain('folder/test-dialogue');
+        expect(prompt.text()).toContain('those links will no longer match');
+        expect(prompt.find('[data-test="discard-renamed"]').exists()).toBe(false);
+        expect(authoring.discardDraftDialogueChanges).not.toHaveBeenCalled();
+    });
+
+    it('mentions the published name a renamed dialogue gets back', async () => {
+        const wrapper = mountNode({ node: changedNode({ _previousPublishedName: 'folder/original' }) });
+        await wrapper.find('[data-test="discard-changes"]').trigger('click');
+        expect(wrapper.find('[data-test="discard-renamed"]').text()).toContain('folder/original');
+    });
+
+    it('discards after confirming and reports both names as replaced', async () => {
+        authoring.discardDraftDialogueChanges.mockResolvedValue(
+            { dialogueName: 'folder/original', discardedName: 'folder/test-dialogue' });
+        const wrapper = mountNode({ node: changedNode({ _previousPublishedName: 'folder/original' }) });
+        await wrapper.find('[data-test="discard-changes"]').trigger('click');
+        await wrapper.find('[data-test="discard-confirm"]').trigger('click');
+        await flushPromises();
+        expect(authoring.discardDraftDialogueChanges).toHaveBeenCalledWith('test-project', 'folder/test-dialogue');
+        expect(wrapper.emitted('dialoguesReplaced')[0]).toEqual([['folder/test-dialogue', 'folder/original']]);
+        expect(wrapper.find('[data-test="discard-prompt"]').exists()).toBe(false);
+    });
+
+    it('shows the server\'s error when discarding is refused', async () => {
+        authoring.discardDraftDialogueChanges.mockRejectedValue(
+            { status: 409, message: 'another dialogue now has that name' });
+        const wrapper = mountNode({ node: changedNode() });
+        await wrapper.find('[data-test="discard-changes"]').trigger('click');
+        await wrapper.find('[data-test="discard-confirm"]').trigger('click');
+        await flushPromises();
+        expect(wrapper.emitted('dialoguesReplaced')).toBeUndefined();
+        expect(errorToast.value?.message ?? JSON.stringify(errorToast.value)).toContain('another dialogue now has that name');
     });
 });

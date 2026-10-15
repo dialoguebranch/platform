@@ -624,6 +624,7 @@ function onWorkspaceModeChanged(mode) {
                     @activateTab="onActivateTab"
                     @hasUnpublishedChanges="hasUnpublishedDialogueChanges = $event"
                     @openDialogue="onOpenDialogue"
+                    @dialoguesReplaced="(names) => dialogueWorkspace?.dialoguesReplaced(names)"
                 />
             </template>
             <template #main>
