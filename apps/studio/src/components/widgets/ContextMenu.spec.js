@@ -147,6 +147,20 @@ describe('ContextMenu', () => {
         expect(item('statement')).toBeNull();
     });
 
+    it('swallows the keyup of the Enter that chose an item, so it does not act again', async () => {
+        const field = document.createElement('input');
+        document.body.appendChild(field);
+        const onKeyup = vi.fn();
+        field.addEventListener('keyup', onKeyup);
+        await mountMenu();
+        key(item('open'), 'Enter');
+        field.focus();
+        field.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', bubbles: true }));
+        expect(onKeyup).not.toHaveBeenCalled();
+        field.dispatchEvent(new KeyboardEvent('keyup', { key: 'Enter', bubbles: true }));
+        expect(onKeyup).toHaveBeenCalledTimes(1);
+    });
+
     it('closes on Escape and gives the focus back', async () => {
         const trigger = document.createElement('button');
         document.body.appendChild(trigger);

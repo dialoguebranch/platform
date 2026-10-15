@@ -39,7 +39,27 @@ function close({ restoreFocus }) {
     if (restoreFocus && previousFocus?.isConnected) previousFocus.focus();
 }
 
+// An item chosen with Enter or Space is chosen on keydown; the matching keyup then lands on
+// whatever has the focus next, such as a field the chosen action opened (which would submit on
+// Enter) or the trigger getting the focus back (which Space would press again). Swallow it.
+function swallowActivationKeyup() {
+    const handler = (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        cleanup();
+    };
+    const cleanup = () => {
+        window.removeEventListener('keyup', handler, true);
+        clearTimeout(timer);
+    };
+    window.addEventListener('keyup', handler, true);
+    const timer = setTimeout(cleanup, 1000);
+}
+
 function select(item) {
+    swallowActivationKeyup();
     emit('select', item);
     close({ restoreFocus: true });
 }
