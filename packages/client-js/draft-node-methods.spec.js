@@ -106,6 +106,23 @@ describe('deleteProject', () => {
     });
 });
 
+describe('deleted projects', () => {
+    it('lists them', async () => {
+        const list = [{ slug: 'x__deleted', displayName: 'X', deletedAt: '2026-10-15T10:00:00Z', usersWithVariables: 2, dialogueLogs: 5 }];
+        const { client, fetch } = clientReturning(list);
+        expect(await client.listDeletedProjects()).toEqual(list);
+        expect(fetch.mock.calls[0][0]).toBe('/api/v1/project/list-deleted-projects');
+        expect(fetch.mock.calls[0][1].method).toBe('GET');
+    });
+
+    it('purges one', async () => {
+        const { client, fetch } = clientReturning(null);
+        await client.purgeDeletedProject('x__deleted');
+        expect(fetch.mock.calls[0][0]).toBe('/api/v1/project/purge-deleted-project?projectSlug=x__deleted');
+        expect(fetch.mock.calls[0][1].method).toBe('POST');
+    });
+});
+
 describe('discardAllDraftChanges', () => {
     it('POSTs the project and returns the counts', async () => {
         const { client, fetch } = clientReturning({ dialoguesReverted: 4, dialoguesRemoved: 1 });

@@ -78,4 +78,14 @@ public interface DBVariableRepository extends JpaRepository<DBVariable, UUID> {
 	@Query("delete from DBVariable v where v.project = :project")
 	int deleteByProject(@Param("project") DBProject project);
 
+
+	/**
+	 * Counts the users that have variables in the given project (#403).
+	 *
+	 * @param project the project.
+	 * @return the number of users with variables in it.
+	 */
+	@Query("select count(distinct v.user) from DBVariable v where v.project = :project")
+	long countUsersByProject(@Param("project") DBProject project);
+
 }

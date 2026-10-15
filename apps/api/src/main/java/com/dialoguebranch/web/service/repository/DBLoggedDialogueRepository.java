@@ -142,4 +142,13 @@ public interface DBLoggedDialogueRepository extends JpaRepository<DBLoggedDialog
 	@Query("update DBLoggedDialogue l set l.projectSlug = :to where l.projectSlug = :from")
 	int renameProjectSlug(@Param("from") String from, @Param("to") String to);
 
+
+	/**
+	 * Counts the logged dialogues of the project with the given slug (#403).
+	 *
+	 * @param projectSlug the project's slug.
+	 * @return the number of logged dialogues.
+	 */
+	long countByProjectSlug(String projectSlug);
+
 }

@@ -189,6 +189,39 @@ export class DialogueBranchAuthoringClient extends BaseClient {
         }).then((response) => this._handleResponse(response));
     }
 
+    /**
+     * Lists the deleted projects: projects whose dialogues were deleted with
+     * {@link deleteProject} but whose users' data was kept, most recently deleted first.
+     * Requires the `admin` role.
+     *
+     * @returns {Promise<{slug: string, displayName: string|null, deletedAt: string,
+     * usersWithVariables: number, dialogueLogs: number}[]>} Each deleted project's slug
+     * (`<slug>__deleted`), name, deletion time, and how much of its users' data it still has.
+     */
+    listDeletedProjects() {
+        const url = this._baseUrl + "/project/list-deleted-projects";
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+        }).then((response) => this._handleResponse(response));
+    }
+
+    /**
+     * Deletes a deleted project for good: all its users' variables, variable history and dialogue
+     * logs, and the project itself. Requires the `admin` role. Cannot be undone.
+     *
+     * @param {string} projectSlug The deleted project's slug (`<slug>__deleted`).
+     * @returns {Promise<void>}
+     */
+    purgeDeletedProject(projectSlug) {
+        const url = this._baseUrl + "/project/purge-deleted-project?projectSlug=" + encodeURIComponent(projectSlug);
+
+        return this._fetch(url, {
+            method: "POST",
+        }).then((response) => this._handleResponse(response));
+    }
+
     // Deliberately bypasses _fetch/_handleResponse: those read the response body as text (to log
     // it) and reconstruct a new Response from that string, which would corrupt binary content —
     // downloads stay on the raw fetch Response and read it as a blob instead. Shared by

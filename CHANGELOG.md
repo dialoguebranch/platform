@@ -7,6 +7,15 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Added
+
+- Studio, web service and client-js: deleted projects whose users' data was kept are listed for
+  admins in a separate, collapsed *Deleted projects* section on the project selection page, with
+  how much users' data they still have, and can be deleted permanently from there, user data and
+  all, after typing the slug to confirm ([#403](https://github.com/dialoguebranch/platform/issues/403)).
+  New `GET /project/list-deleted-projects` and `POST /project/purge-deleted-project`; client-js
+  gains `listDeletedProjects` and `purgeDeletedProject`.
+
 ### Changed
 
 - **Breaking:** Web service and Studio: deleting a project removes its dialogues, translations and
