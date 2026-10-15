@@ -212,6 +212,14 @@ function addTab() {
 
 const closeConfirm = ref(null); // { id }
 
+// Called after a dialogue was deleted (#390): it can't be opened anymore, and a test running in a
+// tab of it would go on with content that is about to disappear, so its tabs close.
+function dialogueDeleted(dialogueName) {
+    for (const tab of tabs.value.filter((t) => t.dialogueName === dialogueName)) {
+        doCloseTab(tab.id);
+    }
+}
+
 function closeTab(id) {
     const tab = tabs.value.find(t => t.id === id);
     // Only warn about an "ongoing" dialogue if one has actually been started (has steps) — a
@@ -673,6 +681,7 @@ defineExpose({
     openDialogue,
     loadAvailableLanguages,
     dialoguesReplaced,
+    dialogueDeleted,
     translationsReplaced,
 });
 

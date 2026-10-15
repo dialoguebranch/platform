@@ -9,6 +9,11 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Studio: delete a dialogue ([#390](https://github.com/dialoguebranch/platform/issues/390)).
+  *Delete…* in a dialogue's menu in the Dialogue Browser (Authoring Mode) marks it for deletion
+  after a confirmation that warns how many replies in other dialogues link to it; it can be
+  restored until the next publish, and its open tabs close. Studio had no way to delete a dialogue
+  before, although the web service supported it.
 - Studio, web service and client-js: discard all of a project's draft changes
   ([#364](https://github.com/dialoguebranch/platform/issues/364)). *Discard All Draft Changes…* in
   the Project menu makes the whole draft identical to the latest published version again: every
@@ -25,6 +30,15 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `POST /authoring/discard-dialogue-changes` refuses a dialogue that was never published or is
   pending deletion, a published name another dialogue has taken, and a translation language
   renamed since publishing. client-js gains `discardDraftDialogueChanges`.
+
+### Changed
+
+- Studio: the Dialogue Browser's dialogue rows show only their ▶ (open) button; the other actions
+  (*Open*, *Rename…*, *Export as .dlb*, *Discard changes…*, *Delete…*) are in a context menu, opened by
+  right-clicking a row or with a ⋯ button shown when pointing at it (always shown on touch
+  screens) ([#389](https://github.com/dialoguebranch/platform/issues/389)). The menu, also used
+  for the node editor's *Insert statement* menu, works with the keyboard and stays inside the
+  window. A dialogue pending deletion keeps its *Restore* button.
 
 ## [0.6.0] - 2026-10-15
 

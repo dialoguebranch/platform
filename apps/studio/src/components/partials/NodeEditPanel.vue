@@ -8,6 +8,7 @@ import { tagsToMap, mapToTags, USER_SPEAKER } from '@/authoring/DlbHeaderTags.js
 import { COLOR_PALETTE, colorForId } from '@/composables/node-colors.js';
 import TextInput from '../widgets/TextInput.vue';
 import PushButton from '../widgets/PushButton.vue';
+import ContextMenu from '../widgets/ContextMenu.vue';
 
 // Matches DialogueBranchParser.NODE_NAME_REGEX in packages/core.
 const NODE_NAME_REGEX = /^[A-Za-z0-9_-]+$/;
@@ -235,18 +236,17 @@ const contextMenu = ref(null); // { x, y } in viewport coordinates, or null when
 let insertStart = 0;
 let insertEnd = 0;
 
+// INSERT_MENU as ContextMenu items: an entry with `items` is a submenu.
+const INSERT_MENU_ITEMS = INSERT_MENU.map((entry) => (entry.items
+    ? { label: entry.label, children: entry.items.map((item) => ({ ...item })) }
+    : { ...entry }));
+
 function onBodyContextMenu(event) {
     event.preventDefault();
     const textarea = bodyTextarea.value;
     insertStart = textarea.selectionStart;
     insertEnd = textarea.selectionEnd;
-    // Roughly the menu's own footprint, just enough to keep it from opening off-screen.
-    const MENU_WIDTH = 224;
-    const MENU_HEIGHT = 260;
-    contextMenu.value = {
-        x: Math.min(event.clientX, window.innerWidth - MENU_WIDTH - 8),
-        y: Math.min(event.clientY, window.innerHeight - MENU_HEIGHT - 8),
-    };
+    contextMenu.value = { x: event.clientX, y: event.clientY };
 }
 
 function closeContextMenu() {
@@ -463,36 +463,13 @@ defineExpose({
         </div>
 
         <!-- Body "insert statement" context menu (right-click inside the Body textarea) -->
-        <template v-if="contextMenu">
-            <div class="fixed inset-0 z-[10040]" @click="closeContextMenu" @contextmenu.prevent="closeContextMenu"></div>
-            <div
-                class="fixed z-[10050] w-56 bg-white rounded-lg shadow-2xl border border-grey-light py-1 font-title text-sm"
-                :style="{ top: contextMenu.y + 'px', left: contextMenu.x + 'px' }"
-            >
-                <div v-for="entry in INSERT_MENU" :key="entry.label" class="relative group">
-                    <button
-                        v-if="entry.template"
-                        type="button"
-                        class="w-full px-3 py-1.5 text-left text-grey-darker hover:bg-orange-light/20 hover:text-orange-darker cursor-pointer"
-                        @click="insertSnippet(entry.template)"
-                    >{{ entry.label }}</button>
-                    <template v-else>
-                        <div class="flex items-center justify-between px-3 py-1.5 text-grey-darker group-hover:bg-orange-light/20 group-hover:text-orange-darker cursor-default">
-                            <span>{{ entry.label }}</span>
-                            <FontAwesomeIcon icon="fa-solid fa-caret-right" class="text-[10px]" />
-                        </div>
-                        <div class="hidden group-hover:block absolute left-full top-0 w-56 bg-white rounded-lg shadow-2xl border border-grey-light py-1">
-                            <button
-                                v-for="item in entry.items"
-                                :key="item.label"
-                                type="button"
-                                class="w-full px-3 py-1.5 text-left text-grey-darker hover:bg-orange-light/20 hover:text-orange-darker cursor-pointer"
-                                @click="insertSnippet(item.template)"
-                            >{{ item.label }}</button>
-                        </div>
-                    </template>
-                </div>
-            </div>
-        </template>
+        <ContextMenu
+            v-if="contextMenu"
+            :items="INSERT_MENU_ITEMS"
+            :x="contextMenu.x"
+            :y="contextMenu.y"
+            @select="(item) => insertSnippet(item.template)"
+            @close="closeContextMenu"
+        />
     </Teleport>
 </template>

@@ -728,6 +728,7 @@ function onWorkspaceModeChanged(mode) {
                     @hasUnpublishedChanges="hasUnpublishedDialogueChanges = $event"
                     @openDialogue="onOpenDialogue"
                     @dialoguesReplaced="(names) => dialogueWorkspace?.dialoguesReplaced(names)"
+                    @dialogueDeleted="(name) => dialogueWorkspace?.dialogueDeleted(name)"
                 />
             </template>
             <template #main>

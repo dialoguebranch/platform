@@ -1,5 +1,5 @@
 <script setup>
-import { computed, inject, ref } from 'vue';
+import { computed, inject, nextTick, ref, useTemplateRef } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useAuthoringClient } from '@/composables/client.js';
 import { describeError } from '@/composables/error-message.js';
@@ -7,6 +7,7 @@ import { downloadBlob } from '@/composables/download-blob.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
 import { DLB_APP_MODE_DRAFT } from '@/StudioClientState.js';
 import { sortTreeLevel } from '@/composables/dialogue-tree.js';
+import ContextMenu from '../widgets/ContextMenu.vue';
 
 const props = defineProps({
     name: String,
@@ -23,7 +24,7 @@ const props = defineProps({
     },
 });
 
-const emit = defineEmits(['toggleFolder', 'openDialogue', 'dialoguesChanged', 'dialoguesReplaced']);
+const emit = defineEmits(['toggleFolder', 'openDialogue', 'dialoguesChanged', 'dialoguesReplaced', 'dialogueDeleted']);
 
 const state = inject('state');
 const client = useAuthoringClient();
@@ -88,9 +89,14 @@ const renaming = ref(false);
 const renameInput = ref('');
 const renamePrompt = ref(null); // { newFullName, references }
 
+const renameField = useTemplateRef('rename-input');
+
 function startRename() {
     renameInput.value = props.name;
     renaming.value = true;
+    // Opened from the row's menu, which hands the focus back to where it came from as it closes;
+    // the field takes it over once rendered.
+    nextTick(() => renameField.value?.focus());
 }
 
 function cancelRename() {
@@ -156,6 +162,85 @@ function discardChanges() {
         });
 }
 
+// ---- Row menu (#389) ----
+// A dialogue row shows only its launch button (▶); its other actions are in a context menu,
+// opened by right-clicking the row or with the "⋯" button. A dialogue pending deletion has no
+// menu: Restore is its one visible button. In Live Mode there's nothing to offer besides ▶.
+
+const hasMenu = computed(() => isDraftMode.value && !props.node._isDeleted);
+const menuButton = useTemplateRef('menu-button');
+const menu = ref(null); // { x, y } or { anchor }, or null when closed
+
+const menuItems = computed(() => {
+    const items = [
+        { id: 'open', label: 'Open', icon: 'fa-solid fa-play', test: 'menu-open' },
+        { id: 'rename', label: 'Rename…', icon: 'fa-solid fa-pen', test: 'menu-rename' },
+        { id: 'export', label: 'Export as .dlb', icon: 'fa-solid fa-file-export', test: 'menu-export' },
+    ];
+    if (props.node._isChanged && !props.node._isNew) {
+        items.push({ id: 'discard', label: 'Discard changes…', icon: 'fa-solid fa-rotate-left', test: 'menu-discard' });
+    }
+    items.push({ separator: true });
+    items.push({ id: 'delete', label: 'Delete…', icon: 'fa-solid fa-trash', danger: true, test: 'menu-delete' });
+    return items;
+});
+
+function openMenuAtPointer(event) {
+    if (!hasMenu.value) return;
+    event.preventDefault();
+    menu.value = { x: event.clientX, y: event.clientY };
+}
+
+function openMenuFromButton() {
+    menu.value = { anchor: menuButton.value };
+}
+
+function onMenuSelect(item) {
+    switch (item.id) {
+    case 'open': openDialogue(); break;
+    case 'rename': startRename(); break;
+    case 'export': exportDialogue(); break;
+    case 'discard': discardPrompt.value = true; break;
+    case 'delete': askDelete(); break;
+    }
+}
+
+// ---- Delete (#390) ----
+// Marks the dialogue pending deletion, restorable until the next publish. The confirmation says
+// how many replies in other dialogues link to it, since those links break.
+
+const deletePrompt = ref(null); // { references } while confirming, or null
+const deleting = ref(false);
+
+function askDelete() {
+    dismissError();
+    client.findDialogueReferences(state.value.selectedProject?.slug, props.node._file)
+        .then((references) => {
+            deletePrompt.value = {
+                references: references.filter((r) => r.dialogueName !== props.node._file),
+            };
+        })
+        .catch((error) => {
+            showError(describeError(error));
+        });
+}
+
+function deleteDialogue() {
+    deletePrompt.value = null;
+    deleting.value = true;
+    dismissError();
+    client.deleteDraftDialogue(state.value.selectedProject?.slug, props.node._file)
+        .then(() => {
+            emit('dialogueDeleted', props.node._file);
+        })
+        .catch((error) => {
+            showError(describeError(error));
+        })
+        .finally(() => {
+            deleting.value = false;
+        });
+}
+
 function referenceDialogueCount(references) {
     return new Set((references ?? []).map((r) => r.dialogueName)).size;
 }
@@ -191,6 +276,7 @@ function referenceDialogueCount(references) {
                 @openDialogue="(name) => $emit('openDialogue', name)"
                 @dialoguesChanged="$emit('dialoguesChanged')"
                 @dialoguesReplaced="$emit('dialoguesReplaced', $event)"
+                @dialogueDeleted="$emit('dialogueDeleted', $event)"
             />
         </template>
 
@@ -201,6 +287,7 @@ function referenceDialogueCount(references) {
             :style="{ marginLeft: (depth * 12) + 'px' }"
         >
             <input
+                ref="rename-input"
                 v-model="renameInput"
                 type="text"
                 autofocus
@@ -219,8 +306,10 @@ function referenceDialogueCount(references) {
         <!-- File -->
         <div
             v-else-if="isFile"
-            class="flex items-center gap-1.5 font-title font-black text-xs bg-grey-lighter px-1 py-0.5"
+            class="group flex items-center gap-1.5 font-title font-black text-xs bg-grey-lighter px-1 py-0.5"
             :style="{ marginLeft: (depth * 12) + 'px' }"
+            data-test="dialogue-row"
+            @contextmenu="openMenuAtPointer"
         >
             <span
                 class="flex-1 min-w-0 truncate"
@@ -254,34 +343,18 @@ function referenceDialogueCount(references) {
             </template>
             <template v-else>
                 <button
-                    v-if="isDraftMode"
+                    v-if="hasMenu"
+                    ref="menu-button"
                     type="button"
-                    title="Export as .dlb"
-                    class="shrink-0 cursor-pointer text-grey-dark hover:text-orange-dark"
-                    :disabled="exporting"
-                    @click="exportDialogue"
+                    title="More actions"
+                    aria-haspopup="menu"
+                    :aria-expanded="!!menu"
+                    class="shrink-0 cursor-pointer text-grey-dark hover:text-orange-dark opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100"
+                    :class="{ 'opacity-100': menu }"
+                    data-test="row-menu-button"
+                    @click="openMenuFromButton"
                 >
-                    <FontAwesomeIcon :icon="exporting ? 'fa-solid fa-circle-notch' : 'fa-solid fa-file-export'" :class="['w-3', { 'animate-spin': exporting }]" />
-                </button>
-                <button
-                    v-if="isDraftMode && node._isChanged && !node._isNew"
-                    type="button"
-                    title="Discard changes (back to the published version)"
-                    class="shrink-0 cursor-pointer text-grey-dark hover:text-orange-dark"
-                    data-test="discard-changes"
-                    :disabled="discarding"
-                    @click="discardPrompt = true"
-                >
-                    <FontAwesomeIcon :icon="discarding ? 'fa-solid fa-circle-notch' : 'fa-solid fa-rotate-left'" :class="['w-3', { 'animate-spin': discarding }]" />
-                </button>
-                <button
-                    v-if="isDraftMode"
-                    type="button"
-                    title="Rename dialogue"
-                    class="shrink-0 cursor-pointer text-grey-dark hover:text-orange-dark"
-                    @click="startRename"
-                >
-                    <FontAwesomeIcon icon="fa-solid fa-pen" class="w-3" />
+                    <FontAwesomeIcon :icon="exporting || discarding || deleting ? 'fa-solid fa-circle-notch' : 'fa-solid fa-ellipsis'" :class="['w-3', { 'animate-spin': exporting || discarding || deleting }]" />
                 </button>
                 <button
                     type="button"
@@ -293,6 +366,57 @@ function referenceDialogueCount(references) {
                 </button>
             </template>
         </div>
+
+        <ContextMenu
+            v-if="menu"
+            :items="menuItems"
+            :x="menu.x ?? null"
+            :y="menu.y ?? null"
+            :anchor="menu.anchor ?? null"
+            @select="onMenuSelect"
+            @close="menu = null"
+        />
+
+        <!-- Delete confirmation -->
+        <Teleport to="body">
+            <div v-if="deletePrompt" class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50" data-test="delete-prompt">
+                <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col">
+                    <div class="flex items-center gap-2 px-5 py-4 bg-orange-darker rounded-t-xl text-white font-title font-bold">
+                        <FontAwesomeIcon icon="fa-solid fa-trash" />
+                        Delete Dialogue
+                    </div>
+                    <div class="px-5 py-4 flex flex-col gap-3 text-sm font-title">
+                        <p>
+                            Delete <span class="font-bold text-orange-darker">{{ node._file }}</span>?
+                            It is marked for deletion and can be restored until the project is published next, which
+                            removes it for good<template v-if="!node._isNew">; until then the published version stays live</template>.
+                            Its open tabs are closed.
+                        </p>
+                        <div
+                            v-if="deletePrompt.references.length"
+                            class="flex items-start gap-2 border border-orange-medium/40 bg-orange-light/10 text-orange-darker rounded-lg px-3 py-2.5 text-xs"
+                            data-test="delete-references"
+                        >
+                            <FontAwesomeIcon icon="fa-solid fa-circle-exclamation" class="shrink-0 mt-0.5" />
+                            <span>
+                                {{ deletePrompt.references.length }} repl{{ deletePrompt.references.length === 1 ? 'y' : 'ies' }}
+                                in {{ referenceDialogueCount(deletePrompt.references) }} other dialogue{{ referenceDialogueCount(deletePrompt.references) === 1 ? '' : 's' }}
+                                link{{ deletePrompt.references.length === 1 ? 's' : '' }} to it; those links will break.
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-end gap-3 px-5 py-4 border-t border-grey-light bg-grey-lighter rounded-b-xl">
+                        <button type="button" class="px-3 py-2 rounded font-title text-sm text-grey-dark border border-grey-light hover:bg-grey-light cursor-pointer" @click="deletePrompt = null">Cancel</button>
+                        <button
+                            type="button"
+                            class="px-3 py-2 rounded font-title text-sm text-white bg-red-dark hover:opacity-90 cursor-pointer"
+                            data-test="delete-confirm"
+                            @click="deleteDialogue"
+                        >Delete</button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
 
         <!-- Discard changes confirmation -->
         <Teleport to="body">
