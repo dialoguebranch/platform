@@ -88,4 +88,36 @@ public interface DBVariableRepository extends JpaRepository<DBVariable, UUID> {
 	@Query("select count(distinct v.user) from DBVariable v where v.project = :project")
 	long countUsersByProject(@Param("project") DBProject project);
 
+	/** The project and time zone of one of a user's variables. */
+	interface ProjectTimeZone {
+
+		/** @return the slug of the variable's project. */
+		String getProjectSlug();
+
+		/** @return the time zone the variable was last updated in, if known. */
+		String getTimeZone();
+	}
+
+	/**
+	 * Lists the project and time zone of each of the given user's variables, in every project,
+	 * when the user's data is erased (#320).
+	 *
+	 * @param user the user.
+	 * @return one entry per variable.
+	 */
+	@Query("select v.project.slug as projectSlug, v.updatedTimeZone as timeZone "
+			+ "from DBVariable v where v.user = :user")
+	List<ProjectTimeZone> findProjectTimeZonesByUser(@Param("user") DBUser user);
+
+	/**
+	 * Deletes all variables of the given user, in every project, when the user's data is erased
+	 * (#320).
+	 *
+	 * @param user the user.
+	 * @return the number of variables deleted.
+	 */
+	@Modifying
+	@Query("delete from DBVariable v where v.user = :user")
+	int deleteByUser(@Param("user") DBUser user);
+
 }

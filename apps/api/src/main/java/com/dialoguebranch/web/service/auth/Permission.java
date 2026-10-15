@@ -142,7 +142,13 @@ public enum Permission {
 	 * read-only}. Unlike {@link #USER_DELEGATE}, it never allows acting on the other user's behalf
 	 * (#326).
 	 */
-	USER_DELEGATE_READ;
+	USER_DELEGATE_READ,
+
+	/**
+	 * Erase everything this service stores about a user — variables, variable history, dialogue
+	 * logs and the user itself: {@code /users/erase-user} (#320).
+	 */
+	USER_ERASE;
 
 	private final boolean readOnly;
 

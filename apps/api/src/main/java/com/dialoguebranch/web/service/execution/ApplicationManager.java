@@ -278,6 +278,18 @@ public class ApplicationManager {
 	}
 
 	/**
+	 * Removes the active {@link UserService} of the given user, if there is one, so that nothing it
+	 * holds in memory is written back after the user's data was erased (#320).
+	 *
+	 * @param userId the {@code (issuer, subject)} identity of the user.
+	 */
+	public void removeUserService(DialogueBranchUserId userId) {
+		activeUserServices.removeIf(userService ->
+				userService.getUserId().issuer().equals(userId.issuer())
+						&& userService.getUserId().subject().equals(userId.subject()));
+	}
+
+	/**
 	 * Evicts every active {@link UserService} whose {@link UserService#getLastActivityTime()} is
 	 * older than {@code idleTimeoutMillis}. Called periodically by {@link
 	 * UserServiceExpirationService} to bound memory for clients that disconnect without an explicit

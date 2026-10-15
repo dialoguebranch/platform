@@ -100,7 +100,8 @@ public final class Role {
 				Permission.SERVICE_INFO_TECHNICAL,
 				Permission.USER_LIST,
 				Permission.USER_DELEGATE,
-				Permission.USER_DELEGATE_READ));
+				Permission.USER_DELEGATE_READ,
+				Permission.USER_ERASE));
 
 		EnumSet<Permission> supervisor = EnumSet.copyOf(participant);
 		supervisor.add(Permission.USER_DELEGATE_READ);

@@ -30,7 +30,11 @@ package com.dialoguebranch.web.service.repository;
 
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import com.dialoguebranch.web.service.storage.model.DBProjectVersion;
+import com.dialoguebranch.web.service.storage.model.DBUser;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.UUID;
@@ -50,5 +54,16 @@ public interface DBProjectVersionRepository extends JpaRepository<DBProjectVersi
 	 * number.
 	 */
 	List<DBProjectVersion> findByProjectOrderByVersionNumberDesc(DBProject project);
+
+	/**
+	 * Forgets who published the versions the given user published, when the user's data is erased
+	 * (#320): the versions themselves stay.
+	 *
+	 * @param user the user.
+	 * @return the number of versions changed.
+	 */
+	@Modifying
+	@Query("update DBProjectVersion v set v.publishedBy = null where v.publishedBy = :user")
+	int clearPublishedBy(@Param("user") DBUser user);
 
 }
