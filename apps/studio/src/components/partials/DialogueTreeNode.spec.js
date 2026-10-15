@@ -88,6 +88,24 @@ function mountNode(props = {}, stateMode = DLB_APP_MODE_DRAFT) {
     });
 }
 
+const menuButton = (wrapper) => wrapper.find('[data-test="row-menu-button"]');
+
+async function openMenu(wrapper) {
+    await menuButton(wrapper).trigger('click');
+    await flushPromises();
+}
+
+// The row menu's item, or a non-existing wrapper when the row has no menu.
+async function menuItem(wrapper, test) {
+    if (menuButton(wrapper).exists()) await openMenu(wrapper);
+    return wrapper.find(`[data-test="${test}"]`);
+}
+
+async function choose(wrapper, test) {
+    await (await menuItem(wrapper, test)).trigger('click');
+    await flushPromises();
+}
+
 describe('DialogueTreeNode', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -156,10 +174,7 @@ describe('DialogueTreeNode', () => {
         authoring.renameDraftDialogue.mockResolvedValue({});
 
         const wrapper = mountNode();
-        const renameButton = wrapper.find('button[title="Rename dialogue"]');
-        expect(renameButton.exists()).toBe(true);
-
-        await renameButton.trigger('click');
+        await choose(wrapper, 'menu-rename');
         expect(wrapper.find('input[type="text"]').exists()).toBe(true);
 
         const input = wrapper.find('input[type="text"]');
@@ -181,7 +196,7 @@ describe('DialogueTreeNode', () => {
         authoring.renameDraftDialogue.mockResolvedValue({});
 
         const wrapper = mountNode();
-        await wrapper.find('button[title="Rename dialogue"]').trigger('click');
+        await choose(wrapper, 'menu-rename');
 
         const input = wrapper.find('input[type="text"]');
         await input.setValue('renamed-dialogue');
@@ -202,29 +217,29 @@ describe('DialogueTreeNode', () => {
 });
 
 describe('DialogueTreeNode — Export as .dlb (#341)', () => {
-    const exportButton = (wrapper) => wrapper.find('button[title="Export as .dlb"]');
+    const offersExport = async (wrapper) => (await menuItem(wrapper, 'menu-export')).exists();
 
     beforeEach(() => {
         vi.clearAllMocks();
         errorToast.value = null;
     });
 
-    it('offers the export on a dialogue in Authoring Mode', () => {
-        expect(exportButton(mountNode()).exists()).toBe(true);
+    it('offers the export on a dialogue in Authoring Mode', async () => {
+        expect(await offersExport(mountNode())).toBe(true);
     });
 
-    it('does not offer it in Live Mode, where there is no draft to export', () => {
-        expect(exportButton(mountNode({}, DLB_APP_MODE_LIVE)).exists()).toBe(false);
+    it('does not offer it in Live Mode, where there is no draft to export', async () => {
+        expect(await offersExport(mountNode({}, DLB_APP_MODE_LIVE))).toBe(false);
     });
 
-    it('does not offer it on a dialogue pending deletion', () => {
+    it('does not offer it on a dialogue pending deletion', async () => {
         const wrapper = mountNode({ node: { _file: 'folder/test-dialogue', _isDeleted: true } });
-        expect(exportButton(wrapper).exists()).toBe(false);
+        expect(await offersExport(wrapper)).toBe(false);
     });
 
-    it('does not offer it on a folder', () => {
+    it('does not offer it on a folder', async () => {
         const wrapper = mountNode({ name: 'folder', node: { _children: {} }, path: 'folder' });
-        expect(exportButton(wrapper).exists()).toBe(false);
+        expect(await offersExport(wrapper)).toBe(false);
     });
 
     it('downloads the dialogue, named after its last name segment and not its folder', async () => {
@@ -232,8 +247,7 @@ describe('DialogueTreeNode — Export as .dlb (#341)', () => {
         authoring.exportDialogue.mockResolvedValue(blob);
         const wrapper = mountNode();
 
-        await exportButton(wrapper).trigger('click');
-        await flushPromises();
+        await choose(wrapper, 'menu-export');
 
         expect(authoring.exportDialogue).toHaveBeenCalledWith('test-project', 'folder/test-dialogue');
         expect(downloadBlob).toHaveBeenCalledWith(blob, 'test-dialogue.dlb');
@@ -244,8 +258,7 @@ describe('DialogueTreeNode — Export as .dlb (#341)', () => {
         authoring.exportDialogue.mockResolvedValue(new Blob(['']));
         const wrapper = mountNode({ node: { _file: 'main', _isDeleted: false } });
 
-        await exportButton(wrapper).trigger('click');
-        await flushPromises();
+        await choose(wrapper, 'menu-export');
 
         expect(downloadBlob.mock.calls[0][1]).toBe('main.dlb');
     });
@@ -255,8 +268,7 @@ describe('DialogueTreeNode — Export as .dlb (#341)', () => {
             { status: 404, statusText: 'Not Found' }));
         const wrapper = mountNode();
 
-        await exportButton(wrapper).trigger('click');
-        await flushPromises();
+        await choose(wrapper, 'menu-export');
 
         expect(downloadBlob).not.toHaveBeenCalled();
         expect(errorToast.value).toBeTruthy();
@@ -267,14 +279,16 @@ describe('DialogueTreeNode — Export as .dlb (#341)', () => {
         authoring.exportDialogue.mockReturnValue(new Promise((resolve) => { finish = resolve; }));
         const wrapper = mountNode();
 
-        await exportButton(wrapper).trigger('click');
-        expect(exportButton(wrapper).attributes('disabled')).toBeDefined();
-        await exportButton(wrapper).trigger('click');
+        const spinner = () => menuButton(wrapper).find('font-awesome-icon-stub').attributes('icon');
+
+        await choose(wrapper, 'menu-export');
+        expect(spinner()).toContain('circle-notch');
+        await choose(wrapper, 'menu-export');
         expect(authoring.exportDialogue).toHaveBeenCalledTimes(1);
 
         finish(new Blob(['']));
         await flushPromises();
-        expect(exportButton(wrapper).attributes('disabled')).toBeUndefined();
+        expect(spinner()).toContain('ellipsis');
         expect(downloadBlob).toHaveBeenCalledTimes(1);
     });
 });
@@ -290,20 +304,18 @@ describe('DialogueTreeNode discard changes', () => {
         _isDeleted: false, _previousPublishedName: null, ...extra,
     });
 
-    it('is only offered for a changed dialogue that was published, in Authoring Mode', () => {
-        expect(mountNode({ node: changedNode() }).find('[data-test="discard-changes"]').exists()).toBe(true);
-        expect(mountNode().find('[data-test="discard-changes"]').exists()).toBe(false);
-        expect(mountNode({ node: changedNode({ _isNew: true, _isPublished: false }) })
-            .find('[data-test="discard-changes"]').exists()).toBe(false);
-        expect(mountNode({ node: changedNode({ _isDeleted: true }) })
-            .find('[data-test="discard-changes"]').exists()).toBe(false);
-        expect(mountNode({ node: changedNode() }, DLB_APP_MODE_LIVE)
-            .find('[data-test="discard-changes"]').exists()).toBe(false);
+    it('is only offered for a changed dialogue that was published, in Authoring Mode', async () => {
+        const offered = async (wrapper) => (await menuItem(wrapper, 'menu-discard')).exists();
+        expect(await offered(mountNode({ node: changedNode() }))).toBe(true);
+        expect(await offered(mountNode())).toBe(false);
+        expect(await offered(mountNode({ node: changedNode({ _isNew: true, _isPublished: false }) }))).toBe(false);
+        expect(await offered(mountNode({ node: changedNode({ _isDeleted: true }) }))).toBe(false);
+        expect(await offered(mountNode({ node: changedNode() }, DLB_APP_MODE_LIVE))).toBe(false);
     });
 
     it('asks for confirmation, warning about links in other dialogues', async () => {
         const wrapper = mountNode({ node: changedNode() });
-        await wrapper.find('[data-test="discard-changes"]').trigger('click');
+        await choose(wrapper, 'menu-discard');
         const prompt = wrapper.find('[data-test="discard-prompt"]');
         expect(prompt.text()).toContain('folder/test-dialogue');
         expect(prompt.text()).toContain('those links will no longer match');
@@ -313,7 +325,7 @@ describe('DialogueTreeNode discard changes', () => {
 
     it('mentions the published name a renamed dialogue gets back', async () => {
         const wrapper = mountNode({ node: changedNode({ _previousPublishedName: 'folder/original' }) });
-        await wrapper.find('[data-test="discard-changes"]').trigger('click');
+        await choose(wrapper, 'menu-discard');
         expect(wrapper.find('[data-test="discard-renamed"]').text()).toContain('folder/original');
     });
 
@@ -321,7 +333,7 @@ describe('DialogueTreeNode discard changes', () => {
         authoring.discardDraftDialogueChanges.mockResolvedValue(
             { dialogueName: 'folder/original', discardedName: 'folder/test-dialogue' });
         const wrapper = mountNode({ node: changedNode({ _previousPublishedName: 'folder/original' }) });
-        await wrapper.find('[data-test="discard-changes"]').trigger('click');
+        await choose(wrapper, 'menu-discard');
         await wrapper.find('[data-test="discard-confirm"]').trigger('click');
         await flushPromises();
         expect(authoring.discardDraftDialogueChanges).toHaveBeenCalledWith('test-project', 'folder/test-dialogue');
@@ -333,10 +345,62 @@ describe('DialogueTreeNode discard changes', () => {
         authoring.discardDraftDialogueChanges.mockRejectedValue(
             { status: 409, message: 'another dialogue now has that name' });
         const wrapper = mountNode({ node: changedNode() });
-        await wrapper.find('[data-test="discard-changes"]').trigger('click');
+        await choose(wrapper, 'menu-discard');
         await wrapper.find('[data-test="discard-confirm"]').trigger('click');
         await flushPromises();
         expect(wrapper.emitted('dialoguesReplaced')).toBeUndefined();
         expect(errorToast.value?.message ?? JSON.stringify(errorToast.value)).toContain('another dialogue now has that name');
+    });
+});
+
+// The row shows only its launch button; other actions are in a context menu (#389).
+describe('DialogueTreeNode row menu', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    const rowButtons = (wrapper) => wrapper.find('[data-test="dialogue-row"]').findAll(':scope > button')
+        .map((b) => b.attributes('title'));
+
+    it('shows only the menu button and the launch button on a row in Authoring Mode', () => {
+        expect(rowButtons(mountNode())).toEqual(['More actions', 'Open dialogue']);
+    });
+
+    it('lists the actions that apply, in order', async () => {
+        const wrapper = mountNode({ node: { _file: 'folder/test-dialogue', _isChanged: true, _isNew: false } });
+        await openMenu(wrapper);
+        expect(wrapper.findAll('[role="menuitem"]').map((b) => b.text()))
+            .toEqual(['Open', 'Rename…', 'Export as .dlb', 'Discard changes…']);
+    });
+
+    it('opens on a right-click on the row, at the pointer', async () => {
+        const wrapper = mountNode();
+        const event = new MouseEvent('contextmenu', { clientX: 30, clientY: 40, bubbles: true, cancelable: true });
+        wrapper.find('[data-test="dialogue-row"]').element.dispatchEvent(event);
+        await flushPromises();
+        expect(event.defaultPrevented).toBe(true);
+        expect(wrapper.find('[data-test="context-menu"]').exists()).toBe(true);
+    });
+
+    it('opens the dialogue from the menu', async () => {
+        const wrapper = mountNode();
+        await choose(wrapper, 'menu-open');
+        expect(wrapper.emitted('openDialogue')[0]).toEqual(['folder/test-dialogue']);
+        expect(wrapper.find('[data-test="context-menu"]').exists()).toBe(false);
+    });
+
+    it('has no menu in Live Mode, and leaves the right-click alone', async () => {
+        const wrapper = mountNode({}, DLB_APP_MODE_LIVE);
+        expect(rowButtons(wrapper)).toEqual(['Open dialogue']);
+        const event = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
+        wrapper.find('[data-test="dialogue-row"]').element.dispatchEvent(event);
+        await flushPromises();
+        expect(event.defaultPrevented).toBe(false);
+        expect(wrapper.find('[data-test="context-menu"]').exists()).toBe(false);
+    });
+
+    it('keeps Restore as the only button on a dialogue pending deletion, without a menu', () => {
+        const wrapper = mountNode({ node: { _file: 'folder/test-dialogue', _isDeleted: true } });
+        expect(rowButtons(wrapper)).toEqual(['Restore (undo deletion)']);
     });
 });

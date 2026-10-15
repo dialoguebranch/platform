@@ -26,6 +26,15 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   pending deletion, a published name another dialogue has taken, and a translation language
   renamed since publishing. client-js gains `discardDraftDialogueChanges`.
 
+### Changed
+
+- Studio: the Dialogue Browser's dialogue rows show only their ▶ (open) button; the other actions
+  (*Open*, *Rename…*, *Export as .dlb*, *Discard changes…*) are in a context menu, opened by
+  right-clicking a row or with a ⋯ button shown when pointing at it (always shown on touch
+  screens) ([#389](https://github.com/dialoguebranch/platform/issues/389)). The menu, also used
+  for the node editor's *Insert statement* menu, works with the keyboard and stays inside the
+  window. A dialogue pending deletion keeps its *Restore* button.
+
 ## [0.6.0] - 2026-10-15
 
 ### Added

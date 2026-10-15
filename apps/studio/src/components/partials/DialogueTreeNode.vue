@@ -1,5 +1,5 @@
 <script setup>
-import { computed, inject, ref } from 'vue';
+import { computed, inject, nextTick, ref, useTemplateRef } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useAuthoringClient } from '@/composables/client.js';
 import { describeError } from '@/composables/error-message.js';
@@ -7,6 +7,7 @@ import { downloadBlob } from '@/composables/download-blob.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
 import { DLB_APP_MODE_DRAFT } from '@/StudioClientState.js';
 import { sortTreeLevel } from '@/composables/dialogue-tree.js';
+import ContextMenu from '../widgets/ContextMenu.vue';
 
 const props = defineProps({
     name: String,
@@ -88,9 +89,14 @@ const renaming = ref(false);
 const renameInput = ref('');
 const renamePrompt = ref(null); // { newFullName, references }
 
+const renameField = useTemplateRef('rename-input');
+
 function startRename() {
     renameInput.value = props.name;
     renaming.value = true;
+    // Opened from the row's menu, which hands the focus back to where it came from as it closes;
+    // the field takes it over once rendered.
+    nextTick(() => renameField.value?.focus());
 }
 
 function cancelRename() {
@@ -156,6 +162,46 @@ function discardChanges() {
         });
 }
 
+// ---- Row menu (#389) ----
+// A dialogue row shows only its launch button (▶); its other actions are in a context menu,
+// opened by right-clicking the row or with the "⋯" button. A dialogue pending deletion has no
+// menu: Restore is its one visible button. In Live Mode there's nothing to offer besides ▶.
+
+const hasMenu = computed(() => isDraftMode.value && !props.node._isDeleted);
+const menuButton = useTemplateRef('menu-button');
+const menu = ref(null); // { x, y } or { anchor }, or null when closed
+
+const menuItems = computed(() => {
+    const items = [
+        { id: 'open', label: 'Open', icon: 'fa-solid fa-play', test: 'menu-open' },
+        { id: 'rename', label: 'Rename…', icon: 'fa-solid fa-pen', test: 'menu-rename' },
+        { id: 'export', label: 'Export as .dlb', icon: 'fa-solid fa-file-export', test: 'menu-export' },
+    ];
+    if (props.node._isChanged && !props.node._isNew) {
+        items.push({ id: 'discard', label: 'Discard changes…', icon: 'fa-solid fa-rotate-left', test: 'menu-discard' });
+    }
+    return items;
+});
+
+function openMenuAtPointer(event) {
+    if (!hasMenu.value) return;
+    event.preventDefault();
+    menu.value = { x: event.clientX, y: event.clientY };
+}
+
+function openMenuFromButton() {
+    menu.value = { anchor: menuButton.value };
+}
+
+function onMenuSelect(item) {
+    switch (item.id) {
+    case 'open': openDialogue(); break;
+    case 'rename': startRename(); break;
+    case 'export': exportDialogue(); break;
+    case 'discard': discardPrompt.value = true; break;
+    }
+}
+
 function referenceDialogueCount(references) {
     return new Set((references ?? []).map((r) => r.dialogueName)).size;
 }
@@ -201,6 +247,7 @@ function referenceDialogueCount(references) {
             :style="{ marginLeft: (depth * 12) + 'px' }"
         >
             <input
+                ref="rename-input"
                 v-model="renameInput"
                 type="text"
                 autofocus
@@ -219,8 +266,10 @@ function referenceDialogueCount(references) {
         <!-- File -->
         <div
             v-else-if="isFile"
-            class="flex items-center gap-1.5 font-title font-black text-xs bg-grey-lighter px-1 py-0.5"
+            class="group flex items-center gap-1.5 font-title font-black text-xs bg-grey-lighter px-1 py-0.5"
             :style="{ marginLeft: (depth * 12) + 'px' }"
+            data-test="dialogue-row"
+            @contextmenu="openMenuAtPointer"
         >
             <span
                 class="flex-1 min-w-0 truncate"
@@ -254,34 +303,18 @@ function referenceDialogueCount(references) {
             </template>
             <template v-else>
                 <button
-                    v-if="isDraftMode"
+                    v-if="hasMenu"
+                    ref="menu-button"
                     type="button"
-                    title="Export as .dlb"
-                    class="shrink-0 cursor-pointer text-grey-dark hover:text-orange-dark"
-                    :disabled="exporting"
-                    @click="exportDialogue"
+                    title="More actions"
+                    aria-haspopup="menu"
+                    :aria-expanded="!!menu"
+                    class="shrink-0 cursor-pointer text-grey-dark hover:text-orange-dark opacity-0 group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100"
+                    :class="{ 'opacity-100': menu }"
+                    data-test="row-menu-button"
+                    @click="openMenuFromButton"
                 >
-                    <FontAwesomeIcon :icon="exporting ? 'fa-solid fa-circle-notch' : 'fa-solid fa-file-export'" :class="['w-3', { 'animate-spin': exporting }]" />
-                </button>
-                <button
-                    v-if="isDraftMode && node._isChanged && !node._isNew"
-                    type="button"
-                    title="Discard changes (back to the published version)"
-                    class="shrink-0 cursor-pointer text-grey-dark hover:text-orange-dark"
-                    data-test="discard-changes"
-                    :disabled="discarding"
-                    @click="discardPrompt = true"
-                >
-                    <FontAwesomeIcon :icon="discarding ? 'fa-solid fa-circle-notch' : 'fa-solid fa-rotate-left'" :class="['w-3', { 'animate-spin': discarding }]" />
-                </button>
-                <button
-                    v-if="isDraftMode"
-                    type="button"
-                    title="Rename dialogue"
-                    class="shrink-0 cursor-pointer text-grey-dark hover:text-orange-dark"
-                    @click="startRename"
-                >
-                    <FontAwesomeIcon icon="fa-solid fa-pen" class="w-3" />
+                    <FontAwesomeIcon :icon="exporting || discarding ? 'fa-solid fa-circle-notch' : 'fa-solid fa-ellipsis'" :class="['w-3', { 'animate-spin': exporting || discarding }]" />
                 </button>
                 <button
                     type="button"
@@ -293,6 +326,16 @@ function referenceDialogueCount(references) {
                 </button>
             </template>
         </div>
+
+        <ContextMenu
+            v-if="menu"
+            :items="menuItems"
+            :x="menu.x ?? null"
+            :y="menu.y ?? null"
+            :anchor="menu.anchor ?? null"
+            @select="onMenuSelect"
+            @close="menu = null"
+        />
 
         <!-- Discard changes confirmation -->
         <Teleport to="body">
