@@ -70,9 +70,11 @@ const authoringClient = useAuthoringClient();
 //   'history' — every recorded change to this user's variables in the project, newest first and
 //               paged (GET /variables/history, #323). Only loaded while this mode is showing.
 const mode = ref('values');
-// In Authoring Mode, dialogues run as test sessions against a copy of the variables (#319), so
-// "Values" shows and edits that copy; the stored values (and their history) stay untouched.
-const testing = computed(() => state.value.mode === DLB_APP_MODE_DRAFT);
+// In Authoring Mode, and while simulating a user (#411), dialogues run as test sessions against a
+// copy of the variables (#319), so "Values" shows and edits that copy; the stored values (and
+// their history) stay untouched.
+const testing = computed(() => state.value.mode === DLB_APP_MODE_DRAFT
+    || state.value.delegate?.mode === 'simulate');
 const variables = ref([]);
 const projectVariables = ref([]); // [{ name, read, written }]
 const supportedVariables = ref([]); // [{ name, description }] — from the configured EVS, if any
@@ -270,7 +272,7 @@ const loadVariables = () => {
     }
     const requestId = nextLoadRequest();
     (testing.value
-        ? authoringClient.getTestVariables({ projectSlug: slug })
+        ? authoringClient.getTestVariables({ projectSlug: slug, timeZone: getBrowserTimeZone() })
         : client.getVariables({ projectSlug: slug, timeZone: getBrowserTimeZone() }))
     .then((vars) => {
         if (!isCurrentLoadRequest(requestId)) return;
@@ -403,7 +405,7 @@ onMounted(() => {
                         type="button"
                         class="px-2 h-7.5 cursor-pointer"
                         :class="mode === 'values' ? 'bg-orange-dark text-white' : 'bg-white text-grey-dark hover:bg-grey-lighter'"
-                        :title="testing ? 'The test variables: a copy of this user\'s stored values that tests in Authoring Mode run against' : 'This user\'s stored variable values for the current project'"
+                        :title="testing ? 'The test variables: a copy of this user\'s stored values that tests run against' : 'This user\'s stored variable values for the current project'"
                         @click="mode = 'values'"
                     >Values</button>
                     <button
@@ -430,7 +432,7 @@ onMounted(() => {
         <div v-if="testing && mode !== 'project'" data-test="test-variables-note" class="flex items-start gap-1.5 px-1 sm:mr-1 font-title text-[10px] text-grey-dark">
             <FontAwesomeIcon icon="fa-solid fa-flask" class="mt-0.5 shrink-0" />
             <span v-if="mode === 'values'" class="flex-1">
-                Test variables: tests in Authoring Mode run against this copy. Changes here don't affect the stored values.
+                Test variables: tests run against this copy. Changes here don't affect the stored values.
                 <button type="button" data-test="reset-test-variables" class="underline hover:text-orange-dark cursor-pointer" @click="resetTestVariables">Reset to stored values</button>
             </span>
             <span v-else class="flex-1">The stored history: changes made in tests aren't recorded.</span>

@@ -174,6 +174,12 @@ public class VariablesController {
 		@RequestParam(value="timeZone")
 		String timeZone,
 
+		@Parameter(description = "Whether the request comes from a test session (an author " +
+				"testing a dialogue, or an administrator simulating a user) rather than real " +
+				"playback. A test session's values are discarded afterwards.")
+		@RequestParam(value="testSession", required=false, defaultValue="false")
+		boolean testSession,
+
 		@Parameter(description = "List of Dialogue Branch Variables for which to check for updates.",
 				required = true,
 				content = @Content(
@@ -185,8 +191,9 @@ public class VariablesController {
 		if(version == null) version = ProtocolVersion.getLatestVersion().versionName();
 
 		// Log this call to the service log
-		logger.info("POST /v{}/variables/retrieve-updates?subject={}&issuer={}&projectSlug={}&timeZone={} " +
-				"with the following variables:", version, subject, issuer, projectSlug, timeZone);
+		logger.info("POST /v{}/variables/retrieve-updates?subject={}&issuer={}&projectSlug={}&timeZone={}" +
+				"&testSession={} with the following variables:", version, subject, issuer, projectSlug,
+				timeZone, testSession);
 
 		// Execute the request if a subject was provided.
 		if(subject.isEmpty()) {

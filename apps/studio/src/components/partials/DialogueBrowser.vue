@@ -39,6 +39,9 @@ const client = useClient();
 const authoringClient = useAuthoringClient();
 
 const isDraftMode = computed(() => state.value.mode === DLB_APP_MODE_DRAFT);
+// While simulating a user (#411), dialogues always start afresh as test sessions: their real
+// ongoing dialogue isn't offered to resume (or cancel).
+const simulating = computed(() => state.value.delegate?.mode === 'simulate');
 
 // The tree is rebuilt only when a new list arrives (rawRoot); re-sorting is a cheap re-derivation
 // that doesn't need a refetch.
@@ -307,7 +310,7 @@ defineExpose({
     <div class="flex flex-col gap-1" v-bind="attrs">
         <MainPagePanelHeader title="Dialogue Browser" class="sm:ml-2">
             <template #buttons>
-                <IconButton v-if="!isDraftMode" icon="fa-solid fa-rotate-left" title="Retrieve most recent ongoing (server-side) dialogue" :disabled="hasActiveDialogue" @click="checkOngoingDialogue" />
+                <IconButton v-if="!isDraftMode && !simulating" icon="fa-solid fa-rotate-left" title="Retrieve most recent ongoing (server-side) dialogue" :disabled="hasActiveDialogue" @click="checkOngoingDialogue" />
                 <IconButton v-if="isDraftMode" icon="fa-solid fa-plus" title="New Dialogue" @click="onNewDialogueClick" />
                 <IconButton
                     icon="fa-solid fa-arrows-rotate"

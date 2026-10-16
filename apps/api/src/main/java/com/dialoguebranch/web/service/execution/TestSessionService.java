@@ -48,6 +48,7 @@ import com.dialoguebranch.model.execute.ResourcePointer;
 import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
+import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.DateTimeUtils;
 import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
@@ -57,6 +58,7 @@ import com.dialoguebranch.web.service.exception.ForbiddenException;
 import com.dialoguebranch.web.service.exception.NotFoundException;
 import com.dialoguebranch.web.service.exception.ProjectParseHttpError;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
+import com.dialoguebranch.web.service.storage.ExternalVariableServiceClient;
 import com.dialoguebranch.web.service.storage.VariableStoreDatabaseStorageHandler;
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslation;
@@ -70,6 +72,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -80,8 +83,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Ephemeral, in-memory execution service for test-running a dialogue's current draft content
- * without requiring it to be published first.
+ * Ephemeral, in-memory execution service for test-running a dialogue: its current draft content,
+ * without requiring it to be published first, or its published content (#411).
  *
  * <p>Sessions are driven directly through {@link ActiveDialogue} and held only in this service's
  * in-memory {@code sessions} map — they never touch
@@ -157,6 +160,7 @@ public class TestSessionService {
 
 	private static final Logger logger = LoggerFactory.getLogger(TestSessionService.class);
 
+	private final Application application;
 	private final DraftDialogueService draftDialogueService;
 	private final VariableStoreDatabaseStorageHandler storageHandler;
 	private final DlbProperties dlbProperties;
@@ -170,9 +174,12 @@ public class TestSessionService {
 	 *                             content when starting a test session.
 	 * @param storageHandler handler used to read a user's stored variables, to seed a copy.
 	 * @param dlbProperties the configuration, for the test sessions' idle timeout.
+	 * @param application the application, for the published projects it holds in memory.
 	 */
 	public TestSessionService(DraftDialogueService draftDialogueService,
-			VariableStoreDatabaseStorageHandler storageHandler, DlbProperties dlbProperties) {
+			VariableStoreDatabaseStorageHandler storageHandler, DlbProperties dlbProperties,
+			Application application) {
+		this.application = application;
 		this.draftDialogueService = draftDialogueService;
 		this.storageHandler = storageHandler;
 		this.dlbProperties = dlbProperties;
@@ -376,8 +383,63 @@ public class TestSessionService {
 			throw new BadRequestException("Draft dialogue '" + dialogue.getName() +
 					"' could not be parsed into a runnable dialogue.");
 		}
+		return begin(tester, user, delegated, project, executableProject, sourceLanguage, resolved,
+				startNodeId, timeZone);
+	}
 
+	/**
+	 * Starts an ephemeral test session for a dialogue's <em>published</em> content (#411): the
+	 * project the service already holds in memory for real playback, not a parsed copy. Otherwise
+	 * the session is the same as one on draft content, with the tester's copy of the given user's
+	 * variables.
+	 *
+	 * @param tester      the authenticated user running the test.
+	 * @param user        the user whose variables the test starts from: the tester, or someone
+	 *                    they act for.
+	 * @param delegated   whether {@code user} is someone other than the tester.
+	 * @param project     the project the dialogue belongs to.
+	 * @param dialogueName the name of the published dialogue to test.
+	 * @param language    the language code to run the dialogue in; falls back to the project's
+	 *                    source language if the dialogue has no content in exactly this language.
+	 * @param startNodeId an optional node title to start at, instead of the default start node.
+	 * @param timeZone    the tester's time zone.
+	 * @return the new session's ID and the result for its start node.
+	 * @throws NotFoundException if the project has no published version, the published version
+	 *                           has no such dialogue, or {@code user} is a delegated user this
+	 *                           service doesn't know.
+	 * @throws ParseException if a stored variable value cannot be parsed.
+	 * @throws ExecutionException if the dialogue can't be started.
+	 */
+	public StartResult startPublishedSession(DialogueBranchUserId tester,
+			DialogueBranchUserId user, boolean delegated, DBProject project, String dialogueName,
+			String language, String startNodeId, ZoneId timeZone)
+			throws NotFoundException, ParseException, ExecutionException {
+		ApplicationManager applicationManager = application.getApplicationManager();
+		if (!(applicationManager.getProjects().get(project.getSlug())
+				instanceof ExecutableProject published)) {
+			throw new NotFoundException("Project '" + project.getSlug() +
+					"' has no published version.");
+		}
+		String sourceLanguage = applicationManager.getSourceLanguage(project.getSlug());
+		if (sourceLanguage == null) sourceLanguage = "";
+		ResolvedDialogue resolved = resolveDialogue(published, dialogueName, language,
+				sourceLanguage);
+		if (resolved == null) {
+			throw new NotFoundException("Dialogue not found in the published version: " +
+					dialogueName);
+		}
+		return begin(tester, user, delegated, project, published, sourceLanguage, resolved,
+				startNodeId, timeZone);
+	}
+
+	/** Starts a test session on resolved content, against the tester's copy of the variables. */
+	private StartResult begin(DialogueBranchUserId tester, DialogueBranchUserId user,
+			boolean delegated, DBProject project, ExecutableProject executableProject,
+			String sourceLanguage, ResolvedDialogue resolved, String startNodeId, ZoneId timeZone)
+			throws NotFoundException, ParseException, ExecutionException {
 		VariableStore copy = getCopy(tester, user, delegated, project, timeZone);
+		CopyKey copyKey = CopyKey.of(tester, user, project.getSlug());
+		readFromExternalService(copyKey, copy, resolved.definition());
 		ActiveDialogue activeDialogue = new ActiveDialogue(resolved.pointer(), resolved.definition(),
 				copy);
 
@@ -388,7 +450,7 @@ public class TestSessionService {
 			throw new RuntimeException("Expression evaluation error: " + e.getMessage(), e);
 		}
 
-		TestSession session = new TestSession(tester, CopyKey.of(tester, user, project.getSlug()),
+		TestSession session = new TestSession(tester, copyKey,
 				activeDialogue, resolved.definition(), executableProject, sourceLanguage);
 		ExecuteNodeResult result = new ExecuteNodeResult(resolved.definition(), startNode, null, 0);
 		// A dialogue that ends at its start node needs no session to continue it.
@@ -469,14 +531,36 @@ public class TestSessionService {
 	public ExecuteNodeResult progressSession(TestSession session, int replyId,
 											 Map<String, ?> variables, ZonedDateTime eventTime)
 			throws NotFoundException, ExecutionException {
-		// One request at a time per session (#215): ActiveDialogue isn't thread-safe. Nothing in
-		// here blocks on I/O, since the session's copy of the variables has no listeners (#319).
+		// One request at a time per session (#215): ActiveDialogue isn't thread-safe. The session's
+		// copy of the variables has no listeners (#319), so the only I/O in here is the read from
+		// the External Variable Service when a reply starts another dialogue, which holds up only
+		// this session's own requests.
 		synchronized (session) {
 			ExecuteNodeResult result = advance(session, replyId, variables, eventTime);
 			// A dialogue that has ended can't be progressed any more: the session is done.
 			if (hasEnded(result)) sessions.remove(session.getId());
 			return result;
 		}
+	}
+
+	/**
+	 * Asks the External Variable Service, if one is configured, for updated values of the
+	 * variables the given dialogue uses, as real playback does at every dialogue start (#411),
+	 * and writes the answers into the copy only. The request says it comes from a test session,
+	 * and sends the copy's values; nothing a test changes is ever sent to the service.
+	 */
+	private void readFromExternalService(CopyKey copyKey, VariableStore copy, Dialogue dialogue) {
+		if (!dlbProperties.getExternalVariableService().isEnabled()) return;
+		if (dialogue.getVariablesNeeded().isEmpty()) return;
+		List<Variable> current = new ArrayList<>();
+		for (String name : dialogue.getVariablesNeeded()) {
+			Variable variable = copy.getVariable(name);
+			current.add(variable != null ? variable : Variable.unknown(name));
+		}
+		Variable[] updates = new ExternalVariableServiceClient(dlbProperties).retrieveUpdates(
+				copyKey.testerIssuer(), copyKey.userSubject(), copyKey.projectSlug(),
+				copy.getUser().getTimeZone().toString(), current, true);
+		ExternalVariableServiceClient.applyUpdates(copy, updates);
 	}
 
 	/**
@@ -516,6 +600,8 @@ public class TestSessionService {
 						"in this project's draft content.");
 			}
 
+			readFromExternalService(session.getCopyKey(), activeDialogue.getVariableStore(),
+					resolved.definition());
 			ActiveDialogue newActiveDialogue = new ActiveDialogue(resolved.pointer(),
 					resolved.definition(), activeDialogue.getVariableStore());
 

@@ -562,9 +562,10 @@ export class DialogueBranchAuthoringClient extends BaseClient {
     }
 
     /**
-     * Starts an ephemeral test session of a dialogue's current *draft* (unpublished) content —
-     * the equivalent of {@link DialogueBranchClient#startDialogue} for trying out in-progress
-     * edits, e.g. in a visual editor. Nothing is logged as a real dialogue session, and the
+     * Starts an ephemeral test session of a dialogue — by default of its current *draft*
+     * (unpublished) content, or of its published content with `content: "published"` — the
+     * equivalent of {@link DialogueBranchClient#startDialogue} for trying out in-progress edits,
+     * e.g. in a visual editor, or for simulating a user. Nothing is logged as a real dialogue session, and the
      * session runs against the caller's own copy of the variables (see {@link getTestVariables}),
      * never the user's real ones.
      *
@@ -580,11 +581,14 @@ export class DialogueBranchAuthoringClient extends BaseClient {
      * `Intl.DateTimeFormat().resolvedOptions().timeZone` in a browser).
      * @param {string} [options.startNodeId] Start at a specific node instead of the dialogue's
      * default start node.
+     * @param {"draft"|"published"} [options.content] The content to run: the current draft (the
+     * Web Service's default), or the latest published version — e.g. to simulate a user on what
+     * they would really see.
      * @returns {Promise<{testSessionId: string, dialogueStep: DialogueStep}>} `testSessionId`
      * identifies this ephemeral test session for {@link progressTestSession} and
      * {@link cancelTestSession}.
      */
-    startTestSession({ projectSlug, dialogueName, language, timeZone, startNodeId }) {
+    startTestSession({ projectSlug, dialogueName, language, timeZone, startNodeId, content }) {
         let url = this._baseUrl + "/test-session/start";
 
         url += "?projectSlug=" + encodeURIComponent(projectSlug);
@@ -592,6 +596,7 @@ export class DialogueBranchAuthoringClient extends BaseClient {
         url += "&language=" + encodeURIComponent(language);
         if (timeZone) url += "&timeZone=" + encodeURIComponent(timeZone);
         if (startNodeId) url += "&startNodeId=" + encodeURIComponent(startNodeId);
+        if (content) url += "&content=" + encodeURIComponent(content);
         url += this._delegateParam;
 
         return this._fetch(url, {
@@ -661,11 +666,14 @@ export class DialogueBranchAuthoringClient extends BaseClient {
      *
      * @param {Object} options
      * @param {string} options.projectSlug The project's slug.
+     * @param {string} [options.timeZone] The caller's IANA time zone, used if this call creates
+     * the copy. See {@link startTestSession}'s `timeZone`.
      * @returns {Promise<Variable[]>} The copy's variables.
      */
-    getTestVariables({ projectSlug }) {
-        const url = this._baseUrl + "/test-session/variables?projectSlug=" + encodeURIComponent(projectSlug)
-            + this._delegateParam;
+    getTestVariables({ projectSlug, timeZone }) {
+        let url = this._baseUrl + "/test-session/variables?projectSlug=" + encodeURIComponent(projectSlug);
+        if (timeZone) url += "&timeZone=" + encodeURIComponent(timeZone);
+        url += this._delegateParam;
 
         return this._fetch(url, {
             method: "GET",

@@ -53,6 +53,10 @@ const availableModes = computed(() =>
         ? modes
         : modes.filter((m) => m.name !== 'edit' && m.name !== 'translate'));
 
+// While simulating a user (#411), every dialogue runs as a test session against a copy of their
+// variables — on the published content in Live Mode — and nothing goes through /dialogue/*.
+const simulating = computed(() => state.value.delegate?.mode === 'simulate');
+
 // Backed by the `state.dialogueWorkspaceStyle` cookie (see StudioClientState.js) so the chosen
 // mode survives a page reload.
 const selectedMode = computed({
@@ -152,6 +156,9 @@ function createTab() {
         dialogueCancelled: false,
         isDraftTest: false,
         testSessionId: null,
+        // What a test session runs: 'draft' content, or 'published' content while simulating a
+        // user in Live Mode (#411).
+        content: 'draft',
         // The language this tab's dialogue was actually started in — set by loadDialogue()/
         // loadDraftDialogue() the first time a test starts, then reused on every subsequent
         // restart so changing the workspace's language selector never changes an already-running
@@ -358,7 +365,7 @@ const loadDialogue = (name, { tab: givenTab, startNodeId, language } = {}) => {
 // Pass `tab` to restart a specific, already-open tab in place (e.g. from handleReturnFromEdit)
 // rather than the default of finding/creating an empty one; `startNodeId` starts the test from a
 // particular node instead of the dialogue's default "Start" node.
-const loadDraftDialogue = (name, { tab: givenTab, startNodeId, language } = {}) => {
+const loadDraftDialogue = (name, { tab: givenTab, startNodeId, language, content = 'draft' } = {}) => {
     if (!givenTab) ensureTestMode();
     const tab = givenTab ?? getOrCreateEmptyTab();
     activeTabId.value = tab.id;
@@ -368,6 +375,7 @@ const loadDraftDialogue = (name, { tab: givenTab, startNodeId, language } = {}) 
     tab.dialogueEnded = false;
     tab.dialogueCancelled = false;
     tab.isDraftTest = true;
+    tab.content = content;
     tab.testSessionId = null;
     tab.loggedDialogueId = null;
     tab.openedForEditOnly = false;
@@ -386,6 +394,7 @@ const loadDraftDialogue = (name, { tab: givenTab, startNodeId, language } = {}) 
         language: tab.language,
         timeZone: getBrowserTimeZone(),
         startNodeId,
+        content,
     })
     .then(({ testSessionId, dialogueStep }) => {
         tab.testSessionId = testSessionId;
@@ -428,7 +437,7 @@ function showExpired(tab) {
 function restartActiveTab() {
     const tab = activeTab.value;
     if (tab.isDraftTest) {
-        loadDraftDialogue(tab.dialogueName, { tab, language: tab.language });
+        loadDraftDialogue(tab.dialogueName, { tab, language: tab.language, content: tab.content });
     } else {
         loadDialogue(tab.dialogueName, { tab, language: tab.language });
     }
@@ -446,7 +455,7 @@ watch(selectedLanguage, (newLanguage, oldLanguage) => {
     if (tab.language === newLanguage) return;
     const currentNode = tab.dialogueSteps[tab.dialogueSteps.length - 1].node;
     if (tab.isDraftTest) {
-        loadDraftDialogue(tab.dialogueName, { tab, startNodeId: currentNode, language: newLanguage });
+        loadDraftDialogue(tab.dialogueName, { tab, startNodeId: currentNode, language: newLanguage, content: tab.content });
     } else {
         loadDialogue(tab.dialogueName, { tab, startNodeId: currentNode, language: newLanguage });
     }
@@ -592,6 +601,11 @@ const resize = () => {
 };
 
 const resumeDialogue = (name) => {
+    // A simulation never takes over the user's real ongoing dialogue: it starts afresh (#411).
+    if (simulating.value) {
+        loadDraftDialogue(name, { content: 'published' });
+        return;
+    }
     ensureTestMode();
     const newTab = getOrCreateEmptyTab();
     newTab.dialogueName = name;
@@ -678,6 +692,8 @@ function openDialogue(name) {
         openDialogueForTranslation(name);
     } else if (state.value.mode === DLB_APP_MODE_DRAFT) {
         loadDraftDialogue(name);
+    } else if (simulating.value) {
+        loadDraftDialogue(name, { content: 'published' });
     } else {
         loadDialogue(name);
     }
@@ -1100,7 +1116,7 @@ function onSelectReply(dialogueStep, reply, inputValues) {
                 <TranslationEditor ref="translation-editor" :dialogueName="activeTab.dialogueName" @dialogueSaved="$emit('dialogueSaved')" />
             </MainPagePanelContainer>
             <div v-if="activeTab.isDraftTest && selectedMode !== 'edit' && selectedMode !== 'translate'" class="absolute bottom-3 left-3 font-mono text-[10px] text-gray-400 pointer-events-none">
-                <span class="font-semibold">Ephemeral Draft Test</span><template v-if="activeTab.testSessionId"> — Session ID: {{ activeTab.testSessionId }}</template><template v-if="activeStepNode"> — Node: {{ activeStepNode }}</template>
+                <span class="font-semibold">{{ activeTab.content === 'published' ? 'Simulation (published content)' : 'Ephemeral Draft Test' }}</span><template v-if="activeTab.testSessionId"> — Session ID: {{ activeTab.testSessionId }}</template><template v-if="activeStepNode"> — Node: {{ activeStepNode }}</template>
             </div>
             <div v-else-if="activeTab.loggedDialogueId && selectedMode !== 'edit' && selectedMode !== 'translate'" class="absolute bottom-3 left-3 font-mono text-[10px] text-gray-400 pointer-events-none">
                 <span class="font-semibold">Logged Dialogue ID:</span> {{ activeTab.loggedDialogueId }}<template v-if="activeStepNode"> — Node: {{ activeStepNode }}</template>

@@ -61,6 +61,7 @@ export class StudioClientState extends ClientState {
         this._mode = DLB_APP_MODE_LIVE;
         this._selectedProject = null;
         this._adminPage = null;
+        this._delegate = null;
         this._debugConsoleShowApi = true;
         this._debugConsoleShowEvents = true;
         this._debugConsoleShowCookies = false;
@@ -213,6 +214,28 @@ export class StudioClientState extends ClientState {
      */
     get adminPage() {
         return this._adminPage;
+    }
+
+    // ----- delegate
+
+    /**
+     * Sets the user the Studio user is acting for, or null for none: `{ subject, label, mode }`,
+     * where `mode` is 'simulate' (run dialogues against a copy of that user's variables, changing
+     * nothing of theirs, #411) or 'act' (act on their behalf for real). Not persisted: opening a
+     * project or switching modes clears it. The subject itself is set on the clients by
+     * `setDelegateUser()` (composables/client.js).
+     * @param {{subject: string, label: string, mode: string}|null} delegate The delegate, or null.
+     */
+    set delegate(delegate) {
+        this._delegate = delegate;
+    }
+
+    /**
+     * Returns the user the Studio user is acting for, or null.
+     * @returns {{subject: string, label: string, mode: string}|null} The delegate, or null.
+     */
+    get delegate() {
+        return this._delegate;
     }
 
     // ----- dialogueWorkspaceStyle

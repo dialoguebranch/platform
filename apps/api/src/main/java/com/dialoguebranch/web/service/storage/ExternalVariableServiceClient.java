@@ -28,6 +28,9 @@
 
 package com.dialoguebranch.web.service.storage;
 
+import com.dialoguebranch.execution.Variable;
+import com.dialoguebranch.execution.VariableStore;
+import com.dialoguebranch.execution.VariableUpdatedSource;
 import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.controller.schema.SupportedVariableInfo;
 import com.dialoguebranch.web.service.exception.ErrorCode;
@@ -39,6 +42,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestClientException;
@@ -46,15 +50,25 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 /**
- * Queries the configured External Variable Service (EVS) for the variables it supports for a
- * given project, via the EVS's {@code GET /v{version}/variables/supported?projectSlug=<slug>}
- * end-point. Every call is proxied through live, never cached: this query is not on the
- * dialogue-execution hot path (unlike {@code retrieve-updates}), so there is no latency pressure
- * to justify a second, potentially stale copy of the EVS's own answer.
+ * Makes the Web Service's requests to the configured External Variable Service (EVS):
+ * <ul>
+ * <li>{@link #retrieveUpdates}: asks for updated values of a dialogue's variables when it starts,
+ * in real playback and in test sessions (#411);</li>
+ * <li>{@link #notifyCleared}: tells it a user's variables in a project were cleared, also when a
+ * user's data is erased (#320);</li>
+ * <li>{@link #getSupportedVariables}: the variables it supports for a project, via its {@code GET
+ * /v{version}/variables/supported?projectSlug=<slug>} end-point. Every call is proxied through
+ * live, never cached: this query is not on the dialogue-execution hot path (unlike {@code
+ * retrieve-updates}), so there is no latency pressure to justify a second, potentially stale copy
+ * of the EVS's own answer.</li>
+ * </ul>
+ * Changes to a user's variables are sent by {@link ExternalVariableServiceUpdater}, the variable
+ * store listener, using the same identity parameters.
  *
  * @author Harm op den Akker
  */
@@ -134,5 +148,116 @@ public class ExternalVariableServiceClient {
 					"Could not reach the External Variable Service to determine supported "
 							+ "variables for project '" + projectSlug + "'.");
 		}
+	}
+
+	/**
+	 * Tells the configured External Variable Service that a user's variables in a project were
+	 * cleared ({@code notify-cleared}). Also used when a user's data is erased (#320).
+	 *
+	 * @param issuer the token issuer of the user.
+	 * @param subject the OIDC {@code sub} of the user.
+	 * @param projectSlug the slug of the project the variables were scoped to.
+	 * @param timeZone the user's IANA time zone.
+	 */
+	public void notifyCleared(String issuer, String subject, String projectSlug, String timeZone) {
+		DlbProperties.ExternalVariableService evs = dlbProperties.getExternalVariableService();
+		RestTemplate restTemplate = new RestTemplate();
+		HttpHeaders requestHeaders = new HttpHeaders();
+		requestHeaders.set("Authorization", "Bearer " + evs.getApiKey());
+
+		String notifyClearedUrl = evs.getUrl()
+				+ "/v" + evs.getApiVersion()
+				+ "/variables/notify-cleared";
+
+		LinkedMultiValueMap<String, String> allRequestParams = new LinkedMultiValueMap<>();
+		addIdentityParams(allRequestParams, issuer, subject, projectSlug, timeZone);
+
+		HttpEntity<?> entity = new HttpEntity<>(requestHeaders);
+		UriComponentsBuilder builder =
+				UriComponentsBuilder.fromUriString(notifyClearedUrl)
+						.queryParams(allRequestParams);
+		UriComponents uriComponents = builder.build().encode();
+
+		restTemplate.exchange(uriComponents.toUri(), HttpMethod.POST, entity, Object.class);
+	}
+
+	/**
+	 * Asks the configured External Variable Service for updated values of the given variables
+	 * ({@code retrieve-updates}), sending the values currently known for them. Used at every
+	 * dialogue start, both in real playback and in test sessions (#411), which the
+	 * {@code testSession} parameter tells the service. A failure is logged, and treated as "no
+	 * updates", so the dialogue continues with the values it has.
+	 *
+	 * @param issuer the token issuer of the user.
+	 * @param subject the OIDC {@code sub} of the user.
+	 * @param projectSlug the slug of the project the variables belong to.
+	 * @param timeZone the user's IANA time zone.
+	 * @param current the variables to ask about, with their currently known values (or {@link
+	 *                Variable#unknown(String)} for one without a value).
+	 * @param testSession whether the request comes from a test session rather than real playback.
+	 * @return the variables with updated values; empty if there are none, or the request failed.
+	 */
+	public Variable[] retrieveUpdates(String issuer, String subject, String projectSlug,
+			String timeZone, List<Variable> current, boolean testSession) {
+		DlbProperties.ExternalVariableService evs = dlbProperties.getExternalVariableService();
+		HttpHeaders requestHeaders = new HttpHeaders();
+		requestHeaders.setContentType(MediaType.valueOf("application/json"));
+		requestHeaders.set("Authorization", "Bearer " + evs.getApiKey());
+
+		String retrieveUpdatesUrl = evs.getUrl()
+				+ "/v" + evs.getApiVersion()
+				+ "/variables/retrieve-updates";
+
+		LinkedMultiValueMap<String, String> allRequestParams = new LinkedMultiValueMap<>();
+		addIdentityParams(allRequestParams, issuer, subject, projectSlug, timeZone);
+		allRequestParams.put("testSession", Arrays.asList(String.valueOf(testSession)));
+
+		HttpEntity<?> entity = new HttpEntity<>(current, requestHeaders);
+		UriComponents uriComponents = UriComponentsBuilder.fromUriString(retrieveUpdatesUrl)
+				.queryParams(allRequestParams).build().encode();
+
+		try {
+			ResponseEntity<Variable[]> response = new RestTemplate().exchange(
+					uriComponents.toUri(), HttpMethod.POST, entity, Variable[].class);
+			if (response.getStatusCode() != HttpStatus.OK) {
+				logger.warn("Error retrieving updates from external variable service.");
+			}
+			Variable[] retrieved = response.getBody();
+			return retrieved != null ? retrieved : new Variable[0];
+		} catch (Exception e) {
+			logger.error("Critical Error retrieving updates for Dialogue Branch Variables. " +
+					"Continuing operation while assuming no updates were needed.", e);
+			return new Variable[0];
+		}
+	}
+
+	/**
+	 * Writes updated values received from the External Variable Service into a variable store,
+	 * with source {@link VariableUpdatedSource#EXTERNAL}: a {@code null} value removes the
+	 * variable.
+	 *
+	 * @param store the variable store to update.
+	 * @param updates the updated variables, as returned by {@link #retrieveUpdates}.
+	 */
+	public static void applyUpdates(VariableStore store, Variable[] updates) {
+		for (Variable variable : updates) {
+			logger.info(variable.toString());
+			if (variable.getValue() != null) {
+				store.setValue(variable.getName(), variable.getValue(), true,
+						variable.getZonedUpdatedTime(), VariableUpdatedSource.EXTERNAL);
+			} else {
+				store.removeByName(variable.getName(), true, variable.getZonedUpdatedTime(),
+						VariableUpdatedSource.EXTERNAL);
+			}
+		}
+	}
+
+	/** Adds the {@code (issuer, subject, projectSlug)} identity parameters to an EVS request. */
+	static void addIdentityParams(LinkedMultiValueMap<String, String> params,
+			String issuer, String subject, String projectSlug, String userTimeZoneString) {
+		params.put("issuer", Arrays.asList(issuer));
+		params.put("subject", Arrays.asList(subject));
+		params.put("projectSlug", Arrays.asList(projectSlug));
+		params.put("timeZone", Arrays.asList(userTimeZoneString));
 	}
 }
