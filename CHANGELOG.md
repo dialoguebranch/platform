@@ -35,6 +35,16 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- Studio: acting on behalf of another user for real (*Act as*) is treated as the powerful
+  operation it is ([#330](https://github.com/dialoguebranch/platform/issues/330)): choosing it warns
+  that the user's dialogue logs, variables and history change as if they acted themselves, the
+  confirmation says *Act as \<user\>*, and a red banner shows while acting, with *Stop acting as*.
+  *Set Delegate User* is shown to admins only.
+- Docs: the Authentication page no longer describes a trusted server that acts for all of its end
+  users through one `admin` account and `delegateUser`
+  ([#330](https://github.com/dialoguebranch/platform/issues/330)). A backend serving many users
+  should forward each user's own access token instead; `delegateUser` is for an administrator's
+  testing and support work, described in a new section on acting on behalf of another user.
 - Web service: test sessions read from the External Variable Service like real playback does
   ([#411](https://github.com/dialoguebranch/platform/issues/411)): at every dialogue start, also
   through a reply into another dialogue, with the values of the session's copy of the variables.

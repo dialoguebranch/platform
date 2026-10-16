@@ -54,7 +54,7 @@ Your client can set and retrieve Dialogue Branch Variables via the `/variables/*
 
 ## Acting on Behalf of Other Users
 
-If your "client" is actually a trusted server-side component managing many end-users through a single connection (rather than each end-user authenticating individually), see the `delegateUser` mechanism described under [Roles](/web-services/authentication#roles) on the Authentication page.
+If your "client" is a server-side component that serves many end users, let each end user authenticate, and forward their own access token to the Web Service with each request made for them. Don't use one `admin` account to act for all of them through `delegateUser`: that parameter is meant for an administrator's testing and support work, and acting through it changes the other user's real data. See [Acting on behalf of another user](/web-services/authentication#acting-on-behalf-of-another-user) on the Authentication page.
 
 ::: info Note
 If you found errors or have questions about this page, please consider reporting an issue at https://github.com/dialoguebranch/platform or sending an email to info@dialoguebranch.com.
