@@ -2,7 +2,10 @@ name: Release (finish)
 
 # Phase 2 of cutting a release: runs once a release-prepare.yml PR (see
 # release-prepare.yml) merges, and tags vX.Y.Z, re-points the floating "latest"
-# tag, and creates the GitHub release from that version's CHANGELOG.md section.
+# tag, and creates the GitHub release with the merged PR's body as its notes.
+# release-prepare.yml fills that body with the version's CHANGELOG.md section;
+# it is then rewritten into short, functional release notes before merging (see
+# CLAUDE.md's Versioning section), so what is merged is what is published.
 #
 # Requires the same RELEASE_PAT secret as release-prepare.yml, and for the same
 # reason: a release created with the default GITHUB_TOKEN wouldn't fire a
@@ -56,13 +59,15 @@ jobs:
       - name: Verify the CHANGELOG has this version's heading
         run: grep -q "^## \[${{ steps.version.outputs.version }}\]" CHANGELOG.md
 
-      - name: Extract this release's notes
+      - name: Take this release's notes from the merged PR
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          awk -v heading="## [${{ steps.version.outputs.version }}]" '
-            index($0, heading) == 1 { found = 1; next }
-            found && /^## \[/ { exit }
-            found { print }
-          ' CHANGELOG.md > release-notes.md
+          if [ -z "$PR_BODY" ]; then
+            echo "::error::the release PR has no body to use as release notes"
+            exit 1
+          fi
+          printf '%s\n' "$PR_BODY" > release-notes.md
 
       - name: Tag the release
         run: |
