@@ -205,7 +205,7 @@ public class DialogueController {
 		logger.info(logInfo);
 
 			return QueryRunner.runQuery(
-					(protocolVersion, user) -> doStartDialogue(user,
+					(protocolVersion, user, delegated) -> doStartDialogue(user, delegated,
 							projectSlug, dialogueName, language, timeZone, sessionId, startNodeId),
 					version, response, delegateUser, Permission.DIALOGUE_RUN);
 	}
@@ -214,6 +214,8 @@ public class DialogueController {
 	 * Processes a call to the /dialogue/start end-point.
 	 *
 	 * @param userId the {@link String} identifier of the user for whom to start a dialogue.
+	 * @param delegated {@code true} if the request acts on behalf of another user, whose time zone
+	 *                  it then leaves unchanged.
 	 * @param dialogueName the name of the dialogue to start executing
 	 * @param language the language in which to start the dialogue, or {@code null}/empty for the
 	 *                 project's source language
@@ -228,15 +230,17 @@ public class DialogueController {
 	 * @throws DatabaseException in case of an error in retrieving the current active user.
 	 * @throws IOException in case of any network error.
 	 */
-	private DialogueMessage doStartDialogue(DialogueBranchUserId userId, String projectSlug, String dialogueName,
-			String language, String timeZone, String sessionId, String startNodeId)
+	private DialogueMessage doStartDialogue(DialogueBranchUserId userId, boolean delegated,
+			String projectSlug, String dialogueName, String language, String timeZone,
+			String sessionId, String startNodeId)
 			throws HttpException, IOException, DatabaseException {
 
 		// Get or create a UserService for the user in the given time zone
 		ZoneId timeZoneId = ControllerFunctions.parseTimeZone(timeZone);
 		UserService userService = application.getApplicationManager()
 				.getOrCreateActiveUserService(userId, timeZoneId);
-		userService.getDialogueBranchUser().setTimeZone(timeZoneId);
+		// A delegated request never changes the user's own time zone (#331).
+		if (!delegated) userService.getDialogueBranchUser().setTimeZone(timeZoneId);
 
 		// If no sessionId was provided, generate a unique one now
 		if(sessionId == null || sessionId.isEmpty()) {
@@ -497,7 +501,7 @@ public class DialogueController {
 		logger.info(logInfo);
 
 			return QueryRunner.runQuery(
-					(protocolVersion, user) -> doContinueDialogue(user,
+					(protocolVersion, user, delegated) -> doContinueDialogue(user, delegated,
 							projectSlug, dialogueName, timeZone),
 					version, response, delegateUser, Permission.DIALOGUE_RUN);
 	}
@@ -507,6 +511,8 @@ public class DialogueController {
 	 *
 	 * @param userId the user for which to continue executing the dialogue (leave empty if
 	 *               executing for the currently authenticated user).
+	 * @param delegated {@code true} if the request acts on behalf of another user, whose time zone
+	 *                  it then leaves unchanged.
 	 * @param dialogueName name of the Dialogue Branch Dialogue to continue (excluding .dlb).
 	 * @param timeZone the current time zone of the Dialogue Branch user (as IANA, e.g.
 	 *                 'Europe/Lisbon').
@@ -517,15 +523,16 @@ public class DialogueController {
 	 *                           database.
 	 * @throws IOException in case of a file io error.
 	 */
-	private NullableResponse<DialogueMessage> doContinueDialogue(DialogueBranchUserId userId, String projectSlug,
-			String dialogueName, String timeZone)
+	private NullableResponse<DialogueMessage> doContinueDialogue(DialogueBranchUserId userId,
+			boolean delegated, String projectSlug, String dialogueName, String timeZone)
 			throws HttpException, DatabaseException, IOException {
 
 		// Get or create a UserService for the user in the given time zone
 		ZoneId timeZoneId = ControllerFunctions.parseTimeZone(timeZone);
 		UserService userService = application.getApplicationManager()
 				.getOrCreateActiveUserService(userId,timeZoneId);
-		userService.getDialogueBranchUser().setTimeZone(timeZoneId);
+		// A delegated request never changes the user's own time zone (#331).
+		if (!delegated) userService.getDialogueBranchUser().setTimeZone(timeZoneId);
 
 		// Determine the event timestamp
 		ZonedDateTime continueDialogueEventTime =
@@ -864,7 +871,8 @@ public class DialogueController {
 		logger.info(logInfo);
 
 			return QueryRunner.runQuery(
-					(protocolVersion, user) -> doGetOngoingDialogue(user, projectSlug, timeZone),
+					(protocolVersion, user, delegated) ->
+							doGetOngoingDialogue(user, delegated, projectSlug, timeZone),
 					version, response, delegateUser, Permission.DIALOGUE_RUN);
 	}
 
@@ -873,6 +881,8 @@ public class DialogueController {
 	 *
 	 * @param userId the user for which to retrieve the latest ongoing dialogue information
 	 *               (leave empty if retrieving for the currently authenticated user).
+	 * @param delegated {@code true} if the request acts on behalf of another user, whose time zone
+	 *                  it then leaves unchanged.
 	 * @param timeZone the timeZone of the client as one of {@code TimeZone.getAvailableIDs()}
 	 * 	               (IANA Codes)
 	 * @return a {@link NullableResponse} containing either a {@link OngoingDialoguePayload} object
@@ -881,16 +891,16 @@ public class DialogueController {
 	 * @throws IOException in case of any network error.
 	 * @throws BadRequestException in case of a malformed or unknown {@code timeZone}
 	 */
-	private NullableResponse<OngoingDialoguePayload> doGetOngoingDialogue(DialogueBranchUserId userId,
-																		  String projectSlug,
-																		  String timeZone)
+	private NullableResponse<OngoingDialoguePayload> doGetOngoingDialogue(
+			DialogueBranchUserId userId, boolean delegated, String projectSlug, String timeZone)
 			throws DatabaseException, IOException, BadRequestException {
 
 		// Get or create a UserService for the user in the given time zone
 		ZoneId timeZoneId = ControllerFunctions.parseTimeZone(timeZone);
 		UserService userService = application.getApplicationManager()
 				.getOrCreateActiveUserService(userId,timeZoneId);
-		userService.getDialogueBranchUser().setTimeZone(timeZoneId);
+		// A delegated request never changes the user's own time zone (#331).
+		if (!delegated) userService.getDialogueBranchUser().setTimeZone(timeZoneId);
 
 		ServerLoggedDialogue latestOngoingDialogue =
 				userService.getLoggedDialogueStore().findLatestOngoingDialogueInProject(projectSlug);
