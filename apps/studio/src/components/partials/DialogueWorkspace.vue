@@ -253,7 +253,8 @@ function cancelAndCloseTab(id) {
     if (tab?.isDraftTest && tab.testSessionId) {
         authoringClient.cancelTestSession(tab.testSessionId)
         .catch((error) => {
-            showError(describeError(error));
+            // Already gone (expired, #218): closing the tab is all that's left to do.
+            if (error?.status !== 404) showError(describeError(error));
         })
         .finally(() => doCloseTab(id));
         return;
@@ -392,7 +393,10 @@ const loadDraftDialogue = (name, { tab: givenTab, startNodeId, language } = {}) 
         tab.dialogueSteps.push(dialogueStep);
         logStatementActions(dialogueStep);
         tab.dialogueEnded = dialogueStep.replies.length === 0;
-        if (tab.dialogueEnded) logEvent('dialogue', 'Draft test ended immediately: $1', name);
+        if (tab.dialogueEnded) {
+            logEvent('dialogue', 'Draft test ended immediately: $1', name);
+            tab.testSessionId = null;
+        }
         emit('newDialogueStep');
         scrollTextToBottom();
     })
@@ -408,6 +412,18 @@ const loadDraftDialogue = (name, { tab: givenTab, startNodeId, language } = {}) 
         }
     });
 };
+
+// A test session that was idle too long is evicted by the Web Service (#218), which then answers
+// 404: say so in the tab, with a button to start the test again (see restartActiveTab()).
+function showExpired(tab) {
+    logEvent('dialogue', 'Draft test session expired: $1', tab.dialogueName);
+    tab.testSessionId = null;
+    tab.dialogueEnded = true;
+    tab.startError = {
+        message: 'This test session has expired after a period of inactivity. Start it again to continue.',
+        errors: null,
+    };
+}
 
 function restartActiveTab() {
     const tab = activeTab.value;
@@ -759,7 +775,11 @@ function onCancelClick() {
             tab.dialogueEnded = true;
         })
         .catch((error) => {
-            showError(describeError(error));
+            if (error?.status === 404) {
+                showExpired(tab);
+            } else {
+                showError(describeError(error));
+            }
         });
         return;
     }
@@ -829,11 +849,17 @@ function onSelectReply(dialogueStep, reply, inputValues) {
                 tab.dialogueEnded = true;
                 logEvent('dialogue', 'Draft test ended: $1', tab.dialogueName);
             }
+            // The Web Service ends a test session with its dialogue (#218).
+            if (tab.dialogueEnded) tab.testSessionId = null;
             emit('newDialogueStep');
             scrollTextToBottom();
         })
         .catch((error) => {
-            showError(describeError(error));
+            if (error?.status === 404) {
+                showExpired(tab);
+            } else {
+                showError(describeError(error));
+            }
         })
         .finally(() => {
             tab.awaitingReply = false;

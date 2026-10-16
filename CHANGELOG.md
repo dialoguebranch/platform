@@ -59,6 +59,14 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Web service and Studio: test sessions stayed in memory, each with its own parsed copy of the
+  project, until the web service restarted, unless they were cancelled
+  ([#218](https://github.com/dialoguebranch/platform/issues/218)). A test session now ends when its
+  dialogue does, and sessions idle for longer than `dlb.test-session.idle-timeout-minutes` (default
+  30), and copies of the variables no session uses, are removed. Studio says so when a test has
+  expired, with a button to start it again. Two requests on the same test session at once could
+  also corrupt it; a session now handles one request at a time
+  ([#215](https://github.com/dialoguebranch/platform/issues/215)).
 - Web service: a request made on behalf of another user (`delegateUser`) that runs a dialogue or
   sets variables overwrote that user's time zone with the caller's, so the user's own next dialogue
   steps and variable changes were stamped in the wrong time zone
