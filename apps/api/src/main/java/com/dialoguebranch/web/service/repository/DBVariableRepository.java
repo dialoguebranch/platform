@@ -36,6 +36,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -119,5 +120,15 @@ public interface DBVariableRepository extends JpaRepository<DBVariable, UUID> {
 	@Modifying
 	@Query("delete from DBVariable v where v.user = :user")
 	int deleteByUser(@Param("user") DBUser user);
+
+	/**
+	 * Counts the variables of each of the given users, in every project, for the {@code /users}
+	 * listing.
+	 *
+	 * @param users the users.
+	 * @return one {@code [user id, count]} row per user that has variables.
+	 */
+	@Query("select v.user.id, count(v) from DBVariable v where v.user in :users group by v.user.id")
+	List<Object[]> countByUsers(@Param("users") Collection<DBUser> users);
 
 }

@@ -176,3 +176,22 @@ describe('ProjectSelectorPage delete project', () => {
         expect(authoring.deleteProject).toHaveBeenCalledWith('live', { deleteVariables: true, deleteLogs: true });
     });
 });
+
+describe('ProjectSelectorPage Users button', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        authoring.listProjects.mockResolvedValue(PROJECTS);
+        authoring.listDeletedProjects.mockResolvedValue([]);
+    });
+
+    it('opens the Users page for admins', async () => {
+        const wrapper = await mountPage(['admin']);
+        await wrapper.find('[data-test="open-users"]').trigger('click');
+        expect(wrapper.vm.$.provides.state.value.adminPage).toBe('users');
+    });
+
+    it('is not shown to editors', async () => {
+        const wrapper = await mountPage(['editor']);
+        expect(wrapper.find('[data-test="open-users"]').exists()).toBe(false);
+    });
+});

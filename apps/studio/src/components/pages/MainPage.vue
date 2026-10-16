@@ -369,6 +369,9 @@ function onTranslationsImported(results) {
     dialogueWorkspace.value?.translationsReplaced(results.map((result) => result.dialogueName));
 }
 
+// A delegate is set on the shared clients, which outlive this page: clear it whenever a project
+// is opened, so that one set in a previous project can't stay active unseen (#407).
+setDelegateUser(null);
 const activeDelegateUser = ref(null);
 const showDelegateModal = ref(false);
 const delegateConfirmAction = ref(null);

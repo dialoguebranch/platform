@@ -70,13 +70,13 @@ describe("query parameter encoding", () => {
         const client = new DialogueBranchAuthoringClient({ baseUrl: "/api/v1" });
 
         expect(captureUrl(client, c => c.listUsers()))
-            .toBe("/api/v1/users?username=");
-        expect(captureUrl(client, c => c.listUsers({ usernameFragment: "har&admin=true" })))
-            .toBe("/api/v1/users?username=har%26admin%3Dtrue");
-        expect(captureUrl(client, c => c.listUsers({ usernameFragment: "harm", page: 2, pageSize: 100 })))
-            .toBe("/api/v1/users?username=harm&page=2&pageSize=100");
+            .toBe("/api/v1/users?search=");
+        expect(captureUrl(client, c => c.listUsers({ search: "har&admin=true" })))
+            .toBe("/api/v1/users?search=har%26admin%3Dtrue");
+        expect(captureUrl(client, c => c.listUsers({ search: "harm", page: 2, pageSize: 100 })))
+            .toBe("/api/v1/users?search=harm&page=2&pageSize=100");
         // page 0 is a legitimate value, not "omit" — must not be dropped by a falsy check.
         expect(captureUrl(client, c => c.listUsers({ page: 0, pageSize: 0 })))
-            .toBe("/api/v1/users?username=&page=0&pageSize=0");
+            .toBe("/api/v1/users?search=&page=0&pageSize=0");
     });
 });

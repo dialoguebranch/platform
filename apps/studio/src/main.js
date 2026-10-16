@@ -16,7 +16,7 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 // Font Awesome ships) instead of these specific ones bloats the production bundle by well over
 // 1 MB for icons that are never rendered.
 import {
-    faAlignLeft, faAnglesLeft, faAnglesRight, faArrowUpRightFromSquare, faArrowsRotate, faBug,
+    faAlignLeft, faAnglesLeft, faAnglesRight, faArrowLeft, faArrowUpRightFromSquare, faArrowsRotate, faBug,
     faCaretDown, faCaretRight, faCaretUp, faCheck, faCircle, faCircleArrowRight, faCircleCheck,
     faCircleChevronLeft, faCircleChevronRight, faCircleExclamation, faCircleInfo, faCircleNotch,
     faCircleXmark, faClockRotateLeft, faCloudArrowUp, faCookieBite, faDiagramProject, faEllipsis, faFileExport,
@@ -24,12 +24,12 @@ import {
     faFolderMinus, faFolderOpen, faHeading, faLanguage, faMagnifyingGlass, faParagraph, faPen,
     faPlay, faPlus, faRightFromBracket, faRocket, faRotateLeft, faRotateRight, faSatelliteDish,
     faServer, faSliders, faTrash, faTriangleExclamation, faUser, faUserGear, faUserLock,
-    faUserXmark, faWandMagicSparkles, faXmark,
+    faUserXmark, faUsers, faWandMagicSparkles, faXmark,
 } from '@fortawesome/free-solid-svg-icons';
 import { faComment, faComments, faCopy } from '@fortawesome/free-regular-svg-icons';
 
 library.add(
-    faAlignLeft, faAnglesLeft, faAnglesRight, faArrowUpRightFromSquare, faArrowsRotate, faBug,
+    faAlignLeft, faAnglesLeft, faAnglesRight, faArrowLeft, faArrowUpRightFromSquare, faArrowsRotate, faBug,
     faCaretDown, faCaretRight, faCaretUp, faCheck, faCircle, faCircleArrowRight, faCircleCheck,
     faCircleChevronLeft, faCircleChevronRight, faCircleExclamation, faCircleInfo, faCircleNotch,
     faCircleXmark, faClockRotateLeft, faCloudArrowUp, faCookieBite, faDiagramProject, faEllipsis, faFileExport,
@@ -37,7 +37,7 @@ library.add(
     faFolderMinus, faFolderOpen, faHeading, faLanguage, faMagnifyingGlass, faParagraph, faPen,
     faPlay, faPlus, faRightFromBracket, faRocket, faRotateLeft, faRotateRight, faSatelliteDish,
     faServer, faSliders, faTrash, faTriangleExclamation, faUser, faUserGear, faUserLock,
-    faUserXmark, faWandMagicSparkles, faXmark,
+    faUserXmark, faUsers, faWandMagicSparkles, faXmark,
     faComment, faComments, faCopy,
 );
 

@@ -20,6 +20,10 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `POST /users/erase-user` (new admin-only `USER_ERASE` permission); a configured External
   Variable Service is sent `notify-cleared` for each project the user had variables in
   ([#320](https://github.com/dialoguebranch/platform/issues/320)). client-js gains `eraseUser`.
+- Studio: a *Users* page for admins, opened from the project selection page, lists everyone the
+  web service has seen with how many variables and dialogue logs it holds for them, and erases a
+  user's data after typing their username to confirm
+  ([#407](https://github.com/dialoguebranch/platform/issues/407)).
 
 ### Changed
 
@@ -31,6 +35,12 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   and `deleteLogs` (both `false` by default) to delete that data too; with both, the project is
   removed for good. Studio's delete confirmation offers both as unticked options. client-js's
   `deleteProject` takes them as options. A new database migration (`V11`) adds the deleted flag.
+- **Breaking:** Web service and client-js: `GET /users` also lists users with no known username
+  (only ever seen as a delegate, `username` is `null`), after the named ones; its `username` filter
+  is replaced by `search`, which matches the username or the subject; and each entry has
+  `variables` and `dialogueLogs` counts ([#407](https://github.com/dialoguebranch/platform/issues/407)).
+  client-js's `listUsers` takes `search` instead of `usernameFragment`. Studio's delegate user
+  picker finds these users too.
 
 ### Fixed
 
@@ -41,6 +51,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   an ongoing dialogue to resume ([#317](https://github.com/dialoguebranch/platform/issues/317)); and
   a deleted project stayed listed and playable until the web service restarted. Deleting a project
   now succeeds, unloads it, and keeps its users' data away from a new project with the same slug.
+- Studio: a delegate user set in one project stayed active, without being shown, after closing it
+  and opening a project again; opening a project now clears it
+  ([#407](https://github.com/dialoguebranch/platform/issues/407)).
 
 ## [0.7.0] - 2026-10-15
 
