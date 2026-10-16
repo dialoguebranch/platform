@@ -35,6 +35,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -161,5 +162,16 @@ public interface DBLoggedDialogueRepository extends JpaRepository<DBLoggedDialog
 	@Modifying
 	@Query("delete from DBLoggedDialogue l where l.user = :user")
 	int deleteByUser(@Param("user") DBUser user);
+
+	/**
+	 * Counts the logged dialogues of each of the given users, in every project, for the {@code
+	 * /users} listing.
+	 *
+	 * @param users the users.
+	 * @return one {@code [user id, count]} row per user that has logged dialogues.
+	 */
+	@Query("select l.user.id, count(l) from DBLoggedDialogue l where l.user in :users "
+			+ "group by l.user.id")
+	List<Object[]> countByUsers(@Param("users") Collection<DBUser> users);
 
 }

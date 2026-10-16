@@ -28,14 +28,21 @@
 
 package com.dialoguebranch.web.service.controller.schema;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * One entry in the {@code /users} response: a known Dialogue Branch user, identified by their
- * stable {@code subject} with the last-seen {@code username} for display. Used by a client (e.g.
- * Dialogue Branch Studio) to let an admin resolve a memorable name to the {@code subject} that
- * delegated dialogue execution requires.
+ * stable {@code subject} with the last-seen {@code username} for display, and how much data this
+ * service holds for them. Used by a client (e.g. Dialogue Branch Studio) to let an admin resolve a
+ * memorable name to the {@code subject} that delegated dialogue execution requires, and to manage
+ * users.
  *
- * @param username the last-seen {@code preferred_username} (display only, may be stale).
+ * @param username the last-seen {@code preferred_username} (display only, may be stale), or
+ *                 {@code null} for a user only ever seen as a delegate.
  * @param subject  the stable OIDC {@code sub} — what to pass as {@code delegateUser}.
+ * @param variables the number of variables the user has, in all projects.
+ * @param dialogueLogs the number of logged dialogues the user has, in all projects.
  */
-public record UserSummary(String username, String subject) {
+public record UserSummary(@Nullable String username, String subject, long variables,
+		long dialogueLogs) {
 }

@@ -37,9 +37,12 @@ import com.dialoguebranch.web.service.controller.schema.ErasedUserSummary;
 import com.dialoguebranch.web.service.controller.schema.UserSummary;
 import com.dialoguebranch.web.service.exception.HttpException;
 import com.dialoguebranch.web.service.exception.NotFoundException;
+import com.dialoguebranch.web.service.repository.DBLoggedDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBUserRepository;
+import com.dialoguebranch.web.service.repository.DBVariableRepository;
 import com.dialoguebranch.web.service.storage.ExternalVariableServiceUpdater;
 import com.dialoguebranch.web.service.storage.UserDataEraseService;
+import com.dialoguebranch.web.service.storage.model.DBUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -56,8 +59,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Controller for the {@code /users} end-points: a realm-scoped listing of the Dialogue Branch users
@@ -74,8 +80,8 @@ import java.util.Map;
 @SecurityRequirement(name = "bearerAuth")
 @SecurityRequirement(name = "oauth2")
 @RequestMapping(value = {"/v{version}/users", "/users"})
-@Tag(name = "8. Users", description = "Listing of known Dialogue Branch users, for resolving a " +
-		"username to a subject, and erasing a user's data.")
+@Tag(name = "8. Users", description = "Listing of known Dialogue Branch users, with how much " +
+		"data each has, and erasing a user's data.")
 public class UsersController {
 
 	/** Hard cap on the page size, whatever the client asks for. */
@@ -85,6 +91,8 @@ public class UsersController {
 
 	private final Application application;
 	private final DBUserRepository userRepository;
+	private final DBVariableRepository variableRepository;
+	private final DBLoggedDialogueRepository loggedDialogueRepository;
 	private final UserDataEraseService userDataEraseService;
 
 	/**
@@ -92,24 +100,32 @@ public class UsersController {
 	 *
 	 * @param application the application, for its in-memory user sessions and configuration.
 	 * @param userRepository repository used to read the {@code users} table.
+	 * @param variableRepository repository used to count the users' variables.
+	 * @param loggedDialogueRepository repository used to count the users' logged dialogues.
 	 * @param userDataEraseService service that erases a user's data.
 	 */
 	public UsersController(Application application, DBUserRepository userRepository,
+			DBVariableRepository variableRepository,
+			DBLoggedDialogueRepository loggedDialogueRepository,
 			UserDataEraseService userDataEraseService) {
 		this.application = application;
 		this.userRepository = userRepository;
+		this.variableRepository = variableRepository;
+		this.loggedDialogueRepository = loggedDialogueRepository;
 		this.userDataEraseService = userDataEraseService;
 	}
 
 	/**
 	 * Lists the users known to this service within the caller's own realm, optionally filtered by
-	 * a username fragment, ordered by username and paginated.
+	 * a text that the username or subject must contain, paginated: named users first, by
+	 * username, then users with no known username, by subject. Each entry says how many variables
+	 * and logged dialogues the user has.
 	 *
 	 * @param request the HTTP request (to retrieve authentication headers).
 	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
 	 *                 Unauthorized error).
 	 * @param version the API version to use, e.g. '1'.
-	 * @param username an optional case-insensitive substring the username must contain.
+	 * @param search an optional case-insensitive text the username or subject must contain.
 	 * @param page the zero-based page index (default {@code 0}).
 	 * @param pageSize the page size (default {@code 50}, capped at {@value #MAX_PAGE_SIZE}).
 	 * @return the matching page of {@link UserSummary} entries.
@@ -122,22 +138,35 @@ public class UsersController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "username", required = false, defaultValue = "") String username,
+			@RequestParam(value = "search", required = false, defaultValue = "") String search,
 			@RequestParam(value = "page", required = false, defaultValue = "0") int page,
 			@RequestParam(value = "pageSize", required = false, defaultValue = "50") int pageSize
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info("GET /v{}/users?username={}&page={}&pageSize={} [user: {}]",
-							version, username, page, pageSize, user.subject());
+					logger.info("GET /v{}/users?search={}&page={}&pageSize={} [user: {}]",
+							version, search, page, pageSize, user.subject());
 					int size = Math.max(1, Math.min(pageSize, MAX_PAGE_SIZE));
-					return userRepository
-							.findByIssuerAndUsernameContainingIgnoreCaseOrderByUsernameAsc(
-									user.issuer(), username, PageRequest.of(Math.max(0, page), size))
-							.map(u -> new UserSummary(u.getUsername(), u.getSubject()))
-							.getContent();
+					List<DBUser> users = userRepository.search(user.issuer(),
+							search.trim().toLowerCase(Locale.ROOT),
+							PageRequest.of(Math.max(0, page), size)).getContent();
+					if (users.isEmpty()) return List.of();
+					Map<UUID, Long> variables = countsById(variableRepository.countByUsers(users));
+					Map<UUID, Long> logs = countsById(loggedDialogueRepository.countByUsers(users));
+					return users.stream()
+							.map(u -> new UserSummary(u.getUsername(), u.getSubject(),
+									variables.getOrDefault(u.getId(), 0L),
+									logs.getOrDefault(u.getId(), 0L)))
+							.toList();
 				},
 				version, response, "", Permission.USER_LIST);
+	}
+
+	/** Turns {@code [user id, count]} rows into a map. */
+	private static Map<UUID, Long> countsById(List<Object[]> rows) {
+		Map<UUID, Long> counts = new HashMap<>();
+		for (Object[] row : rows) counts.put((UUID) row[0], (Long) row[1]);
+		return counts;
 	}
 
 	/**

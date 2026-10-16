@@ -242,6 +242,16 @@ function confirmPurge() {
                 <h2 class="font-title font-bold text-lg">Select a Project</h2>
                 <div class="flex items-center gap-2">
                     <button
+                        v-if="isAdmin"
+                        type="button"
+                        class="flex items-center gap-1.5 px-3 py-1.5 rounded text-orange-darker text-xs font-title font-semibold border border-orange-darker/50 hover:bg-orange-light/30 cursor-pointer transition-colors"
+                        data-test="open-users"
+                        @click="state.adminPage = 'users'"
+                    >
+                        <FontAwesomeIcon icon="fa-solid fa-users" />
+                        Users
+                    </button>
+                    <button
                         type="button"
                         :class="['flex items-center gap-1.5 px-3 py-1.5 rounded text-white text-xs font-title font-semibold transition-colors', isAdmin ? 'bg-orange-darker hover:bg-orange-dark cursor-pointer' : 'bg-orange-medium cursor-not-allowed opacity-60']"
                         :disabled="!isAdmin"

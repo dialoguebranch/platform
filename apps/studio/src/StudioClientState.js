@@ -60,6 +60,7 @@ export class StudioClientState extends ClientState {
         this._dialogueWorkspaceStyle = DIALOGUE_WORKSPACE_STYLE_BALLOONS;
         this._mode = DLB_APP_MODE_LIVE;
         this._selectedProject = null;
+        this._adminPage = null;
         this._debugConsoleShowApi = true;
         this._debugConsoleShowEvents = true;
         this._debugConsoleShowCookies = false;
@@ -193,6 +194,25 @@ export class StudioClientState extends ClientState {
 
     get selectedProject() {
         return this._selectedProject;
+    }
+
+    // ----- adminPage
+
+    /**
+     * Sets the admin page to show instead of the project selection, such as 'users' (#407), or
+     * null for none. Not persisted: a reload returns to the project selection.
+     * @param {string|null} adminPage The admin page, or null.
+     */
+    set adminPage(adminPage) {
+        this._adminPage = adminPage;
+    }
+
+    /**
+     * Returns the admin page shown instead of the project selection, or null.
+     * @returns {string|null} The admin page, or null.
+     */
+    get adminPage() {
+        return this._adminPage;
     }
 
     // ----- dialogueWorkspaceStyle

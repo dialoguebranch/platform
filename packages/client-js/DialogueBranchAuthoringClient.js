@@ -990,25 +990,27 @@ export class DialogueBranchAuthoringClient extends BaseClient {
     }
 
     /**
-     * Looks up known Dialogue Branch users in the caller's realm whose username contains the
-     * given fragment — used to resolve a username to the `subject` that a client's `delegateUser`
-     * (both this class's `progressDraftDialogue`/etc. and
-     * {@link DialogueBranchClient}'s `delegateUser`) needs, e.g. for a "run as this user"
-     * picker. Requires the `admin` role.
+     * Looks up known Dialogue Branch users in the caller's realm whose username or subject
+     * contains the given text — used to resolve a username to the `subject` that a client's
+     * `delegateUser` (both this class's `progressDraftDialogue`/etc. and
+     * {@link DialogueBranchClient}'s `delegateUser`) needs, e.g. for a "run as this user" picker,
+     * and to manage users. Requires the `admin` role.
      *
      * @param {Object} [options]
-     * @param {string} [options.usernameFragment] Substring to filter usernames by. Omit (or pass
-     * an empty string) to list all known users.
+     * @param {string} [options.search] Text the username or subject must contain,
+     * case-insensitively. Omit (or pass an empty string) to list all known users.
      * @param {number} [options.page] Zero-based page index. Defaults to the Web Service's own
      * default (currently `0`).
      * @param {number} [options.pageSize] Page size. Defaults to the Web Service's own default
      * (currently `50`, capped server-side regardless of what's requested).
-     * @returns {Promise<{username: string, subject: string}[]>} The matching page of users,
-     * ordered by username. Only includes users the Web Service has actually seen run a dialogue
-     * before — a Keycloak account that has never authenticated against it won't appear.
+     * @returns {Promise<{username: string|null, subject: string, variables: number,
+     * dialogueLogs: number}[]>} The matching page of users: named users first, by username, then
+     * users with no known username (only ever seen as a delegate), by subject — each with how
+     * many variables and logged dialogues it has. Only includes users the Web Service has
+     * actually seen — a Keycloak account that has never used it won't appear.
      */
-    listUsers({ usernameFragment, page, pageSize } = {}) {
-        let url = this._baseUrl + "/users?username=" + encodeURIComponent(usernameFragment ?? "");
+    listUsers({ search, page, pageSize } = {}) {
+        let url = this._baseUrl + "/users?search=" + encodeURIComponent(search ?? "");
         if (page != null) url += "&page=" + page;
         if (pageSize != null) url += "&pageSize=" + pageSize;
 
