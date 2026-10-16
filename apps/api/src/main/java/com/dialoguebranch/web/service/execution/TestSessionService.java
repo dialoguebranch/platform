@@ -57,6 +57,7 @@ import com.dialoguebranch.web.service.exception.ForbiddenException;
 import com.dialoguebranch.web.service.exception.NotFoundException;
 import com.dialoguebranch.web.service.exception.ProjectParseHttpError;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
+import com.dialoguebranch.web.service.storage.ExternalVariableServiceClient;
 import com.dialoguebranch.web.service.storage.VariableStoreDatabaseStorageHandler;
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslation;
@@ -70,6 +71,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -378,6 +380,8 @@ public class TestSessionService {
 		}
 
 		VariableStore copy = getCopy(tester, user, delegated, project, timeZone);
+		CopyKey copyKey = CopyKey.of(tester, user, project.getSlug());
+		readFromExternalService(copyKey, copy, resolved.definition());
 		ActiveDialogue activeDialogue = new ActiveDialogue(resolved.pointer(), resolved.definition(),
 				copy);
 
@@ -388,7 +392,7 @@ public class TestSessionService {
 			throw new RuntimeException("Expression evaluation error: " + e.getMessage(), e);
 		}
 
-		TestSession session = new TestSession(tester, CopyKey.of(tester, user, project.getSlug()),
+		TestSession session = new TestSession(tester, copyKey,
 				activeDialogue, resolved.definition(), executableProject, sourceLanguage);
 		ExecuteNodeResult result = new ExecuteNodeResult(resolved.definition(), startNode, null, 0);
 		// A dialogue that ends at its start node needs no session to continue it.
@@ -469,14 +473,36 @@ public class TestSessionService {
 	public ExecuteNodeResult progressSession(TestSession session, int replyId,
 											 Map<String, ?> variables, ZonedDateTime eventTime)
 			throws NotFoundException, ExecutionException {
-		// One request at a time per session (#215): ActiveDialogue isn't thread-safe. Nothing in
-		// here blocks on I/O, since the session's copy of the variables has no listeners (#319).
+		// One request at a time per session (#215): ActiveDialogue isn't thread-safe. The session's
+		// copy of the variables has no listeners (#319), so the only I/O in here is the read from
+		// the External Variable Service when a reply starts another dialogue, which holds up only
+		// this session's own requests.
 		synchronized (session) {
 			ExecuteNodeResult result = advance(session, replyId, variables, eventTime);
 			// A dialogue that has ended can't be progressed any more: the session is done.
 			if (hasEnded(result)) sessions.remove(session.getId());
 			return result;
 		}
+	}
+
+	/**
+	 * Asks the External Variable Service, if one is configured, for updated values of the
+	 * variables the given dialogue uses, as real playback does at every dialogue start (#411),
+	 * and writes the answers into the copy only. The request says it comes from a test session,
+	 * and sends the copy's values; nothing a test changes is ever sent to the service.
+	 */
+	private void readFromExternalService(CopyKey copyKey, VariableStore copy, Dialogue dialogue) {
+		if (!dlbProperties.getExternalVariableService().isEnabled()) return;
+		if (dialogue.getVariablesNeeded().isEmpty()) return;
+		List<Variable> current = new ArrayList<>();
+		for (String name : dialogue.getVariablesNeeded()) {
+			Variable variable = copy.getVariable(name);
+			current.add(variable != null ? variable : Variable.unknown(name));
+		}
+		Variable[] updates = new ExternalVariableServiceClient(dlbProperties).retrieveUpdates(
+				copyKey.testerIssuer(), copyKey.userSubject(), copyKey.projectSlug(),
+				copy.getUser().getTimeZone().toString(), current, true);
+		ExternalVariableServiceClient.applyUpdates(copy, updates);
 	}
 
 	/**
@@ -516,6 +542,8 @@ public class TestSessionService {
 						"in this project's draft content.");
 			}
 
+			readFromExternalService(session.getCopyKey(), activeDialogue.getVariableStore(),
+					resolved.definition());
 			ActiveDialogue newActiveDialogue = new ActiveDialogue(resolved.pointer(),
 					resolved.definition(), activeDialogue.getVariableStore());
 

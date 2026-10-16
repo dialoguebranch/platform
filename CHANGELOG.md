@@ -27,6 +27,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- Web service: test sessions read from the External Variable Service like real playback does
+  ([#411](https://github.com/dialoguebranch/platform/issues/411)): at every dialogue start, also
+  through a reply into another dialogue, with the values of the session's copy of the variables.
+  The answers go into the copy only, and a test session still never notifies the service. Every
+  `retrieve-updates` request now carries `testSession` (`true` or `false`), so an External
+  Variable Service can tell test sessions from real playback; the External Variable Service page
+  explains where requests for updates come from.
 - **Breaking:** Web service, client-js and Studio: testing a dialogue no longer changes the
   user's real variables ([#319](https://github.com/dialoguebranch/platform/issues/319)). A test
   session runs against the tester's own copy of the variables, kept in memory and seeded from the

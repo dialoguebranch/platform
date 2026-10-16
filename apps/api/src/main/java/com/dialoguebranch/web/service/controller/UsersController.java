@@ -40,7 +40,7 @@ import com.dialoguebranch.web.service.exception.NotFoundException;
 import com.dialoguebranch.web.service.repository.DBLoggedDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBUserRepository;
 import com.dialoguebranch.web.service.repository.DBVariableRepository;
-import com.dialoguebranch.web.service.storage.ExternalVariableServiceUpdater;
+import com.dialoguebranch.web.service.storage.ExternalVariableServiceClient;
 import com.dialoguebranch.web.service.storage.UserDataEraseService;
 import com.dialoguebranch.web.service.storage.model.DBUser;
 import io.swagger.v3.oas.annotations.Operation;
@@ -220,7 +220,7 @@ public class UsersController {
 		if (!properties.getExternalVariableService().isEnabled()) return;
 		clearedProjects.forEach((projectSlug, timeZone) -> {
 			try {
-				ExternalVariableServiceUpdater.notifyCleared(properties, issuer, subject,
+				new ExternalVariableServiceClient(properties).notifyCleared(issuer, subject,
 						projectSlug, timeZone);
 			} catch (Exception ex) {
 				logger.error("Failed to notify the External Variable Service that the variables " +

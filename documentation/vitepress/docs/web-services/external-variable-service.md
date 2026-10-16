@@ -34,6 +34,9 @@ Every call the Web Service makes to the External Variable Service (`retrieve-upd
 | `projectSlug` | The slug of the Dialogue Branch project the variables belong to. Variables are project-scoped — the same variable name in two projects is two independent values. |
 | `timeZone` | The user's current IANA time zone (e.g. `Europe/Lisbon`). |
 
+
+A request for updates (`retrieve-updates`) also carries `testSession`: `true` when it comes from a test session, `false` when it comes from real playback (see [Where requests for updates come from](#where-requests-for-updates-come-from)).
+
 `notify-cleared` is also sent when an admin erases a user's data ([`POST /users/erase-user`](/web-services/api-service)), once for each project the user had variables in. If your service keeps its own copy of a user's variables, erase it then too.
 
 ::: warning Breaking change
@@ -41,6 +44,16 @@ The earlier single `userId` parameter (a bare username) has been replaced by `su
 :::
 
 See also [Working with Variables](/web-services/api-service#working-with-variables) on the API Service page, for how Variables are set and retrieved directly through the Web Service's own `/variables/*` end-points.
+
+## Where requests for updates come from
+
+The Web Service sends a request for updates (`retrieve-updates`) whenever it starts executing a dialogue: one started by a client, or one reached through a reply that links to another dialogue, starting at whichever node the link names. The request asks about every Variable the dialogue uses, and sends along the values the Web Service currently has for them. Such a request does not always follow from a real user's real action.
+
+Besides real playback, dialogues also run in *test sessions*: ephemeral sessions in which an author tests a dialogue (for example in Dialogue Branch Studio's Authoring Mode), or an administrator simulates a user to investigate a problem, on the dialogues' draft or published content. A test session behaves like real playback, so it sends the same request for updates, for the user whose Variables it runs with: the author themselves, or the user being simulated. The difference is in what happens to the results. A test session runs against its own temporary copy of that user's Variables. The values you return go into that copy, the copy is discarded afterwards, and nothing a test changes is ever sent to you: a test session never sends `notify-updated` or `notify-cleared`.
+
+This means that a request for updates tells you that a dialogue is about to run, and which Variables it needs. It does not by itself mean that the user is active, and in a test session the values it sends along are not the user's stored values but those of the session's copy, which the test may have changed. Changes to a user's real Variables reach you only through `notify-updated` and `notify-cleared`.
+
+Every request for updates says where it comes from, in its `testSession` query parameter: `true` for a test session, `false` for real playback. If your External Variable Service acts on a request for updates beyond answering it, for example by recording it as user activity, use this parameter to tell the two apart.
 
 ## Reporting supported variables
 
