@@ -9,6 +9,8 @@ import PublishProjectWizardModal from '../partials/PublishProjectWizardModal.vue
 import ImportScriptsModal from '../partials/ImportScriptsModal.vue';
 import ImportTranslationsModal from '../partials/ImportTranslationsModal.vue';
 import SetDelegateUserModal from '../partials/SetDelegateUserModal.vue';
+import DelegateConfirmModal from '../partials/DelegateConfirmModal.vue';
+import DelegateBanner from '../partials/DelegateBanner.vue';
 import TechnicalInfoModal from '../partials/TechnicalInfoModal.vue';
 import HeaderMenuItem from '../widgets/HeaderMenuItem.vue';
 import DialogueWorkspace from '../partials/DialogueWorkspace.vue';
@@ -380,7 +382,8 @@ const activeDelegateUser = computed(() => state.value.delegate?.label ?? null);
 // (see DialogueWorkspace); acting as them ('act') does so for real.
 const simulating = computed(() => state.value.delegate?.mode === 'simulate');
 const showDelegateModal = ref(false);
-const delegateConfirmAction = ref(null);
+// A pending change of the delegate, waiting for confirmation: { change: { mode, label }, apply }.
+const delegateConfirm = ref(null);
 
 function onSetDelegateUserClick() {
     closeUserMenu();
@@ -399,26 +402,26 @@ function applyDelegate(delegate) {
 function onDelegateApply(payload) {
     showDelegateModal.value = false;
     const subject = payload?.subject || null;
-    delegateConfirmAction.value = () => {
-        applyDelegate(subject ? { subject, label: payload.label || subject, mode: payload.mode } : null);
-    };
+    if (!subject) return;
+    const delegate = { subject, label: payload.label || subject, mode: payload.mode };
+    delegateConfirm.value = { change: { mode: delegate.mode, label: delegate.label }, apply: () => applyDelegate(delegate) };
 }
 
 function onDelegateClear() {
     showDelegateModal.value = false;
-    delegateConfirmAction.value = () => applyDelegate(null);
+    delegateConfirm.value = { change: { mode: null, label: activeDelegateUser.value }, apply: () => applyDelegate(null) };
 }
 
-// Stopping a simulation needs no confirmation: its tabs only held test sessions.
-function stopSimulating() {
+// Stopping, from the banner, needs no confirmation: the user is choosing to change nothing more.
+function stopDelegate() {
     dialogueWorkspace.value?.clearAllTabs();
     applyDelegate(null);
 }
 
-function confirmDelegateAction() {
+function confirmDelegateChange() {
     dialogueWorkspace.value?.clearAllTabs();
-    delegateConfirmAction.value?.();
-    delegateConfirmAction.value = null;
+    delegateConfirm.value?.apply();
+    delegateConfirm.value = null;
 }
 
 function onResumeDialogue(dialogueName) {
@@ -620,7 +623,7 @@ function onWorkspaceModeChanged(mode) {
                         </span>
                         <span class="font-title text-sm font-bold text-white">
                             {{ state.user?.name }}
-                            <span v-if="activeDelegateUser" class="font-normal text-orange-light text-xs"> → {{ activeDelegateUser }}<template v-if="simulating"> (simulating)</template></span>
+                            <span v-if="activeDelegateUser" class="font-normal text-orange-light text-xs"> → {{ activeDelegateUser }}<template v-if="simulating"> (simulating)</template><template v-else> (acting)</template></span>
                         </span>
                         <span class="font-mono text-[10px] text-orange-light">{{ Array.isArray(state.user?.roles) ? state.user.roles.join(', ') : state.user?.roles }}</span>
                     </div>
@@ -633,12 +636,12 @@ function onWorkspaceModeChanged(mode) {
                     class="fixed z-[9999] min-w-[200px] bg-white shadow-lg border border-grey-light rounded-b overflow-hidden"
                     :style="{ top: userMenuPos.top + 'px', left: userMenuPos.left + 'px' }"
                 >
-                    <button type="button" class="flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm text-orange-darker hover:bg-grey-lighter cursor-pointer transition-colors" @click="onSetDelegateUserClick">
+                    <button v-if="isAdmin" type="button" data-test="set-delegate-user" class="flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm text-orange-darker hover:bg-grey-lighter cursor-pointer transition-colors" @click="onSetDelegateUserClick">
                         <FontAwesomeIcon icon="fa-solid fa-user-gear" class="w-4 text-orange-medium" />
                         Set Delegate User
                         <span v-if="activeDelegateUser" class="ml-auto text-xs font-mono text-orange-darker bg-orange-light/30 px-1.5 py-0.5 rounded">{{ activeDelegateUser }}</span>
                     </button>
-                    <div class="border-t border-grey-light mx-3"></div>
+                    <div v-if="isAdmin" class="border-t border-grey-light mx-3"></div>
                     <button type="button" class="flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm text-orange-darker hover:bg-grey-lighter cursor-pointer transition-colors" @click="onLogoutClick">
                         <FontAwesomeIcon icon="fa-solid fa-right-from-bracket" class="w-4 text-orange-medium" />
                         Log out
@@ -652,21 +655,12 @@ function onWorkspaceModeChanged(mode) {
             <div class="grow"></div>
         </header>
 
-        <Teleport to="body">
-            <div v-if="delegateConfirmAction" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
-                <div class="bg-white rounded-xl shadow-2xl p-5 font-title text-sm w-96">
-                    <div class="font-bold text-orange-darker mb-2 flex items-center gap-2">
-                        <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" class="text-orange-medium" />
-                        Change Delegate User
-                    </div>
-                    <p class="text-grey-dark mb-4">All ongoing dialogues will be lost. Are you sure you want to proceed?</p>
-                    <div class="flex gap-2 justify-end">
-                        <button type="button" class="px-3 py-1.5 rounded border border-grey-light text-grey-dark hover:bg-grey-lighter text-xs font-semibold cursor-pointer" @click="delegateConfirmAction = null">Cancel</button>
-                        <button type="button" class="px-3 py-1.5 rounded bg-orange-darker text-white hover:bg-orange-dark text-xs font-semibold cursor-pointer" @click="confirmDelegateAction">Okay, proceed</button>
-                    </div>
-                </div>
-            </div>
-        </Teleport>
+        <DelegateConfirmModal
+            v-if="delegateConfirm"
+            :change="delegateConfirm.change"
+            @confirm="confirmDelegateChange"
+            @cancel="delegateConfirm = null"
+        />
 
         <Teleport to="body">
             <div v-if="discardAllPrompt" class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50" data-test="discard-all-prompt">
@@ -749,11 +743,7 @@ function onWorkspaceModeChanged(mode) {
                 />
             </template>
             <template #main>
-                <div v-if="simulating" data-test="simulating-banner" class="flex items-center gap-2 mb-1 px-3 py-1.5 rounded-lg border border-orange-medium/50 bg-orange-light/30 font-title text-xs text-orange-darker">
-                    <FontAwesomeIcon icon="fa-solid fa-flask" class="shrink-0" />
-                    <span class="flex-1">Simulating <strong>{{ activeDelegateUser }}</strong>: dialogues run against a copy of their variables, and nothing is saved.</span>
-                    <button type="button" data-test="stop-simulating" class="shrink-0 px-2 py-0.5 rounded border border-orange-medium/60 hover:bg-orange-light/50 cursor-pointer" @click="stopSimulating">Stop simulating</button>
-                </div>
+                <DelegateBanner v-if="state.delegate" :delegate="state.delegate" @stop="stopDelegate" />
                 <DialogueWorkspace ref="dialogue-workspace" class="grow" @newDialogueStep="onNewDialogueStep" @dialogueSaved="onDialogueSaved" @modeChanged="onWorkspaceModeChanged" />
             </template>
             <template #right>
