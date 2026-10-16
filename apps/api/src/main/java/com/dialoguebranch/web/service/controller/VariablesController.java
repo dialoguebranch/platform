@@ -624,8 +624,8 @@ public class VariablesController {
 		if(!(timeZone == null)) logInfo += "&timeZone=" + timeZone;
 		logger.info(logInfo);
 
-		QueryRunner.runQuery((protocolVersion, user) ->
-			doSetVariable(user, projectSlug, name, value, timeZone),
+		QueryRunner.runQuery((protocolVersion, user, delegated) ->
+			doSetVariable(user, delegated, projectSlug, name, value, timeZone),
 			version, response, delegateUser, Permission.VARIABLE_WRITE_OWN);
 	}
 
@@ -634,6 +634,8 @@ public class VariablesController {
 	 * for the specified {@code userId} in the given {@code timeZone}.
 	 *
 	 * @param userId the {@link String} identifier of the user for whom to set the variable.
+	 * @param delegated {@code true} if the request acts on behalf of another user, whose time zone
+	 *                  it then leaves unchanged.
 	 * @param name the name of the Dialogue Branch Variable
 	 * @param value the value for the Dialogue Branch Variable (or {@code null} in case the variable
 	 *              should be removed).
@@ -641,8 +643,9 @@ public class VariablesController {
 	 * @throws Exception in case of an invalid variable name, invalid timezone, or an error
 	 * 					 accessing the variable store.
 	 */
-	private Object doSetVariable(DialogueBranchUserId userId, String projectSlug, String name,
-								 String value, String timeZone) throws Exception {
+	private Object doSetVariable(DialogueBranchUserId userId, boolean delegated,
+								 String projectSlug, String name, String value, String timeZone)
+			throws Exception {
 		List<HttpFieldError> errors = new ArrayList<>();
 
 		if (!name.matches("[A-Za-z]\\w*")) {
@@ -655,9 +658,11 @@ public class VariablesController {
 		ZoneId timeZoneId = ControllerFunctions.parseTimeZone(timeZone);
 		UserService userService = application.getApplicationManager()
 				.getOrCreateActiveUserService(userId,timeZoneId);
-		userService.getDialogueBranchUser().setTimeZone(timeZoneId);
+		// A delegated request never changes the user's own time zone (#331).
+		if (!delegated) userService.getDialogueBranchUser().setTimeZone(timeZoneId);
 
-		ZonedDateTime eventTime = DateTimeUtils.nowMs(timeZoneId);
+		ZonedDateTime eventTime =
+				DateTimeUtils.nowMs(userService.getDialogueBranchUser().getTimeZone());
 
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy - HH:mm:ss Z");
 
@@ -739,8 +744,8 @@ public class VariablesController {
 			logInfo += "?delegateUser=" + delegateUser;
 		logger.info(logInfo);
 
-		QueryRunner.runQuery((protocolVersion, user) ->
-						doSetVariables(user, projectSlug, variables, timeZone),
+		QueryRunner.runQuery((protocolVersion, user, delegated) ->
+						doSetVariables(user, delegated, projectSlug, variables, timeZone),
 			version, response, delegateUser, Permission.VARIABLE_WRITE_OWN);
 	}
 
@@ -749,6 +754,8 @@ public class VariablesController {
 	 * userId} in the given {@code timeZone}.
 	 *
 	 * @param userId the {@link String} identifier of the user for whom to set the variables.
+	 * @param delegated {@code true} if the request acts on behalf of another user, whose time zone
+	 *                  it then leaves unchanged.
 	 * @param variables a mapping of Dialogue Branch Variable names to value.
 	 * @param timeZone The current time zone of the Dialogue Branch user (presented as an IANA
 	 * 	               String, e.g. 'Europe/Lisbon').
@@ -756,8 +763,9 @@ public class VariablesController {
 	 * @throws Exception in case of an invalid variable name, or an error writing variables to the
 	 * 					 database.
 	 */
-	private Object doSetVariables(DialogueBranchUserId userId, String projectSlug,
-								  Map<String,Object> variables, String timeZone) throws Exception {
+	private Object doSetVariables(DialogueBranchUserId userId, boolean delegated,
+								  String projectSlug, Map<String,Object> variables, String timeZone)
+			throws Exception {
 
 		List<String> invalidNames = new ArrayList<>();
 		for (String name : variables.keySet()) {
@@ -775,7 +783,8 @@ public class VariablesController {
 		ZoneId timeZoneId = ControllerFunctions.parseTimeZone(timeZone);
 		UserService userService = application.getApplicationManager()
 				.getOrCreateActiveUserService(userId,timeZoneId);
-		userService.getDialogueBranchUser().setTimeZone(timeZoneId);
+		// A delegated request never changes the user's own time zone (#331).
+		if (!delegated) userService.getDialogueBranchUser().setTimeZone(timeZoneId);
 
 		VariableStore variableStore = userService.getVariableStore(projectSlug);
 		for(Map.Entry<String, Object> entry : variables.entrySet()) {

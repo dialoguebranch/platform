@@ -44,6 +44,11 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Web service: a request made on behalf of another user (`delegateUser`) that runs a dialogue or
+  sets variables overwrote that user's time zone with the caller's, so the user's own next dialogue
+  steps and variable changes were stamped in the wrong time zone
+  ([#331](https://github.com/dialoguebranch/platform/issues/331)). It now leaves the user's time
+  zone alone and stamps what it changes in it; its `timeZone` parameter is ignored.
 - Web service: deleting a project failed as soon as any user had a variable in it
   ([#315](https://github.com/dialoguebranch/platform/issues/315)); a new project with the slug of a
   deleted one could inherit its users' cached variables
