@@ -45,7 +45,9 @@ class TestSessionServiceLanguageFallbackTest {
 				"English");
 		DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "main");
 		draftDialogueService.createNode(dialogue, "Start",
-				"title: Start\nspeaker: Agent\nposition: 0,0", "Hello.");
+				"title: Start\nspeaker: Agent\nposition: 0,0", "Hello.\n[[Next|Second]]");
+		draftDialogueService.createNode(dialogue, "Second",
+				"title: Second\nspeaker: Agent\nposition: 0,0", "Bye.");
 
 		DialogueBranchUserId userId = new DialogueBranchUserId(
 				"https://test/realms/test", "draft-lang-fallback-user-" + UUID.randomUUID(), null);

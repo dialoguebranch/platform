@@ -49,6 +49,7 @@ import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import com.dialoguebranch.web.service.DateTimeUtils;
+import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.controller.ControllerFunctions;
 import com.dialoguebranch.web.service.exception.BadRequestException;
@@ -60,17 +61,23 @@ import com.dialoguebranch.web.service.storage.VariableStoreDatabaseStorageHandle
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslation;
 import com.dialoguebranch.web.service.storage.model.DBProject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Ephemeral, in-memory execution service for test-running a dialogue's current draft content
@@ -120,10 +127,41 @@ public class TestSessionService {
 		}
 	}
 
+	/** One copy of the variables, with when it was last used (see {@link #removeIdle}). */
+	private static final class Copy {
+
+		private final VariableStore store;
+		private volatile long lastUsed = System.currentTimeMillis();
+
+		private Copy(VariableStore store) {
+			this.store = store;
+		}
+
+		private VariableStore use() {
+			lastUsed = System.currentTimeMillis();
+			return store;
+		}
+	}
+
+	/**
+	 * How many test sessions and copies of the variables an idle sweep removed.
+	 *
+	 * @param sessions the number of test sessions removed.
+	 * @param copies the number of copies of the variables removed.
+	 */
+	public record Evicted(int sessions, int copies) {
+	}
+
+	/** How often the idle sweep runs, regardless of the configured idle timeout. */
+	private static final long SWEEP_INTERVAL_MILLIS = 5 * 60 * 1000;
+
+	private static final Logger logger = LoggerFactory.getLogger(TestSessionService.class);
+
 	private final DraftDialogueService draftDialogueService;
 	private final VariableStoreDatabaseStorageHandler storageHandler;
+	private final DlbProperties dlbProperties;
 	private final Map<String, TestSession> sessions = new ConcurrentHashMap<>();
-	private final Map<CopyKey, VariableStore> copies = new ConcurrentHashMap<>();
+	private final Map<CopyKey, Copy> copies = new ConcurrentHashMap<>();
 
 	/**
 	 * Creates a new {@link TestSessionService}.
@@ -131,11 +169,13 @@ public class TestSessionService {
 	 * @param draftDialogueService service used to read a project's draft dialogues and their
 	 *                             content when starting a test session.
 	 * @param storageHandler handler used to read a user's stored variables, to seed a copy.
+	 * @param dlbProperties the configuration, for the test sessions' idle timeout.
 	 */
 	public TestSessionService(DraftDialogueService draftDialogueService,
-			VariableStoreDatabaseStorageHandler storageHandler) {
+			VariableStoreDatabaseStorageHandler storageHandler, DlbProperties dlbProperties) {
 		this.draftDialogueService = draftDialogueService;
 		this.storageHandler = storageHandler;
+		this.dlbProperties = dlbProperties;
 	}
 
 	/**
@@ -169,12 +209,12 @@ public class TestSessionService {
 			boolean delegated, DBProject project, ZoneId timeZone)
 			throws NotFoundException, ParseException {
 		CopyKey key = CopyKey.of(tester, user, project.getSlug());
-		VariableStore copy = copies.get(key);
-		if (copy != null) return copy;
+		Copy copy = copies.get(key);
+		if (copy != null) return copy.use();
 		Variable[] seed = readStoredVariables(user, delegated, project);
-		VariableStore created = new VariableStore(new User(user.subject(), timeZone), seed);
-		VariableStore existing = copies.putIfAbsent(key, created);
-		return existing != null ? existing : created;
+		Copy created = new Copy(new VariableStore(new User(user.subject(), timeZone), seed));
+		Copy existing = copies.putIfAbsent(key, created);
+		return (existing != null ? existing : created).use();
 	}
 
 	/**
@@ -192,8 +232,9 @@ public class TestSessionService {
 	public void resetCopy(DialogueBranchUserId tester, DialogueBranchUserId user,
 			boolean delegated, DBProject project) throws NotFoundException, ParseException {
 		Variable[] seed = readStoredVariables(user, delegated, project);
-		VariableStore copy = copies.get(CopyKey.of(tester, user, project.getSlug()));
-		if (copy == null) return;
+		Copy entry = copies.get(CopyKey.of(tester, user, project.getSlug()));
+		if (entry == null) return;
+		VariableStore copy = entry.use();
 		ZonedDateTime now = DateTimeUtils.nowMs(copy.getUser().getTimeZone());
 		copy.getModifiableMap(false, now).clear();
 		for (Variable variable : seed) {
@@ -241,6 +282,9 @@ public class TestSessionService {
 				|| !session.getTester().subject().equals(tester.subject())) {
 			throw new ForbiddenException();
 		}
+		session.recordActivity();
+		Copy copy = copies.get(session.getCopyKey());
+		if (copy != null) copy.use();
 		return session;
 	}
 
@@ -346,9 +390,10 @@ public class TestSessionService {
 
 		TestSession session = new TestSession(tester, CopyKey.of(tester, user, project.getSlug()),
 				activeDialogue, resolved.definition(), executableProject, sourceLanguage);
-		sessions.put(session.getId(), session);
-
 		ExecuteNodeResult result = new ExecuteNodeResult(resolved.definition(), startNode, null, 0);
+		// A dialogue that ends at its start node needs no session to continue it.
+		if (!hasEnded(result)) sessions.put(session.getId(), session);
+
 		return new StartResult(session.getId(), result);
 	}
 
@@ -414,7 +459,8 @@ public class TestSessionService {
 	 *                  segments), or {@code null}.
 	 * @param eventTime the timestamp of this progress event, in the user's time zone.
 	 * @return the {@link ExecuteNodeResult} for the next node, or {@code null} if the dialogue has
-	 *         completed.
+	 *         completed. A dialogue that has ended (also at a node without replies) ends the
+	 *         session.
 	 * @throws NotFoundException  if the reply's target dialogue has no content in this project's
 	 *                            draft dialogues (e.g. it was renamed or deleted since this
 	 *                            session started).
@@ -422,6 +468,27 @@ public class TestSessionService {
 	 */
 	public ExecuteNodeResult progressSession(TestSession session, int replyId,
 											 Map<String, ?> variables, ZonedDateTime eventTime)
+			throws NotFoundException, ExecutionException {
+		// One request at a time per session (#215): ActiveDialogue isn't thread-safe. Nothing in
+		// here blocks on I/O, since the session's copy of the variables has no listeners (#319).
+		synchronized (session) {
+			ExecuteNodeResult result = advance(session, replyId, variables, eventTime);
+			// A dialogue that has ended can't be progressed any more: the session is done.
+			if (hasEnded(result)) sessions.remove(session.getId());
+			return result;
+		}
+	}
+
+	/**
+	 * Whether a dialogue has ended with the given step: it reached {@code End}, or a node without
+	 * replies, which can't be progressed any further (the same rule clients use).
+	 */
+	private static boolean hasEnded(ExecuteNodeResult result) {
+		return result == null || result.node().getBody().getReplies().isEmpty();
+	}
+
+	private ExecuteNodeResult advance(TestSession session, int replyId,
+			Map<String, ?> variables, ZonedDateTime eventTime)
 			throws NotFoundException, ExecutionException {
 		ActiveDialogue activeDialogue = session.getActiveDialogue();
 
@@ -482,6 +549,47 @@ public class TestSessionService {
 	 */
 	public void cancelSession(TestSession session) {
 		sessions.remove(session.getId());
+	}
+
+	// -------------------- Idle eviction (#218) -------------------- //
+
+	/**
+	 * Removes the test sessions and copies of the variables that have been idle for longer than
+	 * the configured timeout ({@code dlb.test-session.idle-timeout-minutes}). Without this, a
+	 * session that is never cancelled — a closed browser tab, a crashed client — would stay in
+	 * memory, with its parsed project, until the service restarts. Runs on a fixed interval,
+	 * independent of the timeout itself.
+	 */
+	@Scheduled(fixedRate = SWEEP_INTERVAL_MILLIS)
+	public void evictIdle() {
+		int idleTimeoutMinutes = dlbProperties.getTestSession().getIdleTimeoutMinutes();
+		Evicted evicted = removeIdle(TimeUnit.MINUTES.toMillis(idleTimeoutMinutes),
+				System.currentTimeMillis());
+		if (evicted.sessions() > 0 || evicted.copies() > 0) {
+			logger.info("Evicted {} idle test session(s) and {} unused copy(ies) of the " +
+					"variables (idle timeout: {} minute(s)).", evicted.sessions(),
+					evicted.copies(), idleTimeoutMinutes);
+		}
+	}
+
+	/**
+	 * Removes the test sessions idle for longer than {@code idleTimeoutMillis}, and then the
+	 * copies of the variables that are idle as long and no remaining session uses.
+	 *
+	 * @param idleTimeoutMillis how long a session or copy may be idle.
+	 * @param now the current time, in epoch milliseconds.
+	 * @return how many sessions and copies were removed.
+	 */
+	public Evicted removeIdle(long idleTimeoutMillis, long now) {
+		int sessionsBefore = sessions.size();
+		sessions.values().removeIf(
+				session -> now - session.getLastActivityTime() > idleTimeoutMillis);
+		Set<CopyKey> inUse = new HashSet<>();
+		for (TestSession session : sessions.values()) inUse.add(session.getCopyKey());
+		int copiesBefore = copies.size();
+		copies.entrySet().removeIf(entry -> !inUse.contains(entry.getKey())
+				&& now - entry.getValue().lastUsed > idleTimeoutMillis);
+		return new Evicted(sessionsBefore - sessions.size(), copiesBefore - copies.size());
 	}
 
 }

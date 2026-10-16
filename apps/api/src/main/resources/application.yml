@@ -127,3 +127,9 @@ dlb:
   # /auth/logout call, so this bounds memory for clients that disconnect without logging out.
   session:
     idle-timeout-minutes: 60
+
+  # ---- Test sessions ----
+  # How long an ephemeral test session (/test-session/*), or a copy of the variables no session
+  # uses any more, may sit idle before it's evicted (see TestSessionService#evictIdle).
+  test-session:
+    idle-timeout-minutes: 30

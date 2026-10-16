@@ -96,6 +96,9 @@ public class DlbProperties {
 	@NestedConfigurationProperty
 	private Session session = new Session();
 
+	@NestedConfigurationProperty
+	private TestSession testSession = new TestSession();
+
 	/**
 	 * Returns the CORS configuration.
 	 *
@@ -524,6 +527,41 @@ public class DlbProperties {
 		}
 	}
 
+	/**
+	 * Holds configuration for test sessions (#218): how long an ephemeral test session, or a copy
+	 * of the variables no session uses any more, is kept around after its last use.
+	 *
+	 * @author Harm op den Akker
+	 */
+	public static class TestSession {
+
+		/** Creates a new {@link TestSession} configuration instance with default values. */
+		public TestSession() { }
+
+		/**
+		 * How long (in minutes) a test session, or an unused copy of the variables, may sit idle
+		 * before it is evicted. A session is otherwise only removed when it is cancelled or its
+		 * dialogue ends, so this bounds the server's memory for tests that are abandoned.
+		 */
+		private int idleTimeoutMinutes = 30;
+
+		/**
+		 * Returns the idle timeout, in minutes.
+		 *
+		 * @return the idle timeout in minutes.
+		 */
+		public int getIdleTimeoutMinutes() { return idleTimeoutMinutes; }
+
+		/**
+		 * Sets the idle timeout, in minutes.
+		 *
+		 * @param idleTimeoutMinutes the idle timeout in minutes.
+		 */
+		public void setIdleTimeoutMinutes(int idleTimeoutMinutes) {
+			this.idleTimeoutMinutes = idleTimeoutMinutes;
+		}
+	}
+
 	// --------------------------------------------------------- //
 	// -------------------- Top-level getters/setters ---------- //
 	// --------------------------------------------------------- //
@@ -634,6 +672,20 @@ public class DlbProperties {
 	 * @return the {@link Session} configuration.
 	 */
 	public Session getSession() { return session; }
+
+	/**
+	 * Returns the test session configuration.
+	 *
+	 * @return the test session configuration.
+	 */
+	public TestSession getTestSession() { return testSession; }
+
+	/**
+	 * Sets the test session configuration.
+	 *
+	 * @param testSession the test session configuration.
+	 */
+	public void setTestSession(TestSession testSession) { this.testSession = testSession; }
 
 	/**
 	 * Sets the session lifecycle configuration.

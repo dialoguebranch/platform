@@ -50,6 +50,7 @@ public class TestSession {
 	private final TestSessionService.CopyKey copyKey;
 	private volatile ActiveDialogue activeDialogue;
 	private volatile Dialogue dialogueDefinition;
+	private volatile long lastActivityTime = System.currentTimeMillis();
 
 	/**
 	 * The whole project's parsed content (every draft dialogue, not just the one under test),
@@ -121,6 +122,20 @@ public class TestSession {
 	}
 
 	/**
+	 * Returns when this session was last used, for its idle eviction (#218).
+	 *
+	 * @return the time of the last request on it, in epoch milliseconds.
+	 */
+	public long getLastActivityTime() {
+		return lastActivityTime;
+	}
+
+	/** Records that this session was just used. */
+	void recordActivity() {
+		lastActivityTime = System.currentTimeMillis();
+	}
+
+	/**
 	 * Returns the {@link ActiveDialogue} driving execution for this session.
 	 *
 	 * @return the active dialogue.
@@ -162,8 +177,9 @@ public class TestSession {
 	 * Switches this session to a different dialogue — called by {@link
 	 * TestSessionService#progressSession} when a reply points to a sibling dialogue rather
 	 * than a node within the one currently being tested. Updates {@link #getActiveDialogue()} and
-	 * {@link #getDialogueDefinition()} together, atomically from the caller's perspective, so a
-	 * concurrent reader never observes one updated without the other.
+	 * {@link #getDialogueDefinition()}. Not atomic on its own: it is only called with the
+	 * session's lock held (see {@link TestSessionService#progressSession}, #215), the same lock
+	 * every other request on the session takes.
 	 *
 	 * @param activeDialogue     the new {@link ActiveDialogue}, already started at the target node.
 	 * @param dialogueDefinition the new dialogue's parsed {@link Dialogue}.
