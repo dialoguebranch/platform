@@ -86,7 +86,7 @@ public final class Role {
 				Permission.PROJECT_READ,
 				Permission.VARIABLE_INSPECT_PROJECT,
 				Permission.DIALOGUE_AUTHOR,
-				Permission.DIALOGUE_DRAFT_TEST,
+				Permission.DIALOGUE_TEST,
 				Permission.PUBLISH_READ));
 
 		EnumSet<Permission> admin = EnumSet.copyOf(editor);

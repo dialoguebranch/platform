@@ -1292,7 +1292,7 @@ public class DraftDialogueService {
 	 * still matches its stored translation instead of always appearing untranslated.</p>
 	 *
 	 * <p>Only this one dialogue's own content is parsed (via {@link DialogueBranchParser}, not the
-	 * full-project {@code ProjectParser} pipeline {@code DraftExecutionService} uses to start a
+	 * full-project {@code ProjectParser} pipeline {@code TestSessionService} uses to start a
 	 * test session) since translatable-term extraction only needs this dialogue's own node bodies,
 	 * not cross-dialogue reply-link resolution.</p>
 	 *

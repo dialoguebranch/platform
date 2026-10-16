@@ -37,7 +37,7 @@ class RoleTest {
 	@Test
 	void editorAddsAuthoringButNotProjectLifecycle() {
 		assertTrue(Role.EDITOR.allows(Permission.DIALOGUE_AUTHOR));
-		assertTrue(Role.EDITOR.allows(Permission.DIALOGUE_DRAFT_TEST));
+		assertTrue(Role.EDITOR.allows(Permission.DIALOGUE_TEST));
 		assertTrue(Role.EDITOR.allows(Permission.PUBLISH_READ));
 		assertFalse(Role.EDITOR.allows(Permission.PROJECT_CREATE));
 		assertFalse(Role.EDITOR.allows(Permission.PUBLISH_CREATE));
@@ -75,7 +75,7 @@ class RoleTest {
 		assertFalse(Role.SUPERVISOR.allows(Permission.USER_DELEGATE));
 		assertFalse(Role.SUPERVISOR.allows(Permission.USER_LIST));
 		assertFalse(Role.SUPERVISOR.allows(Permission.DIALOGUE_AUTHOR));
-		assertFalse(Role.SUPERVISOR.allows(Permission.DIALOGUE_DRAFT_TEST));
+		assertFalse(Role.SUPERVISOR.allows(Permission.DIALOGUE_TEST));
 		assertFalse(Role.SUPERVISOR.allows(Permission.PROJECT_READ));
 	}
 

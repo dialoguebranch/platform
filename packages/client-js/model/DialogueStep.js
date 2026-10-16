@@ -70,7 +70,7 @@ export class DialogueStep {
 
     /**
      * Builds a DialogueStep from the JSON form the Web Service sends — the shape returned by
-     * `/dialogue/start`, `/dialogue/progress`, `/dialogue/continue`, and their `/draft/*`
+     * `/dialogue/start`, `/dialogue/progress`, `/dialogue/continue`, and their `/test-session/*`
      * equivalents.
      *
      * Each reply in `json.replies` is parsed as an {@link AutoForwardReply} if it has no

@@ -7,6 +7,7 @@ import { computed, inject, onMounted, ref, useAttrs, watch } from 'vue';
 const attrs = useAttrs();
 const state = inject('state');
 import { useClient, useAuthoringClient, getBrowserTimeZone } from '@/composables/client.js';
+import { DLB_APP_MODE_DRAFT } from '@/StudioClientState.js';
 import { logEvent } from '@/composables/debug-log.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
@@ -62,12 +63,16 @@ const authoringClient = useAuthoringClient();
 
 // Three distinct things, one panel, one at a time (see `mode`):
 //   'values'  — this logged-in user's stored variable values for the current project; mutable
-//               runtime state. Variables are project-scoped (#86).
+//               runtime state. Variables are project-scoped (#86). In Authoring Mode, the copy
+//               of them that test sessions run against instead (#319): see `testing`.
 //   'project' — every variable name the project's dialogues reference (read/written);
 //               static authoring info, read-only (GET /variables/list-project).
 //   'history' — every recorded change to this user's variables in the project, newest first and
 //               paged (GET /variables/history, #323). Only loaded while this mode is showing.
 const mode = ref('values');
+// In Authoring Mode, dialogues run as test sessions against a copy of the variables (#319), so
+// "Values" shows and edits that copy; the stored values (and their history) stay untouched.
+const testing = computed(() => state.value.mode === DLB_APP_MODE_DRAFT);
 const variables = ref([]);
 const projectVariables = ref([]); // [{ name, read, written }]
 const supportedVariables = ref([]); // [{ name, description }] — from the configured EVS, if any
@@ -239,6 +244,9 @@ watch([mode, historyExactName, () => historyRange.value.from, () => historyRange
     if (newMode === 'history') loadHistory();
 });
 
+// Live Mode shows the stored values, Authoring Mode the test copy: switching shows the other.
+watch(testing, () => loadVariables());
+
 const emptyForFilter = computed(() => {
     if (!isSearching.value) return false;
     if (mode.value === 'values') return displayedVariables.value.length === 0;
@@ -261,7 +269,9 @@ const loadVariables = () => {
         return;
     }
     const requestId = nextLoadRequest();
-    client.getVariables({ projectSlug: slug, timeZone: getBrowserTimeZone() })
+    (testing.value
+        ? authoringClient.getTestVariables({ projectSlug: slug })
+        : client.getVariables({ projectSlug: slug, timeZone: getBrowserTimeZone() }))
     .then((vars) => {
         if (!isCurrentLoadRequest(requestId)) return;
         variables.value = vars;
@@ -315,6 +325,26 @@ defineExpose({
     loadVariables,
 });
 
+// Sets (or, with a null value, removes) a variable: the stored one, or in Authoring Mode the test
+// copy's.
+function storeVariable(name, value) {
+    const options = {
+        variableName: name,
+        variableValue: value,
+        projectSlug: state.value.selectedProject?.slug,
+        timeZone: getBrowserTimeZone(),
+    };
+    return testing.value ? authoringClient.setTestVariable(options) : client.setVariable(options);
+}
+
+function resetTestVariables() {
+    dismissError();
+    logEvent('variable', 'Test variables reset');
+    authoringClient.resetTestVariables({ projectSlug: state.value.selectedProject?.slug })
+        .then(() => loadVariables())
+        .catch((error) => showError(describeError(error)));
+}
+
 function deleteVariable(name) {
     confirmingDelete.value = null;
     dismissError();
@@ -322,12 +352,7 @@ function deleteVariable(name) {
     const next = new Set(deletingVariables.value);
     next.add(name);
     deletingVariables.value = next;
-    client.setVariable({
-        variableName: name,
-        variableValue: null,
-        projectSlug: state.value.selectedProject?.slug,
-        timeZone: getBrowserTimeZone(),
-    })
+    storeVariable(name, null)
     .then(() => {
         emit('changeVariable');
         return loadVariables();
@@ -352,12 +377,7 @@ function submitVariable(variable) {
     if (!dirtyVariables.value.has(variable.name)) return;
     dismissError();
     logEvent('variable', 'Variable $1 updated to $2', variable.name, variable.value);
-    client.setVariable({
-        variableName: variable.name,
-        variableValue: variable.value,
-        projectSlug: state.value.selectedProject?.slug,
-        timeZone: getBrowserTimeZone(),
-    })
+    storeVariable(variable.name, variable.value)
     .then(() => {
         const next = new Set(dirtyVariables.value);
         next.delete(variable.name);
@@ -383,7 +403,7 @@ onMounted(() => {
                         type="button"
                         class="px-2 h-7.5 cursor-pointer"
                         :class="mode === 'values' ? 'bg-orange-dark text-white' : 'bg-white text-grey-dark hover:bg-grey-lighter'"
-                        title="This user's stored variable values for the current project"
+                        :title="testing ? 'The test variables: a copy of this user\'s stored values that tests in Authoring Mode run against' : 'This user\'s stored variable values for the current project'"
                         @click="mode = 'values'"
                     >Values</button>
                     <button
@@ -405,6 +425,16 @@ onMounted(() => {
                 <IconButton icon="fa-solid fa-angles-right" title="Collapse Variable Browser" @click="emit('collapse')" />
             </template>
         </MainPagePanelHeader>
+
+        <!-- In Authoring Mode, Values is the test copy (#319) -->
+        <div v-if="testing && mode !== 'project'" data-test="test-variables-note" class="flex items-start gap-1.5 px-1 sm:mr-1 font-title text-[10px] text-grey-dark">
+            <FontAwesomeIcon icon="fa-solid fa-flask" class="mt-0.5 shrink-0" />
+            <span v-if="mode === 'values'" class="flex-1">
+                Test variables: tests in Authoring Mode run against this copy. Changes here don't affect the stored values.
+                <button type="button" data-test="reset-test-variables" class="underline hover:text-orange-dark cursor-pointer" @click="resetTestVariables">Reset to stored values</button>
+            </span>
+            <span v-else class="flex-1">The stored history: changes made in tests aren't recorded.</span>
+        </div>
 
         <!-- Filter + sort strip -->
         <div class="flex items-center gap-1.5 px-1 sm:mr-1">

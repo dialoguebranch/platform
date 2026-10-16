@@ -25,35 +25,35 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-
 package com.dialoguebranch.web.service.execution;
 
 import com.dialoguebranch.execution.ActiveDialogue;
-import com.dialoguebranch.execution.Variable;
 import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.ExecutableProject;
+import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 
 import java.util.UUID;
 
 /**
- * An ephemeral, in-memory session for test-running a single draft dialogue's current content, as
- * managed by {@link DraftExecutionService}. Unlike a real dialogue session, this is never
- * persisted to {@link com.dialoguebranch.web.service.storage.LoggedDialogueStore} — it exists
- * only in memory for the lifetime of the test.
+ * An ephemeral, in-memory session for test-running a dialogue, as managed by {@link
+ * TestSessionService}. Unlike a real dialogue session, it is never persisted to {@link
+ * com.dialoguebranch.web.service.storage.LoggedDialogueStore}, and it runs against a copy of the
+ * user's variables rather than their real ones (#319): it exists only in memory for the lifetime
+ * of the test.
  *
  * @author Harm op den Akker
  */
-public class DraftTestSession {
+public class TestSession {
 
 	private final String id;
-	private final String userId;
-	private final String projectSlug;
+	private final DialogueBranchUserId tester;
+	private final TestSessionService.CopyKey copyKey;
 	private volatile ActiveDialogue activeDialogue;
 	private volatile Dialogue dialogueDefinition;
 
 	/**
 	 * The whole project's parsed content (every draft dialogue, not just the one under test),
-	 * kept for the lifetime of the session so that {@link DraftExecutionService#progressSession}
+	 * kept for the lifetime of the session so that {@link TestSessionService#progressSession}
 	 * can resolve a reply that links to a sibling dialogue — see
 	 * {@link #switchToDialogue(ActiveDialogue, Dialogue)} — without needing to re-parse.
 	 */
@@ -61,7 +61,7 @@ public class DraftTestSession {
 
 	/**
 	 * The project's source language code, resolved once from the authoritative {@code DBProject}
-	 * record when this session started (see {@code DraftExecutionService#startSession}) and kept
+	 * record when this session started (see {@code TestSessionService#startSession}) and kept
 	 * for the lifetime of the session, since {@code executableProject.getMetaData()} isn't a
 	 * reliable source for it — these dialogues are parsed from in-memory content maps via {@code
 	 * DatabasePublishedScriptLoader}, not an actual {@code dlb-project.xml}.
@@ -69,41 +69,32 @@ public class DraftTestSession {
 	private final String sourceLanguage;
 
 	/**
-	 * The full contents of the user's {@link com.dialoguebranch.execution.VariableStore} at the
-	 * moment this session was started, used by
-	 * {@link DraftExecutionService#revertVariables(DraftTestSession)} to restore the pre-test
-	 * state.
-	 */
-	private final Variable[] variableSnapshot;
-
-	/**
-	 * Creates a new {@link DraftTestSession} with a freshly generated ID.
+	 * Creates a new {@link TestSession} with a freshly generated ID.
 	 *
-	 * @param userId             the ID of the user testing the draft.
-	 * @param projectSlug        the slug of the project the draft dialogue belongs to.
+	 * @param tester             the authenticated user running the test.
+	 * @param copyKey            the copy of the variables this session runs against (the
+	 *                           tester's, for the tested user and project).
 	 * @param activeDialogue     the {@link ActiveDialogue} driving execution for this session.
 	 * @param dialogueDefinition the parsed {@link Dialogue} being tested.
-	 * @param variableSnapshot   the variable store snapshot taken when this session started.
 	 * @param executableProject  the whole project's parsed content, kept so a later reply that
 	 *                           links to a sibling dialogue can be resolved without re-parsing.
 	 * @param sourceLanguage     the project's source language code, resolved from the
 	 *                           authoritative {@code DBProject} record.
 	 */
-	public DraftTestSession(String userId, String projectSlug, ActiveDialogue activeDialogue,
-							Dialogue dialogueDefinition, Variable[] variableSnapshot,
-							ExecutableProject executableProject, String sourceLanguage) {
+	public TestSession(DialogueBranchUserId tester, TestSessionService.CopyKey copyKey,
+			ActiveDialogue activeDialogue, Dialogue dialogueDefinition,
+			ExecutableProject executableProject, String sourceLanguage) {
 		this.id = UUID.randomUUID().toString().toLowerCase().replaceAll("-", "");
-		this.userId = userId;
-		this.projectSlug = projectSlug;
+		this.tester = tester;
+		this.copyKey = copyKey;
 		this.activeDialogue = activeDialogue;
 		this.dialogueDefinition = dialogueDefinition;
-		this.variableSnapshot = variableSnapshot;
 		this.sourceLanguage = sourceLanguage;
 		this.executableProject = executableProject;
 	}
 
 	/**
-	 * Returns the unique identifier of this draft test session.
+	 * Returns the unique identifier of this test session.
 	 *
 	 * @return the session ID.
 	 */
@@ -112,21 +103,21 @@ public class DraftTestSession {
 	}
 
 	/**
-	 * Returns the ID of the user testing the draft.
+	 * Returns the authenticated user running the test, the only one who may use this session.
 	 *
-	 * @return the user ID.
+	 * @return the tester.
 	 */
-	public String getUserId() {
-		return userId;
+	public DialogueBranchUserId getTester() {
+		return tester;
 	}
 
 	/**
-	 * Returns the slug of the project the draft dialogue belongs to.
+	 * Returns the key of the copy of the variables this session runs against.
 	 *
-	 * @return the project slug.
+	 * @return the copy's key.
 	 */
-	public String getProjectSlug() {
-		return projectSlug;
+	public TestSessionService.CopyKey getCopyKey() {
+		return copyKey;
 	}
 
 	/**
@@ -169,7 +160,7 @@ public class DraftTestSession {
 
 	/**
 	 * Switches this session to a different dialogue — called by {@link
-	 * DraftExecutionService#progressSession} when a reply points to a sibling dialogue rather
+	 * TestSessionService#progressSession} when a reply points to a sibling dialogue rather
 	 * than a node within the one currently being tested. Updates {@link #getActiveDialogue()} and
 	 * {@link #getDialogueDefinition()} together, atomically from the caller's perspective, so a
 	 * concurrent reader never observes one updated without the other.
@@ -180,15 +171,6 @@ public class DraftTestSession {
 	void switchToDialogue(ActiveDialogue activeDialogue, Dialogue dialogueDefinition) {
 		this.activeDialogue = activeDialogue;
 		this.dialogueDefinition = dialogueDefinition;
-	}
-
-	/**
-	 * Returns the variable store snapshot taken when this session started.
-	 *
-	 * @return the variable snapshot.
-	 */
-	public Variable[] getVariableSnapshot() {
-		return variableSnapshot;
 	}
 
 }

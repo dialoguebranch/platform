@@ -169,7 +169,7 @@ public class AuthoringController {
 	}
 
 	/**
-	 * Rejects further editing (or test-running, see {@link DraftExecutionController}) of a
+	 * Rejects further editing (or test-running, see {@link TestSessionController}) of a
 	 * dialogue that is currently pending deletion, until that deletion is reverted via
 	 * {@code /restore-dialogue}.
 	 *

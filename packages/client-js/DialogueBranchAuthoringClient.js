@@ -29,6 +29,7 @@
 import { BaseClient } from "./BaseClient.js";
 import { DialogueBranchError } from "./DialogueBranchError.js";
 import { DialogueStep } from "./model/DialogueStep.js";
+import { Variable } from "./model/Variable.js";
 
 /**
  * Authoring client for a Dialogue Branch Web Service: project/dialogue/node/translation CRUD,
@@ -427,7 +428,7 @@ export class DialogueBranchAuthoringClient extends BaseClient {
     }
 
     // -----------------------------------------------------------------
-    // ---------- Draft dialogue test-execution (ephemeral) ----------
+    // ---------- Test sessions (ephemeral) ----------
     // -----------------------------------------------------------------
 
     /**
@@ -563,7 +564,12 @@ export class DialogueBranchAuthoringClient extends BaseClient {
     /**
      * Starts an ephemeral test session of a dialogue's current *draft* (unpublished) content —
      * the equivalent of {@link DialogueBranchClient#startDialogue} for trying out in-progress
-     * edits, e.g. in a visual editor. Nothing is logged as a real dialogue session.
+     * edits, e.g. in a visual editor. Nothing is logged as a real dialogue session, and the
+     * session runs against the caller's own copy of the variables (see {@link getTestVariables}),
+     * never the user's real ones.
+     *
+     * With {@link BaseClient#delegateUser} set (admins only), the copy starts from that user's
+     * variables; they are only read.
      *
      * @param {Object} options
      * @param {string} options.projectSlug The project's slug.
@@ -574,12 +580,12 @@ export class DialogueBranchAuthoringClient extends BaseClient {
      * `Intl.DateTimeFormat().resolvedOptions().timeZone` in a browser).
      * @param {string} [options.startNodeId] Start at a specific node instead of the dialogue's
      * default start node.
-     * @returns {Promise<{draftSessionId: string, dialogueStep: DialogueStep}>} `draftSessionId`
-     * identifies this ephemeral test session for {@link progressDraftDialogue}/
-     * {@link cancelDraftDialogue}/{@link revertDraftVariables}.
+     * @returns {Promise<{testSessionId: string, dialogueStep: DialogueStep}>} `testSessionId`
+     * identifies this ephemeral test session for {@link progressTestSession} and
+     * {@link cancelTestSession}.
      */
-    startDraftDialogue({ projectSlug, dialogueName, language, timeZone, startNodeId }) {
-        let url = this._baseUrl + "/draft/start";
+    startTestSession({ projectSlug, dialogueName, language, timeZone, startNodeId }) {
+        let url = this._baseUrl + "/test-session/start";
 
         url += "?projectSlug=" + encodeURIComponent(projectSlug);
         url += "&dialogueName=" + encodeURIComponent(dialogueName);
@@ -594,33 +600,31 @@ export class DialogueBranchAuthoringClient extends BaseClient {
         })
         .then((response) => this._handleResponse(response))
         .then((json) => ({
-            draftSessionId: json.draftSessionId,
+            testSessionId: json.testSessionId,
             dialogueStep: DialogueStep.fromJSON(json.dialogueMessage),
         }));
     }
 
     /**
-     * Advances a draft-test session by one step — the {@link startDraftDialogue} equivalent of
+     * Advances a test session by one step — the {@link startTestSession} equivalent of
      * {@link DialogueBranchClient#progressDialogue}.
      *
      * @param {Object} options
-     * @param {string} options.draftSessionId The draft-test session's id, from
-     * {@link startDraftDialogue}.
+     * @param {string} options.testSessionId The test session's id, from {@link startTestSession}.
      * @param {number} options.replyId The id of the reply the user selected.
      * @param {Object} [options.inputValues] If the selected reply had one or more `<<input>>`
      * commands, the values the user provided for them (see
      * {@link DialogueBranchClient#progressDialogue}'s `inputValues`).
      * @param {string} [options.timeZone] The caller's IANA time zone. See
-     * {@link startDraftDialogue}'s `timeZone`.
+     * {@link startTestSession}'s `timeZone`.
      * @returns {Promise<DialogueStep|null>} The next step, or `null` if the dialogue ended.
      */
-    progressDraftDialogue({ draftSessionId, replyId, inputValues = null, timeZone }) {
-        let url = this._baseUrl + "/draft/progress";
+    progressTestSession({ testSessionId, replyId, inputValues = null, timeZone }) {
+        let url = this._baseUrl + "/test-session/progress";
 
-        url += "?draftSessionId=" + encodeURIComponent(draftSessionId);
+        url += "?testSessionId=" + encodeURIComponent(testSessionId);
         url += "&replyId=" + replyId;
         if (timeZone) url += "&timeZone=" + encodeURIComponent(timeZone);
-        url += this._delegateParam;
 
         const body = inputValues ? JSON.stringify(inputValues) : null;
         return this._fetch(url, {
@@ -633,14 +637,14 @@ export class DialogueBranchAuthoringClient extends BaseClient {
     }
 
     /**
-     * Explicitly ends an ephemeral draft-test session started via {@link startDraftDialogue}.
+     * Ends a test session started via {@link startTestSession}. Its copy of the variables stays,
+     * for the caller's other test sessions in the project.
      *
-     * @param {string} draftSessionId The draft-test session's id.
+     * @param {string} testSessionId The test session's id.
      * @returns {Promise<void>}
      */
-    cancelDraftDialogue(draftSessionId) {
-        const url = this._baseUrl + "/draft/cancel?draftSessionId=" + encodeURIComponent(draftSessionId)
-            + this._delegateParam;
+    cancelTestSession(testSessionId) {
+        const url = this._baseUrl + "/test-session/cancel?testSessionId=" + encodeURIComponent(testSessionId);
 
         return this._fetch(url, {
             method: "POST",
@@ -650,20 +654,67 @@ export class DialogueBranchAuthoringClient extends BaseClient {
     }
 
     /**
-     * Reverts any variable changes made during a draft-test session back to what they were
-     * before it started — so trying out a dialogue in the editor doesn't leave the tester's real
-     * stored variable values altered.
+     * Returns the caller's copy of the variables of a project: the values all of their test
+     * sessions in that project run against (and share), sorted by name. The first use seeds the
+     * copy from the user's stored variables — the caller's own, or, with
+     * {@link BaseClient#delegateUser} set, that user's.
      *
      * @param {Object} options
-     * @param {string} options.draftSessionId The draft-test session's id.
+     * @param {string} options.projectSlug The project's slug.
+     * @returns {Promise<Variable[]>} The copy's variables.
+     */
+    getTestVariables({ projectSlug }) {
+        const url = this._baseUrl + "/test-session/variables?projectSlug=" + encodeURIComponent(projectSlug)
+            + this._delegateParam;
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" }
+        })
+        .then((response) => this._handleResponse(response))
+        .then((data) => (data ?? []).map((entry) => Variable.fromJSON(entry)));
+    }
+
+    /**
+     * Sets, or removes, a variable in the caller's copy of the variables of a project (see
+     * {@link getTestVariables}). The user's real variables are left alone.
+     *
+     * @param {Object} options
+     * @param {string} options.projectSlug The project's slug.
+     * @param {string} options.variableName The variable's name.
+     * @param {string|null} [options.variableValue] The new value, or `null` to remove it.
      * @param {string} [options.timeZone] The caller's IANA time zone. See
-     * {@link startDraftDialogue}'s `timeZone`.
+     * {@link startTestSession}'s `timeZone`.
      * @returns {Promise<void>}
      */
-    revertDraftVariables({ draftSessionId, timeZone }) {
-        let url = this._baseUrl + "/draft/revert-variables?draftSessionId=" + encodeURIComponent(draftSessionId);
+    setTestVariable({ projectSlug, variableName, variableValue = null, timeZone }) {
+        let url = this._baseUrl + "/test-session/set-variable";
+
+        url += "?projectSlug=" + encodeURIComponent(projectSlug);
+        url += "&name=" + encodeURIComponent(variableName);
+        if (variableValue != null) url += "&value=" + encodeURIComponent(variableValue);
         if (timeZone) url += "&timeZone=" + encodeURIComponent(timeZone);
         url += this._delegateParam;
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" }
+        })
+        .then((response) => this._handleResponse(response));
+    }
+
+    /**
+     * Makes the caller's copy of the variables of a project identical to the user's stored
+     * variables again (see {@link getTestVariables}). Running test sessions continue with the
+     * reset values.
+     *
+     * @param {Object} options
+     * @param {string} options.projectSlug The project's slug.
+     * @returns {Promise<void>}
+     */
+    resetTestVariables({ projectSlug }) {
+        const url = this._baseUrl + "/test-session/reset?projectSlug=" + encodeURIComponent(projectSlug)
+            + this._delegateParam;
 
         return this._fetch(url, {
             method: "POST",
