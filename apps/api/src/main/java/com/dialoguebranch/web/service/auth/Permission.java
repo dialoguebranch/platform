@@ -91,8 +91,11 @@ public enum Permission {
 	 */
 	DIALOGUE_AUTHOR,
 
-	/** Run a dialogue against its unpublished draft: {@code /draft/start|progress|cancel|revert-variables}. */
-	DIALOGUE_DRAFT_TEST,
+	/**
+	 * Test-run a dialogue against a copy of the variables: all of {@code /test-session/*}
+	 * ({@code start|progress|cancel|variables|set-variable|reset}).
+	 */
+	DIALOGUE_TEST,
 
 	/** Inspect publication state: {@code /publish/list-versions|next-version|verify}. */
 	PUBLISH_READ,

@@ -27,6 +27,21 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- **Breaking:** Web service, client-js and Studio: testing a dialogue no longer changes the
+  user's real variables ([#319](https://github.com/dialoguebranch/platform/issues/319)). A test
+  session runs against the tester's own copy of the variables, kept in memory and seeded from the
+  stored ones: it is never saved, recorded in the variable history or sent to the External
+  Variable Service. All of a tester's test sessions in a project share one copy, which
+  `GET /test-session/variables`, `POST /test-session/set-variable` and `POST /test-session/reset`
+  read, change and reset. Testing as another user (`delegateUser` on `start`) only reads their
+  variables. The end-points are renamed from `/draft/*` to `/test-session/*` (`draftSessionId`
+  becomes `testSessionId`, `revert-variables` is replaced by `reset`, and `progress` and `cancel`
+  no longer take `delegateUser`), and the permission `DIALOGUE_DRAFT_TEST` becomes
+  `DIALOGUE_TEST`. In client-js, `startDraftDialogue`, `progressDraftDialogue`,
+  `cancelDraftDialogue` and `revertDraftVariables` become `startTestSession`,
+  `progressTestSession`, `cancelTestSession` and `resetTestVariables`, plus `getTestVariables` and
+  `setTestVariable`. In Studio's Authoring Mode, the Variable Browser's *Values* shows and edits
+  the test copy, with *Reset to stored values*.
 - **Breaking:** Web service and Studio: deleting a project removes its dialogues, translations and
   version history, but keeps its users' variables, variable history and dialogue logs by default
   ([#315](https://github.com/dialoguebranch/platform/issues/315)). The project stays as a deleted

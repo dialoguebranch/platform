@@ -64,7 +64,7 @@ public class DBDraftTranslation {
 
 	// EAGER, unlike draftDialogue above: this project runs with open-in-view disabled, and
 	// callers routinely read getLanguage() outside an open Hibernate session/transaction (e.g.
-	// DraftExecutionService.startSession, PublishService.verify) — LAZY would throw
+	// TestSessionService.startSession, PublishService.verify) — LAZY would throw
 	// LazyInitializationException there. DBDraftTranslationLanguage is a small lookup row, so
 	// Hibernate resolves this as a plain SQL join rather than a real N+1 cost.
 	@ManyToOne(fetch = FetchType.EAGER)

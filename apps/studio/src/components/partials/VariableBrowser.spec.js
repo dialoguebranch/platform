@@ -44,6 +44,9 @@ const playback = {
 const authoring = {
     listProjectVariables: vi.fn(),
     listSupportedVariables: vi.fn(),
+    getTestVariables: vi.fn(),
+    setTestVariable: vi.fn(),
+    resetTestVariables: vi.fn(),
 };
 
 vi.mock('@/composables/client.js', () => ({
@@ -54,6 +57,7 @@ vi.mock('@/composables/client.js', () => ({
 
 const { default: VariableBrowser } = await import('./VariableBrowser.vue');
 const { errorToast } = await import('@/composables/error-toast.js');
+const studioModes = await import('@/StudioClientState.js');
 
 const PAGE_SIZE = 50;
 
@@ -114,6 +118,8 @@ beforeEach(() => {
     playback.getVariableHistory.mockResolvedValue([]);
     authoring.listProjectVariables.mockResolvedValue([{ name: 'currentTime', read: true, written: false }]);
     authoring.listSupportedVariables.mockResolvedValue([]);
+    authoring.getTestVariables.mockResolvedValue([{ name: 'mark', value: '7' }]);
+    authoring.resetTestVariables.mockResolvedValue();
 });
 
 describe('VariableBrowser — History mode', () => {
@@ -761,5 +767,52 @@ describe('VariableBrowser — History date range (#371)', () => {
 
         expect(lastHistoryCall().from).toBe(tokyo('2026-10-14T00:00:00'));
         expect(lastHistoryCall().page).toBe(0);
+    });
+});
+
+// In Authoring Mode, "Values" is the copy of the variables that test sessions run against (#319).
+describe('VariableBrowser — test variables in Authoring Mode', () => {
+    const { DLB_APP_MODE_DRAFT, DLB_APP_MODE_LIVE } = studioModes;
+
+    function mountIn(mode) {
+        const state = ref({ selectedProject: { slug: 'default-test' }, mode });
+        const wrapper = mount(VariableBrowser, {
+            global: { provide: { state }, stubs: { FontAwesomeIcon: true } },
+        });
+        return { wrapper, state };
+    }
+
+    it('shows the test copy, with a note, instead of the stored values', async () => {
+        const { wrapper } = mountIn(DLB_APP_MODE_DRAFT);
+        await flushPromises();
+        expect(authoring.getTestVariables).toHaveBeenCalledWith({ projectSlug: 'default-test' });
+        expect(playback.getVariables).not.toHaveBeenCalled();
+        expect(wrapper.find('[data-test="test-variables-note"]').text()).toContain('Test variables');
+        expect(wrapper.text()).toContain('mark');
+    });
+
+    it('shows the stored values in Live Mode', async () => {
+        const { wrapper } = mountIn(DLB_APP_MODE_LIVE);
+        await flushPromises();
+        expect(playback.getVariables).toHaveBeenCalled();
+        expect(authoring.getTestVariables).not.toHaveBeenCalled();
+        expect(wrapper.find('[data-test="test-variables-note"]').exists()).toBe(false);
+    });
+
+    it('resets the test copy and shows it again', async () => {
+        const { wrapper } = mountIn(DLB_APP_MODE_DRAFT);
+        await flushPromises();
+        await wrapper.find('[data-test="reset-test-variables"]').trigger('click');
+        await flushPromises();
+        expect(authoring.resetTestVariables).toHaveBeenCalledWith({ projectSlug: 'default-test' });
+        expect(authoring.getTestVariables).toHaveBeenCalledTimes(2);
+    });
+
+    it('switches between them when the mode changes', async () => {
+        const { state } = mountIn(DLB_APP_MODE_LIVE);
+        await flushPromises();
+        state.value.mode = DLB_APP_MODE_DRAFT;
+        await flushPromises();
+        expect(authoring.getTestVariables).toHaveBeenCalledTimes(1);
     });
 });

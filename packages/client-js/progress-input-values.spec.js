@@ -45,12 +45,12 @@ describe('progressDialogue / progressDraftDialogue with input values', () => {
         expect(fetchMock.mock.calls[0][1].body).toBeUndefined();
     });
 
-    it('progressDraftDialogue also forwards the values', async () => {
+    it('progressTestSession also forwards the values', async () => {
         const fetchMock = vi.fn().mockResolvedValue(jsonResponse(NEXT_STEP));
         vi.stubGlobal('fetch', fetchMock);
 
         const client = new DialogueBranchAuthoringClient({ baseUrl: '/api/v1' });
-        await client.progressDraftDialogue({ draftSessionId: 'sess-1', replyId: 3, inputValues: { wantsCheese: true } });
+        await client.progressTestSession({ testSessionId: 'sess-1', replyId: 3, inputValues: { wantsCheese: true } });
 
         expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ wantsCheese: true });
     });

@@ -2,7 +2,6 @@ package com.dialoguebranch.web.service.execution;
 
 import com.dialoguebranch.execution.ExecuteNodeResult;
 import com.dialoguebranch.model.execute.Reply;
-import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.DateTimeUtils;
 import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
@@ -14,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -24,15 +24,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  * A draft test session's reply can point to a node in a sibling dialogue (a
  * {@code [[Reply Text.|otherDialogue.NodeId]]} link) exactly as a published dialogue's can — this
  * used to be rejected with a 400 ("draft test mode" did not support cross-dialogue links), even
- * though {@link DraftExecutionService#startSession} already parses the whole project (every draft
+ * though {@link TestSessionService#startSession} already parses the whole project (every draft
  * dialogue, not just the one under test) so that such references resolve.
  */
 @SpringBootTest
 @ActiveProfiles("test")
-class DraftExecutionServiceCrossDialogueLinkTest {
-
-	@Autowired
-	private Application application;
+class TestSessionServiceCrossDialogueLinkTest {
 
 	@Autowired
 	private ProjectService projectService;
@@ -41,7 +38,7 @@ class DraftExecutionServiceCrossDialogueLinkTest {
 	private DraftDialogueService draftDialogueService;
 
 	@Autowired
-	private DraftExecutionService draftExecutionService;
+	private TestSessionService testSessionService;
 
 	@Test
 	void replyLinkingToSiblingDialogueSwitchesTheSession() throws Exception {
@@ -59,24 +56,22 @@ class DraftExecutionServiceCrossDialogueLinkTest {
 				"title: Start\nspeaker: Agent\nposition: 0,0",
 				"You made it to the other dialogue.");
 
-		ApplicationManager applicationManager = application.getApplicationManager();
 		DialogueBranchUserId userId = new DialogueBranchUserId(
 				"https://test/realms/test", "draft-cross-dialogue-user-" + UUID.randomUUID(), null);
-		UserService userService = applicationManager.getOrCreateActiveUserService(userId);
 
-		DraftExecutionService.StartResult startResult =
-				draftExecutionService.startSession(userService, project, main, "en", null);
+		TestSessionService.StartResult startResult =
+				testSessionService.startSession(userId, userId, false, project, main, "en",
+						null, ZoneId.of("UTC"));
 		assertNotNull(startResult);
 
-		DraftTestSession session = draftExecutionService.getSession(startResult.sessionId());
+		TestSession session = testSessionService.getSession(startResult.sessionId(), userId);
 		assertEquals("main", session.getDialogueDefinition().getDialogueName(),
 				"the session should start on the requested dialogue");
 
 		Reply reply = startResult.executeNodeResult().node().getBody().getReplies().get(0);
 
-		ZonedDateTime eventTime =
-				DateTimeUtils.nowMs(userService.getDialogueBranchUser().getTimeZone());
-		ExecuteNodeResult nextResult = draftExecutionService.progressSession(
+		ZonedDateTime eventTime = DateTimeUtils.nowMs(ZoneId.of("UTC"));
+		ExecuteNodeResult nextResult = testSessionService.progressSession(
 				session, reply.getReplyId(), null, eventTime);
 
 		assertNotNull(nextResult, "following the cross-dialogue link should not end the session");

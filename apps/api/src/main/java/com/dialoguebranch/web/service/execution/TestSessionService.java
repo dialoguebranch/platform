@@ -29,8 +29,10 @@
 package com.dialoguebranch.web.service.execution;
 
 import com.dialoguebranch.exception.ExecutionException;
+import com.dialoguebranch.exception.ParseException;
 import com.dialoguebranch.execution.ActiveDialogue;
 import com.dialoguebranch.execution.ExecuteNodeResult;
+import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.Variable;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.VariableUpdatedSource;
@@ -47,27 +49,32 @@ import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import com.dialoguebranch.web.service.DateTimeUtils;
+import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
+import com.dialoguebranch.web.service.controller.ControllerFunctions;
 import com.dialoguebranch.web.service.exception.BadRequestException;
+import com.dialoguebranch.web.service.exception.ForbiddenException;
 import com.dialoguebranch.web.service.exception.NotFoundException;
 import com.dialoguebranch.web.service.exception.ProjectParseHttpError;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
+import com.dialoguebranch.web.service.storage.VariableStoreDatabaseStorageHandler;
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslation;
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Ephemeral, in-memory execution service for test-running a single draft dialogue's current
- * content without requiring it to be published first.
+ * Ephemeral, in-memory execution service for test-running a dialogue's current draft content
+ * without requiring it to be published first.
  *
  * <p>Sessions are driven directly through {@link ActiveDialogue} and held only in this service's
  * in-memory {@code sessions} map — they never touch
@@ -75,50 +82,164 @@ import java.util.concurrent.ConcurrentHashMap;
  * from the published-dialogue execution path in {@link DialogueExecutor}/{@link UserService}
  * used by {@code /dialogue/*}.</p>
  *
- * <p>A draft test session reads and writes the user's real {@link VariableStore}. A snapshot is
- * taken when the session starts so that {@link #revertVariables(DraftTestSession, UserService)}
- * can restore exactly the values that existed beforehand.</p>
+ * <p>A test session never reads or writes the user's real variables (#319). It runs against a
+ * <em>copy</em>, kept in memory and seeded from the user's stored variables when first needed:
+ * the copy is never saved, never recorded in the variable history, and never sent to the
+ * External Variable Service. All test sessions of the same tester, for the same user (themselves
+ * or a delegate) and project, share one copy, so what a test in one Studio tab sets is seen by a
+ * test in another, as in real play.</p>
  *
  * @author Harm op den Akker
  */
 @Service
-public class DraftExecutionService {
-
-	private final DraftDialogueService draftDialogueService;
-	private final Map<String, DraftTestSession> sessions = new ConcurrentHashMap<>();
+public class TestSessionService {
 
 	/**
-	 * Creates a new {@link DraftExecutionService}.
+	 * Identifies one copy of the variables: the tester's, for one user (the tester or someone
+	 * they act for, in the tester's own realm) and project.
+	 *
+	 * @param testerIssuer the tester's token issuer.
+	 * @param testerSubject the tester's OIDC subject.
+	 * @param userSubject the subject of the user whose variables were copied.
+	 * @param projectSlug the project the variables belong to.
+	 */
+	public record CopyKey(String testerIssuer, String testerSubject, String userSubject,
+			String projectSlug) {
+
+		/**
+		 * Returns the key of the given tester's copy, for the given user and project.
+		 *
+		 * @param tester the tester.
+		 * @param user the user whose variables are copied.
+		 * @param projectSlug the project.
+		 * @return the key.
+		 */
+		public static CopyKey of(DialogueBranchUserId tester, DialogueBranchUserId user,
+				String projectSlug) {
+			return new CopyKey(tester.issuer(), tester.subject(), user.subject(), projectSlug);
+		}
+	}
+
+	private final DraftDialogueService draftDialogueService;
+	private final VariableStoreDatabaseStorageHandler storageHandler;
+	private final Map<String, TestSession> sessions = new ConcurrentHashMap<>();
+	private final Map<CopyKey, VariableStore> copies = new ConcurrentHashMap<>();
+
+	/**
+	 * Creates a new {@link TestSessionService}.
 	 *
 	 * @param draftDialogueService service used to read a project's draft dialogues and their
-	 *                             content when starting a draft test session.
+	 *                             content when starting a test session.
+	 * @param storageHandler handler used to read a user's stored variables, to seed a copy.
 	 */
-	public DraftExecutionService(DraftDialogueService draftDialogueService) {
+	public TestSessionService(DraftDialogueService draftDialogueService,
+			VariableStoreDatabaseStorageHandler storageHandler) {
 		this.draftDialogueService = draftDialogueService;
+		this.storageHandler = storageHandler;
 	}
 
 	/**
-	 * The result of starting a draft test session: the new session's ID and the
+	 * The result of starting a test session: the new session's ID and the
 	 * {@link ExecuteNodeResult} for its start node.
 	 *
-	 * @param sessionId        the ID of the newly created {@link DraftTestSession}.
+	 * @param sessionId        the ID of the newly created {@link TestSession}.
 	 * @param executeNodeResult the result for the dialogue's start node.
 	 */
 	public record StartResult(String sessionId, ExecuteNodeResult executeNodeResult) {
 	}
 
+	// -------------------- Copies of the variables -------------------- //
+
 	/**
-	 * Returns the draft test session with the given {@code sessionId}.
+	 * Returns the tester's copy of the variables of the given user in the given project, seeding
+	 * it from the user's stored variables if it doesn't exist yet. Nothing is created or changed
+	 * for the user: a tester testing as themselves without any stored variables starts from an
+	 * empty copy, and an unknown delegated user is reported as such.
+	 *
+	 * @param tester the authenticated user running the test.
+	 * @param user the user whose variables to copy: the tester, or someone they act for.
+	 * @param delegated whether {@code user} is someone other than the tester.
+	 * @param project the project the variables belong to.
+	 * @param timeZone the time zone of the copy's user, used only when the copy is created.
+	 * @return the copy.
+	 * @throws NotFoundException if {@code user} is a delegated user this service doesn't know.
+	 * @throws ParseException if a stored value cannot be parsed.
+	 */
+	public VariableStore getCopy(DialogueBranchUserId tester, DialogueBranchUserId user,
+			boolean delegated, DBProject project, ZoneId timeZone)
+			throws NotFoundException, ParseException {
+		CopyKey key = CopyKey.of(tester, user, project.getSlug());
+		VariableStore copy = copies.get(key);
+		if (copy != null) return copy;
+		Variable[] seed = readStoredVariables(user, delegated, project);
+		VariableStore created = new VariableStore(new User(user.subject(), timeZone), seed);
+		VariableStore existing = copies.putIfAbsent(key, created);
+		return existing != null ? existing : created;
+	}
+
+	/**
+	 * Makes the tester's copy of the given user's variables in the given project identical to the
+	 * user's stored variables again, in place, so test sessions running against it continue with
+	 * the reset values. Does nothing if there is no copy yet: the next use seeds a fresh one.
+	 *
+	 * @param tester the authenticated user running the test.
+	 * @param user the user whose variables were copied.
+	 * @param delegated whether {@code user} is someone other than the tester.
+	 * @param project the project the variables belong to.
+	 * @throws NotFoundException if {@code user} is a delegated user this service doesn't know.
+	 * @throws ParseException if a stored value cannot be parsed.
+	 */
+	public void resetCopy(DialogueBranchUserId tester, DialogueBranchUserId user,
+			boolean delegated, DBProject project) throws NotFoundException, ParseException {
+		Variable[] seed = readStoredVariables(user, delegated, project);
+		VariableStore copy = copies.get(CopyKey.of(tester, user, project.getSlug()));
+		if (copy == null) return;
+		ZonedDateTime now = DateTimeUtils.nowMs(copy.getUser().getTimeZone());
+		copy.getModifiableMap(false, now).clear();
+		for (Variable variable : seed) {
+			copy.setValue(variable.getName(), variable.getValue(), false,
+					storedTime(variable, now), variable.getUpdatedSource());
+		}
+	}
+
+	/** The user's stored variables in the project, read without creating anything. */
+	private Variable[] readStoredVariables(DialogueBranchUserId user, boolean delegated,
+			DBProject project) throws NotFoundException, ParseException {
+		Optional<List<Variable>> stored = storageHandler.readExisting(user, project);
+		if (stored.isEmpty() && delegated) throw ControllerFunctions.unknownDelegateUser(user);
+		return stored.orElse(List.of()).toArray(new Variable[0]);
+	}
+
+	/** When a stored variable was last updated, in the time zone it was updated in. */
+	private static ZonedDateTime storedTime(Variable variable, ZonedDateTime fallback) {
+		if (variable.getUpdatedTime() == null) return fallback;
+		ZoneId zone = variable.getUpdatedTimeZone() != null
+				? ZoneId.of(variable.getUpdatedTimeZone()) : fallback.getZone();
+		return Instant.ofEpochMilli(variable.getUpdatedTime()).atZone(zone);
+	}
+
+	// -------------------- Sessions -------------------- //
+
+	/**
+	 * Returns the test session with the given {@code sessionId}, if it belongs to the given
+	 * tester.
 	 *
 	 * @param sessionId the session ID.
-	 * @return the matching {@link DraftTestSession}.
+	 * @param tester the authenticated user making the request.
+	 * @return the matching {@link TestSession}.
 	 * @throws NotFoundException if no session with that ID exists (e.g. it was never started, was
-	 *                           already cancelled/reverted, or the service has restarted).
+	 *                           already cancelled, or the service has restarted).
+	 * @throws ForbiddenException if the session belongs to another tester.
 	 */
-	public DraftTestSession getSession(String sessionId) throws NotFoundException {
-		DraftTestSession session = sessions.get(sessionId);
+	public TestSession getSession(String sessionId, DialogueBranchUserId tester)
+			throws NotFoundException, ForbiddenException {
+		TestSession session = sessions.get(sessionId);
 		if (session == null) {
-			throw new NotFoundException("Draft test session not found: " + sessionId);
+			throw new NotFoundException("Test session not found: " + sessionId);
+		}
+		if (!session.getTester().issuer().equals(tester.issuer())
+				|| !session.getTester().subject().equals(tester.subject())) {
+			throw new ForbiddenException();
 		}
 		return session;
 	}
@@ -126,10 +247,12 @@ public class DraftExecutionService {
 	/**
 	 * Parses the current content of the given draft dialogue's whole project (so that any node
 	 * pointers to sibling dialogues resolve) and starts an ephemeral test session for the given
-	 * dialogue specifically, snapshotting the user's variable state beforehand (before the start
-	 * node's own "set" commands, if any, are executed).
+	 * dialogue specifically, running against the tester's copy of the given user's variables.
 	 *
-	 * @param userService the {@link UserService} of the user testing the draft.
+	 * @param tester      the authenticated user running the test.
+	 * @param user        the user whose variables the test starts from: the tester, or someone
+	 *                    they act for.
+	 * @param delegated   whether {@code user} is someone other than the tester.
 	 * @param project     the project {@code dialogue} belongs to (passed explicitly rather than
 	 *                    read via {@code dialogue.getProject()}, which is a lazy relation that may
 	 *                    no longer have an active Hibernate session attached by this point).
@@ -138,16 +261,19 @@ public class DraftExecutionService {
 	 *                    project's source language if this dialogue has no content in exactly
 	 *                    this language (matching {@code UserService.findExactLanguageMatch}'s
 	 *                    behavior for published dialogues).
-	 * @param startNodeId the node ID to start the test from, or {@code null} to start from the
-	 *                    dialogue's default "Start" node.
-	 * @return the new session's ID and the {@link ExecuteNodeResult} for its start node.
-	 * @throws BadRequestException if the draft content does not currently parse.
-	 * @throws ExecutionException  if the dialogue cannot be started, e.g. {@code startNodeId} does
-	 *                             not exist in the dialogue.
+	 * @param startNodeId an optional node title to start at, instead of the default start node.
+	 * @param timeZone    the tester's time zone.
+	 * @return the new session's ID and the result for its start node.
+	 * @throws BadRequestException if the project's draft content has errors, or the dialogue
+	 *                             can't be parsed into a runnable dialogue.
+	 * @throws NotFoundException if {@code user} is a delegated user this service doesn't know.
+	 * @throws ParseException if a stored variable value cannot be parsed.
+	 * @throws ExecutionException if the dialogue can't be started.
 	 */
-	public StartResult startSession(UserService userService, DBProject project,
-									DBDraftDialogue dialogue, String language, String startNodeId)
-			throws BadRequestException, ExecutionException {
+	public StartResult startSession(DialogueBranchUserId tester, DialogueBranchUserId user,
+			boolean delegated, DBProject project, DBDraftDialogue dialogue, String language,
+			String startNodeId, ZoneId timeZone)
+			throws BadRequestException, NotFoundException, ParseException, ExecutionException {
 		// The dialogue under test may contain node pointers to sibling dialogues in the same
 		// project — parsing needs all of them available, not just this one, otherwise those
 		// pointers are reported as pointing to an "unknown dialogue". Every dialogue in a project
@@ -207,41 +333,25 @@ public class DraftExecutionService {
 					"' could not be parsed into a runnable dialogue.");
 		}
 
-		VariableStore variableStore = userService.getVariableStore(project.getSlug());
+		VariableStore copy = getCopy(tester, user, delegated, project, timeZone);
 		ActiveDialogue activeDialogue = new ActiveDialogue(resolved.pointer(), resolved.definition(),
-				variableStore);
+				copy);
 
-		// Snapshot before executing the start node, so any "set" commands it triggers are
-		// included in what gets reverted.
-		Variable[] snapshot = variableStore.getVariables();
-
-		ZonedDateTime eventTime =
-				DateTimeUtils.nowMs(userService.getDialogueBranchUser().getTimeZone());
 		Node startNode;
 		try {
-			startNode = activeDialogue.startDialogue(startNodeId, eventTime);
+			startNode = activeDialogue.startDialogue(startNodeId, DateTimeUtils.nowMs(timeZone));
 		} catch (EvaluationException e) {
 			throw new RuntimeException("Expression evaluation error: " + e.getMessage(), e);
 		}
 
-		DraftTestSession session = new DraftTestSession(
-				userService.getDialogueBranchUser().getId(), project.getSlug(), activeDialogue, resolved.definition(),
-				snapshot, executableProject, sourceLanguage);
+		TestSession session = new TestSession(tester, CopyKey.of(tester, user, project.getSlug()),
+				activeDialogue, resolved.definition(), executableProject, sourceLanguage);
 		sessions.put(session.getId(), session);
 
 		ExecuteNodeResult result = new ExecuteNodeResult(resolved.definition(), startNode, null, 0);
 		return new StartResult(session.getId(), result);
 	}
 
-	/**
-	 * The result of resolving a dialogue name and preferred language against a project's already
-	 * parsed content — see {@link #resolveDialogue(ExecutableProject, String, String, String)}.
-	 *
-	 * @param pointer    the {@link ResourcePointer} actually matched (which may name the source
-	 *                   language rather than the originally requested one, if this dialogue has
-	 *                   no content in exactly that language).
-	 * @param definition the resolved {@link Dialogue}.
-	 */
 	private record ResolvedDialogue(ResourcePointer pointer, Dialogue definition) {
 	}
 
@@ -291,7 +401,7 @@ public class DraftExecutionService {
 	 * Progresses the given draft test session after the user selected the specified reply. If the
 	 * reply points to a sibling dialogue rather than a node within the one currently being
 	 * tested, switches the session to that dialogue and starts it at the linked node — see
-	 * {@link DraftTestSession#switchToDialogue}. The sibling is resolved against the project
+	 * {@link TestSession#switchToDialogue}. The sibling is resolved against the project
 	 * content already parsed when this session started (see {@link
 	 * #resolveDialogue(ExecutableProject, String, String, String)}), preferring whatever language the
 	 * dialogue currently being tested actually resolved to (which may itself already be a
@@ -310,7 +420,7 @@ public class DraftExecutionService {
 	 *                            session started).
 	 * @throws ExecutionException if the reply cannot be processed.
 	 */
-	public ExecuteNodeResult progressSession(DraftTestSession session, int replyId,
+	public ExecuteNodeResult progressSession(TestSession session, int replyId,
 											 Map<String, ?> variables, ZonedDateTime eventTime)
 			throws NotFoundException, ExecutionException {
 		ActiveDialogue activeDialogue = session.getActiveDialogue();
@@ -366,41 +476,11 @@ public class DraftExecutionService {
 	}
 
 	/**
-	 * Discards the given draft test session without reverting any variable changes made during
-	 * it — matching how {@code /dialogue/cancel} behaves for real sessions.
+	 * Ends a test session. Its copy of the variables stays, for the tester's other sessions.
 	 *
-	 * @param session the draft test session to discard.
+	 * @param session the session to end.
 	 */
-	public void cancelSession(DraftTestSession session) {
-		sessions.remove(session.getId());
-	}
-
-	/**
-	 * Restores the user's variable store to the state it was in when the given draft test session
-	 * started — resetting every variable present in the snapshot to its snapshotted value, and
-	 * deleting any variable that was newly created since — then discards the session.
-	 *
-	 * @param session the draft test session whose variable changes should be reverted.
-	 * @param userService the {@link UserService} of the user testing the draft.
-	 */
-	public void revertVariables(DraftTestSession session, UserService userService) {
-		VariableStore variableStore = userService.getVariableStore(session.getProjectSlug());
-		ZonedDateTime eventTime =
-				DateTimeUtils.nowMs(userService.getDialogueBranchUser().getTimeZone());
-
-		Set<String> snapshotNames = new HashSet<>();
-		for (Variable variable : session.getVariableSnapshot()) {
-			snapshotNames.add(variable.getName());
-			variableStore.setValue(variable.getName(), variable.getValue(), true, eventTime,
-					VariableUpdatedSource.WEB_SERVICE);
-		}
-
-		for (String name : new HashSet<>(variableStore.getVariableNames())) {
-			if (!snapshotNames.contains(name)) {
-				variableStore.removeByName(name, true, eventTime, VariableUpdatedSource.WEB_SERVICE);
-			}
-		}
-
+	public void cancelSession(TestSession session) {
 		sessions.remove(session.getId());
 	}
 
