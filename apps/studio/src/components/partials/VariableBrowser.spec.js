@@ -785,7 +785,7 @@ describe('VariableBrowser — test variables in Authoring Mode', () => {
     it('shows the test copy, with a note, instead of the stored values', async () => {
         const { wrapper } = mountIn(DLB_APP_MODE_DRAFT);
         await flushPromises();
-        expect(authoring.getTestVariables).toHaveBeenCalledWith({ projectSlug: 'default-test' });
+        expect(authoring.getTestVariables).toHaveBeenCalledWith({ projectSlug: 'default-test', timeZone: 'Asia/Tokyo' });
         expect(playback.getVariables).not.toHaveBeenCalled();
         expect(wrapper.find('[data-test="test-variables-note"]').text()).toContain('Test variables');
         expect(wrapper.text()).toContain('mark');
@@ -806,6 +806,15 @@ describe('VariableBrowser — test variables in Authoring Mode', () => {
         await flushPromises();
         expect(authoring.resetTestVariables).toHaveBeenCalledWith({ projectSlug: 'default-test' });
         expect(authoring.getTestVariables).toHaveBeenCalledTimes(2);
+    });
+
+    it('shows the test copy while simulating a user in Live Mode', async () => {
+        const state = ref({ selectedProject: { slug: 'default-test' }, mode: DLB_APP_MODE_LIVE,
+            delegate: { subject: 's', label: 'robin', mode: 'simulate' } });
+        mount(VariableBrowser, { global: { provide: { state }, stubs: { FontAwesomeIcon: true } } });
+        await flushPromises();
+        expect(authoring.getTestVariables).toHaveBeenCalled();
+        expect(playback.getVariables).not.toHaveBeenCalled();
     });
 
     it('switches between them when the mode changes', async () => {

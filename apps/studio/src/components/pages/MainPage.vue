@@ -144,6 +144,8 @@ function selectMode(mode) {
     if (state.value.mode === mode) return;
     state.value.mode = mode;
     dialogueWorkspace.value?.clearAllTabs();
+    // Simulating or acting as someone is a choice made in one mode, never carried into the other.
+    if (state.value.delegate) applyDelegate(null);
     dialogueBrowser.value?.listDialogues();
     // The "Test dialogues in:" selector offers draft languages in Authoring Mode and published
     // languages in Live Mode — refresh it so switching modes doesn't leave it showing the other
@@ -372,7 +374,11 @@ function onTranslationsImported(results) {
 // A delegate is set on the shared clients, which outlive this page: clear it whenever a project
 // is opened, so that one set in a previous project can't stay active unseen (#407).
 setDelegateUser(null);
-const activeDelegateUser = ref(null);
+state.value.delegate = null;
+const activeDelegateUser = computed(() => state.value.delegate?.label ?? null);
+// Simulating a user (#411) runs dialogues against a copy of their variables, as test sessions
+// (see DialogueWorkspace); acting as them ('act') does so for real.
+const simulating = computed(() => state.value.delegate?.mode === 'simulate');
 const showDelegateModal = ref(false);
 const delegateConfirmAction = ref(null);
 
@@ -381,24 +387,32 @@ function onSetDelegateUserClick() {
     showDelegateModal.value = true;
 }
 
-// payload: { subject, label } — subject is sent to the API, label is what we show.
+// Sets (or, with null, clears) the user being acted for, on the clients and in the page state.
+function applyDelegate(delegate) {
+    setDelegateUser(delegate?.subject ?? null);
+    state.value.delegate = delegate;
+    variableBrowser.value?.loadVariables();
+}
+
+// payload: { subject, label, mode } — subject is sent to the API, label is what we show, mode is
+// 'simulate' or 'act'.
 function onDelegateApply(payload) {
     showDelegateModal.value = false;
     const subject = payload?.subject || null;
     delegateConfirmAction.value = () => {
-        setDelegateUser(subject);
-        activeDelegateUser.value = subject ? (payload.label || subject) : null;
-        variableBrowser.value?.loadVariables();
+        applyDelegate(subject ? { subject, label: payload.label || subject, mode: payload.mode } : null);
     };
 }
 
 function onDelegateClear() {
     showDelegateModal.value = false;
-    delegateConfirmAction.value = () => {
-        setDelegateUser(null);
-        activeDelegateUser.value = null;
-        variableBrowser.value?.loadVariables();
-    };
+    delegateConfirmAction.value = () => applyDelegate(null);
+}
+
+// Stopping a simulation needs no confirmation: its tabs only held test sessions.
+function stopSimulating() {
+    dialogueWorkspace.value?.clearAllTabs();
+    applyDelegate(null);
 }
 
 function confirmDelegateAction() {
@@ -606,7 +620,7 @@ function onWorkspaceModeChanged(mode) {
                         </span>
                         <span class="font-title text-sm font-bold text-white">
                             {{ state.user?.name }}
-                            <span v-if="activeDelegateUser" class="font-normal text-orange-light text-xs"> → {{ activeDelegateUser }}</span>
+                            <span v-if="activeDelegateUser" class="font-normal text-orange-light text-xs"> → {{ activeDelegateUser }}<template v-if="simulating"> (simulating)</template></span>
                         </span>
                         <span class="font-mono text-[10px] text-orange-light">{{ Array.isArray(state.user?.roles) ? state.user.roles.join(', ') : state.user?.roles }}</span>
                     </div>
@@ -735,6 +749,11 @@ function onWorkspaceModeChanged(mode) {
                 />
             </template>
             <template #main>
+                <div v-if="simulating" data-test="simulating-banner" class="flex items-center gap-2 mb-1 px-3 py-1.5 rounded-lg border border-orange-medium/50 bg-orange-light/30 font-title text-xs text-orange-darker">
+                    <FontAwesomeIcon icon="fa-solid fa-flask" class="shrink-0" />
+                    <span class="flex-1">Simulating <strong>{{ activeDelegateUser }}</strong>: dialogues run against a copy of their variables, and nothing is saved.</span>
+                    <button type="button" data-test="stop-simulating" class="shrink-0 px-2 py-0.5 rounded border border-orange-medium/60 hover:bg-orange-light/50 cursor-pointer" @click="stopSimulating">Stop simulating</button>
+                </div>
                 <DialogueWorkspace ref="dialogue-workspace" class="grow" @newDialogueStep="onNewDialogueStep" @dialogueSaved="onDialogueSaved" @modeChanged="onWorkspaceModeChanged" />
             </template>
             <template #right>

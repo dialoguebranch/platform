@@ -309,4 +309,77 @@ class TestSessionIntegrationTest {
 		mockMvc.perform(as(start(slug, "main"), participant, "participant"))
 				.andExpect(status().isForbidden());
 	}
+
+	// -------------------- Published content (#411) -------------------- //
+
+	private void publish(String slug) throws Exception {
+		mockMvc.perform(as(post("/v1/publish/create-version").param("projectSlug", slug),
+						"test-session-admin", "admin"))
+				.andExpect(status().isOk());
+	}
+
+	/** Replaces the draft of "check" with different text, after publishing. */
+	private void changeDraftOfCheck(String slug) throws Exception {
+		mockMvc.perform(as(multipart("/v1/authoring/import-scripts")
+						.file(new MockMultipartFile("files", "check.dlb", "text/plain",
+								"title: Start\nspeaker: Robin\n---\nDraft mark $mark.\n===\n"
+										.getBytes(StandardCharsets.UTF_8)))
+						.param("projectSlug", slug).param("replace", "true"),
+						"test-session-admin", "admin"))
+				.andExpect(status().isOk());
+	}
+
+	@Test
+	void publishedContentRunsThePublishedVersionAndDraftTheDraft() throws Exception {
+		String slug = project();
+		publish(slug);
+		changeDraftOfCheck(slug);
+		String editor = unique("test-session-editor-");
+
+		mockMvc.perform(as(start(slug, "check").param("content", "published"), editor, "editor"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("Mark is")));
+		mockMvc.perform(as(start(slug, "check"), editor, "editor"))
+				.andExpect(status().isOk())
+				.andExpect(content().string(containsString("Draft mark")));
+	}
+
+	@Test
+	void publishedContentOfAnUnpublishedProjectIsNotFound() throws Exception {
+		String slug = project();
+		mockMvc.perform(as(start(slug, "main").param("content", "published"),
+						unique("test-session-editor-"), "editor"))
+				.andExpect(status().isNotFound());
+		mockMvc.perform(as(start(slug, "main").param("content", "nonsense"),
+						unique("test-session-editor-"), "editor"))
+				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void simulatingAUserOnPublishedContentLeavesTheirDataAlone() throws Exception {
+		String slug = project();
+		publish(slug);
+		String participant = unique("test-session-participant-");
+		String admin = unique("test-session-admin-");
+		storeRealMood(slug, participant);
+		long history = historyOf(participant);
+
+		String json = mockMvc.perform(as(start(slug, "main").param("content", "published")
+						.param("delegateUser", participant), admin, "admin"))
+				.andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString();
+		int replyId = objectMapper.readTree(json).get("dialogueMessage").get("replies")
+				.get(0).get("replyId").asInt();
+		mockMvc.perform(as(post("/v1/test-session/progress").param("testSessionId", sessionId(json))
+						.param("replyId", String.valueOf(replyId)).param("timeZone", "UTC"),
+						admin, "admin"))
+				.andExpect(status().isOk());
+
+		mockMvc.perform(as(testVariables(slug).param("delegateUser", participant), admin, "admin"))
+				.andExpect(jsonPath("$[*].name").value(containsInAnyOrder("mark", "mood", "second")));
+		mockMvc.perform(as(realVariables(slug), participant, "participant"))
+				.andExpect(jsonPath("$[*].name").value(containsInAnyOrder("mood")));
+		assertEquals(history, historyOf(participant));
+		assertEquals(0, logsOf(participant));
+	}
 }

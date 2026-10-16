@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useUserSearch } from '@/composables/user-search.js';
 import TextInput from '../widgets/TextInput.vue';
@@ -10,10 +10,12 @@ defineProps({
     currentDelegateUser: { type: String, default: null },
 });
 
-// 'apply' carries { subject, label }: subject is sent to the API, label is shown in the UI.
+// 'apply' carries { subject, label, mode }: subject is sent to the API, label is shown in the UI,
+// and mode is 'simulate' (run dialogues against a copy of the user's variables, #411) or 'act'
+// (act on their behalf for real).
 const emit = defineEmits(['close', 'apply', 'clear']);
 
-const mode = ref('search'); // 'search' | 'raw'
+const inputMode = ref('search'); // 'search' | 'raw'
 
 const { query, results, loading, loadError, search, refresh } = useUserSearch();
 const selected = ref(null);       // { username, subject }
@@ -46,16 +48,18 @@ function pick(row) {
     }
 }
 
-function onApply() {
-    if (mode.value === 'raw') {
+function onApply(mode) {
+    if (inputMode.value === 'raw') {
         const subject = rawSubject.value.trim();
-        if (subject) emit('apply', { subject, label: subject });
+        if (subject) emit('apply', { subject, label: subject, mode });
         return;
     }
     if (selected.value) {
-        emit('apply', { subject: selected.value.subject, label: labelOf(selected.value) });
+        emit('apply', { subject: selected.value.subject, label: labelOf(selected.value), mode });
     }
 }
+
+const canApply = computed(() => (inputMode.value === 'search' ? !!selected.value : !!rawSubject.value.trim()));
 
 function onClear() {
     emit('clear');
@@ -81,8 +85,8 @@ function onClear() {
                 <!-- Content -->
                 <div class="px-5 py-5 flex flex-col gap-4">
                     <p class="font-title text-sm text-grey-dark">
-                        When a delegate user is set, all dialogue interactions will be executed on behalf of that user.
-                        Leave empty to act as yourself.
+                        <strong>Simulate</strong> runs dialogues for that user against a copy of their variables: nothing of theirs is changed.
+                        <strong>Act as</strong> runs dialogues and changes variables on their behalf, for real.
                     </p>
 
                     <div v-if="currentDelegateUser" class="flex items-center gap-2 bg-orange-light/20 border border-orange-medium/40 rounded-lg px-4 py-2 font-title text-sm text-orange-darker">
@@ -92,21 +96,21 @@ function onClear() {
 
                     <div class="flex gap-1 text-xs font-title">
                         <button type="button" class="px-2 py-1 rounded"
-                            :class="mode === 'search' ? 'bg-orange-dark text-white' : 'bg-grey-lighter text-grey-dark hover:bg-grey-light'"
-                            @click="mode = 'search'">Search by username</button>
+                            :class="inputMode === 'search' ? 'bg-orange-dark text-white' : 'bg-grey-lighter text-grey-dark hover:bg-grey-light'"
+                            @click="inputMode = 'search'">Search by username</button>
                         <button type="button" class="px-2 py-1 rounded"
-                            :class="mode === 'raw' ? 'bg-orange-dark text-white' : 'bg-grey-lighter text-grey-dark hover:bg-grey-light'"
-                            @click="mode = 'raw'">Enter subject (UUID)</button>
+                            :class="inputMode === 'raw' ? 'bg-orange-dark text-white' : 'bg-grey-lighter text-grey-dark hover:bg-grey-light'"
+                            @click="inputMode = 'raw'">Enter subject (UUID)</button>
                     </div>
 
                     <!-- Search mode -->
-                    <div v-if="mode === 'search'">
+                    <div v-if="inputMode === 'search'">
                         <label class="block font-title font-bold text-sm text-orange-darker mb-1">Delegate Username</label>
                         <TextInput
                             class="w-full"
                             v-model="query"
                             placeholder="Type a username or subject..."
-                            @keyup.enter="onApply"
+                            @keyup.enter="onApply('simulate')"
                         />
                         <div class="mt-2 border border-grey-light rounded-lg max-h-52 overflow-y-auto divide-y divide-grey-lighter">
                             <div v-if="loading" class="px-3 py-2 text-xs text-grey-dark font-title">Searching…</div>
@@ -139,7 +143,7 @@ function onClear() {
                             class="w-full font-mono"
                             v-model="rawSubject"
                             placeholder="e.g. 8f0b…-…"
-                            @keyup.enter="onApply"
+                            @keyup.enter="onApply('simulate')"
                         />
                     </div>
                 </div>
@@ -157,11 +161,20 @@ function onClear() {
                     <div v-else></div>
                     <div class="flex gap-3">
                         <button class="px-4 py-2 rounded font-title text-sm text-grey-dark border border-grey-light hover:bg-grey-light cursor-pointer" @click="emit('close')">Cancel</button>
+                        <button
+                            type="button"
+                            class="px-4 py-2 rounded font-title text-sm border cursor-pointer"
+                            :class="canApply ? 'text-orange-darker border-orange-medium/60 hover:bg-orange-light/30' : 'text-grey-medium border-grey-light cursor-not-allowed'"
+                            :disabled="!canApply"
+                            data-test="act-as"
+                            @click="onApply('act')"
+                        >Act as</button>
                         <PushButton
-                            text="Apply"
+                            text="Simulate as"
                             variant="green"
-                            :disabled="mode === 'search' ? !selected : !rawSubject.trim()"
-                            @click="onApply"
+                            :disabled="!canApply"
+                            data-test="simulate-as"
+                            @click="onApply('simulate')"
                         />
                     </div>
                 </div>

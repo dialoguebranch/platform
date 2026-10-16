@@ -58,8 +58,24 @@ describe('SetDelegateUserModal', () => {
         const rows = wrapper.findAll('button').filter((b) => b.text().includes('s-delegate'));
         expect(rows[0].text()).toContain('no username');
         await rows[0].trigger('click');
-        await wrapper.findAll('button').find((b) => b.text() === 'Apply').trigger('click');
+        await wrapper.find('[data-test="simulate-as"]').trigger('click');
 
-        expect(wrapper.emitted('apply')[0][0]).toEqual({ subject: 's-delegate', label: 's-delegate' });
+        expect(wrapper.emitted('apply')[0][0]).toEqual({ subject: 's-delegate', label: 's-delegate', mode: 'simulate' });
+    });
+
+    // #411: simulating is the primary choice, acting for real the secondary one.
+    it('offers to simulate or to act as the picked user', async () => {
+        const wrapper = mount(SetDelegateUserModal, {
+            global: { stubs: { FontAwesomeIcon: true, teleport: true } },
+        });
+        await flushPromises();
+        expect(wrapper.find('[data-test="act-as"]').attributes('disabled')).toBeDefined();
+
+        await wrapper.findAll('button').find((b) => b.text().includes('robin')).trigger('click');
+        await wrapper.find('[data-test="act-as"]').trigger('click');
+        await wrapper.find('[data-test="simulate-as"]').trigger('click');
+
+        expect(wrapper.emitted('apply').map((e) => e[0].mode)).toEqual(['act', 'simulate']);
+        expect(wrapper.emitted('apply')[0][0]).toEqual({ subject: 's-robin', label: 'robin', mode: 'act' });
     });
 });

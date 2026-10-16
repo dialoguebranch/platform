@@ -28,12 +28,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import { ref } from 'vue';
-import { DLB_APP_MODE_DRAFT, DIALOGUE_WORKSPACE_STYLE_BALLOONS } from '@/StudioClientState.js';
+import { DLB_APP_MODE_DRAFT, DLB_APP_MODE_LIVE, DIALOGUE_WORKSPACE_STYLE_BALLOONS } from '@/StudioClientState.js';
 
 // How the Dialogue Workspace handles the end of a test session (#218): the Web Service ends a
 // session with its dialogue and evicts idle ones, answering 404 for them afterwards.
 
-const playback = {};
+const playback = {
+    startDialogue: vi.fn(),
+    progressDialogue: vi.fn(),
+    continueDialogue: vi.fn(),
+    cancelDialogue: vi.fn(),
+    getOngoingDialogue: vi.fn(),
+    setVariable: vi.fn(),
+};
 const authoring = {
     getProject: vi.fn(),
     startTestSession: vi.fn(),
@@ -114,5 +121,82 @@ describe('DialogueWorkspace — test sessions', () => {
         expect(balloons(wrapper).props('dialogueEnded')).toBe(true);
         // The Web Service has ended it too, so nothing refers to it any more.
         expect(wrapper.text()).not.toContain('Session ID: s1');
+    });
+});
+
+// #411: while simulating a user, every dialogue runs as a test session — on the published content
+// in Live Mode — and nothing goes through the playback client's real dialogue end-points.
+describe('DialogueWorkspace — simulating a user', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        authoring.getProject.mockResolvedValue({ sourceLanguageCode: 'en', draftTranslationLanguages: [] });
+        authoring.startTestSession.mockResolvedValue({ testSessionId: 's1', dialogueStep: step([reply]) });
+        authoring.progressTestSession.mockResolvedValue(step([reply]));
+        authoring.cancelTestSession.mockResolvedValue();
+    });
+
+    async function mountSimulatingIn(mode) {
+        const state = ref({
+            selectedProject: { slug: 'p' },
+            mode,
+            dialogueWorkspaceStyle: DIALOGUE_WORKSPACE_STYLE_BALLOONS,
+            delegate: { subject: 's-robin', label: 'robin', mode: 'simulate' },
+        });
+        const wrapper = mount(DialogueWorkspace, {
+            global: {
+                provide: { state },
+                stubs: {
+                    FontAwesomeIcon: true,
+                    BalloonDialogueComponent: true,
+                    TextDialogueComponent: true,
+                    DialogueEditor: true,
+                    TranslationEditor: true,
+                    teleport: true,
+                },
+            },
+        });
+        await flushPromises();
+        return wrapper;
+    }
+
+    const noRealPlayback = () => {
+        for (const method of Object.values(playback)) expect(method).not.toHaveBeenCalled();
+    };
+
+    it('runs the published content as a test session in Live Mode', async () => {
+        const wrapper = await mountSimulatingIn(DLB_APP_MODE_LIVE);
+
+        wrapper.vm.openDialogue('main');
+        await flushPromises();
+        balloons(wrapper).vm.$emit('selectReply', step([reply]), reply);
+        await flushPromises();
+        await wrapper.find('[title="Cancel the current dialogue"]').trigger('click');
+        await flushPromises();
+
+        expect(authoring.startTestSession).toHaveBeenCalledWith(expect.objectContaining({ dialogueName: 'main', content: 'published' }));
+        expect(authoring.progressTestSession).toHaveBeenCalled();
+        expect(authoring.cancelTestSession).toHaveBeenCalledWith('s1');
+        expect(wrapper.text()).toContain('Simulation (published content)');
+        noRealPlayback();
+    });
+
+    it('starts afresh instead of resuming the user\'s ongoing dialogue', async () => {
+        const wrapper = await mountSimulatingIn(DLB_APP_MODE_LIVE);
+
+        wrapper.vm.resumeDialogue('main');
+        await flushPromises();
+
+        expect(authoring.startTestSession).toHaveBeenCalledWith(expect.objectContaining({ content: 'published' }));
+        noRealPlayback();
+    });
+
+    it('runs the draft content in Authoring Mode', async () => {
+        const wrapper = await mountSimulatingIn(DLB_APP_MODE_DRAFT);
+
+        wrapper.vm.openDialogue('main');
+        await flushPromises();
+
+        expect(authoring.startTestSession).toHaveBeenCalledWith(expect.objectContaining({ content: 'draft' }));
+        noRealPlayback();
     });
 });

@@ -54,10 +54,11 @@ vi.mock('@/composables/client.js', () => ({
 const { default: DialogueBrowser } = await import('./DialogueBrowser.vue');
 
 function mountBrowser(options = {}) {
-    const { mode = DLB_APP_MODE_DRAFT, openTabs = [] } = options;
+    const { mode = DLB_APP_MODE_DRAFT, openTabs = [], delegate = null } = options;
     const state = ref({
         selectedProject: { slug: 'test-project' },
         mode,
+        delegate,
     });
 
     const wrapper = mount(DialogueBrowser, {
@@ -205,6 +206,17 @@ describe('DialogueBrowser', () => {
 
         await wrapper.find('button[title="Cancel"]').trigger('click');
         expect(wrapper.find('input[placeholder="folder/dialogue-name"]').exists()).toBe(false);
+    });
+
+    // #411: a simulation never resumes (or cancels) the user's real ongoing dialogue.
+    it('offers no ongoing dialogue while simulating a user', async () => {
+        const { wrapper } = mountBrowser({
+            mode: DLB_APP_MODE_LIVE,
+            delegate: { subject: 's', label: 'robin', mode: 'simulate' },
+        });
+        await flushPromises();
+
+        expect(wrapper.find('button[title="Retrieve most recent ongoing (server-side) dialogue"]').exists()).toBe(false);
     });
 
     it('checks ongoing dialogue in live mode and prompts resume', async () => {

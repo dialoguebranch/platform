@@ -123,6 +123,17 @@ describe('DialogueBranchAuthoringClient test-session methods: sessions and the c
         expect(testSessionId).toBe('session-1');
     });
 
+    it('startTestSession() sends content only when given', async () => {
+        const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(jsonResponse(START_RESPONSE)));
+        vi.stubGlobal('fetch', fetchMock);
+
+        await client().startTestSession({ projectSlug: 'p', dialogueName: 'd', language: 'en', content: 'published' });
+        await client().startTestSession({ projectSlug: 'p', dialogueName: 'd', language: 'en' });
+
+        expect(fetchMock.mock.calls[0][0]).toContain('&content=published');
+        expect(fetchMock.mock.calls[1][0]).not.toContain('content=');
+    });
+
     it('sends delegateUser only where the real variables are read', async () => {
         const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(jsonResponse(START_RESPONSE)));
         vi.stubGlobal('fetch', fetchMock);

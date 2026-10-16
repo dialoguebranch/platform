@@ -9,6 +9,14 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Studio, web service and client-js: simulate a user, to investigate a problem they have without
+  changing any of their data ([#411](https://github.com/dialoguebranch/platform/issues/411)).
+  *Set Delegate User* now offers *Simulate as* (the default) and *Act as*. While simulating,
+  dialogues run as test sessions against a copy of the user's variables, on the published content
+  in Live Mode and on the draft in Authoring Mode, with a banner and *Stop simulating*; the user's
+  real ongoing dialogue isn't offered to resume. Switching between Live and Authoring Mode now
+  stops simulating or acting as someone. `POST /test-session/start` takes `content=published` to
+  run a dialogue's published version; client-js's `startTestSession` takes `content`.
 - Studio, web service and client-js: deleted projects whose users' data was kept are listed for
   admins in a separate, collapsed *Deleted projects* section on the project selection page, with
   how much users' data they still have, and can be deleted permanently from there, user data and

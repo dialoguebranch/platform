@@ -78,7 +78,8 @@ import java.util.Map;
 /**
  * Controller for the {@code /test-session/...} end-points of the Dialogue Branch Web Service.
  * These end-points let authorised users (with the {@code editor} or {@code admin} role) test-run
- * a draft dialogue's current content without requiring it to be published first.
+ * a dialogue: its current draft content without requiring it to be published first, or its
+ * published content (#411).
  *
  * <p>This is a deliberately separate, ephemeral execution path — see
  * {@link TestSessionService} — and does not touch the published-dialogue execution end-points
@@ -122,8 +123,9 @@ public class TestSessionController {
 	}
 
 	/**
-	 * Starts a test-run of a draft dialogue's current (unpublished) content, creating a new
-	 * ephemeral test session.
+	 * Starts a test-run of a dialogue, creating a new ephemeral test session: of its current
+	 * (unpublished) draft content, or with {@code content=published} of its latest published
+	 * version (#411).
 	 *
 	 * @param request the HTTP request (to retrieve authentication headers).
 	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
@@ -135,6 +137,7 @@ public class TestSessionController {
 	 * @param timeZone the current time zone of the tester (as IANA, e.g. 'Europe/Lisbon').
 	 * @param startNodeId an optional node title to start the test-run from, instead of the
 	 *                    dialogue's default start node.
+	 * @param content the content to run: {@code draft} (the default) or {@code published}.
 	 * @param delegateUser the user whose variables the test starts from (leave empty for the
 	 *                     tester's own; only admins may name another user). Their variables are
 	 *                     only read, to seed the tester's copy.
@@ -142,7 +145,7 @@ public class TestSessionController {
 	 * @throws HttpException if the project, dialogue or delegated user does not exist, execution
 	 * fails, or the user is not authorized.
 	 */
-	@Operation(summary = "Start a test-run of a draft dialogue's current content.")
+	@Operation(summary = "Start a test-run of a dialogue's draft or published content.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/start")
 	public TestSessionMessage start(
@@ -154,25 +157,41 @@ public class TestSessionController {
 			@RequestParam(value = "language") String language,
 			@RequestParam(value = "timeZone") String timeZone,
 			@RequestParam(value = "startNodeId", required = false) String startNodeId,
+			@Parameter(description = "The content to run: 'draft' (the default), the current " +
+					"unpublished content, or 'published', the latest published version")
+			@RequestParam(value = "content", required = false, defaultValue = "draft")
+			String content,
 			@Parameter(description = "The user whose variables the test starts from (leave " +
 					"empty for your own)")
 			@RequestParam(value = "delegateUser", required = false) String delegateUser
 	) throws HttpException {
 		return QueryRunner.runQuery(
 				(protocolVersion, user, delegated) -> {
-					logger.info("POST /v{}/test-session/start [user: {}]", version, user);
+					logger.info("POST /v{}/test-session/start?content={} [user: {}]", version,
+							content, user);
+					if (!content.equals("draft") && !content.equals("published")) {
+						throw BadRequestException.withInvalidInput(List.of(new HttpFieldError(
+								"content", "Invalid content: " + content +
+										" (expected 'draft' or 'published')")));
+					}
 					DBProject project = findProject(projectSlug);
-					DBDraftDialogue dialogue = draftDialogueService
-							.findDialogue(project, dialogueName)
-							.orElseThrow(() -> new NotFoundException(
-									"Dialogue not found: " + dialogueName));
-					AuthoringController.checkNotDeleted(dialogue);
 					ZoneId timeZoneId = ControllerFunctions.parseTimeZone(timeZone);
 
 					TestSessionService.StartResult result;
 					try {
-						result = testSessionService.startSession(tester(), user, delegated,
-								project, dialogue, language, startNodeId, timeZoneId);
+						if (content.equals("published")) {
+							result = testSessionService.startPublishedSession(tester(), user,
+									delegated, project, dialogueName, language, startNodeId,
+									timeZoneId);
+						} else {
+							DBDraftDialogue dialogue = draftDialogueService
+									.findDialogue(project, dialogueName)
+									.orElseThrow(() -> new NotFoundException(
+											"Dialogue not found: " + dialogueName));
+							AuthoringController.checkNotDeleted(dialogue);
+							result = testSessionService.startSession(tester(), user, delegated,
+									project, dialogue, language, startNodeId, timeZoneId);
+						}
 					} catch (ExecutionException e) {
 						throw ControllerFunctions.createHttpException(e);
 					}
@@ -288,6 +307,8 @@ public class TestSessionController {
 	 *                 Unauthorized error).
 	 * @param version the API version to use, e.g. '1'.
 	 * @param projectSlug the unique slug of the project.
+	 * @param timeZone the tester's time zone, used when this call creates the copy (the server's
+	 *                 own if left out).
 	 * @param delegateUser the user whose variables were copied (leave empty for the tester's own).
 	 * @return the copy's variables.
 	 * @throws HttpException if the project or delegated user does not exist, or the user is not
@@ -301,6 +322,9 @@ public class TestSessionController {
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
 			@RequestParam(value = "projectSlug") String projectSlug,
+			@Parameter(description = "The tester's time zone (as IANA, e.g. 'Europe/Lisbon'), " +
+					"used when this call creates the copy; the server's own if left out")
+			@RequestParam(value = "timeZone", required = false) String timeZone,
 			@Parameter(description = "The user whose variables were copied (leave empty for " +
 					"your own)")
 			@RequestParam(value = "delegateUser", required = false) String delegateUser
@@ -309,7 +333,7 @@ public class TestSessionController {
 				(protocolVersion, user, delegated) -> {
 					logger.info("GET /v{}/test-session/variables [user: {}]", version, user);
 					VariableStore copy = testSessionService.getCopy(tester(), user, delegated,
-							findProject(projectSlug), ZoneId.systemDefault());
+							findProject(projectSlug), ControllerFunctions.parseTimeZone(timeZone));
 					return Arrays.stream(copy.getVariables())
 							.sorted(Comparator.comparing(Variable::getName))
 							.toList();
