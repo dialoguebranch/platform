@@ -275,11 +275,13 @@ function getMobilePanelClasses(index) {
                     <slot name="right" />
                 </div>
             </template>
+            <!-- On a wide screen the collapsed strip lines up with the panels' white boxes: below their
+                 title rows (4px + 30px + 4px, less 1px to match their outline; see MainPagePanelHeader) and above their 8px bottom margin. -->
             <button
                 v-else
                 type="button"
                 :class="getMobilePanelClasses(2)"
-                class="sm:flex basis-0 grow sm:basis-auto sm:flex-none sm:w-7 flex-col items-center justify-center gap-2 py-3 bg-grey-lighter hover:bg-menu-item-highlight border-l border-grey-light text-orange-darker cursor-pointer"
+                class="sm:flex basis-0 grow sm:basis-auto sm:flex-none sm:w-7 sm:mt-[37px] sm:mb-2 flex-col items-center justify-center gap-2 py-3 bg-grey-lighter hover:bg-menu-item-highlight border border-grey-light shadow-[0_0_1px_black] text-orange-darker cursor-pointer"
                 :title="`Show ${rightPanelLabel}`"
                 @click="expandRightPanel"
             >

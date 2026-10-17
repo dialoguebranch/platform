@@ -51,8 +51,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   green for Authoring). Simulating or acting as another user is shown in the mode bar too, which
   turns red while acting as them, instead of in a banner above the dialogue.
 - Studio: the Dialogue Browser, Dialogue Workspace and Variable Browser line up, with restyled
-  panel titles and a grey toolbar row at the top of each panel; the Dialogue Browser's buttons and
-  sort order moved into its toolbar, with sorting in a small menu.
+  panel titles and a grey toolbar row at the top of each panel; the Dialogue Browser's and Variable
+  Browser's buttons, view switch and sort order moved into their toolbars, with sorting in a small
+  menu.
 - Studio: a refreshed look for the participant view and the project and user pages: a shared
   header with the logo, a "Studio" wordmark, a divider and a greeting; for editors and admins a menu
   bar to switch between *Project Management* and *User Management* (admins only), replacing the
