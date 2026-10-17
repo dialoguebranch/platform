@@ -98,6 +98,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Studio: a page tall enough to scroll vertically, such as a long Users list, also got a
+  horizontal scrollbar.
 - Studio: when the dialogue set up for the participant view doesn't exist, a participant was shown
   the Web Service's technical error and a *Try Again* button that could never help. The view now
   says that no test dialogue is set up for their user role, without a retry button.

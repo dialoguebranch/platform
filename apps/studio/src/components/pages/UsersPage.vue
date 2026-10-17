@@ -82,7 +82,7 @@ function confirmErase() {
 </script>
 
 <template>
-    <div class="min-w-screen min-h-screen bg-background flex flex-col items-center">
+    <div class="min-h-screen bg-background flex flex-col items-center">
         <PageHeader>
             <button
                 type="button"

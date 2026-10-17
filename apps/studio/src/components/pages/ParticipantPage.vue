@@ -119,7 +119,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div class="min-w-screen min-h-screen bg-background flex flex-col">
+    <div class="min-h-screen bg-background flex flex-col">
         <PageHeader>
             <span class="flex items-start gap-1.5" data-test="greeting">
                 <FontAwesomeIcon icon="fa-regular fa-comment" class="shrink-0 mt-0.5 text-orange-darker" />
