@@ -37,6 +37,10 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 - Studio: the participant view frames the dialogue (the owl, speech bubbles and replies) in a
   white box with rounded corners, instead of showing it directly on the grey page.
+- Studio: in the participant view, a greeting ("Hey \<user\>, welcome to the participant test
+  view.") and a small *Log out* button sit right above the dialogue instead of "Logged in as"
+  and *Log out* in the screen's corners, and a brown divider with a small diamond
+  separates the logo from the page.
 - Studio: "Studio" under the Dialogue Branch logo is styled as part of the logo, in its colours,
   on the project selection and Users pages and now also in the participant view; the logo on the
   project selection and Users pages is the same, smaller size as in the participant view. The

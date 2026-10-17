@@ -1,5 +1,6 @@
 <script setup>
 import { inject, onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useClient, getBrowserTimeZone } from '../../composables/client.js';
 import { useStateManagement } from '../../composables/state-management.js';
 import { showError, dismissError } from '../../composables/error-toast.js';
@@ -7,6 +8,7 @@ import { describeError } from '../../composables/error-message.js';
 import { logEvent } from '../../composables/debug-log.js';
 import BalloonDialogueComponent from '../partials/BalloonDialogueComponent.vue';
 import StudioWordmark from '../widgets/StudioWordmark.vue';
+import OrnamentDivider from '../widgets/OrnamentDivider.vue';
 
 const state = inject('state');
 const config = inject('config');
@@ -124,35 +126,43 @@ onBeforeUnmount(() => {
 
 <template>
     <div class="min-w-screen min-h-screen bg-background flex flex-col">
-        <div class="w-full flex items-center justify-between px-4 pt-3 shrink-0">
-            <span class="font-title text-xs text-grey-dark">
-                Logged in as <span class="font-semibold text-orange-darker">{{ state.user.name }}</span>
-            </span>
-            <button
-                type="button"
-                class="font-title text-xs text-grey-dark hover:text-orange-darker cursor-pointer"
-                @click="onLogoutClick"
-            >Log out</button>
-        </div>
-
-        <img class="block pt-4 mx-auto w-[200px] sm:w-[320px] shrink-0" src="../../assets/img/dlb-long.png" alt="Dialogue Branch" />
+        <img class="block pt-6 mx-auto w-[200px] sm:w-[320px] shrink-0" src="../../assets/img/dlb-long.png" alt="Dialogue Branch" />
         <StudioWordmark class="mt-2 shrink-0" />
 
-        <!-- The dialogue itself, framed in a white box on the grey page: as tall as its content, the
-             page scrolls if it doesn't fit -->
-        <div class="flex justify-center mt-4 mb-6 px-4">
-            <div class="w-full max-w-3xl bg-white rounded-2xl shadow-md" data-test="dialogue-frame">
-                <BalloonDialogueComponent
-                    ref="balloons"
-                    :dialogueName="dialogueName"
-                    :dialogueSteps="dialogueSteps"
-                    :dialogueEnded="dialogueEnded"
-                    :dialogueCancelled="dialogueCancelled"
-                    :awaitingReply="awaitingReply"
-                    :startError="startError"
-                    @selectReply="onSelectReply"
-                    @restartDialogue="startDialogue"
-                />
+        <!-- One column: a line separating the logo from the page, who is logged in, and the
+             dialogue itself, framed in a white box that is as tall as its content (the page
+             scrolls if it doesn't fit) -->
+        <div class="flex justify-center px-4 mt-4 mb-6">
+            <div class="w-full max-w-3xl">
+                <OrnamentDivider class="mt-3" />
+                <div class="flex items-center justify-between gap-3 mt-6 mb-2">
+                    <span class="flex items-start gap-1.5 min-w-0 font-title text-xs text-grey-dark" data-test="greeting">
+                        <FontAwesomeIcon icon="fa-regular fa-comment" class="shrink-0 mt-0.5 text-orange-darker" />
+                        <span>Hey <span class="font-semibold text-orange-darker">{{ state.user.name }}</span>, welcome to the participant test view.</span>
+                    </span>
+                    <button
+                        type="button"
+                        class="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-orange-darker/40 bg-white/60 font-title text-xs text-orange-darker hover:bg-white cursor-pointer"
+                        data-test="log-out"
+                        @click="onLogoutClick"
+                    >
+                        <FontAwesomeIcon icon="fa-solid fa-right-from-bracket" />
+                        Log out
+                    </button>
+                </div>
+                <div class="bg-white rounded-2xl shadow-md" data-test="dialogue-frame">
+                    <BalloonDialogueComponent
+                        ref="balloons"
+                        :dialogueName="dialogueName"
+                        :dialogueSteps="dialogueSteps"
+                        :dialogueEnded="dialogueEnded"
+                        :dialogueCancelled="dialogueCancelled"
+                        :awaitingReply="awaitingReply"
+                        :startError="startError"
+                        @selectReply="onSelectReply"
+                        @restartDialogue="startDialogue"
+                    />
+                </div>
             </div>
         </div>
     </div>
