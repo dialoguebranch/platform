@@ -286,13 +286,18 @@ function submitCreate() {
                             <FontAwesomeIcon icon="fa-solid fa-circle-exclamation" class="shrink-0" />
                             {{ createError }}
                         </div>
-                        <p class="text-sm text-grey-dark">
-                            Choose the project&rsquo;s <strong>source language</strong> &mdash; the
-                            language you will author dialogue content in. Other languages can be
-                            added later as translations. Select &ldquo;Simplified&rdquo; for a short
-                            list of common languages, &ldquo;Extended&rdquo; for a more extensive
-                            list, or &ldquo;Custom&rdquo; to fill in your own language ISO code.
-                        </p>
+                        <div class="text-sm text-grey-dark">
+                            <p>
+                                Choose the project&rsquo;s <strong>source language</strong> &mdash;
+                                the language you will author dialogue content in. Other languages
+                                can be added later as translations.
+                            </p>
+                            <p class="mt-2">
+                                Select &ldquo;Simplified&rdquo; for a short list of common languages,
+                                &ldquo;Extended&rdquo; for a more extensive list, or
+                                &ldquo;Custom&rdquo; to fill in your own language ISO code.
+                            </p>
+                        </div>
                         <div class="flex items-center justify-between">
                             <div class="flex gap-5">
                                 <label class="flex items-center gap-1.5 text-sm font-title cursor-pointer">
