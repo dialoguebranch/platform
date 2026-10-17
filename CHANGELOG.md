@@ -7,14 +7,6 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
-### Changed
-
-- Documentation: a new [Compatibility Policy](https://dialoguebranch.com/docs/compatibility) page
-  lists which surfaces are stable (the `.dlb` language, the stable REST end-points, authentication,
-  the External Variable Service protocol, `DialogueBranchClient`, configuration and upgrades,
-  `dlb-core-java`'s public API) and which are internal to Studio. From here on, only a change to a stable surface is labelled **Breaking:**; a
-  change to an internal one is labelled **Internal API:**. Earlier release notes are unchanged.
-
 ### Added
 
 - Studio: a search field on the project page, filtering projects by name, slug or description.
@@ -44,6 +36,12 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- Documentation: a new [Compatibility Policy](https://dialoguebranch.com/docs/compatibility) page
+  lists which surfaces are stable (the `.dlb` language, the stable REST end-points, authentication,
+  the External Variable Service protocol, `DialogueBranchClient`, configuration and upgrades,
+  `dlb-core-java`'s public API) and which are internal to Studio. From here on, only a change to a
+  stable surface is labelled **Breaking:**; a change to an internal one is labelled
+  **Internal API:**. Release notes up to 0.7.0 are unchanged.
 - Studio: a refreshed look for the participant view and the project and user pages: a shared
   header with the logo, a "Studio" wordmark, a divider and a greeting; for editors and admins a menu
   bar to switch between *Project Management* and *User Management* (admins only), replacing the

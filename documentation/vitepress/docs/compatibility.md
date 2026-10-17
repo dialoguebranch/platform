@@ -46,12 +46,13 @@ All end-points are under `/v1`, for example `/v1/dialogue/start`. *Stable* end-p
 | `/info/technical` | Internal (admin diagnostics) |
 | `/auth/logout`, `validate` | Stable |
 | `/project/list-projects`, `get-project`, `create-project`, `delete-project`, `export-project`, `import-project` | Stable |
-| `/project/update-project`, `update-draft`, `add-translation-language`, `remove-translation-language`, `restore-translation-language`, `find-language-references` | Internal (Studio's *Configure Project*) |
+| `/project/update-project`, `update-draft`, `discard-draft-changes`, `add-translation-language`, `remove-translation-language`, `restore-translation-language`, `find-language-references` | Internal (Studio's *Configure Project*) |
+| `/project/list-deleted-projects`, `purge-deleted-project` | Internal (Studio's admin *Deleted projects*) |
 | `/publish/list-versions`, `next-version`, `verify`, `create-version` | Stable |
-| `/authoring/import-scripts`, `export-dialogue` | Stable |
-| `/authoring/*`, all other end-points: dialogues, nodes, preamble, translations, `find-*-references` | Internal |
-| `/draft/*` (running a dialogue against its draft) | Internal |
-| `/users` | Internal (delegate-user lookup) |
+| `/authoring/import-scripts`, `import-translations`, `export-dialogue` | Stable |
+| `/authoring/*`, all other end-points: dialogues, nodes, preamble, translations, `discard-dialogue-changes`, `find-*-references` | Internal |
+| `/test-session/*` (testing a dialogue in Studio, on a copy of the user's variables) | Internal |
+| `/users`, `/users/erase-user` | Internal (Studio's delegate-user lookup and *User Management*) |
 
 The end-point groups do not line up with this split yet; [#418](https://github.com/dialoguebranch/platform/issues/418) discusses reorganising them. Until that is decided, this table is the authority. A reorganisation that moves a stable end-point is itself a **Breaking** change.
 
@@ -62,8 +63,8 @@ The [Release Notes](/release-notes) use two markers:
 * **Breaking:** — a change to a stable surface that can break an existing consumer.
 * **Internal API:** — a change to an internal surface that a consumer of the stable surface cannot notice, for example "the authoring end-points exchange a node's header as tags". It says that Studio and the Web Service must be upgraded together.
 
-Release notes up to and including 0.5.0 label every contract change as **Breaking**, including changes that would now be marked **Internal API:**. They are left as they were.
+Release notes up to and including 0.7.0 label every contract change as **Breaking**, including changes that would now be marked **Internal API:**. They are left as they were.
 
 ## Versions
 
-While Dialogue Branch is below 1.0, a **Breaking** change raises the minor version (`0.5.0` → `0.6.0`). From 1.0, it raises the major version. A change marked **Internal API:** never raises the major version on its own.
+While Dialogue Branch is below 1.0, a **Breaking** change raises the minor version (`0.7.0` → `0.8.0`). From 1.0, it raises the major version. A change marked **Internal API:** never raises the major version on its own.
