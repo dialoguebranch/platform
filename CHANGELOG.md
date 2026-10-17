@@ -115,6 +115,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Studio: deleting, adding or renaming a dialogue collapsed every folder in the Dialogue Browser;
+  open folders now stay open.
 - Studio: a long page, such as the Users list, also got a horizontal scrollbar.
 - Studio: blank lines between paragraphs of a dialogue's script comment (its preamble) were
   dropped on save; they're now kept, as bare `//` lines.

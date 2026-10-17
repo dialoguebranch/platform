@@ -115,18 +115,15 @@ function buildTree(entries) {
 // they were sent — only the response matching the most recently issued request may update state.
 const { next: nextListRequest, isCurrent: isCurrentListRequest } = useLatestRequest();
 
-// A snapshot of the last-displayed entries (order-independent), so a refresh that returns the
-// exact same list — the common case — can leave openFolders alone instead of collapsing
-// everything. Only a genuine change to the list (a dialogue added/removed/renamed, or its
-// published/new/changed/deleted status flipping) resets it.
-let previousEntriesKey = null;
-
-function entriesKey(entries) {
-    return JSON.stringify(
-        [...entries]
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map((e) => [e.name, e.isPublished, e.isNew, e.isChanged, e.isDeleted])
-    );
+// A refresh keeps the folders the user opened, also when the list changed (a dialogue added,
+// deleted or renamed): only folders that no longer exist are forgotten.
+function folderPaths(entries) {
+    const paths = new Set();
+    for (const entry of entries) {
+        const parts = entry.name.split('/');
+        for (let i = 1; i < parts.length; i++) paths.add(parts.slice(0, i).join('/'));
+    }
+    return paths;
 }
 
 function listDialogues() {
@@ -169,12 +166,10 @@ function listDialogues() {
                 isDeleted: false,
             }));
         }
-        const newKey = entriesKey(entries);
-        const listUnchanged = newKey === previousEntriesKey;
-        previousEntriesKey = newKey;
-
         rawRoot.value = buildTree(entries);
-        if (!listUnchanged) openFolders.value = {};
+        const folders = folderPaths(entries);
+        openFolders.value = Object.fromEntries(
+            Object.entries(openFolders.value).filter(([path]) => folders.has(path)));
     })
     .catch((error) => {
         if (!isCurrentListRequest(requestId)) return;
@@ -184,8 +179,8 @@ function listDialogues() {
         if (!isCurrentListRequest(requestId)) return;
         // Same minimum-visible-spin treatment as DialogueWorkspace's "Refresh current dialogue
         // step" button — a fast response would otherwise just flicker, giving no indication
-        // anything happened (the whole point of this animation, now that an unchanged list no
-        // longer collapses the folder tree as a side effect).
+        // anything happened (the whole point of this animation, since a refresh no longer collapses
+        // the folder tree as a side effect).
         setTimeout(() => { reloading.value = false; }, 1000);
     });
 }

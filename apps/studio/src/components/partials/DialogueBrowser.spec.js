@@ -112,6 +112,25 @@ describe('DialogueBrowser', () => {
         expect(renderedNames).toEqual(expect.arrayContaining(['main', 'intro']));
     });
 
+    it('keeps open folders open when the list changes, and forgets folders that are gone', async () => {
+        const draft = (name) => ({ name, isNew: false, isChanged: false, isDeleted: false, nodeCount: 1 });
+        authoringClient.listDraftDialogues.mockResolvedValue(
+            [draft('intro/welcome'), draft('intro/goodbye'), draft('old/thing'), draft('main')]);
+        const { wrapper } = mountBrowser({ mode: DLB_APP_MODE_DRAFT });
+        await flushPromises();
+        const treeNodes = () => wrapper.findAllComponents({ name: 'DialogueTreeNode' });
+        treeNodes().find((n) => n.props('name') === 'intro').vm.$emit('toggleFolder', 'intro');
+        treeNodes().find((n) => n.props('name') === 'old').vm.$emit('toggleFolder', 'old');
+        await flushPromises();
+
+        // A dialogue is deleted, and the "old" folder's only dialogue with it.
+        authoringClient.listDraftDialogues.mockResolvedValue([draft('intro/welcome'), draft('main')]);
+        wrapper.vm.listDialogues();
+        await flushPromises();
+
+        expect(treeNodes()[0].props('openFolders')).toEqual({ intro: true });
+    });
+
     it('lists published dialogues in live mode', async () => {
         client.listDialogues.mockResolvedValue({
             dialogueNames: ['dialogue-a', 'dialogue-b'],
