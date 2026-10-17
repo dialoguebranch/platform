@@ -28,10 +28,9 @@
 import { describe, it, expect } from 'vitest';
 import { mount } from '@vue/test-utils';
 import DelegateConfirmModal from './DelegateConfirmModal.vue';
-import DelegateBanner from './DelegateBanner.vue';
 
-// Confirming and showing who is being acted for (#330): acting for real warns what it changes,
-// simulating (#411) and stopping don't.
+// Confirming who is being acted for (#330): acting for real warns what it changes, simulating
+// (#411) doesn't.
 
 const stubs = { FontAwesomeIcon: true, teleport: true };
 
@@ -63,29 +62,5 @@ describe('DelegateConfirmModal', () => {
         expect(wrapper.find('[data-test="delegate-confirm-button"]').text()).toBe('Act as myself');
         await wrapper.findAll('button').find((b) => b.text() === 'Cancel').trigger('click');
         expect(wrapper.emitted('cancel')).toHaveLength(1);
-    });
-});
-
-describe('DelegateBanner', () => {
-    it('says that acting for real affects the user\'s real data, and stops on request', async () => {
-        const wrapper = mount(DelegateBanner, {
-            props: { delegate: { subject: 's', label: 'robin', mode: 'act' } },
-            global: { stubs },
-        });
-        expect(wrapper.find('[data-test="acting-banner"]').text()).toContain("affect this user's real data");
-        expect(wrapper.find('[data-test="simulating-banner"]').exists()).toBe(false);
-        const stop = wrapper.find('[data-test="stop-delegate"]');
-        expect(stop.text()).toBe('Stop acting as robin');
-        await stop.trigger('click');
-        expect(wrapper.emitted('stop')).toHaveLength(1);
-    });
-
-    it('says that a simulation saves nothing', () => {
-        const wrapper = mount(DelegateBanner, {
-            props: { delegate: { subject: 's', label: 'robin', mode: 'simulate' } },
-            global: { stubs },
-        });
-        expect(wrapper.find('[data-test="simulating-banner"]').text()).toContain('nothing is saved');
-        expect(wrapper.find('[data-test="stop-delegate"]').text()).toBe('Stop simulating');
     });
 });

@@ -10,7 +10,7 @@ import ImportScriptsModal from '../partials/ImportScriptsModal.vue';
 import ImportTranslationsModal from '../partials/ImportTranslationsModal.vue';
 import SetDelegateUserModal from '../partials/SetDelegateUserModal.vue';
 import DelegateConfirmModal from '../partials/DelegateConfirmModal.vue';
-import DelegateBanner from '../partials/DelegateBanner.vue';
+import ModeBar from '../partials/ModeBar.vue';
 import TechnicalInfoModal from '../partials/TechnicalInfoModal.vue';
 import HeaderMenuItem from '../widgets/HeaderMenuItem.vue';
 import DialogueWorkspace from '../partials/DialogueWorkspace.vue';
@@ -446,8 +446,8 @@ function onWorkspaceModeChanged(mode) {
 </script>
 
 <template>
-    <div class="w-screen h-screen flex flex-col">
-        <header :class="['flex items-stretch bg-orange-darker shadow-md shadow-gray-400 z-[100] border-b-4', state.mode === DLB_APP_MODE_DRAFT ? 'border-mode-authoring' : 'border-mode-live']">
+    <div class="w-screen h-screen flex flex-col bg-background">
+        <header class="relative flex items-stretch bg-orange-darker z-[100] shadow-[0_2px_4px_rgba(0,0,0,0.35)]">
             <a class="shrink-0 border-r border-orange-dark" href="/"><img class="box-content h-[60px] pl-4 pr-4 py-3" src="../../assets/img/dlb-logo-medium-bright.png"></a>
 
             <!-- Mode switch: two states side by side, so it doesn't read as one of the menus -->
@@ -627,6 +627,7 @@ function onWorkspaceModeChanged(mode) {
             </div>
             <div class="grow"></div>
         </header>
+        <ModeBar class="mb-3" :mode="state.mode" :delegate="state.delegate" @stop="stopDelegate" />
 
         <DelegateConfirmModal
             v-if="delegateConfirm"
@@ -716,7 +717,6 @@ function onWorkspaceModeChanged(mode) {
                 />
             </template>
             <template #main>
-                <DelegateBanner v-if="state.delegate" :delegate="state.delegate" @stop="stopDelegate" />
                 <DialogueWorkspace ref="dialogue-workspace" class="grow" @newDialogueStep="onNewDialogueStep" @dialogueSaved="onDialogueSaved" @modeChanged="onWorkspaceModeChanged" />
             </template>
             <template #right>
