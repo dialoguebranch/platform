@@ -177,21 +177,21 @@ describe('ProjectSelectorPage delete project', () => {
     });
 });
 
-describe('ProjectSelectorPage Users button', () => {
+describe('ProjectSelectorPage management menu', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         authoring.listProjects.mockResolvedValue(PROJECTS);
         authoring.listDeletedProjects.mockResolvedValue([]);
     });
 
-    it('opens the Users page for admins', async () => {
+    it('opens User Management for admins', async () => {
         const wrapper = await mountPage(['admin']);
-        await wrapper.find('[data-test="open-users"]').trigger('click');
+        await wrapper.find('[data-test="menu-users"]').trigger('click');
         expect(wrapper.vm.$.provides.state.value.adminPage).toBe('users');
     });
 
-    it('is not shown to editors', async () => {
+    it('offers User Management to admins only', async () => {
         const wrapper = await mountPage(['editor']);
-        expect(wrapper.find('[data-test="open-users"]').exists()).toBe(false);
+        expect(wrapper.find('[data-test="menu-users"]').exists()).toBe(false);
     });
 });

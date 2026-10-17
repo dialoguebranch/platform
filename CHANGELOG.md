@@ -43,8 +43,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   separates the logo from the page.
 - Studio: the project selection and Users pages get the same header as the participant view: the
   divider under the logo, and a bar right above the content with a greeting ("Hey \<user\>, welcome
-  to Dialogue Branch Studio.") or the way back to the projects on the left, and a small *Log out*
-  button on the right.
+  to Dialogue Branch Studio.") and, for editors and admins, a menu bar to switch between *Project
+  Management* and *User Management* (admins only), with *Log out* on its right. The *Users* and
+  *← Projects* buttons it replaces are gone.
 - Studio: "Studio" under the Dialogue Branch logo is styled as part of the logo, in its colours,
   on the project selection and Users pages and now also in the participant view; the logo on the
   project selection and Users pages is the same, smaller size as in the participant view. The

@@ -2,6 +2,7 @@
 import { inject, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import PageHeader from '../widgets/PageHeader.vue';
+import ManagementMenu from '../widgets/ManagementMenu.vue';
 import { useAuthoringClient } from '../../composables/client.js';
 import CreateProjectWizardModal from '../partials/CreateProjectWizardModal.vue';
 import ImportProjectModal from '../partials/ImportProjectModal.vue';
@@ -227,22 +228,13 @@ function confirmPurge() {
                 <FontAwesomeIcon icon="fa-regular fa-comment" class="shrink-0 mt-0.5 text-orange-darker" />
                 <span>Hey <span class="font-semibold text-orange-darker">{{ state.user?.name }}</span>, welcome to Dialogue Branch Studio.</span>
             </span>
+            <template #menu><ManagementMenu active="projects" /></template>
         </PageHeader>
 
-        <div class="w-full px-4 mt-4 pb-12 max-w-3xl mx-auto">
+        <div class="w-full px-4 pb-12 max-w-3xl mx-auto">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="font-title font-bold text-lg">Select a Project</h2>
                 <div class="flex items-center gap-2">
-                    <button
-                        v-if="isAdmin"
-                        type="button"
-                        class="flex items-center gap-1.5 px-3 py-1.5 rounded text-orange-darker text-xs font-title font-semibold border border-orange-darker/50 hover:bg-orange-light/30 cursor-pointer transition-colors"
-                        data-test="open-users"
-                        @click="state.adminPage = 'users'"
-                    >
-                        <FontAwesomeIcon icon="fa-solid fa-users" />
-                        Users
-                    </button>
                     <button
                         type="button"
                         :class="['flex items-center gap-1.5 px-3 py-1.5 rounded text-white text-xs font-title font-semibold transition-colors', isAdmin ? 'bg-orange-darker hover:bg-orange-dark cursor-pointer' : 'bg-orange-medium cursor-not-allowed opacity-60']"

@@ -2,6 +2,7 @@
 import { inject, onMounted, ref, watch } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import PageHeader from '../widgets/PageHeader.vue';
+import ManagementMenu from '../widgets/ManagementMenu.vue';
 import { useAuthoringClient } from '../../composables/client.js';
 import { useUserSearch } from '../../composables/user-search.js';
 
@@ -17,9 +18,6 @@ const { query, results, loading, loadError, hasMore, search, refresh, loadMore }
 watch(query, search);
 onMounted(refresh);
 
-function backToProjects() {
-    state.value.adminPage = null;
-}
 
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
@@ -84,18 +82,14 @@ function confirmErase() {
 <template>
     <div class="min-h-screen bg-background flex flex-col items-center">
         <PageHeader>
-            <button
-                type="button"
-                class="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-orange-darker/40 bg-white/60 text-orange-darker hover:bg-white cursor-pointer"
-                data-test="back-to-projects"
-                @click="backToProjects"
-            >
-                <FontAwesomeIcon icon="fa-solid fa-arrow-left" />
-                Projects
-            </button>
+            <span class="flex items-start gap-1.5" data-test="greeting">
+                <FontAwesomeIcon icon="fa-regular fa-comment" class="shrink-0 mt-0.5 text-orange-darker" />
+                <span>Hey <span class="font-semibold text-orange-darker">{{ state.user?.name }}</span>, welcome to Dialogue Branch Studio.</span>
+            </span>
+            <template #menu><ManagementMenu active="users" /></template>
         </PageHeader>
 
-        <div class="w-full px-4 mt-4 pb-12 max-w-3xl mx-auto">
+        <div class="w-full px-4 pb-12 max-w-3xl mx-auto">
             <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
                 <h2 class="font-title font-bold text-lg">Users</h2>
                 <input
