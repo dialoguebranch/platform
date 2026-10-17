@@ -1,6 +1,7 @@
 <script setup>
 import { inject, onMounted, ref, watch } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import StudioWordmark from '../widgets/StudioWordmark.vue';
 import { useAuthoringClient } from '../../composables/client.js';
 import { useStateManagement } from '../../composables/state-management.js';
 import { useUserSearch } from '../../composables/user-search.js';
@@ -104,8 +105,8 @@ function confirmErase() {
             >Log out</button>
         </div>
 
-        <img class="block pt-8 w-[240px] sm:w-[480px]" src="../../assets/img/dlb-long.png" alt="Dialogue Branch" />
-        <div class="mt-2 font-title font-bold">Studio</div>
+        <img class="block pt-4 w-[200px] sm:w-[320px]" src="../../assets/img/dlb-long.png" alt="Dialogue Branch" />
+        <StudioWordmark class="mt-2" />
 
         <div class="w-full px-4 mt-8 pb-12 max-w-3xl mx-auto">
             <div class="flex flex-wrap items-center justify-between gap-3 mb-2">

@@ -37,6 +37,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 - Studio: the participant view frames the dialogue (the owl, speech bubbles and replies) in a
   white box with rounded corners, instead of showing it directly on the grey page.
+- Studio: "Studio" under the Dialogue Branch logo is styled as part of the logo, in its colours,
+  on the project selection and Users pages and now also in the participant view; the logo on the
+  project selection and Users pages is the same, smaller size as in the participant view.
 - Studio: acting on behalf of another user for real (*Act as*) is treated as the powerful
   operation it is ([#330](https://github.com/dialoguebranch/platform/issues/330)): choosing it warns
   that the user's dialogue logs, variables and history change as if they acted themselves, the

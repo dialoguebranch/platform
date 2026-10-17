@@ -6,6 +6,7 @@ import { showError, dismissError } from '../../composables/error-toast.js';
 import { describeError } from '../../composables/error-message.js';
 import { logEvent } from '../../composables/debug-log.js';
 import BalloonDialogueComponent from '../partials/BalloonDialogueComponent.vue';
+import StudioWordmark from '../widgets/StudioWordmark.vue';
 
 const state = inject('state');
 const config = inject('config');
@@ -127,6 +128,7 @@ onBeforeUnmount(() => {
         </div>
 
         <img class="block pt-4 mx-auto w-[200px] sm:w-[320px] shrink-0" src="../../assets/img/dlb-long.png" alt="Dialogue Branch" />
+        <StudioWordmark class="mt-2 shrink-0" />
 
         <!-- The dialogue itself, framed in a white box on the grey page: as tall as its content, the
              page scrolls if it doesn't fit -->
