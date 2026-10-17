@@ -170,7 +170,7 @@ function goBack() {
 }
 
 // A pending create's `.then()`/`.catch()` still fires after the modal closes if the user closes
-// it mid-submit — guard the close paths (header X, Cancel, backdrop click) so the user can't
+// it mid-submit — guard the close paths (header X, Cancel) so the user can't
 // dismiss the modal while that request is still in flight.
 function closeModal() {
     if (creating.value) return;
@@ -198,7 +198,7 @@ function submitCreate() {
 
 <template>
     <Teleport to="body">
-        <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" @click.self="closeModal">
+        <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-xl mx-4 flex flex-col">
 
                 <!-- Header -->
