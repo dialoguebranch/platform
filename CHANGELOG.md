@@ -90,6 +90,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Studio: when the dialogue set up for the participant view doesn't exist, a participant was shown
+  the Web Service's technical error and a *Try Again* button that could never help. The view now
+  says that no test dialogue is set up for their user role, without a retry button.
 - Web service and Studio: test sessions stayed in memory, each with its own parsed copy of the
   project, until the web service restarted, unless they were cancelled
   ([#218](https://github.com/dialoguebranch/platform/issues/218)). A test session now ends when its

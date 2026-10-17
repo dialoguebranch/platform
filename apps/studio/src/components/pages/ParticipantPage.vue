@@ -44,10 +44,18 @@ function startDialogue() {
     .catch((error) => {
         // Shown inline (not as a toast) since this is the participant's whole screen — there's
         // nothing else to look at while it's broken, unlike the editor/admin app's dialogue tabs.
-        startError.value = {
-            message: error.message ?? `Could not start dialogue "${dialogueName}" in project "${projectSlug}".`,
-            errors: error.errors,
-        };
+        // The dialogue a participant starts is fixed when Studio is built (see config.js), so a 404
+        // means it isn't set up here: trying again can't help.
+        startError.value = error?.status === 404
+            ? {
+                message: 'There is no test dialogue set up to run for your user role (participant). Please contact an administrator.',
+                errors: null,
+                canRetry: false,
+            }
+            : {
+                message: error.message ?? 'Could not start the dialogue.',
+                errors: error.errors,
+            };
     });
 }
 
