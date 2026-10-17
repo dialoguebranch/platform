@@ -3,6 +3,7 @@ import { inject, onMounted, ref, watch } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import PageHeader from '../widgets/PageHeader.vue';
 import PageGreeting from '../widgets/PageGreeting.vue';
+import SearchField from '../widgets/SearchField.vue';
 import ManagementMenu from '../widgets/ManagementMenu.vue';
 import { useAuthoringClient } from '../../composables/client.js';
 import { useUserSearch } from '../../composables/user-search.js';
@@ -90,19 +91,18 @@ function confirmErase() {
         <div class="w-full px-4 pb-12 max-w-3xl mx-auto">
             <!-- The page itself, framed in a white box like the participant view's dialogue -->
             <div class="bg-white rounded-2xl shadow-md p-4 sm:p-6" data-test="page-frame">
-                <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
-                    <h2 class="font-title font-bold text-lg">Users</h2>
-                    <input
+                <h2 class="mb-2 font-title font-bold text-lg">User Management</h2>
+                <p class="mb-5 text-xs font-title text-grey-dark">
+                    Everyone this Web Service has seen, in your realm, with the data it holds for them in all projects.
+                </p>
+                <div class="flex justify-end mb-4">
+                    <SearchField
                         v-model="query"
-                        type="search"
-                        class="w-full sm:w-72 bg-white px-3 py-1.5 rounded-md border-[2px] border-solid border-gray-300 font-title text-sm focus:outline-none focus:border-orange-medium"
+                        class="w-full sm:w-72"
                         placeholder="Search by username or subject…"
                         data-test="user-search"
                     />
                 </div>
-                <p class="mb-4 text-xs font-title text-grey-dark">
-                    Everyone this Web Service has seen, in your realm, with the data it holds for them in all projects.
-                </p>
 
                 <div
                     v-if="erased"

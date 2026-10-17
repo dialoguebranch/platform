@@ -3,6 +3,7 @@ import { computed, inject, onBeforeUnmount, onMounted, reactive, ref } from 'vue
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import PageHeader from '../widgets/PageHeader.vue';
 import PageGreeting from '../widgets/PageGreeting.vue';
+import SearchField from '../widgets/SearchField.vue';
 import ManagementMenu from '../widgets/ManagementMenu.vue';
 import { useAuthoringClient } from '../../composables/client.js';
 import CreateProjectWizardModal from '../partials/CreateProjectWizardModal.vue';
@@ -246,10 +247,9 @@ function confirmPurge() {
             <div class="bg-white rounded-2xl shadow-md p-4 sm:p-6" data-test="page-frame">
                 <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
                     <h2 class="font-title font-bold text-lg">Select a Project</h2>
-                    <input
+                    <SearchField
                         v-model="projectQuery"
-                        type="search"
-                        class="w-full sm:w-72 bg-white px-3 py-1.5 rounded-md border-[2px] border-solid border-gray-300 font-title text-sm focus:outline-none focus:border-orange-medium"
+                        class="w-full sm:w-72"
                         placeholder="Search by name, slug or description…"
                         data-test="project-search"
                     />
