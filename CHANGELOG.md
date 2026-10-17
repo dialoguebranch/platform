@@ -115,6 +115,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Studio: the *Documentation* link in the user menu pointed to a page that no longer exists; it
+  now opens the documentation site.
 - Studio: deleting, adding or renaming a dialogue collapsed every folder in the Dialogue Browser;
   open folders now stay open.
 - Studio: a long page, such as the Users list, also got a horizontal scrollbar.

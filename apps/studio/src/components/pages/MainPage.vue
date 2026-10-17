@@ -617,7 +617,7 @@ function onResizePanels() {
             </Teleport>
 
             <div class="hidden sm:flex self-stretch">
-                <HeaderMenuItem text="Documentation" icon="fa-solid fa-arrow-up-right-from-square" link="https://www.dialoguebranch.com/docs/dialogue-branch/dev/index.html" />
+                <HeaderMenuItem text="Documentation" icon="fa-solid fa-arrow-up-right-from-square" link="https://www.dialoguebranch.com/docs/" />
             </div>
             <div class="grow"></div>
         </header>
