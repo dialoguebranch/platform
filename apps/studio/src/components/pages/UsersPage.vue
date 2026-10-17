@@ -164,7 +164,7 @@ function confirmErase() {
     </div>
 
     <Teleport to="body">
-        <div v-if="eraseConfirm" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" data-test="erase-confirm" @click.self="closeEraseConfirm">
+        <div v-if="eraseConfirm" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" data-test="erase-confirm">
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col">
                 <div class="flex items-center gap-2 px-5 py-4 bg-red-dark rounded-t-xl text-white font-title font-bold">
                     <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" />

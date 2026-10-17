@@ -34,7 +34,7 @@ const error = ref('');
 // Re-populate the form whenever a different node is opened (or this one is reloaded after a
 // rename elsewhere touched it) — the panel always reflects props.node, not local-only state.
 // A pending save's `.then()` still fires `emit('saved'|'renamed', ...)` after the panel closes if
-// the user closes it mid-save — guard the close paths (header X, Cancel, backdrop click) so the
+// the user closes it mid-save — guard the close paths (header X, Cancel) so the
 // user can't dismiss the panel while that request is still in flight.
 function closePanel() {
     if (saving.value) return;
@@ -282,7 +282,7 @@ defineExpose({
 
 <template>
     <Teleport to="body">
-        <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" @click.self="closePanel">
+        <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 flex flex-col max-h-[85vh]">
 
                 <!-- Header -->

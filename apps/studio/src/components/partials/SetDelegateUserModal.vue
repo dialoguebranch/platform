@@ -68,7 +68,7 @@ function onClear() {
 
 <template>
     <Teleport to="body">
-        <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" @click.self="emit('close')">
+        <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col">
 
                 <!-- Header -->
