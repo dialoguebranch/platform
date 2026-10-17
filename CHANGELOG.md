@@ -46,6 +46,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   to Dialogue Branch Studio.") and, for editors and admins, a menu bar to switch between *Project
   Management* and *User Management* (admins only), with *Log out* on its right. The *Users* and
   *← Projects* buttons it replaces are gone.
+- Studio: the content of the project selection and Users pages sits in a white box with rounded
+  corners, like the participant view's dialogue; the project cards get the same light colour as the
+  user rows.
 - Studio: "Studio" under the Dialogue Branch logo is styled as part of the logo, in its colours,
   on the project selection and Users pages and now also in the participant view; the logo on the
   project selection and Users pages is the same, smaller size as in the participant view. The

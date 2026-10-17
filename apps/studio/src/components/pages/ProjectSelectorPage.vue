@@ -230,154 +230,157 @@ function confirmPurge() {
         </PageHeader>
 
         <div class="w-full px-4 pb-12 max-w-3xl mx-auto">
-            <div class="flex items-center justify-between mb-4">
-                <h2 class="font-title font-bold text-lg">Select a Project</h2>
-                <div class="flex items-center gap-2">
-                    <button
-                        type="button"
-                        :class="['flex items-center gap-1.5 px-3 py-1.5 rounded text-white text-xs font-title font-semibold transition-colors', isAdmin ? 'bg-orange-darker hover:bg-orange-dark cursor-pointer' : 'bg-orange-medium cursor-not-allowed opacity-60']"
-                        :disabled="!isAdmin"
-                        :title="isAdmin ? '' : `You don't have permission to import projects`"
-                        @click="isAdmin && (showImportModal = true)"
-                    >
-                        <FontAwesomeIcon icon="fa-solid fa-file-import" />
-                        Import Project
-                    </button>
-                    <button
-                        type="button"
-                        :class="['flex items-center gap-1.5 px-3 py-1.5 rounded text-white text-xs font-title font-semibold transition-colors', isAdmin ? 'bg-orange-darker hover:bg-orange-dark cursor-pointer' : 'bg-orange-medium cursor-not-allowed opacity-60']"
-                        :disabled="!isAdmin"
-                        :title="isAdmin ? '' : `You don't have permission to create projects`"
-                        @click="isAdmin && (showCreateWizard = true)"
-                    >
-                        <FontAwesomeIcon icon="fa-solid fa-plus" />
-                        New Project
-                    </button>
-                </div>
-            </div>
-
-            <CreateProjectWizardModal
-                v-if="showCreateWizard"
-                @close="showCreateWizard = false"
-                @created="onProjectCreated"
-            />
-
-            <ImportProjectModal
-                v-if="showImportModal"
-                @close="showImportModal = false"
-                @created="onProjectCreated"
-            />
-
-            <!-- Loading state -->
-            <div v-if="loading" class="text-center py-12 text-grey-dark font-title text-sm">
-                <FontAwesomeIcon icon="fa-solid fa-circle-notch" class="animate-spin mr-2" />
-                Loading projects...
-            </div>
-
-            <!-- Error state -->
-            <div v-else-if="errorMessage" class="text-center py-8">
-                <p class="text-red-500 font-title text-sm mb-3">{{ errorMessage }}</p>
-                <button
-                    type="button"
-                    class="px-3 py-1.5 rounded bg-orange-darker text-white text-xs font-title font-semibold hover:bg-orange-dark cursor-pointer"
-                    @click="loadProjects"
-                >Try again</button>
-            </div>
-
-            <!-- Empty state -->
-            <div v-else-if="projects.length === 0" class="text-center py-12 text-grey-dark font-title text-sm">
-                <FontAwesomeIcon icon="fa-solid fa-folder-open" class="text-3xl mb-3 text-grey-light" />
-                <p>No projects available.</p>
-                <p class="mt-1">{{ isAdmin ? 'Use the New Project button above to create one.' : "You don't have permission to create projects — ask an administrator to set one up for you." }}</p>
-            </div>
-
-            <!-- Project list -->
-            <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button
-                    v-for="project in projects"
-                    :key="project.slug"
-                    type="button"
-                    class="relative text-left bg-box rounded-xl px-5 py-4 hover:shadow-md hover:border-orange-darker border border-transparent transition-all cursor-pointer group"
-                    @click="selectProject(project)"
-                >
-                    <span
-                        v-if="isAdmin"
-                        title="Delete project"
-                        class="absolute bottom-2 right-2 text-orange-darker/60 opacity-0 group-hover:opacity-100 hover:!text-red-dark transition-opacity cursor-pointer p-1"
-                        @click.stop="openDeleteConfirm(project)"
-                    >
-                        <FontAwesomeIcon icon="fa-solid fa-trash" class="text-xs" />
-                    </span>
-                    <div class="flex items-start justify-between gap-2">
-                        <div class="min-w-0">
-                            <div class="font-title font-semibold text-sm group-hover:text-orange-darker transition-colors truncate">
-                                {{ project.latestVersion?.displayName ?? project.draftDisplayName ?? project.slug }}
-                            </div>
-                            <div class="font-mono text-xs text-grey-dark mt-0.5 truncate">{{ project.slug }}</div>
-                        </div>
-                        <FontAwesomeIcon icon="fa-solid fa-circle-arrow-right" class="text-orange-medium group-hover:text-orange-darker transition-colors shrink-0 mt-0.5" />
-                    </div>
-                    <div v-if="project.latestVersion?.description ?? project.draftDescription" class="mt-2">
-                        <p
-                            :ref="(el) => setDescriptionRef(project.slug, el)"
-                            :class="['text-xs text-grey-dark', descriptionClampClass(project.slug)]"
-                        >{{ project.latestVersion?.description ?? project.draftDescription }}</p>
-                        <span
-                            v-if="isDescriptionTruncated(project.slug)"
-                            class="text-xs text-orange-darker hover:underline cursor-pointer font-title font-semibold"
-                            @click.stop="expandDescription(project.slug)"
-                        >[Read more...]</span>
-                        <span
-                            v-else-if="expandedDescriptions.has(project.slug)"
-                            class="text-xs text-orange-darker hover:underline cursor-pointer font-title font-semibold"
-                            @click.stop="collapseDescription(project.slug)"
-                        >[Read less...]</span>
-                    </div>
-                    <div v-if="project.latestVersion" class="text-xs text-grey-dark mt-2">
-                        <span class="font-bold">Version</span> {{ project.latestVersion.versionNumber }}
-                    </div>
-                    <div v-else class="text-xs text-orange-darker mt-2 italic">No published version</div>
-                </button>
-            </div>
-
-            <!-- Deleted projects (#403): admins only, kept apart from the active projects -->
-            <section v-if="isAdmin && deletedProjects.length" class="mt-8" data-test="deleted-projects">
-                <button
-                    type="button"
-                    class="flex items-center gap-2 font-title text-sm text-grey-dark hover:text-orange-darker cursor-pointer"
-                    :aria-expanded="showDeleted"
-                    data-test="deleted-projects-toggle"
-                    @click="showDeleted = !showDeleted"
-                >
-                    <FontAwesomeIcon :icon="showDeleted ? 'fa-solid fa-caret-down' : 'fa-solid fa-caret-right'" class="w-3" />
-                    Deleted projects ({{ deletedProjects.length }})
-                </button>
-                <div v-if="showDeleted" class="mt-2 flex flex-col gap-2">
-                    <p class="text-xs font-title text-grey-dark">
-                        Their dialogues are gone, but their users' data was kept. Deleting one permanently removes that data too.
-                    </p>
-                    <div
-                        v-for="project in deletedProjects"
-                        :key="project.slug"
-                        class="flex items-center gap-3 rounded-xl px-4 py-3 border border-dashed border-grey-light bg-grey-lighter/50"
-                        data-test="deleted-project"
-                    >
-                        <div class="flex-1 min-w-0">
-                            <div class="font-title text-sm text-grey-dark truncate">{{ project.displayName ?? project.slug }}</div>
-                            <div class="font-mono text-xs text-grey-dark truncate">{{ project.slug }}</div>
-                            <div class="text-xs text-grey-dark mt-0.5">
-                                Deleted {{ formatDeletedAt(project.deletedAt) }} · {{ userDataSummary(project) }}
-                            </div>
-                        </div>
+            <!-- The page itself, framed in a white box like the participant view's dialogue -->
+            <div class="bg-white rounded-2xl shadow-md p-4 sm:p-6" data-test="page-frame">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="font-title font-bold text-lg">Select a Project</h2>
+                    <div class="flex items-center gap-2">
                         <button
                             type="button"
-                            class="shrink-0 px-3 py-1.5 rounded font-title text-xs text-red-dark border border-red-dark/40 hover:bg-red-dark/10 cursor-pointer"
-                            data-test="purge-project"
-                            @click="openPurgeConfirm(project)"
-                        >Delete permanently…</button>
+                            :class="['flex items-center gap-1.5 px-3 py-1.5 rounded text-white text-xs font-title font-semibold transition-colors', isAdmin ? 'bg-orange-darker hover:bg-orange-dark cursor-pointer' : 'bg-orange-medium cursor-not-allowed opacity-60']"
+                            :disabled="!isAdmin"
+                            :title="isAdmin ? '' : `You don't have permission to import projects`"
+                            @click="isAdmin && (showImportModal = true)"
+                        >
+                            <FontAwesomeIcon icon="fa-solid fa-file-import" />
+                            Import Project
+                        </button>
+                        <button
+                            type="button"
+                            :class="['flex items-center gap-1.5 px-3 py-1.5 rounded text-white text-xs font-title font-semibold transition-colors', isAdmin ? 'bg-orange-darker hover:bg-orange-dark cursor-pointer' : 'bg-orange-medium cursor-not-allowed opacity-60']"
+                            :disabled="!isAdmin"
+                            :title="isAdmin ? '' : `You don't have permission to create projects`"
+                            @click="isAdmin && (showCreateWizard = true)"
+                        >
+                            <FontAwesomeIcon icon="fa-solid fa-plus" />
+                            New Project
+                        </button>
                     </div>
                 </div>
-            </section>
+
+                <CreateProjectWizardModal
+                    v-if="showCreateWizard"
+                    @close="showCreateWizard = false"
+                    @created="onProjectCreated"
+                />
+
+                <ImportProjectModal
+                    v-if="showImportModal"
+                    @close="showImportModal = false"
+                    @created="onProjectCreated"
+                />
+
+                <!-- Loading state -->
+                <div v-if="loading" class="text-center py-12 text-grey-dark font-title text-sm">
+                    <FontAwesomeIcon icon="fa-solid fa-circle-notch" class="animate-spin mr-2" />
+                    Loading projects...
+                </div>
+
+                <!-- Error state -->
+                <div v-else-if="errorMessage" class="text-center py-8">
+                    <p class="text-red-500 font-title text-sm mb-3">{{ errorMessage }}</p>
+                    <button
+                        type="button"
+                        class="px-3 py-1.5 rounded bg-orange-darker text-white text-xs font-title font-semibold hover:bg-orange-dark cursor-pointer"
+                        @click="loadProjects"
+                    >Try again</button>
+                </div>
+
+                <!-- Empty state -->
+                <div v-else-if="projects.length === 0" class="text-center py-12 text-grey-dark font-title text-sm">
+                    <FontAwesomeIcon icon="fa-solid fa-folder-open" class="text-3xl mb-3 text-grey-light" />
+                    <p>No projects available.</p>
+                    <p class="mt-1">{{ isAdmin ? 'Use the New Project button above to create one.' : "You don't have permission to create projects — ask an administrator to set one up for you." }}</p>
+                </div>
+
+                <!-- Project list -->
+                <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                        v-for="project in projects"
+                        :key="project.slug"
+                        type="button"
+                        class="relative text-left bg-orange-light/30 rounded-xl px-5 py-4 hover:shadow-md hover:border-orange-darker border border-orange-light transition-all cursor-pointer group"
+                        @click="selectProject(project)"
+                    >
+                        <span
+                            v-if="isAdmin"
+                            title="Delete project"
+                            class="absolute bottom-2 right-2 text-orange-darker/60 opacity-0 group-hover:opacity-100 hover:!text-red-dark transition-opacity cursor-pointer p-1"
+                            @click.stop="openDeleteConfirm(project)"
+                        >
+                            <FontAwesomeIcon icon="fa-solid fa-trash" class="text-xs" />
+                        </span>
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0">
+                                <div class="font-title font-semibold text-sm group-hover:text-orange-darker transition-colors truncate">
+                                    {{ project.latestVersion?.displayName ?? project.draftDisplayName ?? project.slug }}
+                                </div>
+                                <div class="font-mono text-xs text-grey-dark mt-0.5 truncate">{{ project.slug }}</div>
+                            </div>
+                            <FontAwesomeIcon icon="fa-solid fa-circle-arrow-right" class="text-orange-medium group-hover:text-orange-darker transition-colors shrink-0 mt-0.5" />
+                        </div>
+                        <div v-if="project.latestVersion?.description ?? project.draftDescription" class="mt-2">
+                            <p
+                                :ref="(el) => setDescriptionRef(project.slug, el)"
+                                :class="['text-xs text-grey-dark', descriptionClampClass(project.slug)]"
+                            >{{ project.latestVersion?.description ?? project.draftDescription }}</p>
+                            <span
+                                v-if="isDescriptionTruncated(project.slug)"
+                                class="text-xs text-orange-darker hover:underline cursor-pointer font-title font-semibold"
+                                @click.stop="expandDescription(project.slug)"
+                            >[Read more...]</span>
+                            <span
+                                v-else-if="expandedDescriptions.has(project.slug)"
+                                class="text-xs text-orange-darker hover:underline cursor-pointer font-title font-semibold"
+                                @click.stop="collapseDescription(project.slug)"
+                            >[Read less...]</span>
+                        </div>
+                        <div v-if="project.latestVersion" class="text-xs text-grey-dark mt-2">
+                            <span class="font-bold">Version</span> {{ project.latestVersion.versionNumber }}
+                        </div>
+                        <div v-else class="text-xs text-orange-darker mt-2 italic">No published version</div>
+                    </button>
+                </div>
+
+                <!-- Deleted projects (#403): admins only, kept apart from the active projects -->
+                <section v-if="isAdmin && deletedProjects.length" class="mt-8" data-test="deleted-projects">
+                    <button
+                        type="button"
+                        class="flex items-center gap-2 font-title text-sm text-grey-dark hover:text-orange-darker cursor-pointer"
+                        :aria-expanded="showDeleted"
+                        data-test="deleted-projects-toggle"
+                        @click="showDeleted = !showDeleted"
+                    >
+                        <FontAwesomeIcon :icon="showDeleted ? 'fa-solid fa-caret-down' : 'fa-solid fa-caret-right'" class="w-3" />
+                        Deleted projects ({{ deletedProjects.length }})
+                    </button>
+                    <div v-if="showDeleted" class="mt-2 flex flex-col gap-2">
+                        <p class="text-xs font-title text-grey-dark">
+                            Their dialogues are gone, but their users' data was kept. Deleting one permanently removes that data too.
+                        </p>
+                        <div
+                            v-for="project in deletedProjects"
+                            :key="project.slug"
+                            class="flex items-center gap-3 rounded-xl px-4 py-3 border border-dashed border-grey-light bg-grey-lighter/50"
+                            data-test="deleted-project"
+                        >
+                            <div class="flex-1 min-w-0">
+                                <div class="font-title text-sm text-grey-dark truncate">{{ project.displayName ?? project.slug }}</div>
+                                <div class="font-mono text-xs text-grey-dark truncate">{{ project.slug }}</div>
+                                <div class="text-xs text-grey-dark mt-0.5">
+                                    Deleted {{ formatDeletedAt(project.deletedAt) }} · {{ userDataSummary(project) }}
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                class="shrink-0 px-3 py-1.5 rounded font-title text-xs text-red-dark border border-red-dark/40 hover:bg-red-dark/10 cursor-pointer"
+                                data-test="purge-project"
+                                @click="openPurgeConfirm(project)"
+                            >Delete permanently…</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
         </div>
     </div>
 
