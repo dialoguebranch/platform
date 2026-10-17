@@ -177,21 +177,58 @@ describe('ProjectSelectorPage delete project', () => {
     });
 });
 
-describe('ProjectSelectorPage Users button', () => {
+describe('ProjectSelectorPage management menu', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         authoring.listProjects.mockResolvedValue(PROJECTS);
         authoring.listDeletedProjects.mockResolvedValue([]);
     });
 
-    it('opens the Users page for admins', async () => {
+    it('opens User Management for admins', async () => {
         const wrapper = await mountPage(['admin']);
-        await wrapper.find('[data-test="open-users"]').trigger('click');
+        await wrapper.find('[data-test="menu-users"]').trigger('click');
         expect(wrapper.vm.$.provides.state.value.adminPage).toBe('users');
     });
 
-    it('is not shown to editors', async () => {
+    it('offers User Management to admins only', async () => {
         const wrapper = await mountPage(['editor']);
-        expect(wrapper.find('[data-test="open-users"]').exists()).toBe(false);
+        expect(wrapper.find('[data-test="menu-users"]').exists()).toBe(false);
+    });
+});
+
+describe('ProjectSelectorPage search', () => {
+    const projects = [
+        { slug: 'onboarding', draftDisplayName: 'Onboarding', latestVersion: { versionNumber: 1, displayName: 'Onboarding', description: 'Welcome flow' } },
+        { slug: 'coaching', draftDisplayName: 'Coaching', latestVersion: { versionNumber: 2, displayName: 'Daily Coaching', description: 'Check-ins' } },
+    ];
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        authoring.listProjects.mockResolvedValue(projects);
+        authoring.listDeletedProjects.mockResolvedValue([]);
+    });
+
+    const shown = (wrapper) => wrapper.findAll('.grid > button').map((card) => card.text());
+
+    it('filters the projects by name, slug or description', async () => {
+        const wrapper = await mountPage(['admin']);
+        expect(shown(wrapper)).toHaveLength(2);
+
+        await wrapper.find('[data-test="project-search"]').setValue('daily');
+        expect(shown(wrapper)).toHaveLength(1);
+        expect(shown(wrapper)[0]).toContain('Daily Coaching');
+
+        await wrapper.find('[data-test="project-search"]').setValue('ONBOARD');
+        expect(shown(wrapper)[0]).toContain('Onboarding');
+
+        await wrapper.find('[data-test="project-search"]').setValue('check-ins');
+        expect(shown(wrapper)[0]).toContain('Daily Coaching');
+    });
+
+    it('says so when nothing matches', async () => {
+        const wrapper = await mountPage(['admin']);
+        await wrapper.find('[data-test="project-search"]').setValue('nothing like this');
+        expect(shown(wrapper)).toHaveLength(0);
+        expect(wrapper.find('[data-test="projects-no-match"]').exists()).toBe(true);
     });
 });

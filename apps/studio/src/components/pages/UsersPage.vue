@@ -1,8 +1,11 @@
 <script setup>
 import { inject, onMounted, ref, watch } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import PageHeader from '../widgets/PageHeader.vue';
+import PageGreeting from '../widgets/PageGreeting.vue';
+import SearchField from '../widgets/SearchField.vue';
+import ManagementMenu from '../widgets/ManagementMenu.vue';
 import { useAuthoringClient } from '../../composables/client.js';
-import { useStateManagement } from '../../composables/state-management.js';
 import { useUserSearch } from '../../composables/user-search.js';
 
 // The Users page (#407): every user the Web Service knows, with how much data it holds for each,
@@ -11,20 +14,13 @@ import { useUserSearch } from '../../composables/user-search.js';
 
 const state = inject('state');
 const client = useAuthoringClient();
-const stateManagement = useStateManagement();
 
 const { query, results, loading, loadError, hasMore, search, refresh, loadMore } = useUserSearch();
 
 watch(query, search);
 onMounted(refresh);
 
-function backToProjects() {
-    state.value.adminPage = null;
-}
 
-function onLogoutClick() {
-    stateManagement.logout();
-}
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
@@ -86,97 +82,84 @@ function confirmErase() {
 </script>
 
 <template>
-    <div class="min-w-screen min-h-screen bg-background flex flex-col items-center">
-        <div class="w-full flex justify-between px-4 pt-3">
-            <button
-                type="button"
-                class="flex items-center gap-1.5 font-title text-xs text-grey-dark hover:text-orange-darker cursor-pointer"
-                data-test="back-to-projects"
-                @click="backToProjects"
-            >
-                <FontAwesomeIcon icon="fa-solid fa-arrow-left" />
-                Projects
-            </button>
-            <button
-                type="button"
-                class="font-title text-xs text-grey-dark hover:text-orange-darker cursor-pointer"
-                @click="onLogoutClick"
-            >Log out</button>
-        </div>
+    <div class="min-h-screen bg-background flex flex-col items-center">
+        <PageHeader>
+            <PageGreeting>Hey <span class="font-semibold text-orange-darker">{{ state.user?.name }}</span>, welcome to Dialogue Branch Studio.</PageGreeting>
+            <template #menu><ManagementMenu active="users" /></template>
+        </PageHeader>
 
-        <img class="block pt-8 w-[240px] sm:w-[480px]" src="../../assets/img/dlb-long.png" alt="Dialogue Branch" />
-        <div class="mt-2 font-title font-bold">Studio</div>
-
-        <div class="w-full px-4 mt-8 pb-12 max-w-3xl mx-auto">
-            <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
-                <h2 class="font-title font-bold text-lg">Users</h2>
-                <input
-                    v-model="query"
-                    type="search"
-                    class="w-full sm:w-72 bg-white px-3 py-1.5 rounded-md border-[2px] border-solid border-gray-300 font-title text-sm focus:outline-none focus:border-orange-medium"
-                    placeholder="Search by username or subject…"
-                    data-test="user-search"
-                />
-            </div>
-            <p class="mb-4 text-xs font-title text-grey-dark">
-                Everyone this Web Service has seen, in your realm, with the data it holds for them in all projects.
-            </p>
-
-            <div
-                v-if="erased"
-                class="flex items-start gap-2 mb-4 border border-green-700/40 bg-green-50 text-green-700 rounded-lg px-3 py-2.5 text-xs font-title"
-                data-test="erased-notice"
-            >
-                <FontAwesomeIcon icon="fa-solid fa-circle-check" class="shrink-0 mt-0.5" />
-                <span class="flex-1">
-                    Erased <strong>{{ erased.label }}</strong>:
-                    {{ plural(erased.variables, 'variable', 'variables') }},
-                    {{ plural(erased.variableHistory, 'history entry', 'history entries') }},
-                    {{ plural(erased.dialogueLogs, 'dialogue log', 'dialogue logs') }}.
-                </span>
-                <button type="button" class="cursor-pointer" aria-label="Dismiss" @click="erased = null">
-                    <FontAwesomeIcon icon="fa-solid fa-xmark" />
-                </button>
-            </div>
-
-            <div v-if="loadError" class="text-sm font-title text-red-dark" data-test="users-error">Could not load the users.</div>
-            <div v-else-if="!loading && results.length === 0" class="text-sm font-title text-grey-dark" data-test="users-empty">
-                No users match.
-            </div>
-
-            <div class="flex flex-col gap-2">
-                <div
-                    v-for="user in results"
-                    :key="user.subject"
-                    class="flex items-center gap-3 rounded-xl px-4 py-3 bg-orange-light/30 border border-orange-light"
-                    data-test="user-row"
-                >
-                    <div class="flex-1 min-w-0">
-                        <div v-if="user.username" class="font-title text-sm font-semibold text-orange-darker truncate">{{ user.username }}</div>
-                        <div v-else class="font-title text-sm italic text-grey-dark">No username (only seen as a delegate)</div>
-                        <div class="font-mono text-xs text-grey-dark truncate">{{ user.subject }}</div>
-                        <div class="text-xs text-grey-dark mt-0.5" data-test="user-data">{{ dataSummary(user) }}</div>
-                    </div>
-                    <button
-                        type="button"
-                        class="shrink-0 px-3 py-1.5 rounded font-title text-xs text-red-dark border border-red-dark/40 hover:bg-red-dark/10 cursor-pointer"
-                        data-test="erase-user"
-                        @click="openEraseConfirm(user)"
-                    >Erase data…</button>
+        <div class="w-full px-4 pb-12 max-w-3xl mx-auto">
+            <!-- The page itself, framed in a white box like the participant view's dialogue -->
+            <div class="bg-white rounded-2xl shadow-md p-4 sm:p-6" data-test="page-frame">
+                <h2 class="mb-2 font-title font-bold text-lg">User Management</h2>
+                <p class="mb-5 text-xs font-title text-grey-dark">
+                    Everyone this Web Service has seen, in your realm, with the data it holds for them in all projects.
+                </p>
+                <div class="flex justify-end mb-4">
+                    <SearchField
+                        v-model="query"
+                        class="w-full sm:w-72"
+                        placeholder="Search by username or subject…"
+                        data-test="user-search"
+                    />
                 </div>
-            </div>
 
-            <div v-if="loading" class="mt-3 text-sm font-title text-grey-dark flex items-center gap-2">
-                <FontAwesomeIcon icon="fa-solid fa-circle-notch" class="animate-spin" />
-                Loading…
+                <div
+                    v-if="erased"
+                    class="flex items-start gap-2 mb-4 border border-green-700/40 bg-green-50 text-green-700 rounded-lg px-3 py-2.5 text-xs font-title"
+                    data-test="erased-notice"
+                >
+                    <FontAwesomeIcon icon="fa-solid fa-circle-check" class="shrink-0 mt-0.5" />
+                    <span class="flex-1">
+                        Erased <strong>{{ erased.label }}</strong>:
+                        {{ plural(erased.variables, 'variable', 'variables') }},
+                        {{ plural(erased.variableHistory, 'history entry', 'history entries') }},
+                        {{ plural(erased.dialogueLogs, 'dialogue log', 'dialogue logs') }}.
+                    </span>
+                    <button type="button" class="cursor-pointer" aria-label="Dismiss" @click="erased = null">
+                        <FontAwesomeIcon icon="fa-solid fa-xmark" />
+                    </button>
+                </div>
+
+                <div v-if="loadError" class="text-sm font-title text-red-dark" data-test="users-error">Could not load the users.</div>
+                <div v-else-if="!loading && results.length === 0" class="text-sm font-title text-grey-dark" data-test="users-empty">
+                    No users match.
+                </div>
+
+                <div class="flex flex-col gap-2">
+                    <div
+                        v-for="user in results"
+                        :key="user.subject"
+                        class="flex items-center gap-3 rounded-xl px-4 py-3 bg-orange-light/30 border border-orange-light"
+                        data-test="user-row"
+                    >
+                        <div class="flex-1 min-w-0">
+                            <div v-if="user.username" class="font-title text-sm font-semibold text-orange-darker truncate">{{ user.username }}</div>
+                            <div v-else class="font-title text-sm italic text-grey-dark">No username (only seen as a delegate)</div>
+                            <div class="font-mono text-xs text-grey-dark truncate">{{ user.subject }}</div>
+                            <div class="text-xs text-grey-dark mt-0.5" data-test="user-data">{{ dataSummary(user) }}</div>
+                        </div>
+                        <button
+                            type="button"
+                            class="shrink-0 px-3 py-1.5 rounded font-title text-xs text-red-dark border border-red-dark/40 hover:bg-red-dark/10 cursor-pointer"
+                            data-test="erase-user"
+                            @click="openEraseConfirm(user)"
+                        >Erase data…</button>
+                    </div>
+                </div>
+
+                <div v-if="loading" class="mt-3 text-sm font-title text-grey-dark flex items-center gap-2">
+                    <FontAwesomeIcon icon="fa-solid fa-circle-notch" class="animate-spin" />
+                    Loading…
+                </div>
+                <button
+                    v-else-if="hasMore"
+                    type="button"
+                    class="mt-3 px-3 py-1.5 rounded font-title text-xs text-orange-darker border border-orange-medium/50 hover:bg-orange-light/30 cursor-pointer"
+                    data-test="load-more"
+                    @click="loadMore"
+                >Load more</button>
             </div>
-            <button
-                v-else-if="hasMore"
-                type="button"
-                class="mt-3 px-3 py-1.5 rounded font-title text-xs text-orange-darker border border-orange-medium/50 hover:bg-orange-light/30 cursor-pointer"
-                data-test="load-more"
-                @click="loadMore"
-            >Load more</button>
         </div>
     </div>
 

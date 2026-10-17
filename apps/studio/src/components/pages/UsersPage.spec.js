@@ -163,7 +163,7 @@ describe('UsersPage', () => {
 
     it('goes back to the project selection', async () => {
         const { wrapper, state } = await mountPage();
-        await wrapper.find('[data-test="back-to-projects"]').trigger('click');
+        await wrapper.find('[data-test="menu-projects"]').trigger('click');
         expect(state.value.adminPage).toBe(null);
     });
 });

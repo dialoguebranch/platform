@@ -27,7 +27,7 @@ const isParticipantOnly = computed(() => {
     <ProjectSelectorPage v-else-if="state.user" />
     <!-- Reachable only for the brief moment between an insufficient-privileges Keycloak logout
          (see main.js) and the browser actually navigating away. -->
-    <div v-else class="min-w-screen min-h-screen bg-background flex items-center justify-center font-title">
+    <div v-else class="min-h-screen bg-background flex items-center justify-center font-title">
         Redirecting to login…
     </div>
     <DebugConsole />

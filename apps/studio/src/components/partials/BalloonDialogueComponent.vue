@@ -70,11 +70,12 @@ const statementSizeClass = computed(() => SIZE_TIERS[Math.max(statementSizeTier.
         <div v-if="!dialogueName" class="flex items-center justify-center h-full font-title text-sm text-grey-dark">
             Open a dialogue from the Dialogue Browser to start testing.
         </div>
-        <div v-else-if="startError" class="flex flex-col items-center justify-center h-full gap-3 font-title text-sm text-grey-dark px-8 text-center">
+        <div v-else-if="startError" class="flex flex-col items-center justify-center h-full gap-3 font-title text-sm text-grey-dark px-8 py-10 text-center">
             <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" class="text-red-dark text-2xl" />
             <span>{{ startError.message }}</span>
             <CollapsibleErrorList :errors="startError.errors" />
             <button
+                v-if="startError.canRetry !== false"
                 type="button"
                 class="rounded-xl bg-orange-dark hover:bg-orange-medium text-white uppercase p-3 min-w-[160px] cursor-pointer"
                 @click="$emit('restartDialogue')"

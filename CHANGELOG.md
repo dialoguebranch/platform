@@ -9,6 +9,7 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Studio: a search field on the project page, filtering projects by name, slug or description.
 - Studio, web service and client-js: simulate a user, to investigate a problem they have without
   changing any of their data ([#411](https://github.com/dialoguebranch/platform/issues/411)).
   *Set Delegate User* now offers *Simulate as* (the default) and *Act as*. While simulating,
@@ -35,6 +36,11 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- Studio: a refreshed look for the participant view and the project and user pages: a shared
+  header with the logo, a "Studio" wordmark, a divider and a greeting; for editors and admins a menu
+  bar to switch between *Project Management* and *User Management* (admins only), replacing the
+  *Users* and *← Projects* buttons; and the page content in a white box with rounded corners. The
+  *Service Unavailable*, *Update Available* and *Insufficient Privileges* screens use the same logo.
 - Studio: acting on behalf of another user for real (*Act as*) is treated as the powerful
   operation it is ([#330](https://github.com/dialoguebranch/platform/issues/330)): choosing it warns
   that the user's dialogue logs, variables and history change as if they acted themselves, the
@@ -84,6 +90,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Studio: a long page, such as the Users list, also got a horizontal scrollbar.
+- Studio: when the participant view's dialogue doesn't exist, a participant now gets a plain message
+  instead of a technical error with a *Try Again* button that couldn't help.
 - Web service and Studio: test sessions stayed in memory, each with its own parsed copy of the
   project, until the web service restarted, unless they were cancelled
   ([#218](https://github.com/dialoguebranch/platform/issues/218)). A test session now ends when its
