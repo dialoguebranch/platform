@@ -64,7 +64,7 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `retrieve-updates` request now carries `testSession` (`true` or `false`), so an External
   Variable Service can tell test sessions from real playback; the External Variable Service page
   explains where requests for updates come from.
-- **Breaking:** Web service, client-js and Studio: testing a dialogue no longer changes the
+- **Internal API:** Web service, client-js and Studio: testing a dialogue no longer changes the
   user's real variables ([#319](https://github.com/dialoguebranch/platform/issues/319)). A test
   session runs against the tester's own copy of the variables, kept in memory and seeded from the
   stored ones: it is never saved, recorded in the variable history or sent to the External
@@ -87,7 +87,7 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   and `deleteLogs` (both `false` by default) to delete that data too; with both, the project is
   removed for good. Studio's delete confirmation offers both as unticked options. client-js's
   `deleteProject` takes them as options. A new database migration (`V11`) adds the deleted flag.
-- **Breaking:** Web service and client-js: `GET /users` also lists users with no known username
+- **Internal API:** Web service and client-js: `GET /users` also lists users with no known username
   (only ever seen as a delegate, `username` is `null`), after the named ones; its `username` filter
   is replaced by `search`, which matches the username or the subject; and each entry has
   `variables` and `dialogueLogs` counts ([#407](https://github.com/dialoguebranch/platform/issues/407)).
