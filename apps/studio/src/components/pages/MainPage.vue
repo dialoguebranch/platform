@@ -63,6 +63,8 @@ onMounted(() => {
             .then((project) => {
                 state.value.selectedProject = { slug: project.slug, displayName: project.latestVersion?.displayName ?? project.draftDisplayName ?? project.slug, latestVersion: project.latestVersion ?? null };
                 refreshProjectMetadataChanged(project);
+                // Live Mode has nothing to run before the project's first publish.
+                if (!project.latestVersion && state.value.mode === DLB_APP_MODE_LIVE) selectMode(DLB_APP_MODE_DRAFT);
             })
             .catch(() => { /* keep the slug-only project; header just shows the slug */ });
     }
@@ -141,9 +143,13 @@ function closeModeMenu() {
     modeMenuOpen.value = false;
 }
 
+// Live Mode runs the published content, so it's only offered once the project has a published version.
+const canSelectLiveMode = computed(() => !!state.value.selectedProject?.latestVersion);
+
 function selectMode(mode) {
     closeModeMenu();
     if (state.value.mode === mode) return;
+    if (mode === DLB_APP_MODE_LIVE && !canSelectLiveMode.value) return;
     state.value.mode = mode;
     dialogueWorkspace.value?.clearAllTabs();
     // Simulating or acting as someone is a choice made in one mode, never carried into the other.
@@ -495,10 +501,13 @@ function onWorkspaceModeChanged(mode) {
                 >
                     <button
                         type="button"
-                        :class="['flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm transition-colors', state.mode === DLB_APP_MODE_LIVE ? 'text-orange-darker bg-grey-lighter cursor-default' : 'text-orange-darker hover:bg-grey-lighter cursor-pointer']"
+                        :class="['flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm transition-colors', state.mode === DLB_APP_MODE_LIVE ? 'text-orange-darker bg-grey-lighter cursor-default' : canSelectLiveMode ? 'text-orange-darker hover:bg-grey-lighter cursor-pointer' : 'text-grey-light cursor-not-allowed']"
+                        :disabled="!canSelectLiveMode"
+                        :title="canSelectLiveMode ? null : 'This project has not been published yet.'"
+                        data-test="mode-live"
                         @click="selectMode(DLB_APP_MODE_LIVE)"
                     >
-                        <FontAwesomeIcon icon="fa-solid fa-play" class="w-4 text-orange-medium" />
+                        <FontAwesomeIcon icon="fa-solid fa-play" class="w-4" :class="canSelectLiveMode ? 'text-orange-medium' : 'text-grey-light'" />
                         Live Mode
                     </button>
                     <button
