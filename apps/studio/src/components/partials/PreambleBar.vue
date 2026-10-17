@@ -109,7 +109,7 @@ defineExpose({ reload: load });
         <!-- Showing -->
         <div v-else-if="preamble" class="bg-white/95 rounded-lg shadow p-2 pr-3 flex gap-2 items-start">
             <button type="button" class="text-grey-dark mt-0.5 cursor-pointer" title="Hide script comment" @click="collapsed = true">
-                <FontAwesomeIcon icon="fa-solid fa-caret-down" />
+                <FontAwesomeIcon icon="fa-solid fa-caret-right" />
             </button>
             <div class="min-w-0 flex-1">
                 <div class="whitespace-pre-wrap text-grey-dark" data-test="preamble-shown">{{ text }}</div>
