@@ -153,6 +153,10 @@ const canProceedStep1 = computed(() =>
 );
 
 const displayNameValid = computed(() => displayName.value.trim().length > 0);
+// Only complain about an empty Display Name once the user has left the field (or tried Next).
+const displayNameTouched = ref(false);
+const showDisplayNameError = computed(() =>
+    !displayNameValid.value && (displayNameTouched.value || !!stepErrors.value.displayName));
 
 function goNext() {
     if (currentStep.value === 1) {
@@ -228,19 +232,19 @@ function submitCreate() {
                         <div>
                             <label class="block font-title font-bold text-sm text-orange-darker mb-1">Display Name <span class="text-red-500">*</span></label>
                             <div class="relative">
-                                <TextInput class="w-full pr-9" v-model="displayName" placeholder="My Project" :error="stepErrors.displayName" />
+                                <TextInput class="w-full pr-9" v-model="displayName" placeholder="My Project" :error="showDisplayNameError" @blur="displayNameTouched = true" />
                                 <FontAwesomeIcon
                                     v-if="displayNameValid"
                                     icon="fa-solid fa-circle-check"
                                     class="absolute right-3 top-1/2 -translate-y-1/2 text-icon-button pointer-events-none"
                                 />
                                 <FontAwesomeIcon
-                                    v-else
+                                    v-else-if="showDisplayNameError"
                                     icon="fa-solid fa-circle-xmark"
                                     class="absolute right-3 top-1/2 -translate-y-1/2 text-red-dark pointer-events-none"
                                 />
                             </div>
-                            <p v-if="!displayNameValid" class="text-xs text-red-dark mt-1">Display Name is required.</p>
+                            <p v-if="showDisplayNameError" class="text-xs text-red-dark mt-1">Display Name is required.</p>
                         </div>
                         <div>
                             <label class="block font-title font-bold text-sm text-orange-darker mb-1">Slug <span class="text-red-500">*</span></label>
