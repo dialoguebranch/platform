@@ -8,39 +8,42 @@ import { describeError } from '@/composables/error-message.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
 import { DIALOGUE_WORKSPACE_STYLE_TEXT, DIALOGUE_WORKSPACE_STYLE_BALLOONS, DIALOGUE_WORKSPACE_STYLE_EDIT, DIALOGUE_WORKSPACE_STYLE_TRANSLATE, DLB_APP_MODE_DRAFT } from '@/StudioClientState.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import IconButton from '../widgets/IconButton.vue';
 import BalloonDialogueComponent from './BalloonDialogueComponent.vue';
 import TextDialogueComponent from './TextDialogueComponent.vue';
 import DialogueEditor from './DialogueEditor.vue';
 import TranslationEditor from './TranslationEditor.vue';
 import MainPagePanelHeader from '../widgets/MainPagePanelHeader.vue';
 import MainPagePanelContainer from '../widgets/MainPagePanelContainer.vue';
+import ToolbarButton from '../widgets/ToolbarButton.vue';
 import ModeSelector from '../widgets/ModeSelector.vue';
 
 const emit = defineEmits([
     'newDialogueStep',
     'dialogueSaved',
-    'modeChanged',
 ]);
 
 const modes = [
     {
         name: 'balloon',
+        label: 'Test (speech bubbles)',
         icon: 'fa-regular fa-comments',
         title: 'Test in Speech Bubble Style',
     },
     {
         name: 'text',
+        label: 'Test (text style)',
         icon: 'fa-solid fa-paragraph',
         title: 'Test in RPG Text Style',
     },
     {
         name: 'edit',
+        label: 'Edit Dialogue',
         icon: 'fa-solid fa-diagram-project',
         title: 'Edit mode — edit the active tab\'s dialogue nodes',
     },
     {
         name: 'translate',
+        label: 'Translate Dialogue',
         icon: 'fa-solid fa-language',
         title: 'Edit the active tab\'s dialogue translations',
     },
@@ -289,7 +292,6 @@ const dialogueEditor = useTemplateRef('dialogue-editor');
 const translationEditor = useTemplateRef('translation-editor');
 
 watch(selectedMode, (mode, oldMode) => {
-    emit('modeChanged', mode);
     if (mode !== 'edit' && mode !== 'translate') lastTestMode.value = mode;
     const wasAuthoring = oldMode === 'edit' || oldMode === 'translate';
     const isAuthoring = mode === 'edit' || mode === 'translate';
@@ -552,20 +554,6 @@ function confirmRestartFromLastEditedNode() {
     const startNodeId = restartPrompt.value.lastEditedNodeTitle;
     restartPrompt.value = null;
     if (tab) loadDraftDialogue(tab.dialogueName, { tab, startNodeId, language: tab.language });
-}
-
-function onResetVariablesClick() {
-    const tab = activeTab.value;
-    if (!tab.isDraftTest) return;
-    dismissError();
-    logEvent('dialogue', 'Test variables reset: $1', tab.dialogueName);
-    authoringClient.resetTestVariables({ projectSlug: state.value.selectedProject?.slug })
-    .then(() => {
-        emit('newDialogueStep');
-    })
-    .catch((error) => {
-        showError(describeError(error));
-    });
 }
 
 const reloading = ref(false);
@@ -913,63 +901,65 @@ function onSelectReply(dialogueStep, reply, inputValues) {
 
 <template>
     <div class="flex flex-col gap-1">
-        <MainPagePanelHeader title="Dialogue Workspace">
+        <!-- The view switch is used all the time, so it gets the title row, unlike other panels' controls -->
+        <MainPagePanelHeader title="Dialogue Workspace" icon="fa-regular fa-comments">
             <template #buttons>
-                <span v-if="availableLanguages.length > 0" class="self-center text-xs font-title text-grey-dark whitespace-nowrap">Test dialogues in:</span>
-                <select
-                    v-if="availableLanguages.length > 0"
-                    v-model="selectedLanguage"
-                    title="Language new dialogue tests are started in"
-                    class="h-7.5 px-2 border border-grey-light rounded-lg text-xs font-title focus:outline-none focus:border-orange-dark bg-white cursor-pointer"
-                >
-                    <option v-for="lang in availableLanguages" :key="lang.code" :value="lang.code">{{ lang.name }}</option>
-                </select>
-                <ModeSelector :modes="availableModes" v-model="selectedMode" />
-                <template v-if="selectedMode !== 'edit' && selectedMode !== 'translate'">
-                    <IconButton
-                        icon="fa-solid fa-arrows-rotate"
-                        :class="{ 'animate-spin': reloading }"
-                        :title="activeTab.dialogueName && !activeTab.dialogueEnded && !activeTab.isDraftTest ? 'Refresh current dialogue step' : 'Refresh current dialogue step (not available for draft tests)'"
-                        :disabled="reloading || !activeTab.dialogueName || activeTab.dialogueEnded || activeTab.isDraftTest"
-                        @click="reloadStep"
-                    />
-                    <IconButton
-                        icon="fa-solid fa-circle-xmark"
-                        color="warning"
-                        :disabled="activeTab.dialogueName === null || activeTab.dialogueEnded || activeTab.awaitingReply"
-                        :title="activeTab.dialogueName && !activeTab.dialogueEnded ? 'Cancel the current dialogue' : 'Cancel the current dialogue (no dialogue active)'"
-                        @click="onCancelClick"
-                    />
-                    <IconButton
-                        v-if="activeTab.isDraftTest"
-                        icon="fa-solid fa-clock-rotate-left"
-                        color="warning"
-                        title="Reset the test variables to the stored values"
-                        @click="onResetVariablesClick"
-                    />
-                </template>
-                <template v-else>
-                    <IconButton
-                        v-if="activeTab.dialogueName"
-                        icon="fa-solid fa-plus"
-                        title="Add Node"
-                        :disabled="dialogueEditor?.isCreatingNode?.()"
-                        @click="dialogueEditor?.addNode()"
-                    />
-                    <IconButton
-                        icon="fa-solid fa-arrows-rotate"
-                        :class="{ 'animate-spin': dialogueEditor?.isLoading?.() }"
-                        @click="dialogueEditor?.reload()"
-                    />
-                </template>
+                <ModeSelector class="self-center" :modes="availableModes" v-model="selectedMode" />
             </template>
         </MainPagePanelHeader>
 
         <!-- Tab bar + content (no gap between them) -->
         <div class="flex flex-col grow min-h-0">
 
+        <!-- The workspace's toolbar, for all tabs: the box's first row, above the tabs, like the browsers' toolbars -->
+        <div class="flex items-center gap-1.5 px-1 h-[29px] bg-grey-lighter border-b border-grey-light shadow-[0_0_1px_black]">
+            <template v-if="availableLanguages.length > 0">
+                <span class="ml-1 text-xs font-title text-grey-dark whitespace-nowrap">Test in</span>
+                <select
+                    v-model="selectedLanguage"
+                    title="Language new dialogue tests are started in"
+                    class="h-6 min-w-0 px-2 border border-grey-light rounded-lg text-xs font-title focus:outline-none focus:border-orange-dark bg-white cursor-pointer"
+                >
+                    <option v-for="lang in availableLanguages" :key="lang.code" :value="lang.code">{{ lang.name }}</option>
+                </select>
+            </template>
+            <div class="ml-auto flex items-center gap-1.5">
+                <template v-if="selectedMode !== 'edit' && selectedMode !== 'translate'">
+                    <ToolbarButton
+                        icon="fa-solid fa-arrows-rotate"
+                        :spin="reloading"
+                        :title="activeTab.dialogueName && !activeTab.dialogueEnded && !activeTab.isDraftTest ? 'Refresh current dialogue step' : 'Refresh current dialogue step (not available for draft tests)'"
+                        :disabled="reloading || !activeTab.dialogueName || activeTab.dialogueEnded || activeTab.isDraftTest"
+                        @click="reloadStep"
+                    />
+                    <ToolbarButton
+                        icon="fa-solid fa-circle-xmark"
+                        danger
+                        :disabled="activeTab.dialogueName === null || activeTab.dialogueEnded || activeTab.awaitingReply"
+                        :title="activeTab.dialogueName && !activeTab.dialogueEnded ? 'Cancel the current dialogue' : 'Cancel the current dialogue (no dialogue active)'"
+                        @click="onCancelClick"
+                    />
+                </template>
+                <template v-else>
+                    <ToolbarButton
+                        v-if="activeTab.dialogueName"
+                        icon="fa-solid fa-plus"
+                        title="Add Node"
+                        :disabled="dialogueEditor?.isCreatingNode?.()"
+                        @click="dialogueEditor?.addNode()"
+                    />
+                    <ToolbarButton
+                        icon="fa-solid fa-arrows-rotate"
+                        :spin="dialogueEditor?.isLoading?.()"
+                        title="Reload"
+                        @click="dialogueEditor?.reload()"
+                    />
+                </template>
+            </div>
+        </div>
+
         <!-- Tab bar -->
-        <div class="flex items-end bg-white pt-2 relative z-[100]">
+        <div class="flex items-end bg-grey-lighter pt-2 relative z-[100]">
             <div class="absolute bottom-0 left-0 right-0 h-px bg-grey-light pointer-events-none z-0"></div>
             <button
                 type="button"
@@ -990,7 +980,7 @@ function onSelectReply(dialogueStep, reply, inputValues) {
                     class="flex items-center gap-1 px-2 py-0.5 font-title text-xs rounded-t border shrink-0 cursor-pointer"
                     :class="tab.id === activeTabId
                         ? 'bg-white border-grey-light border-b-2 border-b-white text-orange-darker font-semibold relative z-[100] -mb-px'
-                        : 'bg-grey-lighter border-grey-light border-b-0 text-grey-dark hover:bg-white'"
+                        : 'bg-grey-light/40 border-grey-light border-b-0 text-grey-dark hover:bg-white'"
                     @click="activeTabId = tab.id"
                 >
                     <FontAwesomeIcon v-if="tab.isDraftTest" icon="fa-solid fa-flask" class="text-[10px]" title="Draft test" />

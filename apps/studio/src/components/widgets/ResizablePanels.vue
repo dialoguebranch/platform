@@ -6,6 +6,10 @@ import { DocumentFunctions } from '../../authoring/DocumentFunctions.js';
 const props = defineProps({
     'cookiePrefix': String,
     'mobileTabNames': Array,
+    'leftPanelLabel': {
+        type: String,
+        default: 'Panel',
+    },
     'rightPanelLabel': {
         type: String,
         default: 'Panel',
@@ -23,46 +27,40 @@ const selectMobileTab = (index) => {
 const minPanelWidth = 200;
 const leftPanelWidth = ref(200);
 const rightPanelWidth = ref(200);
-const rightPanelCollapsed = ref(false);
+// Either side panel can be collapsed to a narrow strip that opens it again; remembered per side.
+const collapsed = ref({ left: false, right: false });
+
+function collapsedCookie(side) {
+    return 'state.' + props.cookiePrefix + (side === 'left' ? 'Left' : 'Right') + 'PanelCollapsed';
+}
 
 function initCollapsedState() {
-    rightPanelCollapsed.value = DocumentFunctions.getCookie('state.' + props.cookiePrefix + 'RightPanelCollapsed') === 'true';
-}
-
-function saveCollapsedState() {
-    DocumentFunctions.setCookie('state.' + props.cookiePrefix + 'RightPanelCollapsed', rightPanelCollapsed.value.toString(), 365);
-}
-
-function collapseRightPanel() {
-    if (rightPanelCollapsed.value) return;
-    rightPanelCollapsed.value = true;
-    saveCollapsedState();
-    emitResize();
-}
-
-function expandRightPanel() {
-    if (!rightPanelCollapsed.value) return;
-    rightPanelCollapsed.value = false;
-    saveCollapsedState();
-    emitResize();
-}
-
-function toggleRightPanel() {
-    if (rightPanelCollapsed.value) {
-        expandRightPanel();
-    } else {
-        collapseRightPanel();
+    for (const side of ['left', 'right']) {
+        collapsed.value[side] = DocumentFunctions.getCookie(collapsedCookie(side)) === 'true';
     }
+}
+
+function setCollapsed(side, value) {
+    if (collapsed.value[side] === value) return;
+    collapsed.value[side] = value;
+    DocumentFunctions.setCookie(collapsedCookie(side), value.toString(), 365);
+    reduceSideWidthsToFit();
+}
+
+function collapsePanel(side) {
+    setCollapsed(side, true);
+}
+
+function expandPanel(side) {
+    setCollapsed(side, false);
 }
 
 defineExpose({
     selectMobileTab,
     minPanelWidth,
-    rightPanelWidth,
-    rightPanelCollapsed,
-    collapseRightPanel,
-    expandRightPanel,
-    toggleRightPanel,
+    collapsed,
+    collapsePanel,
+    expandPanel,
 });
 
 const root = useTemplateRef('root');
@@ -162,11 +160,19 @@ function onMouseMove(event) {
     }
 }
 
+// The width a side panel takes up: none while collapsed.
+function sideWidth(side) {
+    if (collapsed.value[side]) return 0;
+    return side === 'left' ? leftPanelWidth.value : rightPanelWidth.value;
+}
+
+function dividerCount() {
+    return (collapsed.value.left ? 0 : 1) + (collapsed.value.right ? 0 : 1);
+}
+
 function onDragLeftDivider(event) {
-    const dividerCount = rightPanelCollapsed.value ? 1 : 2;
-    const effectiveRightWidth = rightPanelCollapsed.value ? 0 : rightPanelWidth.value;
-    const leftSpace = root.value.clientWidth - dividerCount * dividerWidth - minPanelWidth -
-        effectiveRightWidth;
+    const leftSpace = root.value.clientWidth - dividerCount() * dividerWidth - minPanelWidth -
+        sideWidth('right');
     if (leftSpace < minPanelWidth)
         return;
     const prefWidth = dragResizeState.left.startWidth + event.x - dragResizeState.left.startX;
@@ -175,8 +181,8 @@ function onDragLeftDivider(event) {
 }
 
 function onDragRightDivider(event) {
-    const rightSpace = root.value.clientWidth - 2 * dividerWidth - minPanelWidth -
-        leftPanelWidth.value;
+    const rightSpace = root.value.clientWidth - dividerCount() * dividerWidth - minPanelWidth -
+        sideWidth('left');
     if (rightSpace < minPanelWidth)
         return;
     const prefWidth = dragResizeState.right.startWidth + dragResizeState.right.startX - event.x;
@@ -185,12 +191,17 @@ function onDragRightDivider(event) {
 }
 
 function reduceSideWidthsToFit() {
-    if (rightPanelCollapsed.value) {
-        const maxLeftWidth = root.value.clientWidth - dividerWidth - minPanelWidth;
-        const leftWidth = Math.max(minPanelWidth, Math.min(maxLeftWidth, leftPanelWidth.value));
-        if (leftWidth !== leftPanelWidth.value) {
-            leftPanelWidth.value = leftWidth;
-            saveLeftPanelWidth();
+    if (collapsed.value.left || collapsed.value.right) {
+        // At most one side panel is open: it may take all the space but the main panel's minimum.
+        const open = collapsed.value.left ? 'right' : 'left';
+        if (!collapsed.value[open]) {
+            const width = open === 'left' ? leftPanelWidth : rightPanelWidth;
+            const maxWidth = root.value.clientWidth - dividerWidth - minPanelWidth;
+            const fitted = Math.max(minPanelWidth, Math.min(maxWidth, width.value));
+            if (fitted !== width.value) {
+                width.value = fitted;
+                if (open === 'left') saveLeftPanelWidth(); else saveRightPanelWidth();
+            }
         }
         emitResize();
         return;
@@ -227,6 +238,13 @@ function emitResize() {
     });
 }
 
+// A collapsed side panel's strip. On a wide screen it lines up with the panels' white boxes: below
+// their title rows (4px + 30px + 4px, less 1px to match their outline; see MainPagePanelHeader) and
+// above their 8px bottom margin.
+const collapsedStripClasses = 'sm:flex basis-0 grow sm:basis-auto sm:flex-none sm:w-7 sm:mt-[37px] sm:mb-2 '
+    + 'flex-col items-center justify-center gap-2 py-3 bg-grey-lighter hover:bg-menu-item-highlight '
+    + 'border border-grey-light shadow-[0_0_1px_black] text-orange-darker cursor-pointer';
+
 function getMobilePanelClasses(index) {
     return {
         'hidden': selectedMobileTab.value !== index,
@@ -251,21 +269,35 @@ function getMobilePanelClasses(index) {
             </button>
         </div>
         <div ref="root" class="grow bg-background flex" @mousemove.prevent="onMouseMove" @mouseup.prevent="stopDragResize" @mouseleave.prevent="stopDragResize">
-            <div
-                :class="getMobilePanelClasses(0)"
-                class="sm:flex basis-0 grow sm:basis-auto sm:flex-none overflow-x-hidden flex-col"
-                :style="{width: leftPanelWidth + 'px'}"
+            <template v-if="!collapsed.left">
+                <div
+                    :class="getMobilePanelClasses(0)"
+                    class="sm:flex basis-0 grow sm:basis-auto sm:flex-none overflow-x-hidden flex-col"
+                    :style="{width: leftPanelWidth + 'px'}"
+                >
+                    <slot name="left" />
+                </div>
+                <div class="cursor-col-resize hidden sm:block" :style="{width: dividerWidth + 'px'}" @mousedown.prevent="onMouseDownLeftDivider"></div>
+            </template>
+            <button
+                v-else
+                type="button"
+                :class="[getMobilePanelClasses(0), collapsedStripClasses, 'sm:mr-2']"
+                :title="`Show ${leftPanelLabel}`"
+                data-test="expand-left-panel"
+                @click="expandPanel('left')"
             >
-                <slot name="left" />
-            </div>
-            <div class="cursor-col-resize hidden sm:block" :style="{width: dividerWidth + 'px'}" @mousedown.prevent="onMouseDownLeftDivider"></div>
+                <FontAwesomeIcon icon="fa-solid fa-angles-right" class="text-xs" />
+                <span class="hidden sm:block font-title text-xs [writing-mode:vertical-rl] rotate-180">{{ leftPanelLabel }}</span>
+                <span class="sm:hidden font-title text-sm">Show {{ leftPanelLabel }}</span>
+            </button>
             <div
                 :class="getMobilePanelClasses(1)"
                 class="sm:flex basis-0 grow overflow-x-hidden flex-col"
             >
                 <slot name="main" />
             </div>
-            <template v-if="!rightPanelCollapsed">
+            <template v-if="!collapsed.right">
                 <div class="cursor-col-resize hidden sm:block" :style="{width: dividerWidth + 'px'}" @mousedown.prevent="onMouseDownRightDivider"></div>
                 <div
                     :class="getMobilePanelClasses(2)"
@@ -278,10 +310,10 @@ function getMobilePanelClasses(index) {
             <button
                 v-else
                 type="button"
-                :class="getMobilePanelClasses(2)"
-                class="sm:flex basis-0 grow sm:basis-auto sm:flex-none sm:w-7 flex-col items-center justify-center gap-2 py-3 bg-grey-lighter hover:bg-menu-item-highlight border-l border-grey-light text-orange-darker cursor-pointer"
+                :class="[getMobilePanelClasses(2), collapsedStripClasses, 'sm:ml-2']"
                 :title="`Show ${rightPanelLabel}`"
-                @click="expandRightPanel"
+                data-test="expand-right-panel"
+                @click="expandPanel('right')"
             >
                 <FontAwesomeIcon icon="fa-solid fa-angles-left" class="text-xs" />
                 <span class="hidden sm:block font-title text-xs [writing-mode:vertical-rl] rotate-180">{{ rightPanelLabel }}</span>

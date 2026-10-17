@@ -6,8 +6,9 @@ import ContextMenuList from './ContextMenuList.vue';
 // (a "⋯" button), with submenus. The parent shows it with v-if and removes it on `close`; choosing
 // an item emits `select` with that item, and then `close`.
 //
-// Items: { label, icon?, danger?, disabled?, title?, test?, children? } or { separator: true }.
-// `icon` is a Font Awesome class string; `danger` marks a destructive action; `test` becomes the
+// Items: { label, icon?, checked?, danger?, disabled?, title?, test?, children? } or
+// { separator: true }. `icon` is a Font Awesome class string; `checked` (true or false) shows a
+// check mark column, for a menu of choices; `danger` marks a destructive action; `test` becomes the
 // item's data-test attribute; `children` makes it a submenu.
 //
 // Keyboard: the first item is focused on opening; ↑/↓ (Home/End) move, → or Enter opens a

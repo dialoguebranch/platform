@@ -14,9 +14,13 @@ describe('preambleToText', () => {
 });
 
 describe('textToPreamble', () => {
-    it('makes each non-empty line a comment line and leaves empty lines out', () => {
+    it('makes each line a comment line, and an empty line a bare //', () => {
         expect(textToPreamble('What this is for.\n\n  Indented.\r\n   \nLast'))
-            .toBe('// What this is for.\n//   Indented.\n// Last');
+            .toBe('// What this is for.\n//\n//   Indented.\n//\n// Last');
+    });
+
+    it('leaves out empty lines at the start and end', () => {
+        expect(textToPreamble('\n \nFirst.\n\n\nSecond.\n\n')).toBe('// First.\n//\n//\n// Second.');
     });
 
     it('turns empty text into no preamble', () => {
@@ -25,7 +29,7 @@ describe('textToPreamble', () => {
     });
 
     it('round-trips a stored preamble written with "// "', () => {
-        const preamble = '// What this is for.\n//   Indented.';
+        const preamble = '// What this is for.\n//\n//   Indented.';
         expect(textToPreamble(preambleToText(preamble))).toBe(preamble);
     });
 });

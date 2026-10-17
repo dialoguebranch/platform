@@ -10,7 +10,7 @@ import ImportScriptsModal from '../partials/ImportScriptsModal.vue';
 import ImportTranslationsModal from '../partials/ImportTranslationsModal.vue';
 import SetDelegateUserModal from '../partials/SetDelegateUserModal.vue';
 import DelegateConfirmModal from '../partials/DelegateConfirmModal.vue';
-import DelegateBanner from '../partials/DelegateBanner.vue';
+import ModeBar from '../partials/ModeBar.vue';
 import TechnicalInfoModal from '../partials/TechnicalInfoModal.vue';
 import HeaderMenuItem from '../widgets/HeaderMenuItem.vue';
 import DialogueWorkspace from '../partials/DialogueWorkspace.vue';
@@ -63,6 +63,8 @@ onMounted(() => {
             .then((project) => {
                 state.value.selectedProject = { slug: project.slug, displayName: project.latestVersion?.displayName ?? project.draftDisplayName ?? project.slug, latestVersion: project.latestVersion ?? null };
                 refreshProjectMetadataChanged(project);
+                // Live Mode has nothing to run before the project's first publish.
+                if (!project.latestVersion && state.value.mode === DLB_APP_MODE_LIVE) selectMode(DLB_APP_MODE_DRAFT);
             })
             .catch(() => { /* keep the slug-only project; header just shows the slug */ });
     }
@@ -101,9 +103,6 @@ function closeUserMenu() {
 }
 
 function onClickOutsideMenus(e) {
-    if (modeMenuRef.value && !modeMenuRef.value.contains(e.target)) {
-        modeMenuOpen.value = false;
-    }
     if (projectMenuRef.value && !projectMenuRef.value.contains(e.target)) {
         projectMenuOpen.value = false;
     }
@@ -116,34 +115,16 @@ function onLogoutClick() {
     stateManagement.logout();
 }
 
+// Live Mode runs the published content, so it's only offered once the project has a published version.
+const canSelectLiveMode = computed(() => !!state.value.selectedProject?.latestVersion);
+
 // The global Live/Draft mode toggle. Switching modes clears all open tabs (same as switching
 // project or delegate user, below) since a tab's running test session is tied to whichever
 // execution path (published vs. draft) was active when it started, and refreshes the Dialogue
 // Browser so it lists the right set of dialogues for the new mode.
-const modeMenuOpen = ref(false);
-const modeMenuRef = ref(null);
-const modeMenuPos = ref({ top: 0, left: 0 });
-
-const modeLabel = computed(() => state.value.mode === DLB_APP_MODE_DRAFT ? 'Authoring Mode' : 'Live Mode');
-const modeDescription = computed(() => state.value.mode === DLB_APP_MODE_DRAFT
-    ? 'Edit and test draft dialogues'
-    : 'Test published dialogues');
-
-function toggleModeMenu() {
-    if (!modeMenuOpen.value && modeMenuRef.value) {
-        const rect = modeMenuRef.value.getBoundingClientRect();
-        modeMenuPos.value = { top: rect.bottom, left: rect.left };
-    }
-    modeMenuOpen.value = !modeMenuOpen.value;
-}
-
-function closeModeMenu() {
-    modeMenuOpen.value = false;
-}
-
 function selectMode(mode) {
-    closeModeMenu();
     if (state.value.mode === mode) return;
+    if (mode === DLB_APP_MODE_LIVE && !canSelectLiveMode.value) return;
     state.value.mode = mode;
     dialogueWorkspace.value?.clearAllTabs();
     // Simulating or acting as someone is a choice made in one mode, never carried into the other.
@@ -456,61 +437,47 @@ function onActivateTab(tabId) {
 function onResizePanels() {
     dialogueWorkspace.value.resize();
 }
-
-function onWorkspaceModeChanged(mode) {
-    if (mode === 'edit') {
-        panels.value?.collapseRightPanel();
-    }
-}
 </script>
 
 <template>
-    <div class="w-screen h-screen flex flex-col">
-        <header class="flex items-stretch bg-orange-darker shadow-md shadow-gray-400 z-[100]">
+    <div class="w-screen h-screen flex flex-col bg-background">
+        <header class="relative flex items-stretch bg-orange-darker z-[100] shadow-[0_2px_4px_rgba(0,0,0,0.35)]">
             <a class="shrink-0 border-r border-orange-dark" href="/"><img class="box-content h-[60px] pl-4 pr-4 py-3" src="../../assets/img/dlb-logo-medium-bright.png"></a>
 
-            <!-- Mode dropdown -->
-            <div ref="modeMenuRef" class="hidden sm:flex items-stretch relative border-r border-orange-dark">
-                <button
-                    type="button"
-                    class="flex items-center gap-3 px-4 hover:bg-orange-dark cursor-pointer transition-colors"
-                    @click="toggleModeMenu"
-                >
-                    <div class="flex flex-col justify-center leading-tight text-left">
-                        <span class="flex items-center gap-1 font-title text-[10px] text-orange-light uppercase tracking-wide">
-                            <FontAwesomeIcon icon="fa-solid fa-sliders" class="text-[9px]" />
-                            Mode
-                        </span>
-                        <span class="font-title text-sm font-bold text-white">{{ modeLabel }}</span>
-                        <span class="font-mono text-[10px] text-orange-light">{{ modeDescription }}</span>
-                    </div>
-                    <FontAwesomeIcon :icon="modeMenuOpen ? 'fa-solid fa-caret-up' : 'fa-solid fa-caret-down'" class="text-orange-light text-xs" />
-                </button>
-            </div>
-
-            <Teleport to="body">
-                <div v-if="modeMenuOpen"
-                    class="fixed z-[9999] min-w-[200px] bg-white shadow-lg border border-grey-light rounded-b overflow-hidden"
-                    :style="{ top: modeMenuPos.top + 'px', left: modeMenuPos.left + 'px' }"
-                >
+            <!-- Mode switch: two states side by side, so it doesn't read as one of the menus -->
+            <div class="hidden sm:flex flex-col justify-center gap-1 px-4 border-r border-orange-dark">
+                <span class="flex items-center gap-1 font-title text-[10px] text-orange-light uppercase tracking-wide">
+                    <FontAwesomeIcon icon="fa-solid fa-sliders" class="text-[9px]" />
+                    Mode
+                </span>
+                <div class="flex rounded-md border border-orange-light/60 overflow-hidden" role="radiogroup" aria-label="Mode">
                     <button
                         type="button"
-                        :class="['flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm transition-colors', state.mode === DLB_APP_MODE_LIVE ? 'text-orange-darker bg-grey-lighter cursor-default' : 'text-orange-darker hover:bg-grey-lighter cursor-pointer']"
+                        role="radio"
+                        :aria-checked="state.mode === DLB_APP_MODE_LIVE"
+                        :class="['flex items-center gap-2 px-3 py-1.5 font-title text-sm transition-colors', state.mode === DLB_APP_MODE_LIVE ? 'bg-mode-live text-orange-darker font-bold cursor-default' : canSelectLiveMode ? 'text-orange-light hover:bg-orange-dark hover:text-white cursor-pointer' : 'text-orange-light/40 cursor-not-allowed']"
+                        :disabled="!canSelectLiveMode"
+                        :title="canSelectLiveMode ? 'Test published dialogues' : 'This project has not been published yet.'"
+                        data-test="mode-live"
                         @click="selectMode(DLB_APP_MODE_LIVE)"
                     >
-                        <FontAwesomeIcon icon="fa-solid fa-play" class="w-4 text-orange-medium" />
-                        Live Mode
+                        <FontAwesomeIcon icon="fa-solid fa-play" class="text-xs" />
+                        Live
                     </button>
                     <button
                         type="button"
-                        :class="['flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm transition-colors', state.mode === DLB_APP_MODE_DRAFT ? 'text-orange-darker bg-grey-lighter cursor-default' : 'text-orange-darker hover:bg-grey-lighter cursor-pointer']"
+                        role="radio"
+                        :aria-checked="state.mode === DLB_APP_MODE_DRAFT"
+                        :class="['flex items-center gap-2 px-3 py-1.5 font-title text-sm transition-colors border-l border-orange-light/60', state.mode === DLB_APP_MODE_DRAFT ? 'bg-mode-authoring text-white font-bold cursor-default' : 'text-orange-light hover:bg-orange-dark hover:text-white cursor-pointer']"
+                        title="Edit and test draft dialogues"
+                        data-test="mode-authoring"
                         @click="selectMode(DLB_APP_MODE_DRAFT)"
                     >
-                        <FontAwesomeIcon icon="fa-solid fa-pen" class="w-4 text-orange-medium" />
-                        Authoring Mode
+                        <FontAwesomeIcon icon="fa-solid fa-pen" class="text-xs" />
+                        Authoring
                     </button>
                 </div>
-            </Teleport>
+            </div>
 
             <!-- Project dropdown -->
             <div ref="projectMenuRef" class="hidden sm:flex items-stretch relative border-r border-orange-dark">
@@ -654,6 +621,7 @@ function onWorkspaceModeChanged(mode) {
             </div>
             <div class="grow"></div>
         </header>
+        <ModeBar class="mb-2" :mode="state.mode" :delegate="state.delegate" @stop="stopDelegate" />
 
         <DelegateConfirmModal
             v-if="delegateConfirm"
@@ -726,6 +694,7 @@ function onWorkspaceModeChanged(mode) {
             class="grow"
             cookiePrefix="mainPage"
             :mobileTabNames="['Dialogues', 'Interactions', 'Variables']"
+            leftPanelLabel="Dialogues"
             rightPanelLabel="Variables"
             @resize="onResizePanels()"
         >
@@ -740,14 +709,14 @@ function onWorkspaceModeChanged(mode) {
                     @openDialogue="onOpenDialogue"
                     @dialoguesReplaced="(names) => dialogueWorkspace?.dialoguesReplaced(names)"
                     @dialogueDeleted="(name) => dialogueWorkspace?.dialogueDeleted(name)"
+                    @collapse="panels?.collapsePanel('left')"
                 />
             </template>
             <template #main>
-                <DelegateBanner v-if="state.delegate" :delegate="state.delegate" @stop="stopDelegate" />
-                <DialogueWorkspace ref="dialogue-workspace" class="grow" @newDialogueStep="onNewDialogueStep" @dialogueSaved="onDialogueSaved" @modeChanged="onWorkspaceModeChanged" />
+                <DialogueWorkspace ref="dialogue-workspace" class="grow" @newDialogueStep="onNewDialogueStep" @dialogueSaved="onDialogueSaved" />
             </template>
             <template #right>
-                <VariableBrowser ref="variable-browser" class="grow" @changeVariable="onChangeVariable" @collapse="panels?.collapseRightPanel()" />
+                <VariableBrowser ref="variable-browser" class="grow" @changeVariable="onChangeVariable" @collapse="panels?.collapsePanel('right')" />
             </template>
         </ResizablePanels>
 

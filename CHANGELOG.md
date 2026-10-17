@@ -14,7 +14,7 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   changing any of their data ([#411](https://github.com/dialoguebranch/platform/issues/411)).
   *Set Delegate User* now offers *Simulate as* (the default) and *Act as*. While simulating,
   dialogues run as test sessions against a copy of the user's variables, on the published content
-  in Live Mode and on the draft in Authoring Mode, with a banner and *Stop simulating*; the user's
+  in Live Mode and on the draft in Authoring Mode, with a notice and *Stop simulating*; the user's
   real ongoing dialogue isn't offered to resume. Switching between Live and Authoring Mode now
   stops simulating or acting as someone. `POST /test-session/start` takes `content=published` to
   run a dialogue's published version; client-js's `startTestSession` takes `content`.
@@ -42,6 +42,25 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `dlb-core-java`'s public API) and which are internal to Studio. From here on, only a change to a
   stable surface is labelled **Breaking:**; a change to an internal one is labelled
   **Internal API:**. Release notes up to 0.7.0 are unchanged.
+- Web service: a new project's starter dialogue has a preamble saying it was generated
+  automatically.
+- Studio: *Live Mode* can only be chosen once a project has a published version; an unpublished
+  project opens in Authoring Mode.
+- Studio: the header's mode switch shows *Live* and *Authoring* side by side and switches in one
+  click, and a mode bar under the header says which mode you're in, in its colour (amber for Live,
+  green for Authoring). Simulating or acting as another user is shown in the mode bar too, which
+  turns red while acting as them, instead of in a banner above the dialogue.
+- Studio: the Dialogue Workspace's view switch is in its title row, with a label on each view
+  (*Test (speech bubbles)*, *Test (text style)*, *Edit Dialogue*, *Translate Dialogue*), and its
+  other controls are in a toolbar above the tabs. Opening *Edit Dialogue* no longer collapses the
+  Variable Browser, and the workspace's own reset of the test values is gone: the Variable Browser
+  has one.
+- Studio: the Dialogue Browser can be collapsed, like the Variable Browser; both fold away with a
+  button on their edge next to the Dialogue Workspace, and stay collapsed after a reload.
+- Studio: the Dialogue Browser, Dialogue Workspace and Variable Browser line up, with restyled
+  panel titles and a grey toolbar row at the top of each panel; the Dialogue Browser's and Variable
+  Browser's buttons, view switch and sort order moved into their toolbars, with sorting in a small
+  menu.
 - Studio: a refreshed look for the participant view and the project and user pages: a shared
   header with the logo, a "Studio" wordmark, a divider and a greeting; for editors and admins a menu
   bar to switch between *Project Management* and *User Management* (admins only), replacing the
@@ -50,7 +69,7 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 - Studio: acting on behalf of another user for real (*Act as*) is treated as the powerful
   operation it is ([#330](https://github.com/dialoguebranch/platform/issues/330)): choosing it warns
   that the user's dialogue logs, variables and history change as if they acted themselves, the
-  confirmation says *Act as \<user\>*, and a red banner shows while acting, with *Stop acting as*.
+  confirmation says *Act as \<user\>*, and Studio shows in red while acting, with *Stop acting as*.
   *Set Delegate User* is shown to admins only.
 - Docs: the Authentication page no longer describes a trusted server that acts for all of its end
   users through one `admin` account and `delegateUser`
@@ -77,8 +96,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `DIALOGUE_TEST`. In client-js, `startDraftDialogue`, `progressDraftDialogue`,
   `cancelDraftDialogue` and `revertDraftVariables` become `startTestSession`,
   `progressTestSession`, `cancelTestSession` and `resetTestVariables`, plus `getTestVariables` and
-  `setTestVariable`. In Studio's Authoring Mode, the Variable Browser's *Values* shows and edits
-  the test copy, with *Reset to stored values*.
+  `setTestVariable`. In Studio's Authoring Mode, the Variable Browser's *Test values* shows and
+  edits the test copy, with a button to reset it to the stored values.
 - **Breaking:** Web service and Studio: deleting a project removes its dialogues, translations and
   version history, but keeps its users' variables, variable history and dialogue logs by default
   ([#315](https://github.com/dialoguebranch/platform/issues/315)). The project stays as a deleted
@@ -97,6 +116,10 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 ### Fixed
 
 - Studio: a long page, such as the Users list, also got a horizontal scrollbar.
+- Studio: blank lines between paragraphs of a dialogue's script comment (its preamble) were
+  dropped on save; they're now kept, as bare `//` lines.
+- Studio: clicking outside a dialog, such as *New Project* or the node editor, closed it, losing
+  what was typed; dialogs now close only with their close button or *Cancel*.
 - Studio: when the participant view's dialogue doesn't exist, a participant now gets a plain message
   instead of a technical error with a *Try Again* button that couldn't help.
 - Web service and Studio: test sessions stayed in memory, each with its own parsed copy of the

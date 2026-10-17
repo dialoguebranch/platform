@@ -153,6 +153,10 @@ const canProceedStep1 = computed(() =>
 );
 
 const displayNameValid = computed(() => displayName.value.trim().length > 0);
+// Only complain about an empty Display Name once the user has left the field (or tried Next).
+const displayNameTouched = ref(false);
+const showDisplayNameError = computed(() =>
+    !displayNameValid.value && (displayNameTouched.value || !!stepErrors.value.displayName));
 
 function goNext() {
     if (currentStep.value === 1) {
@@ -170,7 +174,7 @@ function goBack() {
 }
 
 // A pending create's `.then()`/`.catch()` still fires after the modal closes if the user closes
-// it mid-submit — guard the close paths (header X, Cancel, backdrop click) so the user can't
+// it mid-submit — guard the close paths (header X, Cancel) so the user can't
 // dismiss the modal while that request is still in flight.
 function closeModal() {
     if (creating.value) return;
@@ -198,7 +202,7 @@ function submitCreate() {
 
 <template>
     <Teleport to="body">
-        <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50" @click.self="closeModal">
+        <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-xl mx-4 flex flex-col">
 
                 <!-- Header -->
@@ -228,19 +232,19 @@ function submitCreate() {
                         <div>
                             <label class="block font-title font-bold text-sm text-orange-darker mb-1">Display Name <span class="text-red-500">*</span></label>
                             <div class="relative">
-                                <TextInput class="w-full pr-9" v-model="displayName" placeholder="My Project" :error="stepErrors.displayName" />
+                                <TextInput class="w-full pr-9" v-model="displayName" placeholder="My Project" :error="showDisplayNameError" @blur="displayNameTouched = true" />
                                 <FontAwesomeIcon
                                     v-if="displayNameValid"
                                     icon="fa-solid fa-circle-check"
                                     class="absolute right-3 top-1/2 -translate-y-1/2 text-icon-button pointer-events-none"
                                 />
                                 <FontAwesomeIcon
-                                    v-else
+                                    v-else-if="showDisplayNameError"
                                     icon="fa-solid fa-circle-xmark"
                                     class="absolute right-3 top-1/2 -translate-y-1/2 text-red-dark pointer-events-none"
                                 />
                             </div>
-                            <p v-if="!displayNameValid" class="text-xs text-red-dark mt-1">Display Name is required.</p>
+                            <p v-if="showDisplayNameError" class="text-xs text-red-dark mt-1">Display Name is required.</p>
                         </div>
                         <div>
                             <label class="block font-title font-bold text-sm text-orange-darker mb-1">Slug <span class="text-red-500">*</span></label>
@@ -282,13 +286,18 @@ function submitCreate() {
                             <FontAwesomeIcon icon="fa-solid fa-circle-exclamation" class="shrink-0" />
                             {{ createError }}
                         </div>
-                        <p class="text-sm text-grey-dark">
-                            Choose the project&rsquo;s <strong>source language</strong> &mdash; the
-                            language you will author dialogue content in. Other languages can be
-                            added later as translations. Select &ldquo;Simplified&rdquo; for a short
-                            list of common languages, &ldquo;Extended&rdquo; for a more extensive
-                            list, or &ldquo;Custom&rdquo; to fill in your own language ISO code.
-                        </p>
+                        <div class="text-sm text-grey-dark">
+                            <p>
+                                Choose the project&rsquo;s <strong>source language</strong> &mdash;
+                                the language you will author dialogue content in. Other languages
+                                can be added later as translations.
+                            </p>
+                            <p class="mt-2">
+                                Select &ldquo;Simplified&rdquo; for a short list of common languages,
+                                &ldquo;Extended&rdquo; for a more extensive list, or
+                                &ldquo;Custom&rdquo; to fill in your own language ISO code.
+                            </p>
+                        </div>
                         <div class="flex items-center justify-between">
                             <div class="flex gap-5">
                                 <label class="flex items-center gap-1.5 text-sm font-title cursor-pointer">

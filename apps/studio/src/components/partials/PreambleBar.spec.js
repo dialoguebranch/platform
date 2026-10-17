@@ -94,16 +94,16 @@ describe('PreambleBar', () => {
 
     it('saves edited text as comment lines and reports the save', async () => {
         authoring.listDraftDialogues.mockResolvedValue(dialogues(''));
-        authoring.updateDraftPreamble.mockResolvedValue({ preamble: '// What this is for.\n// Second.' });
+        authoring.updateDraftPreamble.mockResolvedValue({ preamble: '// What this is for.\n//\n// Second.' });
         const wrapper = await mountBar();
         await wrapper.find('[data-test="preamble-add"]').trigger('click');
         await wrapper.find('[data-test="preamble-text"]').setValue('What this is for.\n\nSecond.');
         await wrapper.find('[data-test="preamble-save"]').trigger('click');
         await flushPromises();
         expect(authoring.updateDraftPreamble).toHaveBeenCalledWith('default-test', 'main',
-            '// What this is for.\n// Second.');
+            '// What this is for.\n//\n// Second.');
         expect(wrapper.emitted('saved')).toHaveLength(1);
-        expect(wrapper.find('[data-test="preamble-shown"]').element.textContent).toBe('What this is for.\nSecond.');
+        expect(wrapper.find('[data-test="preamble-shown"]').element.textContent).toBe('What this is for.\n\nSecond.');
     });
 
     it('keeps the editor open and shows the error when saving fails', async () => {

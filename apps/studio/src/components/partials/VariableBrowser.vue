@@ -3,7 +3,7 @@ export default { inheritAttrs: false };
 </script>
 
 <script setup>
-import { computed, inject, onMounted, ref, useAttrs, watch } from 'vue';
+import { computed, inject, onMounted, ref, useAttrs, useTemplateRef, watch } from 'vue';
 const attrs = useAttrs();
 const state = inject('state');
 import { useClient, useAuthoringClient, getBrowserTimeZone } from '@/composables/client.js';
@@ -18,9 +18,11 @@ import {
     HISTORY_PRESETS, presetRange, resolveDateRange,
 } from '@/composables/variable-history.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import IconButton from '../widgets/IconButton.vue';
 import MainPagePanelHeader from '../widgets/MainPagePanelHeader.vue';
 import MainPagePanelContainer from '../widgets/MainPagePanelContainer.vue';
+import IconButton from '../widgets/IconButton.vue';
+import ToolbarButton from '../widgets/ToolbarButton.vue';
+import ContextMenu from '../widgets/ContextMenu.vue';
 
 // Times are always shown in the time zone of the person using Studio (#323) — the same one sent to
 // the API — not the zone a value was recorded in. The long time style includes the zone's name,
@@ -120,6 +122,24 @@ const historyHasMore = ref(false);
 const historyLoading = ref(false);
 const historyLoadingMore = ref(false);
 const historyOrder = ref('newest');  // 'newest' | 'oldest' — History has its own sort (#323)
+
+// Sorting is a small menu behind a toolbar button: History's order, or the other modes' name sort.
+const sortButton = useTemplateRef('sortButton');
+const sortMenuOpen = ref(false);
+const SORT_CHOICES = {
+    history: [{ value: 'newest', label: 'Newest first' }, { value: 'oldest', label: 'Oldest first' }],
+    names: [{ value: 'name-asc', label: 'Name (A–Z)' }, { value: 'name-desc', label: 'Name (Z–A)' }],
+};
+const sortChoices = computed(() => mode.value === 'history' ? SORT_CHOICES.history : SORT_CHOICES.names);
+const currentSort = computed(() => mode.value === 'history' ? historyOrder.value : sortMode.value);
+const sortLabel = computed(() => sortChoices.value.find((c) => c.value === currentSort.value)?.label ?? '');
+const sortMenuItems = computed(() => sortChoices.value.map((c) => ({
+    label: c.label, value: c.value, checked: c.value === currentSort.value, test: 'sort-' + c.value,
+})));
+function chooseSort(item) {
+    if (mode.value === 'history') historyOrder.value = item.value;
+    else sortMode.value = item.value;
+}
 
 // The start / end date range (#371): <input type="date"> values, whole days in the Studio user's
 // time zone — the zone the entries are displayed in. The end date is included in full; the request
@@ -398,119 +418,108 @@ onMounted(() => {
 
 <template>
 <div class="flex flex-col gap-1" v-bind="attrs">
-        <MainPagePanelHeader title="Variable Browser" class="sm:mr-1">
-            <template #buttons>
-                <div class="flex shrink-0 rounded-lg overflow-hidden border border-grey-light font-title text-[10px] font-semibold">
-                    <button
-                        type="button"
-                        class="px-2 h-7.5 cursor-pointer"
-                        :class="mode === 'values' ? 'bg-orange-dark text-white' : 'bg-white text-grey-dark hover:bg-grey-lighter'"
-                        :title="testing ? 'The test variables: a copy of this user\'s stored values that tests run against' : 'This user\'s stored variable values for the current project'"
-                        @click="mode = 'values'"
-                    >Values</button>
-                    <button
-                        type="button"
-                        class="px-2 h-7.5 cursor-pointer border-l border-grey-light"
-                        :class="mode === 'project' ? 'bg-orange-dark text-white' : 'bg-white text-grey-dark hover:bg-grey-lighter'"
-                        title="Every variable used anywhere in this project, plus any the configured External Variable Service supports (read-only)"
-                        @click="mode = 'project'"
-                    >Used</button>
-                    <button
-                        type="button"
-                        class="px-2 h-7.5 cursor-pointer border-l border-grey-light"
-                        :class="mode === 'history' ? 'bg-orange-dark text-white' : 'bg-white text-grey-dark hover:bg-grey-lighter'"
-                        title="Every recorded change to this user's variables in the current project, newest first"
-                        @click="mode = 'history'"
-                    >History</button>
-                </div>
-                <IconButton icon="fa-solid fa-arrows-rotate" title="Refresh variables" @click="refresh" />
-                <IconButton icon="fa-solid fa-angles-right" title="Collapse Variable Browser" @click="emit('collapse')" />
-            </template>
-        </MainPagePanelHeader>
-
-        <!-- In Authoring Mode, Values is the test copy (#319) -->
-        <div v-if="testing && mode !== 'project'" data-test="test-variables-note" class="flex items-start gap-1.5 px-1 sm:mr-1 font-title text-[10px] text-grey-dark">
-            <FontAwesomeIcon icon="fa-solid fa-flask" class="mt-0.5 shrink-0" />
-            <span v-if="mode === 'values'" class="flex-1">
-                Test variables: tests run against this copy. Changes here don't affect the stored values.
-                <button type="button" data-test="reset-test-variables" class="underline hover:text-orange-dark cursor-pointer" @click="resetTestVariables">Reset to stored values</button>
-            </span>
-            <span v-else class="flex-1">The stored history: changes made in tests aren't recorded.</span>
-        </div>
-
-        <!-- Filter + sort strip -->
-        <div class="flex items-center gap-1.5 px-1 sm:mr-1">
-            <div class="relative flex-1 min-w-0">
-                <FontAwesomeIcon icon="fa-solid fa-magnifying-glass" class="absolute left-2 top-1/2 -translate-y-1/2 text-grey-dark text-[10px] pointer-events-none" />
-                <input
-                    v-model="searchQuery"
-                    type="text"
-                    placeholder="Filter variables…"
-                    class="w-full h-7.5 pl-6 pr-6 text-xs font-title border border-grey-light rounded-lg bg-white focus:outline-none focus:border-orange-dark"
-                    @keyup.esc="searchQuery = ''"
-                />
-                <button
-                    v-if="searchQuery"
-                    type="button"
-                    title="Clear filter"
-                    class="absolute right-1.5 top-1/2 -translate-y-1/2 text-grey-dark hover:text-orange-dark cursor-pointer"
-                    @click="searchQuery = ''"
-                >
-                    <FontAwesomeIcon icon="fa-solid fa-xmark" class="text-[10px]" />
-                </button>
-            </div>
-            <!-- History keeps its own sort, so switching modes never carries one's order to the other -->
-            <select
-                v-if="mode === 'history'"
-                v-model="historyOrder"
-                title="Sort changes"
-                class="h-7.5 px-2 shrink-0 border border-grey-light rounded-lg text-xs font-title focus:outline-none focus:border-orange-dark bg-white cursor-pointer"
-            >
-                <option value="newest">Newest first</option>
-                <option value="oldest">Oldest first</option>
-            </select>
-            <select
-                v-else
-                v-model="sortMode"
-                title="Sort variables"
-                class="h-7.5 px-2 shrink-0 border border-grey-light rounded-lg text-xs font-title focus:outline-none focus:border-orange-dark bg-white cursor-pointer"
-            >
-                <option value="name-asc">Name (A–Z)</option>
-                <option value="name-desc">Name (Z–A)</option>
-            </select>
-        </div>
-
-        <!-- Date range (#371) — History only. Whole days in the Studio user's time zone; the end date is included. -->
-        <div v-if="mode === 'history'" data-test="history-range" class="flex flex-col gap-1 px-1 sm:mr-1 font-title text-[10px] text-grey-dark">
-            <label class="flex items-center gap-1 min-w-0">
-                <span class="w-14 shrink-0">Start date</span>
-                <input v-model="historyStartDate" type="date" data-test="history-start-date"
-                    title="Only changes recorded on or after this day (your time zone)"
-                    class="min-w-0 flex-1 h-6 px-1 text-[10px] border border-grey-light rounded-lg bg-white focus:outline-none focus:border-orange-dark" />
-            </label>
-            <label class="flex items-center gap-1 min-w-0">
-                <span class="w-14 shrink-0">End date</span>
-                <input v-model="historyEndDate" type="date" data-test="history-end-date"
-                    title="Only changes recorded on or before this day, the whole day (your time zone)"
-                    class="min-w-0 flex-1 h-6 px-1 text-[10px] border border-grey-light rounded-lg bg-white focus:outline-none focus:border-orange-dark" />
-            </label>
-            <div class="flex flex-wrap items-center gap-1">
-                <button v-for="preset in HISTORY_PRESETS" :key="preset.id" type="button"
-                    :data-test="'history-preset-' + preset.id"
-                    class="px-1.5 h-5 rounded border border-grey-light bg-white text-grey-dark hover:bg-grey-lighter cursor-pointer"
-                    @click="applyHistoryPreset(preset.id)">{{ preset.label }}</button>
-                <button v-if="historyRangeSet" type="button" data-test="history-range-clear"
-                    class="px-1.5 h-5 rounded border border-grey-light bg-white text-orange-darker hover:bg-grey-lighter cursor-pointer"
-                    @click="clearHistoryRange">Clear</button>
-            </div>
-            <div v-if="historyRangeSet && !historyRangeError" data-test="history-range-note" class="italic">
-                Showing changes recorded {{ historyStartDate ? 'from ' + historyStartDate : 'up' }}
-                {{ historyEndDate ? (historyStartDate ? 'through ' : 'to and including ') + historyEndDate : 'until now' }}.
-            </div>
-            <div v-if="historyRangeError" data-test="history-range-error" class="text-red-500">{{ historyRangeError }}</div>
-        </div>
+        <MainPagePanelHeader title="Variable Browser" icon="fa-solid fa-sliders" class="sm:mr-1" />
 
         <MainPagePanelContainer class="sm:mr-1">
+            <template #toolbar>
+                <!-- Collapsing the panel (from its edge next to the workspace, like the Dialogue Browser), and what it shows -->
+                <div class="flex items-center gap-1.5 px-1 h-[29px]">
+                    <ToolbarButton icon="fa-solid fa-angles-right" title="Collapse Variable Browser" @click="emit('collapse')" />
+                    <div class="flex flex-1 min-w-0 rounded-lg overflow-hidden border border-grey-light font-title text-[10px] font-semibold">
+                        <button
+                            type="button"
+                            class="flex-1 px-2 h-[22px] cursor-pointer"
+                            :class="mode === 'values' ? 'bg-orange-dark text-white' : 'bg-white text-grey-dark hover:bg-grey-lighter'"
+                            :title="testing ? 'Test values: a copy of this user\'s stored values that tests run against. Changes here don\'t affect the stored values.' : 'This user\'s stored variable values for the current project'"
+                            data-test="mode-values"
+                            @click="mode = 'values'"
+                        ><!-- In Authoring Mode (and while simulating), Values is the test copy (#319) --><template v-if="testing"><FontAwesomeIcon icon="fa-solid fa-flask" class="mr-1" />Test values</template><template v-else>Values</template></button>
+                        <button
+                            type="button"
+                            class="flex-1 px-2 h-[22px] cursor-pointer border-l border-grey-light"
+                            :class="mode === 'project' ? 'bg-orange-dark text-white' : 'bg-white text-grey-dark hover:bg-grey-lighter'"
+                            title="Every variable used anywhere in this project, plus any the configured External Variable Service supports (read-only)"
+                            @click="mode = 'project'"
+                        >Used</button>
+                        <button
+                            type="button"
+                            class="flex-1 px-2 h-[22px] cursor-pointer border-l border-grey-light"
+                            :class="mode === 'history' ? 'bg-orange-dark text-white' : 'bg-white text-grey-dark hover:bg-grey-lighter'"
+                            :title="'Every recorded change to this user\'s variables in the current project' + (testing ? '. Changes made in tests aren\'t recorded.' : '')"
+                            @click="mode = 'history'"
+                        >History</button>
+                    </div>
+                </div>
+                <!-- Filter + sort strip -->
+                <div class="flex items-center gap-1.5 px-1 h-[29px]">
+                    <div class="relative flex-1 min-w-0">
+                        <FontAwesomeIcon icon="fa-solid fa-magnifying-glass" class="absolute left-2 top-1/2 -translate-y-1/2 text-grey-dark text-[10px] pointer-events-none" />
+                        <input
+                            v-model="searchQuery"
+                            type="text"
+                            placeholder="Filter variables…"
+                            class="w-full h-6 pl-6 pr-6 text-xs font-title border border-grey-light rounded-lg bg-white focus:outline-none focus:border-orange-dark"
+                            @keyup.esc="searchQuery = ''"
+                        />
+                        <button
+                            v-if="searchQuery"
+                            type="button"
+                            title="Clear filter"
+                            class="absolute right-1.5 top-1/2 -translate-y-1/2 text-grey-dark hover:text-orange-dark cursor-pointer"
+                            @click="searchQuery = ''"
+                        >
+                            <FontAwesomeIcon icon="fa-solid fa-xmark" class="text-[10px]" />
+                        </button>
+                    </div>
+                    <!-- History keeps its own sort, so switching modes never carries one's order to the other -->
+                    <ToolbarButton
+                        ref="sortButton"
+                        icon="fa-solid fa-arrow-down-wide-short"
+                        :title="(mode === 'history' ? 'Sort changes: ' : 'Sort variables: ') + sortLabel"
+                        data-test="sort-variables"
+                        @click="sortMenuOpen = true"
+                    />
+                    <ContextMenu
+                        v-if="sortMenuOpen"
+                        :items="sortMenuItems"
+                        :anchor="sortButton.$el"
+                        @select="chooseSort"
+                        @close="sortMenuOpen = false"
+                    />
+                    <ToolbarButton v-if="testing && mode === 'values'" icon="fa-solid fa-rotate-left" title="Reset the test values to the stored values" data-test="reset-test-variables" @click="resetTestVariables" />
+                    <ToolbarButton icon="fa-solid fa-arrows-rotate" title="Refresh variables" @click="refresh" />
+                </div>
+
+                <!-- Date range (#371) — History only. Whole days in the Studio user's time zone; the end date is included. -->
+                <div v-if="mode === 'history'" data-test="history-range" class="flex flex-col gap-1 px-1 pb-1.5 font-title text-[10px] text-grey-dark">
+                    <label class="flex items-center gap-1 min-w-0">
+                        <span class="w-14 shrink-0">Start date</span>
+                        <input v-model="historyStartDate" type="date" data-test="history-start-date"
+                            title="Only changes recorded on or after this day (your time zone)"
+                            class="min-w-0 flex-1 h-6 px-1 text-[10px] border border-grey-light rounded-lg bg-white focus:outline-none focus:border-orange-dark" />
+                    </label>
+                    <label class="flex items-center gap-1 min-w-0">
+                        <span class="w-14 shrink-0">End date</span>
+                        <input v-model="historyEndDate" type="date" data-test="history-end-date"
+                            title="Only changes recorded on or before this day, the whole day (your time zone)"
+                            class="min-w-0 flex-1 h-6 px-1 text-[10px] border border-grey-light rounded-lg bg-white focus:outline-none focus:border-orange-dark" />
+                    </label>
+                    <div class="flex flex-wrap items-center gap-1">
+                        <button v-for="preset in HISTORY_PRESETS" :key="preset.id" type="button"
+                            :data-test="'history-preset-' + preset.id"
+                            class="px-1.5 h-5 rounded border border-grey-light bg-white text-grey-dark hover:bg-grey-lighter cursor-pointer"
+                            @click="applyHistoryPreset(preset.id)">{{ preset.label }}</button>
+                        <button v-if="historyRangeSet" type="button" data-test="history-range-clear"
+                            class="px-1.5 h-5 rounded border border-grey-light bg-white text-orange-darker hover:bg-grey-lighter cursor-pointer"
+                            @click="clearHistoryRange">Clear</button>
+                    </div>
+                    <div v-if="historyRangeSet && !historyRangeError" data-test="history-range-note" class="italic">
+                        Showing changes recorded {{ historyStartDate ? 'from ' + historyStartDate : 'up' }}
+                        {{ historyEndDate ? (historyStartDate ? 'through ' : 'to and including ') + historyEndDate : 'until now' }}.
+                    </div>
+                    <div v-if="historyRangeError" data-test="history-range-error" class="text-red-500">{{ historyRangeError }}</div>
+                </div>
+            </template>
             <div v-if="emptyForFilter" class="font-title text-xs italic text-grey-dark p-2">
                 No variables match “{{ searchQuery.trim() }}”.
             </div>

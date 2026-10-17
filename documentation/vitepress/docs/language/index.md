@@ -125,10 +125,11 @@ Please visit https:\//www.dialoguebranch.com for more information! // Comment go
 
 ### Preamble
 
-Comment lines at the very start of a `.dlb` file, before the first Node, form the script's **preamble**: a comment block about the script as a whole, rather than about its first Node. It may only contain `//` comment lines and blank lines. The blank lines are ignored; the comment lines are kept exactly as written.
+Comment lines at the very start of a `.dlb` file, before the first Node, form the script's **preamble**: a comment block about the script as a whole, rather than about its first Node. It may only contain `//` comment lines and blank lines. The blank lines are ignored; the comment lines are kept exactly as written. To keep a blank line between paragraphs, use a bare `//`; Studio writes one for every empty line in the script comment.
 
 ```text
 // Greets a returning user and asks how they slept.
+//
 // Used as the daily entry point.
 
 title: Start

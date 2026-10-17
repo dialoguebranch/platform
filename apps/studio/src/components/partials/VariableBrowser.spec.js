@@ -89,6 +89,20 @@ function mountBrowser() {
     });
 }
 
+// The sort menu opens behind the toolbar's sort button, in the page body.
+async function openSortMenu(wrapper) {
+    await wrapper.get('[data-test="sort-variables"]').trigger('click');
+    await flushPromises();
+    return [...document.body.querySelectorAll('[data-test^="sort-"]')]
+        .filter((el) => el.dataset.test !== 'sort-variables');
+}
+
+async function chooseSort(wrapper, value) {
+    const items = await openSortMenu(wrapper);
+    items.find((el) => el.dataset.test === 'sort-' + value).click();
+    await flushPromises();
+}
+
 async function openHistory(wrapper) {
     const button = wrapper.findAll('button').find((b) => b.text() === 'History');
     await button.trigger('click');
@@ -270,9 +284,10 @@ describe('VariableBrowser — History mode', () => {
         await flushPromises();
         await openHistory(wrapper);
 
-        const select = wrapper.get('select');
-        expect(select.findAll('option').map((o) => o.element.value)).toEqual(['newest', 'oldest']);
-        await select.setValue('oldest');
+        const items = await openSortMenu(wrapper);
+        expect(items.map((el) => el.dataset.test)).toEqual(['sort-newest', 'sort-oldest']);
+        items[1].click();
+        await flushPromises();
 
         expect(shownNames(wrapper)).toEqual(['$a', '$b', '$c']);
     });
@@ -280,8 +295,8 @@ describe('VariableBrowser — History mode', () => {
     it('keeps the name sort for the other modes', async () => {
         const wrapper = mountBrowser();
         await flushPromises();
-        expect(wrapper.get('select').findAll('option').map((o) => o.element.value))
-            .toEqual(['name-asc', 'name-desc']);
+        const items = await openSortMenu(wrapper);
+        expect(items.map((el) => el.dataset.test)).toEqual(['sort-name-asc', 'sort-name-desc']);
     });
 
     it('ignores a slow response that arrives after a newer one', async () => {
@@ -480,7 +495,7 @@ describe('VariableBrowser — History mode', () => {
         await flushPromises();
         await openHistory(wrapper);
 
-        await wrapper.get('select').setValue('oldest');
+        await chooseSort(wrapper, 'oldest');
         const hint = wrapper.get('[data-test="history-loaded-only-hint"]').text();
         expect(hint).toContain('Showing loaded entries only');
         expect(hint).toContain('look further back');
@@ -782,12 +797,12 @@ describe('VariableBrowser — test variables in Authoring Mode', () => {
         return { wrapper, state };
     }
 
-    it('shows the test copy, with a note, instead of the stored values', async () => {
+    it('shows the test copy, marked as test values, instead of the stored values', async () => {
         const { wrapper } = mountIn(DLB_APP_MODE_DRAFT);
         await flushPromises();
         expect(authoring.getTestVariables).toHaveBeenCalledWith({ projectSlug: 'default-test', timeZone: 'Asia/Tokyo' });
         expect(playback.getVariables).not.toHaveBeenCalled();
-        expect(wrapper.find('[data-test="test-variables-note"]').text()).toContain('Test variables');
+        expect(wrapper.get('[data-test="mode-values"]').text()).toBe('Test values');
         expect(wrapper.text()).toContain('mark');
     });
 
@@ -796,7 +811,8 @@ describe('VariableBrowser — test variables in Authoring Mode', () => {
         await flushPromises();
         expect(playback.getVariables).toHaveBeenCalled();
         expect(authoring.getTestVariables).not.toHaveBeenCalled();
-        expect(wrapper.find('[data-test="test-variables-note"]').exists()).toBe(false);
+        expect(wrapper.get('[data-test="mode-values"]').text()).toBe('Values');
+        expect(wrapper.find('[data-test="reset-test-variables"]').exists()).toBe(false);
     });
 
     it('resets the test copy and shows it again', async () => {

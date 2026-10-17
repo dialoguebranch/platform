@@ -98,4 +98,16 @@ class ProjectServiceTest {
 		assertEquals(longDescription, reloaded.getDraftDescription());
 	}
 
+	@Test
+	void aNewProjectsStarterDialogueSaysItWasGeneratedAutomatically() {
+		DBProject project = projectService.createProjectWithStarterDialogue("starter-test",
+				"Starter Test", "", "en", "English");
+
+		DBDraftDialogue dialogue = draftDialogueService.findDialogue(project, "default")
+				.orElseThrow();
+		assertEquals("// This dialogue was generated automatically when the project was "
+				+ "created, as a starting point.", dialogue.getPreamble());
+		assertEquals(1, draftDialogueService.listNodes(dialogue).size());
+	}
+
 }
