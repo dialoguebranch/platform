@@ -2,6 +2,7 @@
 import { inject, onMounted, ref, watch } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import PageHeader from '../widgets/PageHeader.vue';
+import PageGreeting from '../widgets/PageGreeting.vue';
 import ManagementMenu from '../widgets/ManagementMenu.vue';
 import { useAuthoringClient } from '../../composables/client.js';
 import { useUserSearch } from '../../composables/user-search.js';
@@ -82,10 +83,7 @@ function confirmErase() {
 <template>
     <div class="min-h-screen bg-background flex flex-col items-center">
         <PageHeader>
-            <span class="flex items-start gap-1.5" data-test="greeting">
-                <FontAwesomeIcon icon="fa-regular fa-comment" class="shrink-0 mt-0.5 text-orange-darker" />
-                <span>Hey <span class="font-semibold text-orange-darker">{{ state.user?.name }}</span>, welcome to Dialogue Branch Studio.</span>
-            </span>
+            <PageGreeting>Hey <span class="font-semibold text-orange-darker">{{ state.user?.name }}</span>, welcome to Dialogue Branch Studio.</PageGreeting>
             <template #menu><ManagementMenu active="users" /></template>
         </PageHeader>
 

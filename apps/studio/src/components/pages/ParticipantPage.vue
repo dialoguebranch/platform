@@ -1,12 +1,12 @@
 <script setup>
 import { inject, onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue';
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useClient, getBrowserTimeZone } from '../../composables/client.js';
 import { showError, dismissError } from '../../composables/error-toast.js';
 import { describeError } from '../../composables/error-message.js';
 import { logEvent } from '../../composables/debug-log.js';
 import BalloonDialogueComponent from '../partials/BalloonDialogueComponent.vue';
 import PageHeader from '../widgets/PageHeader.vue';
+import PageGreeting from '../widgets/PageGreeting.vue';
 
 const state = inject('state');
 const config = inject('config');
@@ -121,10 +121,7 @@ onBeforeUnmount(() => {
 <template>
     <div class="min-h-screen bg-background flex flex-col">
         <PageHeader>
-            <span class="flex items-start gap-1.5" data-test="greeting">
-                <FontAwesomeIcon icon="fa-regular fa-comment" class="shrink-0 mt-0.5 text-orange-darker" />
-                <span>Hey <span class="font-semibold text-orange-darker">{{ state.user.name }}</span>, welcome to the participant test view.</span>
-            </span>
+            <PageGreeting>Hey <span class="font-semibold text-orange-darker">{{ state.user.name }}</span>, welcome to the participant test view.</PageGreeting>
         </PageHeader>
 
         <!-- The dialogue itself, framed in a white box that is as tall as its content (the page
