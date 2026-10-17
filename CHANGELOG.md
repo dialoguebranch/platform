@@ -9,9 +9,7 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
-- Studio: the project selection page is titled *Project Management*, with a line explaining the
-  page and a search field that filters the projects by name, slug or description, laid out like
-  the User Management page.
+- Studio: a search field on the project page, filtering projects by name, slug or description.
 - Studio, web service and client-js: simulate a user, to investigate a problem they have without
   changing any of their data ([#411](https://github.com/dialoguebranch/platform/issues/411)).
   *Set Delegate User* now offers *Simulate as* (the default) and *Act as*. While simulating,
@@ -38,26 +36,11 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
-- Studio: the participant view frames the dialogue (the owl, speech bubbles and replies) in a
-  white box with rounded corners, instead of showing it directly on the grey page.
-- Studio: in the participant view, a greeting ("Hey \<user\>, welcome to the participant test
-  view.") and a small *Log out* button sit right above the dialogue instead of "Logged in as"
-  and *Log out* in the screen's corners, and a brown divider with a small diamond
-  separates the logo from the page.
-- Studio: the project selection and Users pages get the same header as the participant view: the
-  divider under the logo, and a bar right above the content with a greeting ("Hey \<user\>, welcome
-  to Dialogue Branch Studio.") and, for editors and admins, a menu bar to switch between *Project
-  Management* and *User Management* (admins only), with *Log out* on its right. The *Users* and
-  *← Projects* buttons it replaces are gone.
-- Studio: the content of the project selection and Users pages sits in a white box with rounded
-  corners, like the participant view's dialogue; the project cards get the same light colour as the
-  user rows.
-- Studio: the Users page is titled *User Management*, with its search field right-aligned under
-  the line explaining the page; the search fields on both management pages have a magnifying glass.
-- Studio: "Studio" under the Dialogue Branch logo is styled as part of the logo, in its colours,
-  on the project selection and Users pages and now also in the participant view; the logo on the
-  project selection and Users pages is the same, smaller size as in the participant view. The
-  *Service Unavailable*, *Update Available* and *Insufficient Privileges* screens match.
+- Studio: a refreshed look for the participant view and the project and user pages: a shared
+  header with the logo, a "Studio" wordmark, a divider and a greeting; for editors and admins a menu
+  bar to switch between *Project Management* and *User Management* (admins only), replacing the
+  *Users* and *← Projects* buttons; and the page content in a white box with rounded corners. The
+  *Service Unavailable*, *Update Available* and *Insufficient Privileges* screens use the same logo.
 - Studio: acting on behalf of another user for real (*Act as*) is treated as the powerful
   operation it is ([#330](https://github.com/dialoguebranch/platform/issues/330)): choosing it warns
   that the user's dialogue logs, variables and history change as if they acted themselves, the
@@ -107,11 +90,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
-- Studio: a page tall enough to scroll vertically, such as a long Users list, also got a
-  horizontal scrollbar.
-- Studio: when the dialogue set up for the participant view doesn't exist, a participant was shown
-  the Web Service's technical error and a *Try Again* button that could never help. The view now
-  says that no test dialogue is set up for their user role, without a retry button.
+- Studio: a long page, such as the Users list, also got a horizontal scrollbar.
+- Studio: when the participant view's dialogue doesn't exist, a participant now gets a plain message
+  instead of a technical error with a *Try Again* button that couldn't help.
 - Web service and Studio: test sessions stayed in memory, each with its own parsed copy of the
   project, until the web service restarted, unless they were cancelled
   ([#218](https://github.com/dialoguebranch/platform/issues/218)). A test session now ends when its
