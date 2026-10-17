@@ -91,8 +91,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `DIALOGUE_TEST`. In client-js, `startDraftDialogue`, `progressDraftDialogue`,
   `cancelDraftDialogue` and `revertDraftVariables` become `startTestSession`,
   `progressTestSession`, `cancelTestSession` and `resetTestVariables`, plus `getTestVariables` and
-  `setTestVariable`. In Studio's Authoring Mode, the Variable Browser's *Values* shows and edits
-  the test copy, with *Reset to stored values*.
+  `setTestVariable`. In Studio's Authoring Mode, the Variable Browser's *Test values* shows and
+  edits the test copy, with a button to reset it to the stored values.
 - **Breaking:** Web service and Studio: deleting a project removes its dialogues, translations and
   version history, but keeps its users' variables, variable history and dialogue logs by default
   ([#315](https://github.com/dialoguebranch/platform/issues/315)). The project stays as a deleted

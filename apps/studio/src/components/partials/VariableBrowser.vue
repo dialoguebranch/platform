@@ -430,9 +430,10 @@ onMounted(() => {
                             type="button"
                             class="flex-1 px-2 h-[22px] cursor-pointer"
                             :class="mode === 'values' ? 'bg-orange-dark text-white' : 'bg-white text-grey-dark hover:bg-grey-lighter'"
-                            :title="testing ? 'The test variables: a copy of this user\'s stored values that tests run against' : 'This user\'s stored variable values for the current project'"
+                            :title="testing ? 'Test values: a copy of this user\'s stored values that tests run against. Changes here don\'t affect the stored values.' : 'This user\'s stored variable values for the current project'"
+                            data-test="mode-values"
                             @click="mode = 'values'"
-                        >Values</button>
+                        ><!-- In Authoring Mode (and while simulating), Values is the test copy (#319) --><template v-if="testing"><FontAwesomeIcon icon="fa-solid fa-flask" class="mr-1" />Test values</template><template v-else>Values</template></button>
                         <button
                             type="button"
                             class="flex-1 px-2 h-[22px] cursor-pointer border-l border-grey-light"
@@ -444,7 +445,7 @@ onMounted(() => {
                             type="button"
                             class="flex-1 px-2 h-[22px] cursor-pointer border-l border-grey-light"
                             :class="mode === 'history' ? 'bg-orange-dark text-white' : 'bg-white text-grey-dark hover:bg-grey-lighter'"
-                            title="Every recorded change to this user's variables in the current project, newest first"
+                            :title="'Every recorded change to this user\'s variables in the current project' + (testing ? '. Changes made in tests aren\'t recorded.' : '')"
                             @click="mode = 'history'"
                         >History</button>
                     </div>
@@ -485,6 +486,7 @@ onMounted(() => {
                         @select="chooseSort"
                         @close="sortMenuOpen = false"
                     />
+                    <ToolbarButton v-if="testing && mode === 'values'" icon="fa-solid fa-rotate-left" title="Reset the test values to the stored values" data-test="reset-test-variables" @click="resetTestVariables" />
                     <ToolbarButton icon="fa-solid fa-arrows-rotate" title="Refresh variables" @click="refresh" />
                 </div>
 
@@ -518,15 +520,6 @@ onMounted(() => {
                     <div v-if="historyRangeError" data-test="history-range-error" class="text-red-500">{{ historyRangeError }}</div>
                 </div>
             </template>
-            <!-- In Authoring Mode, Values is the test copy (#319) -->
-            <div v-if="testing && mode !== 'project'" data-test="test-variables-note" class="flex items-start gap-1.5 px-2 py-1.5 bg-grey-lighter font-title text-[10px] text-grey-dark">
-                <FontAwesomeIcon icon="fa-solid fa-flask" class="mt-0.5 shrink-0" />
-                <span v-if="mode === 'values'" class="flex-1">
-                    Test variables: tests run against this copy. Changes here don't affect the stored values.
-                    <button type="button" data-test="reset-test-variables" class="underline hover:text-orange-dark cursor-pointer" @click="resetTestVariables">Reset to stored values</button>
-                </span>
-                <span v-else class="flex-1">The stored history: changes made in tests aren't recorded.</span>
-            </div>
             <div v-if="emptyForFilter" class="font-title text-xs italic text-grey-dark p-2">
                 No variables match “{{ searchQuery.trim() }}”.
             </div>

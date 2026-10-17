@@ -797,12 +797,12 @@ describe('VariableBrowser — test variables in Authoring Mode', () => {
         return { wrapper, state };
     }
 
-    it('shows the test copy, with a note, instead of the stored values', async () => {
+    it('shows the test copy, marked as test values, instead of the stored values', async () => {
         const { wrapper } = mountIn(DLB_APP_MODE_DRAFT);
         await flushPromises();
         expect(authoring.getTestVariables).toHaveBeenCalledWith({ projectSlug: 'default-test', timeZone: 'Asia/Tokyo' });
         expect(playback.getVariables).not.toHaveBeenCalled();
-        expect(wrapper.find('[data-test="test-variables-note"]').text()).toContain('Test variables');
+        expect(wrapper.get('[data-test="mode-values"]').text()).toBe('Test values');
         expect(wrapper.text()).toContain('mark');
     });
 
@@ -811,7 +811,8 @@ describe('VariableBrowser — test variables in Authoring Mode', () => {
         await flushPromises();
         expect(playback.getVariables).toHaveBeenCalled();
         expect(authoring.getTestVariables).not.toHaveBeenCalled();
-        expect(wrapper.find('[data-test="test-variables-note"]').exists()).toBe(false);
+        expect(wrapper.get('[data-test="mode-values"]').text()).toBe('Values');
+        expect(wrapper.find('[data-test="reset-test-variables"]').exists()).toBe(false);
     });
 
     it('resets the test copy and shows it again', async () => {
