@@ -245,20 +245,12 @@ function confirmPurge() {
         <div class="w-full px-4 pb-12 max-w-3xl mx-auto">
             <!-- The page itself, framed in a white box like the participant view's dialogue -->
             <div class="bg-white rounded-2xl shadow-md p-4 sm:p-6" data-test="page-frame">
-                <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
-                    <h2 class="font-title font-bold text-lg">Select a Project</h2>
-                    <SearchField
-                        v-model="projectQuery"
-                        class="w-full sm:w-72"
-                        placeholder="Search by name, slug or description…"
-                        data-test="project-search"
-                    />
-                </div>
+                <h2 class="mb-2 font-title font-bold text-lg">Project Management</h2>
+                <p class="mb-5 text-xs font-title text-grey-dark">
+                    The Dialogue Branch projects on this Web Service. Open one to write, test and publish its dialogues.
+                </p>
                 <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-                    <p class="flex-1 min-w-48 text-xs font-title text-grey-dark">
-                        The Dialogue Branch projects on this Web Service. Open one to write, test and publish its dialogues.
-                    </p>
-                    <div class="flex items-center gap-2 shrink-0 ml-auto">
+                    <div class="flex items-center gap-2 shrink-0">
                         <button
                             type="button"
                             :class="['flex items-center gap-1.5 px-3 py-1.5 rounded text-white text-xs font-title font-semibold transition-colors', isAdmin ? 'bg-orange-darker hover:bg-orange-dark cursor-pointer' : 'bg-orange-medium cursor-not-allowed opacity-60']"
@@ -280,6 +272,12 @@ function confirmPurge() {
                             New Project
                         </button>
                     </div>
+                    <SearchField
+                        v-model="projectQuery"
+                        class="w-full sm:w-72"
+                        placeholder="Search projects…"
+                        data-test="project-search"
+                    />
                 </div>
 
                 <CreateProjectWizardModal
