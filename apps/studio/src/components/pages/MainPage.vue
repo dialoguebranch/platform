@@ -440,7 +440,7 @@ function onResizePanels() {
 
 function onWorkspaceModeChanged(mode) {
     if (mode === 'edit') {
-        panels.value?.collapseRightPanel();
+        panels.value?.collapsePanel('right');
     }
 }
 </script>
@@ -700,6 +700,7 @@ function onWorkspaceModeChanged(mode) {
             class="grow"
             cookiePrefix="mainPage"
             :mobileTabNames="['Dialogues', 'Interactions', 'Variables']"
+            leftPanelLabel="Dialogues"
             rightPanelLabel="Variables"
             @resize="onResizePanels()"
         >
@@ -714,13 +715,14 @@ function onWorkspaceModeChanged(mode) {
                     @openDialogue="onOpenDialogue"
                     @dialoguesReplaced="(names) => dialogueWorkspace?.dialoguesReplaced(names)"
                     @dialogueDeleted="(name) => dialogueWorkspace?.dialogueDeleted(name)"
+                    @collapse="panels?.collapsePanel('left')"
                 />
             </template>
             <template #main>
                 <DialogueWorkspace ref="dialogue-workspace" class="grow" @newDialogueStep="onNewDialogueStep" @dialogueSaved="onDialogueSaved" @modeChanged="onWorkspaceModeChanged" />
             </template>
             <template #right>
-                <VariableBrowser ref="variable-browser" class="grow" @changeVariable="onChangeVariable" @collapse="panels?.collapseRightPanel()" />
+                <VariableBrowser ref="variable-browser" class="grow" @changeVariable="onChangeVariable" @collapse="panels?.collapsePanel('right')" />
             </template>
         </ResizablePanels>
 

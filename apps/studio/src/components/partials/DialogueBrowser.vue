@@ -34,6 +34,7 @@ const emit = defineEmits([
     'openDialogue',
     'dialoguesReplaced',
     'dialogueDeleted',
+    'collapse',
 ]);
 
 const client = useClient();
@@ -358,6 +359,7 @@ defineExpose({
                     <ToolbarButton v-if="!isDraftMode && !simulating" icon="fa-solid fa-rotate-left" title="Retrieve most recent ongoing (server-side) dialogue" :disabled="hasActiveDialogue" @click="checkOngoingDialogue" />
                     <ToolbarButton v-if="isDraftMode" icon="fa-solid fa-plus" title="New Dialogue" @click="onNewDialogueClick" />
                     <ToolbarButton icon="fa-solid fa-arrows-rotate" title="Refresh dialogue list" :spin="reloading" :disabled="reloading" @click="listDialogues" />
+                    <ToolbarButton icon="fa-solid fa-angles-left" title="Collapse Dialogue Browser" @click="emit('collapse')" />
                 </div>
             </template>
             <div v-if="showNewDialogueInput" class="flex items-center gap-1 p-1">

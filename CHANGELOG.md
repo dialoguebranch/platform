@@ -50,6 +50,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   click, and a mode bar under the header says which mode you're in, in its colour (amber for Live,
   green for Authoring). Simulating or acting as another user is shown in the mode bar too, which
   turns red while acting as them, instead of in a banner above the dialogue.
+- Studio: the Dialogue Browser can be collapsed, like the Variable Browser; both fold away with a
+  button on their edge next to the Dialogue Workspace, and stay collapsed after a reload.
 - Studio: the Dialogue Browser, Dialogue Workspace and Variable Browser line up, with restyled
   panel titles and a grey toolbar row at the top of each panel; the Dialogue Browser's and Variable
   Browser's buttons, view switch and sort order moved into their toolbars, with sorting in a small

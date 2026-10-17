@@ -422,8 +422,9 @@ onMounted(() => {
 
         <MainPagePanelContainer class="sm:mr-1">
             <template #toolbar>
-                <!-- What the panel shows, and collapsing it -->
+                <!-- Collapsing the panel (from its edge next to the workspace, like the Dialogue Browser), and what it shows -->
                 <div class="flex items-center gap-1.5 px-1 h-[29px]">
+                    <ToolbarButton icon="fa-solid fa-angles-right" title="Collapse Variable Browser" @click="emit('collapse')" />
                     <div class="flex flex-1 min-w-0 rounded-lg overflow-hidden border border-grey-light font-title text-[10px] font-semibold">
                         <button
                             type="button"
@@ -447,7 +448,6 @@ onMounted(() => {
                             @click="mode = 'history'"
                         >History</button>
                     </div>
-                    <ToolbarButton icon="fa-solid fa-angles-right" title="Collapse Variable Browser" @click="emit('collapse')" />
                 </div>
                 <!-- Filter + sort strip -->
                 <div class="flex items-center gap-1.5 px-1 h-[29px]">
