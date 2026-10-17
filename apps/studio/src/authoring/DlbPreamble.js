@@ -44,15 +44,19 @@ export function preambleToText(preamble) {
 }
 
 /**
- * Turns edited plain text back into a preamble: each non-empty line becomes a `// ` comment
- * line, and empty lines are left out (the language ignores them anyway).
+ * Turns edited plain text back into a preamble: each line becomes a `// ` comment line, and an
+ * empty line a bare `//`, so blank lines between paragraphs are kept. Empty lines at the start and
+ * end are left out.
  *
  * @param {string} text the plain text.
  * @returns {string} the preamble (`//` lines joined with `\n`), or `''` for none.
  */
 export function textToPreamble(text) {
-    return (text ?? '').split(/\r\n|\r|\n/)
-        .filter((line) => line.trim() !== '')
+    const lines = (text ?? '').split(/\r\n|\r|\n/);
+    const first = lines.findIndex((line) => line.trim() !== '');
+    if (first === -1) return '';
+    const last = lines.findLastIndex((line) => line.trim() !== '');
+    return lines.slice(first, last + 1)
         .map((line) => `// ${line}`.trimEnd())
         .join('\n');
 }

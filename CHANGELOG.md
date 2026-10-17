@@ -99,6 +99,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 ### Fixed
 
 - Studio: a long page, such as the Users list, also got a horizontal scrollbar.
+- Studio: blank lines between paragraphs of a dialogue's script comment (its preamble) were
+  dropped on save; they're now kept, as bare `//` lines.
 - Studio: clicking outside a dialog, such as *New Project* or the node editor, closed it, losing
   what was typed; dialogs now close only with their close button or *Cancel*.
 - Studio: when the participant view's dialogue doesn't exist, a participant now gets a plain message
