@@ -193,15 +193,32 @@ Dialogue Branch Studio is a single-page Vue 3 app. Key structure:
 - **`src/composables/client.js`** — Constructs the shared `DialogueBranchClient` (playback) and `DialogueBranchAuthoringClient` (authoring) singletons (from `@dialoguebranch/client-js`), injecting Studio's transport hooks (CSRF header, Debug Console logging, login-redirect-on-401 — see [client-js package](#client-js-package-packagesclient-js) below)
 - **`src/StudioClientState.js`** — App-specific state; extends the reusable, product-neutral `ClientState` from `@dialoguebranch/client-js`
 - **`src/authoring/`** — `.dlb` authoring helpers used only by Studio's node-graph editor, not part of the playback client: `DlbHeaderTags.js`, `DlbReplyLinks.js` (see below), plus `DocumentFunctions.js` (cookie/CSRF helpers) and `TextAreaLogger.js`
-- **`src/components/pages/`** — `MainPage.vue`, `ProjectSelectorPage.vue`, `UsersPage.vue` (admin-only user management outside any project, opened from the project selector via the non-persisted `state.adminPage`, [#407](https://github.com/dialoguebranch/platform/issues/407)). There is no login page: on boot, `src/main.js` calls `fetchWhoAmI()` (`src/auth.js`) against the BFF's `GET /whoami`; a `401` (no session) triggers `redirectToLogin()`, a real top-level navigation to the BFF's generic `/login` end-point (`LoginController`), which redirects to the BFF's own OAuth2 authorization endpoint and on to Keycloak's hosted login page — the app itself never mounts until that round-trip completes.
+- **`src/components/pages/`** — `MainPage.vue`, `ProjectSelectorPage.vue`, `UsersPage.vue` (admin-only user management outside any project, opened from the management menu via the non-persisted `state.adminPage`, [#407](https://github.com/dialoguebranch/platform/issues/407)). There is no login page: on boot, `src/main.js` calls `fetchWhoAmI()` (`src/auth.js`) against the BFF's `GET /whoami`; a `401` (no session) triggers `redirectToLogin()`, a real top-level navigation to the BFF's generic `/login` end-point (`LoginController`), which redirects to the BFF's own OAuth2 authorization endpoint and on to Keycloak's hosted login page — the app itself never mounts until that round-trip completes.
 - **`src/components/partials/`** — `DialogueBrowser.vue` (folder tree, with New/Draft/Deleted badges and publish-enablement driven by draft status), `DialogueTreeNode.vue`, `DialogueWorkspace.vue`, `DialogueEditor.vue`, `NodeEditPanel.vue`, `BalloonDialogueComponent.vue`, `TextDialogueComponent.vue`, `VariableBrowser.vue` (Values / Used / History modes — History pages `GET /variables/history` via `composables/variable-history.js`, see [#323](https://github.com/dialoguebranch/platform/issues/323))
-- **`src/components/widgets/`** — Reusable UI primitives (buttons, panels, inputs, `ModeSelector.vue`)
+- **`src/components/widgets/`** — Reusable UI building blocks, see [UI building blocks](#ui-building-blocks) below
 
 The app uses Tailwind CSS v4 (Vite plugin) and Font Awesome for icons. `__APP_VERSION__` is injected at build time from `package.json`.
 
+#### UI building blocks
+
+Studio's look is built from a small set of shared components in `src/components/widgets/`. Build new screens from these rather than styling from scratch, and follow the rules below, so Studio stays consistent.
+
+- **Pages outside a project** (participant view, project selection, users, and the error pages) — `PageHeader.vue` (logo, `StudioWordmark.vue`, `OrnamentDivider.vue`, a greeting via `PageGreeting.vue`, and for editors and admins a menu bar with `ManagementMenu.vue`), then the content in a white box; `SearchField.vue` for a search field.
+- **The main page** — the header with the Live / Authoring switch, then `ModeBar.vue` (`partials/`): the mode in its colour (`--color-mode-live` amber, `--color-mode-authoring` green, in `assets/css/theme.css`), and who is being simulated or acted for, turning red while acting. Below it, `ResizablePanels.vue` with the Dialogue Browser, Dialogue Workspace and Variable Browser; either side panel collapses (`collapsePanel(side)`) to a strip that lines up with the panels.
+- **A main page panel** — `MainPagePanelHeader.vue` (an icon and the panel's name, always 30px high so the panels line up), then `MainPagePanelContainer.vue`, the white box, whose optional `toolbar` slot is its first, grey row; only the content below it scrolls.
+- **Toolbar controls** — all 24px high, white with a grey border and rounded corners: `ToolbarButton.vue` for icon buttons (`spin` while refreshing, `danger` for a red icon that ends or discards something), 24px filter fields and selects, and a choice menu as a `ToolbarButton` that opens `ContextMenu.vue` with `checked` items (as for sorting). A segmented switch (the Variable Browser's *Values / Used / History*, `ModeSelector.vue`) uses the same border, with the active option in `bg-orange-dark`.
+- **Dialogs** — close only with their close button or *Cancel*, never on a click outside them, so nothing typed is lost.
+
+The rules behind them:
+
+- A panel's **title row** names the panel; its **toolbar** holds the controls. The one exception is the Dialogue Workspace's view switch, which is used all the time and so sits in the title row, right-aligned.
+- A side panel's **collapse button** sits on its edge next to the workspace, pointing the way it folds.
+- **Colour means mode or risk**, never decoration: amber and green for the mode, red for acting on someone's real data or for an action that ends or discards something.
+- Show a state where it's used rather than in a separate note (for example *🧪 Test values* in the Variable Browser's switch, with the explanation in its tooltip).
+
 #### Visual dialogue editor
 
-`DialogueWorkspace.vue` hosts three modes via `ModeSelector` — balloon, text, and **edit** — for the active tab. Edit mode embeds `DialogueEditor.vue`, a node-graph view built on `@vue-flow/core`:
+`DialogueWorkspace.vue` hosts four views via its `ModeSelector` — *Test (speech bubbles)*, *Test (text style)*, **Edit Dialogue** and *Translate Dialogue* — for the active tab. Edit mode embeds `DialogueEditor.vue`, a node-graph view built on `@vue-flow/core`:
 
 - **`DialogueEditor.vue`** — Fetches a dialogue's draft nodes (`list-nodes`) and lays them out as a graph: `[[reply link]]` targets (parsed by `DlbReplyLinks.js`) become edges, and each node's `position` header tag (read/set with `DlbHeaderTags.js`) becomes its canvas coordinates, with a grid fallback for nodes authored before the editor existed (i.e. with no `position` tag yet). Dragging a node persists its new position via `update-node`.
 - **`PreambleBar.vue`** — The dialogue's preamble ([#346](https://github.com/dialoguebranch/platform/issues/346)), shown in a Vue Flow `Panel` at the top left of the graph and edited as plain text (`src/authoring/DlbPreamble.js` converts to and from `//` lines); reads it from `list-dialogues`, saves via `update-preamble`.
