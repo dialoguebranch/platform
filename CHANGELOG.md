@@ -7,6 +7,14 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Changed
+
+- Documentation: a new [Compatibility Policy](https://dialoguebranch.com/docs/compatibility) page
+  lists which surfaces are stable (the `.dlb` language, the stable REST end-points, authentication,
+  the External Variable Service protocol, `DialogueBranchClient`, configuration and upgrades,
+  `dlb-core-java`'s public API) and which are internal to Studio. From here on, only a change to a stable surface is labelled **Breaking:**; a
+  change to an internal one is labelled **Internal API:**. Earlier release notes are unchanged.
+
 ### Added
 
 - Studio: the Variable Browser's History view can be filtered by a date range

@@ -26,6 +26,7 @@ export default withMermaid(defineConfig({
       { text: 'Web Services', link: '/web-services/' },
       { text: 'Core Java', link: '/core-java/' },
       { text: 'Tutorials', link: '/tutorials/' },
+      { text: 'Compatibility', link: '/compatibility' },
       { text: 'Release Notes', link: '/release-notes' }
     ],
 
