@@ -44,6 +44,10 @@
     --color-mode-selector-on: #04aa6d;
     --color-mode-selector-on-hover: #0bbb7a;
 
+    /* The header's Live / Authoring switch: one colour per mode */
+    --color-mode-live: #d9a400;
+    --color-mode-authoring: #24762a;
+
     --color-interaction-reply-option: #970000;
     --color-interaction-reply-option-hover: #d71f1f;
 

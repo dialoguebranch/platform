@@ -46,6 +46,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   automatically.
 - Studio: *Live Mode* can only be chosen once a project has a published version; an unpublished
   project opens in Authoring Mode.
+- Studio: the header's mode switch shows *Live* and *Authoring* side by side and switches in one
+  click; the active mode is coloured (amber for Live, green for Authoring), and so is a strip along
+  the bottom of the header.
 - Studio: a refreshed look for the participant view and the project and user pages: a shared
   header with the logo, a "Studio" wordmark, a divider and a greeting; for editors and admins a menu
   bar to switch between *Project Management* and *User Management* (admins only), replacing the
