@@ -57,7 +57,7 @@ class ProjectServiceTest {
 
 		// Must not throw (e.g. a foreign key violation from deleting the language registry rows
 		// while draft/published translation rows still reference them).
-		projectService.deleteProject(project);
+		projectService.deleteProject(project, false, false);
 
 		assertTrue(projectService.findBySlug("delete-project-lang-test").isEmpty());
 	}
@@ -76,7 +76,7 @@ class ProjectServiceTest {
 
 		// Must not throw (e.g. a foreign key violation from draft dialogue rows still
 		// referencing this project when the project row itself is deleted).
-		projectService.deleteProject(project);
+		projectService.deleteProject(project, false, false);
 
 		assertTrue(draftDialogueService.listDialogues(project).isEmpty());
 		assertTrue(projectService.findBySlug("delete-project-test").isEmpty());

@@ -39,6 +39,7 @@ import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.exception.DatabaseException;
 import com.dialoguebranch.web.service.repository.DBLoggedDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBUserRepository;
+import com.dialoguebranch.web.service.storage.ExternalVariableServiceClient;
 import com.dialoguebranch.web.service.storage.ExternalVariableServiceUpdater;
 import com.dialoguebranch.web.service.storage.LoggedDialogueStore;
 import com.dialoguebranch.web.service.storage.ServerLoggedDialogue;
@@ -49,10 +50,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.*;
-import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponents;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.time.ZonedDateTime;
@@ -204,6 +202,16 @@ public class UserService {
 	 */
 	public VariableStore getVariableStore(String projectSlug) {
 		return variableStoresByProject.computeIfAbsent(projectSlug, this::loadVariableStore);
+	}
+
+	/**
+	 * Forgets this user's cached {@link VariableStore} for the given project, if loaded, so it is
+	 * read from storage again on next access. Used when the project is deleted (#316).
+	 *
+	 * @param projectSlug the slug of the project.
+	 */
+	public void evictVariableStore(String projectSlug) {
+		variableStoresByProject.remove(projectSlug);
 	}
 
 	private VariableStore loadVariableStore(String projectSlug) {
@@ -470,77 +478,17 @@ public class UserService {
 				}
 			}
 
-			RestTemplate restTemplate = new RestTemplate();
-			HttpHeaders requestHeaders = new HttpHeaders();
-			requestHeaders.setContentType(MediaType.valueOf("application/json"));
-			requestHeaders.set("Authorization", "Bearer " + evs.getApiKey());
-
-			String retrieveUpdatesUrl = evs.getUrl()
-					+ "/v" + evs.getApiVersion()
-					+ "/variables/retrieve-updates";
-
-			logger.info("RetrieveUpdatesURL: {}", retrieveUpdatesUrl);
-
-			LinkedMultiValueMap<String,String> allRequestParams = new LinkedMultiValueMap<>();
-			allRequestParams.put("issuer", Collections.singletonList(userId.issuer()));
-			allRequestParams.put("subject", Collections.singletonList(userId.subject()));
-			allRequestParams.put("projectSlug", Collections.singletonList(projectSlug));
-			allRequestParams.put("timeZone", Collections.singletonList(
-					dialogueBranchUser.getTimeZone().toString()));
-
-			// requestBody is of string type and requestHeaders is of type HttpHeaders
-			HttpEntity<?> entity = new HttpEntity<>(varsToUpdate, requestHeaders);
-
-			// rawValidURl = http://example.com/hotels
-			UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(retrieveUpdatesUrl)
-					.queryParams(allRequestParams); // The allRequestParams must have been built
-			                                        // for all the query params
-
-			// encode() is to ensure that characters like {, }, are preserved and not encoded.
-			// Skip if not needed.
-			UriComponents uriComponents = builder.build().encode();
-
-			Variable[] retrievedVariables = null;
-			ResponseEntity<Variable[]> response = null;
-			try {
-				response = restTemplate.exchange(uriComponents.toUri(), HttpMethod.POST,
-						entity, Variable[].class);
-
-				// If call not successful
-				if (response.getStatusCode() != HttpStatus.OK) {
-					logger.warn("Error retrieving updates from external variable service.");
-				}
-			} catch (Exception e) {
-				logger.error("Critical Error retrieving updates for Dialogue Branch Variables. " +
-						"Continuing operation while assuming no updates were needed.",e);
-			}
-
-			if(response != null) retrievedVariables = response.getBody();
-
-			if (retrievedVariables != null) {
-				if (retrievedVariables.length == 0) {
-					logger.info("Received response from Dialogue Branch Variable Service: " +
-							"no variable updates needed.");
-				} else {
-					logger.info("Received response from Dialogue Branch Variable Service: " +
-							"the following variables have updated values:");
-					for (Variable variable : retrievedVariables) {
-						logger.info(variable.toString());
-						String varName = variable.getName();
-						Object varValue = variable.getValue();
-						ZonedDateTime varUpdated = variable.getZonedUpdatedTime();
-
-						if(varValue != null) {
-							getVariableStore(projectSlug).setValue(varName, varValue, true,
-									varUpdated,
-									VariableUpdatedSource.EXTERNAL);
-						// If a 'null' value is received, we delete the variable
-						} else {
-							getVariableStore(projectSlug).removeByName(varName, true, varUpdated,
-									VariableUpdatedSource.EXTERNAL);
-						}
-					}
-				}
+			Variable[] retrievedVariables = new ExternalVariableServiceClient(dlbProperties)
+					.retrieveUpdates(userId.issuer(), userId.subject(), projectSlug,
+					dialogueBranchUser.getTimeZone().toString(), varsToUpdate, false);
+			if (retrievedVariables.length == 0) {
+				logger.info("Received response from Dialogue Branch Variable Service: " +
+						"no variable updates needed.");
+			} else {
+				logger.info("Received response from Dialogue Branch Variable Service: " +
+						"the following variables have updated values:");
+				ExternalVariableServiceClient.applyUpdates(getVariableStore(projectSlug),
+						retrievedVariables);
 			}
 		} else {
 			logger.info("No external Dialogue Branch Variable Service has been configured, " +

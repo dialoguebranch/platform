@@ -278,6 +278,18 @@ public class ApplicationManager {
 	}
 
 	/**
+	 * Removes the active {@link UserService} of the given user, if there is one, so that nothing it
+	 * holds in memory is written back after the user's data was erased (#320).
+	 *
+	 * @param userId the {@code (issuer, subject)} identity of the user.
+	 */
+	public void removeUserService(DialogueBranchUserId userId) {
+		activeUserServices.removeIf(userService ->
+				userService.getUserId().issuer().equals(userId.issuer())
+						&& userService.getUserId().subject().equals(userId.subject()));
+	}
+
+	/**
 	 * Evicts every active {@link UserService} whose {@link UserService#getLastActivityTime()} is
 	 * older than {@code idleTimeoutMillis}. Called periodically by {@link
 	 * UserServiceExpirationService} to bound memory for clients that disconnect without an explicit
@@ -477,6 +489,25 @@ public class ApplicationManager {
 	// ---------------------------------------------------------------- //
 	// -------------------- Project Loading -------------------- //
 	// ---------------------------------------------------------------- //
+
+	/**
+	 * Removes a deleted project from the running service (#315): it is no longer listed or
+	 * playable, and its variable stores are evicted from every active user session, so a new
+	 * project that takes over its slug starts from what is stored for it (nothing), not from the
+	 * deleted project's cached variables (#316).
+	 *
+	 * @param projectSlug the slug the project had.
+	 */
+	public void unloadProject(String projectSlug) {
+		projects.remove(projectSlug);
+		projectVersions.remove(projectSlug);
+		projectSourceLanguages.remove(projectSlug);
+		projectLanguages.remove(projectSlug);
+		for (UserService userService : activeUserServices) {
+			userService.evictVariableStore(projectSlug);
+		}
+		logger.info("Unloaded Dialogue Branch project '{}'.", projectSlug);
+	}
 
 	/**
 	 * Loads a Dialogue Branch project into memory using the supplied {@link ScriptLoader} and stores

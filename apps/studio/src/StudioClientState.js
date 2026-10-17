@@ -60,6 +60,8 @@ export class StudioClientState extends ClientState {
         this._dialogueWorkspaceStyle = DIALOGUE_WORKSPACE_STYLE_BALLOONS;
         this._mode = DLB_APP_MODE_LIVE;
         this._selectedProject = null;
+        this._adminPage = null;
+        this._delegate = null;
         this._debugConsoleShowApi = true;
         this._debugConsoleShowEvents = true;
         this._debugConsoleShowCookies = false;
@@ -193,6 +195,47 @@ export class StudioClientState extends ClientState {
 
     get selectedProject() {
         return this._selectedProject;
+    }
+
+    // ----- adminPage
+
+    /**
+     * Sets the admin page to show instead of the project selection, such as 'users' (#407), or
+     * null for none. Not persisted: a reload returns to the project selection.
+     * @param {string|null} adminPage The admin page, or null.
+     */
+    set adminPage(adminPage) {
+        this._adminPage = adminPage;
+    }
+
+    /**
+     * Returns the admin page shown instead of the project selection, or null.
+     * @returns {string|null} The admin page, or null.
+     */
+    get adminPage() {
+        return this._adminPage;
+    }
+
+    // ----- delegate
+
+    /**
+     * Sets the user the Studio user is acting for, or null for none: `{ subject, label, mode }`,
+     * where `mode` is 'simulate' (run dialogues against a copy of that user's variables, changing
+     * nothing of theirs, #411) or 'act' (act on their behalf for real). Not persisted: opening a
+     * project or switching modes clears it. The subject itself is set on the clients by
+     * `setDelegateUser()` (composables/client.js).
+     * @param {{subject: string, label: string, mode: string}|null} delegate The delegate, or null.
+     */
+    set delegate(delegate) {
+        this._delegate = delegate;
+    }
+
+    /**
+     * Returns the user the Studio user is acting for, or null.
+     * @returns {{subject: string, label: string, mode: string}|null} The delegate, or null.
+     */
+    get delegate() {
+        return this._delegate;
     }
 
     // ----- dialogueWorkspaceStyle

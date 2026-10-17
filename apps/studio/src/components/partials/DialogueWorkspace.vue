@@ -53,6 +53,10 @@ const availableModes = computed(() =>
         ? modes
         : modes.filter((m) => m.name !== 'edit' && m.name !== 'translate'));
 
+// While simulating a user (#411), every dialogue runs as a test session against a copy of their
+// variables — on the published content in Live Mode — and nothing goes through /dialogue/*.
+const simulating = computed(() => state.value.delegate?.mode === 'simulate');
+
 // Backed by the `state.dialogueWorkspaceStyle` cookie (see StudioClientState.js) so the chosen
 // mode survives a page reload.
 const selectedMode = computed({
@@ -151,7 +155,10 @@ function createTab() {
         dialogueEnded: false,
         dialogueCancelled: false,
         isDraftTest: false,
-        draftSessionId: null,
+        testSessionId: null,
+        // What a test session runs: 'draft' content, or 'published' content while simulating a
+        // user in Live Mode (#411).
+        content: 'draft',
         // The language this tab's dialogue was actually started in — set by loadDialogue()/
         // loadDraftDialogue() the first time a test starts, then reused on every subsequent
         // restart so changing the workspace's language selector never changes an already-running
@@ -172,7 +179,7 @@ function createTab() {
         // TextDialogueComponent instead of a transient toast, since the details list needs to
         // stick around for the user to expand and read at their own pace.
         startError: null,
-        // True while a progressDialogue/progressDraftDialogue request for this tab's current step
+        // True while a progressDialogue/progressTestSession request for this tab's current step
         // is in flight — disables reply selection so a fast double-click can't fire two progress
         // requests for the same step (see onSelectReply below).
         awaitingReply: false,
@@ -212,6 +219,14 @@ function addTab() {
 
 const closeConfirm = ref(null); // { id }
 
+// Called after a dialogue was deleted (#390): it can't be opened anymore, and a test running in a
+// tab of it would go on with content that is about to disappear, so its tabs close.
+function dialogueDeleted(dialogueName) {
+    for (const tab of tabs.value.filter((t) => t.dialogueName === dialogueName)) {
+        doCloseTab(tab.id);
+    }
+}
+
 function closeTab(id) {
     const tab = tabs.value.find(t => t.id === id);
     // Only warn about an "ongoing" dialogue if one has actually been started (has steps) — a
@@ -242,10 +257,11 @@ function doCloseTab(id) {
 
 function cancelAndCloseTab(id) {
     const tab = tabs.value.find(t => t.id === id);
-    if (tab?.isDraftTest && tab.draftSessionId) {
-        authoringClient.cancelDraftDialogue(tab.draftSessionId)
+    if (tab?.isDraftTest && tab.testSessionId) {
+        authoringClient.cancelTestSession(tab.testSessionId)
         .catch((error) => {
-            showError(describeError(error));
+            // Already gone (expired, #218): closing the tab is all that's left to do.
+            if (error?.status !== 404) showError(describeError(error));
         })
         .finally(() => doCloseTab(id));
         return;
@@ -313,7 +329,7 @@ const loadDialogue = (name, { tab: givenTab, startNodeId, language } = {}) => {
     tab.dialogueEnded = false;
     tab.dialogueCancelled = false;
     tab.isDraftTest = false;
-    tab.draftSessionId = null;
+    tab.testSessionId = null;
     tab.openedForEditOnly = false;
     // A fresh test start supersedes whatever reply request (if any) was in flight for this tab —
     // don't leave reply selection stuck disabled by a stale one that hasn't resolved yet.
@@ -343,12 +359,13 @@ const loadDialogue = (name, { tab: givenTab, startNodeId, language } = {}) => {
     });
 };
 
-// Starts an ephemeral draft test session (see /draft/* end-points) — not saved to dialogue
-// history, and reads/writes the workspace's real variables (revertible via revertVariables()).
+// Starts an ephemeral test session (see the /test-session/* end-points) — not saved to dialogue
+// history, and run against the test copy of the variables, shared by all tabs (#319), never the
+// stored ones (reset with onResetVariablesClick()).
 // Pass `tab` to restart a specific, already-open tab in place (e.g. from handleReturnFromEdit)
 // rather than the default of finding/creating an empty one; `startNodeId` starts the test from a
 // particular node instead of the dialogue's default "Start" node.
-const loadDraftDialogue = (name, { tab: givenTab, startNodeId, language } = {}) => {
+const loadDraftDialogue = (name, { tab: givenTab, startNodeId, language, content = 'draft' } = {}) => {
     if (!givenTab) ensureTestMode();
     const tab = givenTab ?? getOrCreateEmptyTab();
     activeTabId.value = tab.id;
@@ -358,7 +375,8 @@ const loadDraftDialogue = (name, { tab: givenTab, startNodeId, language } = {}) 
     tab.dialogueEnded = false;
     tab.dialogueCancelled = false;
     tab.isDraftTest = true;
-    tab.draftSessionId = null;
+    tab.content = content;
+    tab.testSessionId = null;
     tab.loggedDialogueId = null;
     tab.openedForEditOnly = false;
     tab.dialogueEdited = false;
@@ -370,20 +388,24 @@ const loadDraftDialogue = (name, { tab: givenTab, startNodeId, language } = {}) 
     scrollActiveTabIntoView();
     dismissError();
     logEvent('dialogue', 'Draft test started: $1', name);
-    authoringClient.startDraftDialogue({
+    authoringClient.startTestSession({
         projectSlug: state.value.selectedProject?.slug,
         dialogueName: name,
         language: tab.language,
         timeZone: getBrowserTimeZone(),
         startNodeId,
+        content,
     })
-    .then(({ draftSessionId, dialogueStep }) => {
-        tab.draftSessionId = draftSessionId;
+    .then(({ testSessionId, dialogueStep }) => {
+        tab.testSessionId = testSessionId;
         tab.dialogueName = dialogueStep.dialogueName;
         tab.dialogueSteps.push(dialogueStep);
         logStatementActions(dialogueStep);
         tab.dialogueEnded = dialogueStep.replies.length === 0;
-        if (tab.dialogueEnded) logEvent('dialogue', 'Draft test ended immediately: $1', name);
+        if (tab.dialogueEnded) {
+            logEvent('dialogue', 'Draft test ended immediately: $1', name);
+            tab.testSessionId = null;
+        }
         emit('newDialogueStep');
         scrollTextToBottom();
     })
@@ -400,10 +422,22 @@ const loadDraftDialogue = (name, { tab: givenTab, startNodeId, language } = {}) 
     });
 };
 
+// A test session that was idle too long is evicted by the Web Service (#218), which then answers
+// 404: say so in the tab, with a button to start the test again (see restartActiveTab()).
+function showExpired(tab) {
+    logEvent('dialogue', 'Draft test session expired: $1', tab.dialogueName);
+    tab.testSessionId = null;
+    tab.dialogueEnded = true;
+    tab.startError = {
+        message: 'This test session has expired after a period of inactivity. Start it again to continue.',
+        errors: null,
+    };
+}
+
 function restartActiveTab() {
     const tab = activeTab.value;
     if (tab.isDraftTest) {
-        loadDraftDialogue(tab.dialogueName, { tab, language: tab.language });
+        loadDraftDialogue(tab.dialogueName, { tab, language: tab.language, content: tab.content });
     } else {
         loadDialogue(tab.dialogueName, { tab, language: tab.language });
     }
@@ -421,7 +455,7 @@ watch(selectedLanguage, (newLanguage, oldLanguage) => {
     if (tab.language === newLanguage) return;
     const currentNode = tab.dialogueSteps[tab.dialogueSteps.length - 1].node;
     if (tab.isDraftTest) {
-        loadDraftDialogue(tab.dialogueName, { tab, startNodeId: currentNode, language: newLanguage });
+        loadDraftDialogue(tab.dialogueName, { tab, startNodeId: currentNode, language: newLanguage, content: tab.content });
     } else {
         loadDialogue(tab.dialogueName, { tab, startNodeId: currentNode, language: newLanguage });
     }
@@ -469,6 +503,21 @@ function dialoguesReplaced(dialogueNames) {
     }
 }
 
+// Called after an import replaced or added the draft translations of these dialogues (#340): the
+// open Translation Editor reloads them, and a test running in a tab is reconciled the same way as
+// after editing its dialogue (see handleReturnFromEdit).
+function translationsReplaced(dialogueNames) {
+    for (const tab of tabs.value) {
+        if (dialogueNames.includes(tab.dialogueName)) tab.dialogueEdited = true;
+    }
+    if (!dialogueNames.includes(activeTab.value?.dialogueName)) return;
+    if (selectedMode.value === 'translate') {
+        translationEditor.value?.reload();
+    } else if (selectedMode.value !== 'edit') {
+        handleReturnFromEdit(activeTab.value);
+    }
+}
+
 // Called whenever the mode switches away from 'edit' back to Balloon/Text. If the dialogue in the
 // tab being left was edited and already had a test running, that test's content is now stale:
 // a "live" (published, logged) test is force-switched to an ephemeral draft test (with a notice,
@@ -505,15 +554,13 @@ function confirmRestartFromLastEditedNode() {
     if (tab) loadDraftDialogue(tab.dialogueName, { tab, startNodeId, language: tab.language });
 }
 
-function onRevertVariablesClick() {
+function onResetVariablesClick() {
     const tab = activeTab.value;
-    if (!tab.isDraftTest || !tab.draftSessionId) return;
+    if (!tab.isDraftTest) return;
     dismissError();
-    logEvent('dialogue', 'Draft test variables reverted: $1', tab.dialogueName);
-    authoringClient.revertDraftVariables({ draftSessionId: tab.draftSessionId, timeZone: getBrowserTimeZone() })
+    logEvent('dialogue', 'Test variables reset: $1', tab.dialogueName);
+    authoringClient.resetTestVariables({ projectSlug: state.value.selectedProject?.slug })
     .then(() => {
-        tab.draftSessionId = null;
-        tab.dialogueEnded = true;
         emit('newDialogueStep');
     })
     .catch((error) => {
@@ -554,6 +601,11 @@ const resize = () => {
 };
 
 const resumeDialogue = (name) => {
+    // A simulation never takes over the user's real ongoing dialogue: it starts afresh (#411).
+    if (simulating.value) {
+        loadDraftDialogue(name, { content: 'published' });
+        return;
+    }
     ensureTestMode();
     const newTab = getOrCreateEmptyTab();
     newTab.dialogueName = name;
@@ -640,6 +692,8 @@ function openDialogue(name) {
         openDialogueForTranslation(name);
     } else if (state.value.mode === DLB_APP_MODE_DRAFT) {
         loadDraftDialogue(name);
+    } else if (simulating.value) {
+        loadDraftDialogue(name, { content: 'published' });
     } else {
         loadDialogue(name);
     }
@@ -658,6 +712,8 @@ defineExpose({
     openDialogue,
     loadAvailableLanguages,
     dialoguesReplaced,
+    dialogueDeleted,
+    translationsReplaced,
 });
 
 // ---- Tab bar scroll ----
@@ -726,16 +782,20 @@ function onCancelClick() {
     if (tab.awaitingReply) return;
     dismissError();
     if (tab.isDraftTest) {
-        if (!tab.draftSessionId) return;
+        if (!tab.testSessionId) return;
         logEvent('dialogue', 'Draft test cancelled: $1', tab.dialogueName);
-        authoringClient.cancelDraftDialogue(tab.draftSessionId)
+        authoringClient.cancelTestSession(tab.testSessionId)
         .then(() => {
-            tab.draftSessionId = null;
+            tab.testSessionId = null;
             tab.dialogueCancelled = true;
             tab.dialogueEnded = true;
         })
         .catch((error) => {
-            showError(describeError(error));
+            if (error?.status === 404) {
+                showExpired(tab);
+            } else {
+                showError(describeError(error));
+            }
         });
         return;
     }
@@ -784,8 +844,8 @@ function onSelectReply(dialogueStep, reply, inputValues) {
 
     if (tab.isDraftTest) {
         logEvent('dialogue', 'Draft test reply selected: $1', replyText);
-        authoringClient.progressDraftDialogue({
-            draftSessionId: tab.draftSessionId,
+        authoringClient.progressTestSession({
+            testSessionId: tab.testSessionId,
             replyId: reply.replyId,
             inputValues: values,
             timeZone: getBrowserTimeZone(),
@@ -805,11 +865,17 @@ function onSelectReply(dialogueStep, reply, inputValues) {
                 tab.dialogueEnded = true;
                 logEvent('dialogue', 'Draft test ended: $1', tab.dialogueName);
             }
+            // The Web Service ends a test session with its dialogue (#218).
+            if (tab.dialogueEnded) tab.testSessionId = null;
             emit('newDialogueStep');
             scrollTextToBottom();
         })
         .catch((error) => {
-            showError(describeError(error));
+            if (error?.status === 404) {
+                showExpired(tab);
+            } else {
+                showError(describeError(error));
+            }
         })
         .finally(() => {
             tab.awaitingReply = false;
@@ -878,9 +944,8 @@ function onSelectReply(dialogueStep, reply, inputValues) {
                         v-if="activeTab.isDraftTest"
                         icon="fa-solid fa-clock-rotate-left"
                         color="warning"
-                        :disabled="!activeTab.draftSessionId"
-                        title="Revert any variable changes made during this draft test back to their original values"
-                        @click="onRevertVariablesClick"
+                        title="Reset the test variables to the stored values"
+                        @click="onResetVariablesClick"
                     />
                 </template>
                 <template v-else>
@@ -1051,7 +1116,7 @@ function onSelectReply(dialogueStep, reply, inputValues) {
                 <TranslationEditor ref="translation-editor" :dialogueName="activeTab.dialogueName" @dialogueSaved="$emit('dialogueSaved')" />
             </MainPagePanelContainer>
             <div v-if="activeTab.isDraftTest && selectedMode !== 'edit' && selectedMode !== 'translate'" class="absolute bottom-3 left-3 font-mono text-[10px] text-gray-400 pointer-events-none">
-                <span class="font-semibold">Ephemeral Draft Test</span><template v-if="activeTab.draftSessionId"> — Session ID: {{ activeTab.draftSessionId }}</template><template v-if="activeStepNode"> — Node: {{ activeStepNode }}</template>
+                <span class="font-semibold">{{ activeTab.content === 'published' ? 'Simulation (published content)' : 'Ephemeral Draft Test' }}</span><template v-if="activeTab.testSessionId"> — Session ID: {{ activeTab.testSessionId }}</template><template v-if="activeStepNode"> — Node: {{ activeStepNode }}</template>
             </div>
             <div v-else-if="activeTab.loggedDialogueId && selectedMode !== 'edit' && selectedMode !== 'translate'" class="absolute bottom-3 left-3 font-mono text-[10px] text-gray-400 pointer-events-none">
                 <span class="font-semibold">Logged Dialogue ID:</span> {{ activeTab.loggedDialogueId }}<template v-if="activeStepNode"> — Node: {{ activeStepNode }}</template>

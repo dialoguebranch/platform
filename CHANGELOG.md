@@ -17,6 +17,182 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Studio: a search field on the project page, filtering projects by name, slug or description.
+- Studio, web service and client-js: simulate a user, to investigate a problem they have without
+  changing any of their data ([#411](https://github.com/dialoguebranch/platform/issues/411)).
+  *Set Delegate User* now offers *Simulate as* (the default) and *Act as*. While simulating,
+  dialogues run as test sessions against a copy of the user's variables, on the published content
+  in Live Mode and on the draft in Authoring Mode, with a banner and *Stop simulating*; the user's
+  real ongoing dialogue isn't offered to resume. Switching between Live and Authoring Mode now
+  stops simulating or acting as someone. `POST /test-session/start` takes `content=published` to
+  run a dialogue's published version; client-js's `startTestSession` takes `content`.
+- Studio, web service and client-js: deleted projects whose users' data was kept are listed for
+  admins in a separate, collapsed *Deleted projects* section on the project selection page, with
+  how much users' data they still have, and can be deleted permanently from there, user data and
+  all, after typing the slug to confirm ([#403](https://github.com/dialoguebranch/platform/issues/403)).
+  New `GET /project/list-deleted-projects` and `POST /project/purge-deleted-project`; client-js
+  gains `listDeletedProjects` and `purgeDeletedProject`.
+- Web service and client-js: an admin can erase everything stored about a user — their variables,
+  variable history and dialogue logs in every project, and the user itself — with
+  `POST /users/erase-user` (new admin-only `USER_ERASE` permission); a configured External
+  Variable Service is sent `notify-cleared` for each project the user had variables in
+  ([#320](https://github.com/dialoguebranch/platform/issues/320)). client-js gains `eraseUser`.
+- Studio: a *Users* page for admins, opened from the project selection page, lists everyone the
+  web service has seen with how many variables and dialogue logs it holds for them, and erases a
+  user's data after typing their username to confirm
+  ([#407](https://github.com/dialoguebranch/platform/issues/407)).
+
+### Changed
+
+- Studio: a refreshed look for the participant view and the project and user pages: a shared
+  header with the logo, a "Studio" wordmark, a divider and a greeting; for editors and admins a menu
+  bar to switch between *Project Management* and *User Management* (admins only), replacing the
+  *Users* and *← Projects* buttons; and the page content in a white box with rounded corners. The
+  *Service Unavailable*, *Update Available* and *Insufficient Privileges* screens use the same logo.
+- Studio: acting on behalf of another user for real (*Act as*) is treated as the powerful
+  operation it is ([#330](https://github.com/dialoguebranch/platform/issues/330)): choosing it warns
+  that the user's dialogue logs, variables and history change as if they acted themselves, the
+  confirmation says *Act as \<user\>*, and a red banner shows while acting, with *Stop acting as*.
+  *Set Delegate User* is shown to admins only.
+- Docs: the Authentication page no longer describes a trusted server that acts for all of its end
+  users through one `admin` account and `delegateUser`
+  ([#330](https://github.com/dialoguebranch/platform/issues/330)). A backend serving many users
+  should forward each user's own access token instead; `delegateUser` is for an administrator's
+  testing and support work, described in a new section on acting on behalf of another user.
+- Web service: test sessions read from the External Variable Service like real playback does
+  ([#411](https://github.com/dialoguebranch/platform/issues/411)): at every dialogue start, also
+  through a reply into another dialogue, with the values of the session's copy of the variables.
+  The answers go into the copy only, and a test session still never notifies the service. Every
+  `retrieve-updates` request now carries `testSession` (`true` or `false`), so an External
+  Variable Service can tell test sessions from real playback; the External Variable Service page
+  explains where requests for updates come from.
+- **Breaking:** Web service, client-js and Studio: testing a dialogue no longer changes the
+  user's real variables ([#319](https://github.com/dialoguebranch/platform/issues/319)). A test
+  session runs against the tester's own copy of the variables, kept in memory and seeded from the
+  stored ones: it is never saved, recorded in the variable history or sent to the External
+  Variable Service. All of a tester's test sessions in a project share one copy, which
+  `GET /test-session/variables`, `POST /test-session/set-variable` and `POST /test-session/reset`
+  read, change and reset. Testing as another user (`delegateUser` on `start`) only reads their
+  variables. The end-points are renamed from `/draft/*` to `/test-session/*` (`draftSessionId`
+  becomes `testSessionId`, `revert-variables` is replaced by `reset`, and `progress` and `cancel`
+  no longer take `delegateUser`), and the permission `DIALOGUE_DRAFT_TEST` becomes
+  `DIALOGUE_TEST`. In client-js, `startDraftDialogue`, `progressDraftDialogue`,
+  `cancelDraftDialogue` and `revertDraftVariables` become `startTestSession`,
+  `progressTestSession`, `cancelTestSession` and `resetTestVariables`, plus `getTestVariables` and
+  `setTestVariable`. In Studio's Authoring Mode, the Variable Browser's *Values* shows and edits
+  the test copy, with *Reset to stored values*.
+- **Breaking:** Web service and Studio: deleting a project removes its dialogues, translations and
+  version history, but keeps its users' variables, variable history and dialogue logs by default
+  ([#315](https://github.com/dialoguebranch/platform/issues/315)). The project stays as a deleted
+  project (no longer found or listed) under the slug `<slug>__deleted`, with its logs moved along,
+  so the original slug is free right away. `POST /project/delete-project` takes `deleteVariables`
+  and `deleteLogs` (both `false` by default) to delete that data too; with both, the project is
+  removed for good. Studio's delete confirmation offers both as unticked options. client-js's
+  `deleteProject` takes them as options. A new database migration (`V11`) adds the deleted flag.
+- **Breaking:** Web service and client-js: `GET /users` also lists users with no known username
+  (only ever seen as a delegate, `username` is `null`), after the named ones; its `username` filter
+  is replaced by `search`, which matches the username or the subject; and each entry has
+  `variables` and `dialogueLogs` counts ([#407](https://github.com/dialoguebranch/platform/issues/407)).
+  client-js's `listUsers` takes `search` instead of `usernameFragment`. Studio's delegate user
+  picker finds these users too.
+
+### Fixed
+
+- Studio: a long page, such as the Users list, also got a horizontal scrollbar.
+- Studio: when the participant view's dialogue doesn't exist, a participant now gets a plain message
+  instead of a technical error with a *Try Again* button that couldn't help.
+- Web service and Studio: test sessions stayed in memory, each with its own parsed copy of the
+  project, until the web service restarted, unless they were cancelled
+  ([#218](https://github.com/dialoguebranch/platform/issues/218)). A test session now ends when its
+  dialogue does, and sessions idle for longer than `dlb.test-session.idle-timeout-minutes` (default
+  30), and copies of the variables no session uses, are removed. Studio says so when a test has
+  expired, with a button to start it again. Two requests on the same test session at once could
+  also corrupt it; a session now handles one request at a time
+  ([#215](https://github.com/dialoguebranch/platform/issues/215)).
+- Web service: a request made on behalf of another user (`delegateUser`) that runs a dialogue or
+  sets variables overwrote that user's time zone with the caller's, so the user's own next dialogue
+  steps and variable changes were stamped in the wrong time zone
+  ([#331](https://github.com/dialoguebranch/platform/issues/331)). It now leaves the user's time
+  zone alone and stamps what it changes in it; its `timeZone` parameter is ignored.
+- Web service: deleting a project failed as soon as any user had a variable in it
+  ([#315](https://github.com/dialoguebranch/platform/issues/315)); a new project with the slug of a
+  deleted one could inherit its users' cached variables
+  ([#316](https://github.com/dialoguebranch/platform/issues/316)) and its dialogue logs, including
+  an ongoing dialogue to resume ([#317](https://github.com/dialoguebranch/platform/issues/317)); and
+  a deleted project stayed listed and playable until the web service restarted. Deleting a project
+  now succeeds, unloads it, and keeps its users' data away from a new project with the same slug.
+- Studio: a delegate user set in one project stayed active, without being shown, after closing it
+  and opening a project again; opening a project now clears it
+  ([#407](https://github.com/dialoguebranch/platform/issues/407)).
+
+## [0.7.0] - 2026-10-15
+
+### Added
+
+- Studio: delete a dialogue ([#390](https://github.com/dialoguebranch/platform/issues/390)).
+  *Delete…* in a dialogue's menu in the Dialogue Browser (Authoring Mode) marks it for deletion
+  after a confirmation that warns how many replies in other dialogues link to it; it can be
+  restored until the next publish, and its open tabs close. Studio had no way to delete a dialogue
+  before, although the web service supported it.
+- Studio, web service and client-js: discard all of a project's draft changes
+  ([#364](https://github.com/dialoguebranch/platform/issues/364)). *Discard All Draft Changes…* in
+  the Project menu makes the whole draft identical to the latest published version again: every
+  dialogue goes back to its published content and name, dialogues that were never published are
+  removed, dialogues pending deletion are restored, and the project's name, description and
+  translation languages go back to the published ones. The new
+  `POST /project/discard-draft-changes` needs the permission to publish, and refuses a project
+  that was never published. client-js gains `discardAllDraftChanges`.
+- Studio, web service and client-js: discard a draft dialogue's changes
+  ([#363](https://github.com/dialoguebranch/platform/issues/363)). *Discard changes* on a dialogue
+  marked *Changed* in the Dialogue Browser (Authoring Mode) makes its draft identical to its
+  published version again: nodes and their layout, preamble, translations, and its published name
+  if it was renamed; it is then no longer marked as changed. The new
+  `POST /authoring/discard-dialogue-changes` refuses a dialogue that was never published or is
+  pending deletion, a published name another dialogue has taken, and a translation language
+  renamed since publishing. client-js gains `discardDraftDialogueChanges`.
+
+### Changed
+
+- Studio: the Dialogue Browser's dialogue rows show only their ▶ (open) button; the other actions
+  (*Open*, *Rename…*, *Export as .dlb*, *Discard changes…*, *Delete…*) are in a context menu, opened by
+  right-clicking a row or with a ⋯ button shown when pointing at it (always shown on touch
+  screens) ([#389](https://github.com/dialoguebranch/platform/issues/389)). The menu, also used
+  for the node editor's *Insert statement* menu, works with the keyboard and stays inside the
+  window. A dialogue pending deletion keeps its *Restore* button.
+
+## [0.6.0] - 2026-10-15
+
+### Added
+
+- Studio: the Translation Editor shows translations it used to hide
+  ([#386](https://github.com/dialoguebranch/platform/issues/386)). A translation stored under a
+  source text that differs from the dialogue's text only in whitespace now shows in its row, and
+  editing it replaces it instead of adding a second entry; gender-specific translations (nested
+  context groups such as `female_addressee`) show as editable sub-rows under their text.
+- Studio: the Translation Editor shows a dialogue's stale translation entries and lets you delete
+  them ([#375](https://github.com/dialoguebranch/platform/issues/375)). Entries that match no text
+  of the dialogue on speaker and text (for example after the text changed) are never used and were
+  invisible; a *Stale entries (N)* button now lists them per translation language, with their
+  speaker and any gender contexts, and deletes one, or all of a language's, after a confirmation.
+- Studio, web service and client-js: import translation files (`.json`) into a translation
+  language of an existing project, as draft translations
+  ([#340](https://github.com/dialoguebranch/platform/issues/340)). *Import Translations* in the
+  Project menu (Authoring Mode) matches each file to the existing dialogue named after the chosen
+  folder and the file name, shows which already have a translation in the chosen language, and
+  only replaces those when asked; open Translation Editors of those dialogues reload. The new
+  `POST /authoring/import-translations` imports all or nothing, refuses files that aren't valid
+  translation files (the check of `update-translation`, #376), contain no translations, or have no
+  dialogue (or one pending deletion), stores each file re-serialised, and reports per file how
+  many entries match no term of the dialogue (by speaker and text, kept anyway) and how many terms
+  stay untranslated. `list-dialogues` now lists, per dialogue, the translation languages it
+  already has a translation in (`translatedInto`). client-js gains `importTranslations`.
+- Studio, web service and client-js: export a single dialogue as a `.dlb` file
+  ([#341](https://github.com/dialoguebranch/platform/issues/341)). *Export as .dlb* on a dialogue in
+  the Dialogue Browser (Authoring Mode) downloads its current draft: the preamble and nodes as an
+  author sees them, not the published version, without translations. The file is named after the
+  dialogue without its folder, and imports again with *Import Scripts* as the same dialogue. The new
+  `GET /authoring/export-dialogue` needs the `editor` or `admin` role; client-js gains
+  `exportDialogue`.
 - Studio: the Variable Browser's History view can be filtered by a date range
   ([#371](https://github.com/dialoguebranch/platform/issues/371)). Pick a **Start date** and an
   **End date** (whole days in your time zone, the one the entries are shown in; the end date is
@@ -32,14 +208,46 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `DialogueBranchClient.getVariableHistory` accepts `from` and `to` (a number or a `Date`).
 - Studio and web service: import `.dlb` scripts into a folder of an existing project, as draft
   dialogues ([#339](https://github.com/dialoguebranch/platform/issues/339)). *Import Scripts* in
-  the Dialogue Browser (Authoring Mode) previews the resulting dialogue names, shows which already
+  the Project menu (Authoring Mode, next to *Import Translations*, #340) previews the resulting dialogue names, shows which already
   exist, and only replaces those (keeping their translations, and restoring one pending deletion)
   when asked; open tabs of replaced dialogues reload. The new `POST /authoring/import-scripts`
   imports all or nothing, refuses files that aren't UTF-8 `.dlb` files of at most 1 MB, don't make
   a valid dialogue name, or can't be stored as draft nodes, and reports syntax errors per file
   without refusing them. client-js gains `importScripts`.
 
+### Changed
+
+- **Breaking:** Core: a translation entry only applies to text of its own speaker
+  ([#377](https://github.com/dialoguebranch/platform/issues/377)). The `Translator` used an entry
+  of any speaker when the speaker had none for a text, and, through a bug in its gender filter,
+  even when it had one, so two speakers saying the same text got the same translation. A
+  translation file's top-level keys are now read as speaker names as a whole (multi-word names
+  such as `Martin McOwl` were split into separate words that never matched), nested context
+  groups add to their speaker's entries instead of replacing the speaker, and an entry outside a
+  speaker group is a parse error. A text without an entry of its own speaker stays in the source
+  language. In `dlb-core-java`, `ContextTranslation` gains a `speaker` component. The translation
+  file format is now documented in the project reference.
+
+- **Breaking:** Language: the speaker name `_user` is reserved
+  ([#383](https://github.com/dialoguebranch/platform/issues/383)). Translation files use it for
+  the user's replies, so a node with `speaker: _user` collided with them; the parser now refuses
+  it (except on an `End` node, whose speaker is ignored), and Studio's node edit panel refuses it
+  before saving. In `dlb-core-java`, the reserved name is `DialogueBranchConstants.DLB_USER_SPEAKER`,
+  which replaces `SourceTranslatable.USER`.
+
 ### Fixed
+
+- Core: a translation containing a command other than `<<input>>` (for example `<<if>>` or
+  `<<set>>`) made `TranslationParser` crash instead of reporting a parse error
+  ([#379](https://github.com/dialoguebranch/platform/issues/379)), so loading, verifying,
+  publishing or draft-testing a project with such a translation failed with an internal error.
+  It is now reported as an invalid translation string, naming the command.
+
+- Web service: `update-translation` stored any content it received, so invalid content was only
+  noticed later, when testing a dialogue or publishing the project failed
+  ([#376](https://github.com/dialoguebranch/platform/issues/376)). It now refuses content that
+  isn't a valid translation file, including entries outside a speaker group, with the problems
+  listed, and stores valid content re-serialised, without empty translations.
 
 - Studio: importing a project archive (*Import Project*) failed, because the BFF passed the
   upload on to the web service without its contents

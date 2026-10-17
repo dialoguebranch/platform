@@ -31,12 +31,15 @@ package com.dialoguebranch.web.service.controller;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.QueryRunner;
 import com.dialoguebranch.web.service.auth.Permission;
+import com.dialoguebranch.web.service.controller.schema.DeletedProjectSummary;
 import com.dialoguebranch.web.service.controller.schema.authoring.*;
+import com.dialoguebranch.web.service.controller.schema.authoring.DiscardedProjectChanges;
 import com.dialoguebranch.web.service.exception.BadRequestException;
 import com.dialoguebranch.web.service.exception.ConflictException;
 import com.dialoguebranch.web.service.exception.HttpException;
 import com.dialoguebranch.web.service.exception.NotFoundException;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
+import com.dialoguebranch.web.service.project.DraftDiscardService;
 import com.dialoguebranch.web.service.project.DraftProjectService;
 import com.dialoguebranch.web.service.project.ProjectExportService;
 import com.dialoguebranch.web.service.project.ProjectImportService;
@@ -89,6 +92,7 @@ public class ProjectController {
 	private final DraftProjectService draftProjectService;
 	private final DraftDialogueService draftDialogueService;
 	private final ProjectExportService projectExportService;
+	private final DraftDiscardService draftDiscardService;
 	private final ProjectImportService projectImportService;
 
 	private static final Logger logger = LoggerFactory.getLogger(ProjectController.class);
@@ -107,15 +111,17 @@ public class ProjectController {
 	 *                             archive.
 	 * @param projectImportService service used to create a new project from an uploaded export
 	 *                             archive.
+	 * @param draftDiscardService  service used to discard all of a project's draft changes.
 	 */
 	public ProjectController(ProjectService projectService, DraftProjectService draftProjectService,
 			DraftDialogueService draftDialogueService, ProjectExportService projectExportService,
-			ProjectImportService projectImportService) {
+			ProjectImportService projectImportService, DraftDiscardService draftDiscardService) {
 		this.projectService = projectService;
 		this.draftProjectService = draftProjectService;
 		this.draftDialogueService = draftDialogueService;
 		this.projectExportService = projectExportService;
 		this.projectImportService = projectImportService;
+		this.draftDiscardService = draftDiscardService;
 	}
 
 	// ---------------------------------------------------------------- //
@@ -257,6 +263,104 @@ public class ProjectController {
 	}
 
 	/**
+	 * Discards all of a project's draft changes (#364): its draft becomes identical to its latest
+	 * published version again (display name and description, translation languages, and every
+	 * dialogue; dialogues that were never published are removed). Needs the permission to publish,
+	 * since it is its inverse. See {@link DraftDiscardService#discardAllChanges}.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project.
+	 * @return how many dialogues were reverted and removed.
+	 * @throws HttpException if the project does not exist or was never published, or the user is
+	 * not authorized.
+	 */
+	@Operation(summary = "Discard all of a project's draft changes, back to its published version.")
+	@Parameter(name = "version", hidden = true)
+	@PostMapping("/discard-draft-changes")
+	public DiscardedProjectChanges discardDraftChanges(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("POST /v{}/project/discard-draft-changes [user: {}]", version,
+							user);
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					return draftDiscardService.discardAllChanges(project);
+				},
+				version, response, "", Permission.PUBLISH_CREATE);
+	}
+
+	/**
+	 * Lists the deleted projects (#403): projects whose dialogues were deleted but whose users'
+	 * data was kept, with how much of it they still have. Most recently deleted first.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @return the deleted projects.
+	 * @throws HttpException if the user is not authorized.
+	 */
+	@Operation(summary = "List deleted projects whose users' data was kept.")
+	@Parameter(name = "version", hidden = true)
+	@GetMapping("/list-deleted-projects")
+	public List<DeletedProjectSummary> listDeletedProjects(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("GET /v{}/project/list-deleted-projects [user: {}]", version, user);
+					return projectService.listDeletedProjects();
+				},
+				version, response, "", Permission.PROJECT_DELETE);
+	}
+
+	/**
+	 * Deletes a deleted project for good (#403): all its users' variables, variable history and
+	 * dialogue logs, and the project itself. Can't be undone.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the deleted project's slug ({@code <slug>__deleted}).
+	 * @throws HttpException if there is no deleted project with that slug, or the user is not
+	 * authorized.
+	 */
+	@Operation(summary = "Delete a deleted project for good, with all its users' data.")
+	@Parameter(name = "version", hidden = true)
+	@PostMapping("/purge-deleted-project")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void purgeDeletedProject(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug
+	) throws HttpException {
+		QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("POST /v{}/project/purge-deleted-project [user: {}, project: {}]",
+							version, user, projectSlug);
+					DBProject project = projectService.findDeletedBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Deleted project not found: " + projectSlug));
+					projectService.purgeDeletedProject(project);
+					return null;
+				},
+				version, response, "", Permission.PROJECT_DELETE);
+	}
+
+	/**
 	 * Applies a whole "Save Draft" batch from the Configure Project window in one atomic request:
 	 * the project's draft display name/description, translation languages to remove, translation
 	 * languages to add, and existing translation languages to rename (name and/or code). The
@@ -299,18 +403,25 @@ public class ProjectController {
 	}
 
 	/**
-	 * Deletes a project and all its data (draft and published dialogues, translations, and
-	 * language mappings). This is a permanent, unrecoverable delete of the project entity
-	 * itself — unlike dialogue deletion within a project, there is no restore path.
+	 * Deletes a project (#315): the definition of its dialogues (draft and published dialogues,
+	 * translations, and translation languages), which can't be undone. Its users' variables,
+	 * variable history and dialogue logs are kept unless asked otherwise: the project then stays,
+	 * marked as deleted, under the slug {@code <slug>__deleted} (its logs move along), so the
+	 * original slug is free for a new project that can't inherit any of that data. With both
+	 * {@code deleteVariables} and {@code deleteLogs}, it is removed for good. Either way it is
+	 * unloaded from the running service. See {@link ProjectService#deleteProject}.
 	 *
 	 * @param request the HTTP request (to retrieve authentication headers).
 	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
 	 *                 Unauthorized error).
 	 * @param version the API version to use, e.g. '1'.
 	 * @param projectSlug the unique slug of the project to delete.
+	 * @param deleteVariables also delete all users' variables and variable history in the
+	 *                        project.
+	 * @param deleteLogs also delete all users' dialogue logs of the project.
 	 * @throws HttpException if the project does not exist or the user is not authorized.
 	 */
-	@Operation(summary = "Delete a project and all its data.")
+	@Operation(summary = "Delete a project's dialogues, optionally with its users' data.")
 	@Parameter(name = "version", hidden = true)
 	@PostMapping("/delete-project")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
@@ -318,15 +429,19 @@ public class ProjectController {
 			HttpServletRequest request,
 			HttpServletResponse response,
 			@Parameter(hidden = true) @PathVariable(value = "version") String version,
-			@RequestParam(value = "projectSlug") String projectSlug
+			@RequestParam(value = "projectSlug") String projectSlug,
+			@RequestParam(value = "deleteVariables", defaultValue = "false") boolean deleteVariables,
+			@RequestParam(value = "deleteLogs", defaultValue = "false") boolean deleteLogs
 	) throws HttpException {
 		QueryRunner.runQuery(
 				(protocolVersion, user) -> {
-					logger.info("POST /v{}/project/delete-project [user: {}]", version, user);
+					logger.info("POST /v{}/project/delete-project [user: {}, deleteVariables: {}, "
+							+ "deleteLogs: {}]", version, user, deleteVariables, deleteLogs);
 					DBProject project = projectService.findBySlug(projectSlug)
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectSlug));
-					projectService.deleteProject(project);
+					projectService.deleteProject(project, deleteVariables, deleteLogs);
+					application.getApplicationManager().unloadProject(projectSlug);
 					return null;
 				},
 				version, response, "", Permission.PROJECT_DELETE);

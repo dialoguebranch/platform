@@ -29,59 +29,59 @@
 package com.dialoguebranch.web.service.controller.schema;
 
 import com.dialoguebranch.model.execute.protocol.DialogueMessage;
-import com.dialoguebranch.web.service.controller.DraftExecutionController;
+import com.dialoguebranch.web.service.controller.TestSessionController;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
- * Response payload for {@link DraftExecutionController} /draft/start, pairing the ephemeral
- * {@code draftSessionId} (to be passed to subsequent /draft/progress, /draft/cancel, or
- * /draft/revert-variables calls) with the usual {@link DialogueMessage} for the current node.
+ * Response payload for {@link TestSessionController} /test-session/start, pairing the ephemeral
+ * {@code testSessionId} (to be passed to subsequent /test-session/progress or
+ * /test-session/cancel calls) with the usual {@link DialogueMessage} for the current node.
  *
  * @author Harm op den Akker
  */
-public class DraftDialogueMessage {
+public class TestSessionMessage {
 
-	@Schema(description = "The identifier of the ephemeral draft test session, to be passed to " +
-			"subsequent /draft/progress, /draft/cancel, or /draft/revert-variables calls.",
+	@Schema(description = "The identifier of the ephemeral test session, to be passed to " +
+			"subsequent /test-session/progress or /test-session/cancel calls.",
 			example = "a1b2c3d4-e5f6-7890-abcd-ef1234567890")
-	private String draftSessionId;
+	private String testSessionId;
 
 	@Schema(description = "The dialogue message for the current node.")
 	private DialogueMessage dialogueMessage;
 
 	/**
-	 * Creates an empty instance of a {@link DraftDialogueMessage}.
+	 * Creates an empty instance of a {@link TestSessionMessage}.
 	 */
-	public DraftDialogueMessage() { }
+	public TestSessionMessage() { }
 
 	/**
-	 * Creates an instance of a {@link DraftDialogueMessage} with the given
-	 * {@code draftSessionId} and {@code dialogueMessage}.
+	 * Creates an instance of a {@link TestSessionMessage} with the given
+	 * {@code testSessionId} and {@code dialogueMessage}.
 	 *
-	 * @param draftSessionId  the identifier of the ephemeral draft test session.
+	 * @param testSessionId  the identifier of the ephemeral test session.
 	 * @param dialogueMessage the dialogue message for the current node.
 	 */
-	public DraftDialogueMessage(String draftSessionId, DialogueMessage dialogueMessage) {
-		this.draftSessionId = draftSessionId;
+	public TestSessionMessage(String testSessionId, DialogueMessage dialogueMessage) {
+		this.testSessionId = testSessionId;
 		this.dialogueMessage = dialogueMessage;
 	}
 
 	/**
-	 * Returns the identifier of the ephemeral draft test session.
+	 * Returns the identifier of the ephemeral test session.
 	 *
-	 * @return the draft session identifier.
+	 * @return the test session identifier.
 	 */
-	public String getDraftSessionId() {
-		return draftSessionId;
+	public String getTestSessionId() {
+		return testSessionId;
 	}
 
 	/**
-	 * Sets the identifier of the ephemeral draft test session.
+	 * Sets the identifier of the ephemeral test session.
 	 *
-	 * @param draftSessionId the draft session identifier.
+	 * @param testSessionId the test session identifier.
 	 */
-	public void setDraftSessionId(String draftSessionId) {
-		this.draftSessionId = draftSessionId;
+	public void setTestSessionId(String testSessionId) {
+		this.testSessionId = testSessionId;
 	}
 
 	/**

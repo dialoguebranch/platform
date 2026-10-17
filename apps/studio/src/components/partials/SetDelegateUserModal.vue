@@ -1,7 +1,7 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import { useAuthoringClient } from '@/composables/client.js';
+import { useUserSearch } from '@/composables/user-search.js';
 import TextInput from '../widgets/TextInput.vue';
 import PushButton from '../widgets/PushButton.vue';
 
@@ -10,45 +10,24 @@ defineProps({
     currentDelegateUser: { type: String, default: null },
 });
 
-// 'apply' carries { subject, label }: subject is sent to the API, label is shown in the UI.
+// 'apply' carries { subject, label, mode }: subject is sent to the API, label is shown in the UI,
+// and mode is 'simulate' (run dialogues against a copy of the user's variables, #411) or 'act'
+// (act on their behalf for real).
 const emit = defineEmits(['close', 'apply', 'clear']);
 
-const client = useAuthoringClient();
+const inputMode = ref('search'); // 'search' | 'raw'
 
-const mode = ref('search'); // 'search' | 'raw'
-
-const query = ref('');
-const results = ref([]);          // [{ username, subject }]
+const { query, results, loading, loadError, search, refresh } = useUserSearch();
 const selected = ref(null);       // { username, subject }
-const loading = ref(false);
-const loadError = ref(false);
 const rawSubject = ref('');
 
-let searchTimer = null;
-let searchSeq = 0;
-// Set when pick() writes the chosen username back into `query`, so the watcher below
+// A user only ever seen as a delegate has no username: show the subject instead.
+const labelOf = (row) => row.username ?? row.subject;
+
+// Set when pick() writes the chosen user's label back into `query`, so the watcher below
 // doesn't treat that programmatic write as the user editing the field (which would clear
 // the selection and re-disable Apply).
 let suppressQueryWatch = false;
-
-function runSearch() {
-    const seq = ++searchSeq;
-    loading.value = true;
-    loadError.value = false;
-    client.listUsers({ usernameFragment: query.value.trim() })
-        .then((rows) => {
-            if (seq !== searchSeq) return;
-            results.value = rows;
-        })
-        .catch(() => {
-            if (seq !== searchSeq) return;
-            results.value = [];
-            loadError.value = true;
-        })
-        .finally(() => {
-            if (seq === searchSeq) loading.value = false;
-        });
-}
 
 watch(query, () => {
     if (suppressQueryWatch) {
@@ -56,30 +35,31 @@ watch(query, () => {
         return;
     }
     selected.value = null;
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(runSearch, 250);
+    search();
 });
 
-onMounted(runSearch);
+onMounted(refresh);
 
 function pick(row) {
     selected.value = row;
-    if (query.value !== row.username) {
+    if (query.value !== labelOf(row)) {
         suppressQueryWatch = true;
-        query.value = row.username;
+        query.value = labelOf(row);
     }
 }
 
-function onApply() {
-    if (mode.value === 'raw') {
+function onApply(mode) {
+    if (inputMode.value === 'raw') {
         const subject = rawSubject.value.trim();
-        if (subject) emit('apply', { subject, label: subject });
+        if (subject) emit('apply', { subject, label: subject, mode });
         return;
     }
     if (selected.value) {
-        emit('apply', { subject: selected.value.subject, label: selected.value.username });
+        emit('apply', { subject: selected.value.subject, label: labelOf(selected.value), mode });
     }
 }
+
+const canApply = computed(() => (inputMode.value === 'search' ? !!selected.value : !!rawSubject.value.trim()));
 
 function onClear() {
     emit('clear');
@@ -105,8 +85,8 @@ function onClear() {
                 <!-- Content -->
                 <div class="px-5 py-5 flex flex-col gap-4">
                     <p class="font-title text-sm text-grey-dark">
-                        When a delegate user is set, all dialogue interactions will be executed on behalf of that user.
-                        Leave empty to act as yourself.
+                        <strong>Simulate</strong> runs dialogues for that user against a copy of their variables: nothing of theirs is changed.
+                        <strong>Act as</strong> runs dialogues and changes variables on their behalf, for real.
                     </p>
 
                     <div v-if="currentDelegateUser" class="flex items-center gap-2 bg-orange-light/20 border border-orange-medium/40 rounded-lg px-4 py-2 font-title text-sm text-orange-darker">
@@ -116,27 +96,27 @@ function onClear() {
 
                     <div class="flex gap-1 text-xs font-title">
                         <button type="button" class="px-2 py-1 rounded"
-                            :class="mode === 'search' ? 'bg-orange-dark text-white' : 'bg-grey-lighter text-grey-dark hover:bg-grey-light'"
-                            @click="mode = 'search'">Search by username</button>
+                            :class="inputMode === 'search' ? 'bg-orange-dark text-white' : 'bg-grey-lighter text-grey-dark hover:bg-grey-light'"
+                            @click="inputMode = 'search'">Search by username</button>
                         <button type="button" class="px-2 py-1 rounded"
-                            :class="mode === 'raw' ? 'bg-orange-dark text-white' : 'bg-grey-lighter text-grey-dark hover:bg-grey-light'"
-                            @click="mode = 'raw'">Enter subject (UUID)</button>
+                            :class="inputMode === 'raw' ? 'bg-orange-dark text-white' : 'bg-grey-lighter text-grey-dark hover:bg-grey-light'"
+                            @click="inputMode = 'raw'">Enter subject (UUID)</button>
                     </div>
 
                     <!-- Search mode -->
-                    <div v-if="mode === 'search'">
+                    <div v-if="inputMode === 'search'">
                         <label class="block font-title font-bold text-sm text-orange-darker mb-1">Delegate Username</label>
                         <TextInput
                             class="w-full"
                             v-model="query"
-                            placeholder="Type a username..."
-                            @keyup.enter="onApply"
+                            placeholder="Type a username or subject..."
+                            @keyup.enter="onApply('simulate')"
                         />
                         <div class="mt-2 border border-grey-light rounded-lg max-h-52 overflow-y-auto divide-y divide-grey-lighter">
                             <div v-if="loading" class="px-3 py-2 text-xs text-grey-dark font-title">Searching…</div>
                             <div v-else-if="loadError" class="px-3 py-2 text-xs text-red-dark font-title">Could not load the user list.</div>
                             <div v-else-if="results.length === 0" class="px-3 py-2 text-xs text-grey-dark font-title">
-                                No known users match. Only users who have run at least one dialogue on this service appear here — use "Enter subject" for anyone else.
+                                No known users match. Only users this service has seen appear here — use "Enter subject" for anyone else.
                             </div>
                             <button
                                 v-for="row in results"
@@ -146,7 +126,8 @@ function onClear() {
                                 :class="selected && selected.subject === row.subject ? 'bg-orange-light/25' : ''"
                                 @click="pick(row)"
                             >
-                                <span class="font-semibold text-orange-darker">{{ row.username }}</span>
+                                <span v-if="row.username" class="font-semibold text-orange-darker">{{ row.username }}</span>
+                                <span v-else class="italic text-grey-dark">no username</span>
                                 <span class="font-mono text-[10px] text-grey-medium truncate">{{ row.subject }}</span>
                             </button>
                         </div>
@@ -162,7 +143,7 @@ function onClear() {
                             class="w-full font-mono"
                             v-model="rawSubject"
                             placeholder="e.g. 8f0b…-…"
-                            @keyup.enter="onApply"
+                            @keyup.enter="onApply('simulate')"
                         />
                     </div>
                 </div>
@@ -180,11 +161,20 @@ function onClear() {
                     <div v-else></div>
                     <div class="flex gap-3">
                         <button class="px-4 py-2 rounded font-title text-sm text-grey-dark border border-grey-light hover:bg-grey-light cursor-pointer" @click="emit('close')">Cancel</button>
+                        <button
+                            type="button"
+                            class="px-4 py-2 rounded font-title text-sm border cursor-pointer"
+                            :class="canApply ? 'text-orange-darker border-orange-medium/60 hover:bg-orange-light/30' : 'text-grey-medium border-grey-light cursor-not-allowed'"
+                            :disabled="!canApply"
+                            data-test="act-as"
+                            @click="onApply('act')"
+                        >Act as</button>
                         <PushButton
-                            text="Apply"
+                            text="Simulate as"
                             variant="green"
-                            :disabled="mode === 'search' ? !selected : !rawSubject.trim()"
-                            @click="onApply"
+                            :disabled="!canApply"
+                            data-test="simulate-as"
+                            @click="onApply('simulate')"
                         />
                     </div>
                 </div>

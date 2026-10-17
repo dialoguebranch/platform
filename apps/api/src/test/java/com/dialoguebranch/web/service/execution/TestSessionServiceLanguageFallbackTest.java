@@ -1,6 +1,5 @@
 package com.dialoguebranch.web.service.execution;
 
-import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
 import com.dialoguebranch.web.service.project.ProjectService;
@@ -11,13 +10,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.ZoneId;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
- * Draft test sessions ({@code /draft/start}) should resolve languages the same way published
+ * Test sessions ({@code /test-session/start}) should resolve languages the same way published
  * dialogues do ({@link UserService#findExactLanguageMatch}): an exact match if the dialogue has
  * content in the requested language, otherwise a silent fall back to the source language — not a
  * 400. This covers both "no draft translation exists for this dialogue yet" and "the requested
@@ -27,10 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  */
 @SpringBootTest
 @ActiveProfiles("test")
-class DraftExecutionServiceLanguageFallbackTest {
-
-	@Autowired
-	private Application application;
+class TestSessionServiceLanguageFallbackTest {
 
 	@Autowired
 	private ProjectService projectService;
@@ -39,7 +36,7 @@ class DraftExecutionServiceLanguageFallbackTest {
 	private DraftDialogueService draftDialogueService;
 
 	@Autowired
-	private DraftExecutionService draftExecutionService;
+	private TestSessionService testSessionService;
 
 	@Test
 	void requestingUntranslatedLanguageFallsBackToSourceLanguage() throws Exception {
@@ -48,18 +45,19 @@ class DraftExecutionServiceLanguageFallbackTest {
 				"English");
 		DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, "main");
 		draftDialogueService.createNode(dialogue, "Start",
-				"title: Start\nspeaker: Agent\nposition: 0,0", "Hello.");
+				"title: Start\nspeaker: Agent\nposition: 0,0", "Hello.\n[[Next|Second]]");
+		draftDialogueService.createNode(dialogue, "Second",
+				"title: Second\nspeaker: Agent\nposition: 0,0", "Bye.");
 
-		ApplicationManager applicationManager = application.getApplicationManager();
 		DialogueBranchUserId userId = new DialogueBranchUserId(
 				"https://test/realms/test", "draft-lang-fallback-user-" + UUID.randomUUID(), null);
-		UserService userService = applicationManager.getOrCreateActiveUserService(userId);
 
-		DraftExecutionService.StartResult result =
-				draftExecutionService.startSession(userService, project, dialogue, "nl-NL", null);
+		TestSessionService.StartResult result =
+				testSessionService.startSession(userId, userId, false, project, dialogue,
+						"nl-NL", null, ZoneId.of("UTC"));
 
 		assertNotNull(result);
-		DraftTestSession session = draftExecutionService.getSession(result.sessionId());
+		TestSession session = testSessionService.getSession(result.sessionId(), userId);
 		assertEquals("en", session.getActiveDialogue().getDialogueFileDescription().getLanguage(),
 				"requesting a language this dialogue has no draft translation for should fall " +
 						"back to the source language rather than failing the request");

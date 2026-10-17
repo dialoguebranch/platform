@@ -32,6 +32,8 @@ import com.dialoguebranch.web.service.storage.model.DBUser;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -53,16 +55,24 @@ public interface DBUserRepository extends JpaRepository<DBUser, UUID> {
 	Optional<DBUser> findByIssuerAndSubject(String issuer, String subject);
 
 	/**
-	 * Lists the users of the given issuer (realm) whose {@code username} contains the given
-	 * fragment, case-insensitively, ordered by username. Rows with no known username (a delegate
-	 * target that has never authenticated directly) are excluded.
+	 * Lists the users of the given issuer (realm) whose {@code username} or {@code subject}
+	 * contains the given text, case-insensitively: named users first, by username, then users
+	 * with no known username (a delegate target that has never authenticated directly), by
+	 * subject.
 	 *
 	 * @param issuer the token issuer to scope the listing to.
-	 * @param usernameFragment the substring to match (an empty string matches every named user).
+	 * @param search the text to match, in lower case (an empty string matches every user).
 	 * @param pageable the page request.
 	 * @return the matching page of users.
 	 */
-	Page<DBUser> findByIssuerAndUsernameContainingIgnoreCaseOrderByUsernameAsc(
-			String issuer, String usernameFragment, Pageable pageable);
+	@Query(value = "select u from DBUser u where u.issuer = :issuer and "
+			+ "(lower(u.username) like concat('%', :search, '%') "
+			+ "or lower(u.subject) like concat('%', :search, '%')) "
+			+ "order by case when u.username is null then 1 else 0 end, u.username, u.subject",
+			countQuery = "select count(u) from DBUser u where u.issuer = :issuer and "
+			+ "(lower(u.username) like concat('%', :search, '%') "
+			+ "or lower(u.subject) like concat('%', :search, '%'))")
+	Page<DBUser> search(@Param("issuer") String issuer, @Param("search") String search,
+			Pageable pageable);
 
 }

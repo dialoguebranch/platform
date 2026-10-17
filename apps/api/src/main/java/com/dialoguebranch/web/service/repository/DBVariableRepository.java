@@ -32,7 +32,11 @@ import com.dialoguebranch.web.service.storage.model.DBProject;
 import com.dialoguebranch.web.service.storage.model.DBUser;
 import com.dialoguebranch.web.service.storage.model.DBVariable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -62,5 +66,69 @@ public interface DBVariableRepository extends JpaRepository<DBVariable, UUID> {
 	 * @return an {@link Optional} containing the matching {@link DBVariable}, or empty if none exists.
 	 */
 	Optional<DBVariable> findByUserAndProjectAndName(DBUser user, DBProject project, String name);
+
+
+	/**
+	 * Deletes all users' variables in the given project, when a project is deleted with its users'
+	 * variables (#315).
+	 *
+	 * @param project the project.
+	 * @return the number of variables deleted.
+	 */
+	@Modifying
+	@Query("delete from DBVariable v where v.project = :project")
+	int deleteByProject(@Param("project") DBProject project);
+
+
+	/**
+	 * Counts the users that have variables in the given project (#403).
+	 *
+	 * @param project the project.
+	 * @return the number of users with variables in it.
+	 */
+	@Query("select count(distinct v.user) from DBVariable v where v.project = :project")
+	long countUsersByProject(@Param("project") DBProject project);
+
+	/** The project and time zone of one of a user's variables. */
+	interface ProjectTimeZone {
+
+		/** @return the slug of the variable's project. */
+		String getProjectSlug();
+
+		/** @return the time zone the variable was last updated in, if known. */
+		String getTimeZone();
+	}
+
+	/**
+	 * Lists the project and time zone of each of the given user's variables, in every project,
+	 * when the user's data is erased (#320).
+	 *
+	 * @param user the user.
+	 * @return one entry per variable.
+	 */
+	@Query("select v.project.slug as projectSlug, v.updatedTimeZone as timeZone "
+			+ "from DBVariable v where v.user = :user")
+	List<ProjectTimeZone> findProjectTimeZonesByUser(@Param("user") DBUser user);
+
+	/**
+	 * Deletes all variables of the given user, in every project, when the user's data is erased
+	 * (#320).
+	 *
+	 * @param user the user.
+	 * @return the number of variables deleted.
+	 */
+	@Modifying
+	@Query("delete from DBVariable v where v.user = :user")
+	int deleteByUser(@Param("user") DBUser user);
+
+	/**
+	 * Counts the variables of each of the given users, in every project, for the {@code /users}
+	 * listing.
+	 *
+	 * @param users the users.
+	 * @return one {@code [user id, count]} row per user that has variables.
+	 */
+	@Query("select v.user.id, count(v) from DBVariable v where v.user in :users group by v.user.id")
+	List<Object[]> countByUsers(@Param("users") Collection<DBUser> users);
 
 }

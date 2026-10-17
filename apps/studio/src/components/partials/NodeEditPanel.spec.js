@@ -73,6 +73,29 @@ async function save(wrapper) {
 
 const savedTags = () => authoring.updateDraftNode.mock.calls.at(-1)[3];
 
+describe('NodeEditPanel speaker', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        authoring.updateDraftNode.mockImplementation(async (slug, dialogue, title, tags, body) =>
+            ({ title, tags, body }));
+    });
+
+    it('refuses the reserved speaker name _user without saving', async () => {
+        const wrapper = mountPanel();
+        await wrapper.find('[data-test="node-speaker"]').setValue(' _user ');
+        await save(wrapper);
+        expect(authoring.updateDraftNode).not.toHaveBeenCalled();
+        expect(wrapper.text()).toContain('Speaker name "_user" is reserved');
+    });
+
+    it('saves a similar speaker name', async () => {
+        const wrapper = mountPanel();
+        await wrapper.find('[data-test="node-speaker"]').setValue('_User');
+        await save(wrapper);
+        expect(savedTags().find((tag) => tag.key === 'speaker').value).toBe('_User');
+    });
+});
+
 describe('NodeEditPanel comment', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -106,5 +129,39 @@ describe('NodeEditPanel comment', () => {
         expect(wrapper.find('[data-test="node-comment"]').element.value).toBe('');
         await save(wrapper);
         expect(savedTags().some((tag) => tag.key === 'comment')).toBe(false);
+    });
+});
+
+// The body's "insert statement" menu, a ContextMenu (#389).
+describe('NodeEditPanel insert menu', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it('opens on right-click in the body and inserts the chosen snippet at the cursor', async () => {
+        const wrapper = mountPanel();
+        const textarea = wrapper.find('textarea');
+        textarea.element.setSelectionRange(0, 0);
+        await textarea.trigger('contextmenu', { clientX: 50, clientY: 60 });
+        await flushPromises();
+        const menu = wrapper.find('[data-test="context-menu"]');
+        expect(menu.exists()).toBe(true);
+        await menu.findAll('[role="menuitem"]').find((b) => b.text() === 'Random options').trigger('click');
+        await flushPromises();
+        const body = wrapper.find('textarea').element.value;
+        expect(body.startsWith('<<random>>')).toBe(true);
+        expect(body).toContain('Hello.');
+        expect(wrapper.find('[data-test="context-menu"]').exists()).toBe(false);
+    });
+
+    it('offers submenus, such as the kinds of user input', async () => {
+        const wrapper = mountPanel();
+        await wrapper.find('textarea').trigger('contextmenu', { clientX: 50, clientY: 60 });
+        await flushPromises();
+        const userInput = wrapper.findAll('[role="menuitem"]').find((b) => b.text() === 'User input');
+        expect(userInput.attributes('aria-haspopup')).toBe('menu');
+        await userInput.trigger('click');
+        await flushPromises();
+        expect(wrapper.findAll('[role="menuitem"]').map((b) => b.text())).toContain('Multiple choice');
     });
 });

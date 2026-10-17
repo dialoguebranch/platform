@@ -97,42 +97,34 @@ sequenceDiagram
 Once a token is validated, the Web Service reads the caller's username from the JWT's `preferred_username` claim, and their roles from the JWT's `resource_access` → `<client-id>` → `roles` claim, where `<client-id>` is the deployment's configured `dlb.auth.keycloak.client-id` (`dlb-web-service` by default) — i.e. **client roles** configured on that client in Keycloak (not Keycloak realm roles). Four roles are recognised:
 
 * `participant` — may execute dialogues (`/dialogue/*`) and read/write their own Dialogue Branch Variables (`/variables/*`).
-* `editor` — everything `participant` can do, plus authoring and publishing dialogue content (`/authoring/*`, `/publish/*`, `/draft/*`) and listing dialogues in a project (`/dialogue/list-dialogues`).
-* `admin` — everything `editor` can do, plus managing projects (`/project/*`), reading technical service information (`/info/technical`), and acting *on behalf of* another user by passing the optional `delegateUser` parameter present on most end-points.
+* `editor` — everything `participant` can do, plus authoring and publishing dialogue content (`/authoring/*`, `/publish/*`, `/test-session/*`) and listing dialogues in a project (`/dialogue/list-dialogues`).
+* `admin` — everything `editor` can do, plus managing projects (`/project/*`), reading technical service information (`/info/technical`), and acting *on behalf of* another user by passing the optional `delegateUser` parameter present on most end-points (see [Acting on behalf of another user](#acting-on-behalf-of-another-user)).
 * `supervisor` — everything `participant` can do, plus *reading* another user's data by passing `delegateUser` on the read-only end-points: their variables (`/variables/get`), variable history (`/variables/history`) and dialogue logs (`/log/get-session`, `/log/verify-id`). A supervisor can never act on another user's behalf (run dialogues or set variables for them), and has no authoring or administration rights. Typical holders are users who follow other users' progress, such as caregivers, coaches or teachers. Which users a supervisor may read is not restricted beyond the caller's own realm; a deployment that needs finer rules enforces them in front of the Web Service.
 
 Internally each role maps to a fixed set of permissions, and every end-point requires one specific permission. A caller whose token is valid but whose roles do not grant the required permission gets a `403 Forbidden` response with error code `INSUFFICIENT_PRIVILEGES`. (A missing, expired, or otherwise invalid token is rejected earlier, with `401 Unauthorized`.)
 
-This `delegateUser` mechanism may be used e.g. in a scenario where "clients" don't directly interact with the Dialogue Branch Web Service, but instead connect through a trusted server component that manages a single connection (see Figure below).
+### Acting on behalf of another user
 
-```mermaid
-flowchart LR
-    subgraph Left["Authenticate with a regular 'user' for each client"]
-        direction LR
-        C1["Client #1"]
-        C2["Client .."]
-        C3["Client #n"]
-        WS1["Dialogue Branch Web Service"]
-        C1 <--> WS1
-        C2 <--> WS1
-        C3 <--> WS1
-    end
+An `admin` can pass `delegateUser` (the other user's `subject`, within the admin's own realm) to act on that user's behalf. This is a powerful operation, meant for testing and support:
 
-    subgraph Right["Authenticate with a single 'admin' user, on behalf of a 'delegateUser'"]
-        direction LR
-        D1["Client #1"]
-        D2["Client .."]
-        D3["Client #n"]
-        TSC["Trusted Server Component"]
-        WS2["Dialogue Branch Web Service"]
-        D1 <--> TSC
-        D2 <--> TSC
-        D3 <--> TSC
-        TSC <--> WS2
-    end
-```
+1. **Testing with a test user**, for example one without any variables yet. Changing that user's data is the point.
+2. **Investigating a real user's problem**, by going through dialogues as they would. Here nothing of theirs should change, so *simulate* the user instead (see below).
+3. **Deliberately fixing a user's data**, for example setting a variable so that a dialogue stops being offered to them.
 
-*The two modes of authentication. Left: multiple clients authenticate directly "as themselves" with the Web Service. Right: a trusted server component authenticates as an "admin" user, on behalf of multiple "delegateUsers".*
+Acting on someone's behalf for real, on `/dialogue/*` and `/variables/set*`, changes that user's real data:
+
+* the dialogues run, and the variables changed, become part of **their own** dialogue logs, variables and variable history, indistinguishable from their own actions;
+* a configured [External Variable Service](/web-services/external-variable-service) is told about the changes as if the user made them;
+* it can interfere with a dialogue the user has ongoing themselves.
+
+Their time zone is left alone: on a delegated write the `timeZone` parameter is ignored (see [Known Users](/web-services/api-service#known-users)).
+
+Two ways to use `delegateUser` change nothing of the other user's:
+
+* **Reading their data**: `/variables/get`, `/variables/history`, `/log/get-session` and `/log/verify-id`. This needs only the `USER_DELEGATE_READ` permission, which the `supervisor` role also has.
+* **Simulating them**: a test session (`/test-session/*`, see the [Authoring API](/web-services/api-service#authoring-api)) started with `delegateUser` runs against a copy of their variables. Their stored variables are only read, to seed the copy, and nothing is written back. Dialogue Branch Studio offers this as *Simulate as*.
+
+A backend that serves many end users should not use one `admin` account to act for all of them. Instead, it lets each user authenticate and forwards that user's own access token to the Web Service, as Dialogue Branch Studio's [BFF](/web-services/bff-service) does: each request is then made by the user it is about, with that user's own role.
 
 ## Public End-Points
 

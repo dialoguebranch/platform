@@ -91,8 +91,11 @@ public enum Permission {
 	 */
 	DIALOGUE_AUTHOR,
 
-	/** Run a dialogue against its unpublished draft: {@code /draft/start|progress|cancel|revert-variables}. */
-	DIALOGUE_DRAFT_TEST,
+	/**
+	 * Test-run a dialogue against a copy of the variables: all of {@code /test-session/*}
+	 * ({@code start|progress|cancel|variables|set-variable|reset}).
+	 */
+	DIALOGUE_TEST,
 
 	/** Inspect publication state: {@code /publish/list-versions|next-version|verify}. */
 	PUBLISH_READ,
@@ -142,7 +145,13 @@ public enum Permission {
 	 * read-only}. Unlike {@link #USER_DELEGATE}, it never allows acting on the other user's behalf
 	 * (#326).
 	 */
-	USER_DELEGATE_READ;
+	USER_DELEGATE_READ,
+
+	/**
+	 * Erase everything this service stores about a user — variables, variable history, dialogue
+	 * logs and the user itself: {@code /users/erase-user} (#320).
+	 */
+	USER_ERASE;
 
 	private final boolean readOnly;
 

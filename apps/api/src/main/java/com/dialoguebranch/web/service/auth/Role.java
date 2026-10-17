@@ -86,7 +86,7 @@ public final class Role {
 				Permission.PROJECT_READ,
 				Permission.VARIABLE_INSPECT_PROJECT,
 				Permission.DIALOGUE_AUTHOR,
-				Permission.DIALOGUE_DRAFT_TEST,
+				Permission.DIALOGUE_TEST,
 				Permission.PUBLISH_READ));
 
 		EnumSet<Permission> admin = EnumSet.copyOf(editor);
@@ -100,7 +100,8 @@ public final class Role {
 				Permission.SERVICE_INFO_TECHNICAL,
 				Permission.USER_LIST,
 				Permission.USER_DELEGATE,
-				Permission.USER_DELEGATE_READ));
+				Permission.USER_DELEGATE_READ,
+				Permission.USER_ERASE));
 
 		EnumSet<Permission> supervisor = EnumSet.copyOf(participant);
 		supervisor.add(Permission.USER_DELEGATE_READ);

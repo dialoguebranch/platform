@@ -34,6 +34,12 @@
 export const RESERVED_HEADER_TAGS = ['title', 'speaker', 'position', 'colorId', 'comment'];
 
 /**
+ * The speaker name of the user in translation files, reserved so no node can have it as its
+ * speaker (#383), matching {@code DialogueBranchConstants.DLB_USER_SPEAKER} in packages/core.
+ */
+export const USER_SPEAKER = '_user';
+
+/**
  * Turns a node's header tags, as the Web Service sends them (an ordered list of `{ key, value }`,
  * see `DialogueBranchAuthoringClient.listDraftNodes`), into an ordered Map of tag name to value,
  * for looking up and changing tags. If a key appears more than once, its first occurrence wins.

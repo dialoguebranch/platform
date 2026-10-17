@@ -5,6 +5,10 @@ import { useAuthoringClient } from '@/composables/client.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
 import { useLatestRequest } from '@/composables/latest-request.js';
+import {
+    findStaleEntries, withoutEntries, findStoredText, withTranslation, findContextVariants,
+} from '@/authoring/DlbTranslations.js';
+import StaleTranslationsModal from './StaleTranslationsModal.vue';
 
 // Pure content component — no header of its own, same as DialogueEditor. It's only ever embedded
 // in DialogueWorkspace.vue's "translate" mode.
@@ -48,28 +52,50 @@ const visibleColumns = computed(() => {
         .filter(Boolean);
 });
 
-function cellKey(speaker, term, language) {
-    return speaker + ' ' + term + ' ' + language;
+// A cell is a term's translation for a speaker in one language, either the speaker's own or a
+// gender-specific one in a nested context group (contexts: that group's keys, empty for none).
+// Cells match stored entries on whitespace-normalised text, the way the Translator does, so an
+// entry stored with a line break in its source text still shows, and editing it replaces it
+// instead of adding a second entry next to it (#386).
+function cellKey(speaker, term, language, contexts = []) {
+    return [speaker, ...contexts, term, language].join(' ');
 }
 
-function cellValue(speaker, term, language) {
-    return content.value[language]?.[speaker]?.[term] ?? '';
+function cellValue(speaker, term, language, contexts = []) {
+    const languageContent = content.value[language];
+    const storedText = findStoredText(languageContent, speaker, contexts, term);
+    if (storedText === null) return '';
+    let group = languageContent[speaker];
+    for (const context of contexts) group = group[context];
+    return group[storedText];
 }
 
-function setCellValue(speaker, term, language, value) {
-    const next = { ...content.value };
-    next[language] = { ...(next[language] ?? {}) };
-    next[language][speaker] = { ...(next[language][speaker] ?? {}), [term]: value };
-    content.value = next;
+function setCellValue(speaker, term, language, value, contexts = []) {
+    content.value = {
+        ...content.value,
+        [language]: withTranslation(content.value[language], speaker, contexts, term, value),
+    };
 }
 
-function onCellInput(speaker, term, language, event) {
-    setCellValue(speaker, term, language, event.target.value);
-    dirtyCells.value = new Set([...dirtyCells.value, cellKey(speaker, term, language)]);
+// The gender-specific translations of a term for a speaker, in any translation language, each as
+// the keys of its context groups (#386). Each is shown as a sub-row under the term.
+function contextVariants(speaker, term) {
+    const seen = new Map();
+    for (const language of translationLanguages.value) {
+        for (const contexts of findContextVariants(content.value[language.code], speaker, term)) {
+            seen.set(contexts.join(' '), contexts);
+        }
+    }
+    return [...seen.values()];
 }
 
-function submitCell(speaker, term, language) {
-    const key = cellKey(speaker, term, language);
+function onCellInput(speaker, term, language, event, contexts = []) {
+    setCellValue(speaker, term, language, event.target.value, contexts);
+    dirtyCells.value = new Set([...dirtyCells.value, cellKey(speaker, term, language, contexts)]);
+}
+
+function submitCell(speaker, term, language, contexts = []) {
+    const key = cellKey(speaker, term, language, contexts);
     if (!dirtyCells.value.has(key)) return;
     const projectSlug = state.value.selectedProject?.slug;
     savingCells.value = new Set([...savingCells.value, key]);
@@ -108,6 +134,42 @@ function groupedTerms(termList) {
 }
 
 const groups = ref([]);
+const terms = ref([]); // [{ speaker, term }], as listed by the Web Service
+
+// ---- Stale entries (#375) ----
+// Entries of a language's translation that match no term of the dialogue (on speaker and text).
+// The Translator never uses them, and the rows above never show them, so they're listed here,
+// for every translation language, not only the visible columns.
+
+const staleSections = computed(() => translationLanguages.value
+    .map((language) => ({
+        language,
+        entries: findStaleEntries(content.value[language.code] ?? {}, terms.value),
+    }))
+    .filter((section) => section.entries.length > 0));
+const staleCount = computed(() =>
+    staleSections.value.reduce((count, section) => count + section.entries.length, 0));
+const showStale = ref(false);
+const deletingStale = ref(false);
+
+function deleteStaleEntries({ languageCode, entries }) {
+    const projectSlug = state.value.selectedProject?.slug;
+    const next = withoutEntries(content.value[languageCode] ?? {}, entries);
+    deletingStale.value = true;
+    dismissError();
+    client.updateDraftTranslation(projectSlug, props.dialogueName, languageCode, JSON.stringify(next))
+        .then(() => {
+            content.value = { ...content.value, [languageCode]: next };
+            // As for a saved cell: the dialogue is now changed, which the Dialogue Browser shows.
+            emit('dialogueSaved');
+        })
+        .catch((error) => {
+            showError(describeError(error));
+        })
+        .finally(() => {
+            deletingStale.value = false;
+        });
+}
 
 // TranslationEditor is a single persistent instance reused across tabs (see DialogueWorkspace.vue),
 // so switching to a different dialogue before a fetch resolves must not let a stale response
@@ -116,6 +178,8 @@ const { next: nextLoadRequest, isCurrent: isCurrentLoadRequest } = useLatestRequ
 
 function loadTranslations() {
     groups.value = [];
+    terms.value = [];
+    showStale.value = false;
     translationLanguages.value = [];
     content.value = {};
     dirtyCells.value = new Set();
@@ -145,6 +209,7 @@ function loadTranslations() {
             }));
         translationLanguages.value = languages;
         groups.value = groupedTerms(extractedTerms);
+        terms.value = extractedTerms;
 
         // Keep the current column selections if they're still valid (e.g. just switching tabs
         // within the same project); only fall back to defaults if a language disappeared or
@@ -204,6 +269,13 @@ defineExpose({
 
 <template>
     <div class="relative h-full overflow-auto">
+        <StaleTranslationsModal
+            v-if="showStale"
+            :sections="staleSections"
+            :saving="deletingStale"
+            @close="showStale = false"
+            @delete="deleteStaleEntries"
+        />
         <div v-if="!dialogueName" class="flex items-center justify-center h-full text-grey-dark font-title text-sm p-2">
             Open a dialogue from the Dialogue Browser to start translating.
         </div>
@@ -252,27 +324,45 @@ defineExpose({
                         <option v-for="lang in column3Options" :key="lang.code" :value="lang.code">{{ lang.name }}</option>
                     </select>
                 </div>
+                <button
+                    v-if="staleCount > 0"
+                    type="button"
+                    class="ml-auto flex items-center gap-1.5 h-7 px-2 rounded border border-orange-medium/60 bg-orange-light/20 text-xs font-title text-orange-darker hover:bg-orange-light/40 cursor-pointer"
+                    title="Translation entries that match no text of this dialogue"
+                    data-test="stale-entries-button"
+                    @click="showStale = true"
+                >
+                    <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" />
+                    Stale entries ({{ staleCount }})
+                </button>
             </div>
             <div class="flex flex-col gap-4 p-2">
                 <div v-for="group in groups" :key="group.speaker" class="flex flex-col gap-1">
                     <div class="font-title font-black text-xs uppercase tracking-wide text-orange-darker">{{ group.speaker }}</div>
-                    <div v-for="term in group.terms" :key="term" class="grid gap-2 items-start bg-grey-lighter rounded p-2"
-                        :style="{ gridTemplateColumns: `minmax(160px, 1fr) repeat(${visibleColumns.length}, minmax(160px, 1fr))` }">
-                        <div class="font-title text-xs text-grey-dark self-center pt-1.5">{{ term }}</div>
-                        <div v-for="lang in visibleColumns" :key="lang.code" class="flex items-center gap-1">
-                            <input
-                                type="text"
-                                :value="cellValue(group.speaker, term, lang.code)"
-                                :title="lang.name"
-                                class="flex-1 min-w-0 font-title text-xs px-1.5 py-1 border border-grey-light rounded bg-white focus:outline-none focus:border-orange-dark"
-                                @input="onCellInput(group.speaker, term, lang.code, $event)"
-                                @keyup.enter="submitCell(group.speaker, term, lang.code)"
-                                @blur="submitCell(group.speaker, term, lang.code)"
-                            />
-                            <FontAwesomeIcon v-if="savingCells.has(cellKey(group.speaker, term, lang.code))"
-                                icon="fa-solid fa-circle-notch" class="animate-spin text-grey-dark w-3" />
-                            <FontAwesomeIcon v-else-if="dirtyCells.has(cellKey(group.speaker, term, lang.code))"
-                                icon="fa-solid fa-circle" class="text-orange-medium w-2" title="Unsaved change" />
+                    <div v-for="term in group.terms" :key="term" class="flex flex-col gap-1 bg-grey-lighter rounded p-2">
+                        <div v-for="contexts in [[], ...contextVariants(group.speaker, term)]" :key="contexts.join(' ')"
+                            class="grid gap-2 items-start"
+                            :data-test="contexts.length ? 'context-row' : 'term-row'"
+                            :style="{ gridTemplateColumns: `minmax(160px, 1fr) repeat(${visibleColumns.length}, minmax(160px, 1fr))` }">
+                            <div v-if="contexts.length === 0" class="font-title text-xs text-grey-dark self-center pt-1.5">{{ term }}</div>
+                            <div v-else class="font-title text-[11px] text-orange-darker self-center pl-3" title="A gender-specific translation of the text above">
+                                ↳ {{ contexts.join(', ') }}
+                            </div>
+                            <div v-for="lang in visibleColumns" :key="lang.code" class="flex items-center gap-1">
+                                <input
+                                    type="text"
+                                    :value="cellValue(group.speaker, term, lang.code, contexts)"
+                                    :title="lang.name"
+                                    class="flex-1 min-w-0 font-title text-xs px-1.5 py-1 border border-grey-light rounded bg-white focus:outline-none focus:border-orange-dark"
+                                    @input="onCellInput(group.speaker, term, lang.code, $event, contexts)"
+                                    @keyup.enter="submitCell(group.speaker, term, lang.code, contexts)"
+                                    @blur="submitCell(group.speaker, term, lang.code, contexts)"
+                                />
+                                <FontAwesomeIcon v-if="savingCells.has(cellKey(group.speaker, term, lang.code, contexts))"
+                                    icon="fa-solid fa-circle-notch" class="animate-spin text-grey-dark w-3" />
+                                <FontAwesomeIcon v-else-if="dirtyCells.has(cellKey(group.speaker, term, lang.code, contexts))"
+                                    icon="fa-solid fa-circle" class="text-orange-medium w-2" title="Unsaved change" />
+                            </div>
                         </div>
                     </div>
                 </div>

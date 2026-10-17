@@ -31,6 +31,7 @@ package com.dialoguebranch.web.service.repository;
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -49,5 +50,37 @@ public interface DBProjectRepository extends JpaRepository<DBProject, UUID> {
 	 * project with the given slug exists.
 	 */
 	Optional<DBProject> findBySlug(String slug);
+
+
+	/**
+	 * Finds the project with the given slug that wasn't deleted (#315).
+	 *
+	 * @param slug the URL-friendly unique identifier of the project.
+	 * @return the matching project, or empty if there is none or it was deleted.
+	 */
+	Optional<DBProject> findBySlugAndIsDeletedFalse(String slug);
+
+	/**
+	 * Finds all projects that weren't deleted (#315).
+	 *
+	 * @return the projects that weren't deleted.
+	 */
+	List<DBProject> findByIsDeletedFalse();
+
+
+	/**
+	 * Finds all deleted projects, most recently deleted first (#403).
+	 *
+	 * @return the deleted projects.
+	 */
+	List<DBProject> findByIsDeletedTrueOrderByDeletedAtDesc();
+
+	/**
+	 * Finds the deleted project with the given slug (#403).
+	 *
+	 * @param slug the slug the project was given when deleted.
+	 * @return the matching deleted project, or empty.
+	 */
+	Optional<DBProject> findBySlugAndIsDeletedTrue(String slug);
 
 }

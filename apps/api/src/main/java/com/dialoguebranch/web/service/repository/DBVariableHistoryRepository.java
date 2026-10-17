@@ -33,6 +33,7 @@ import com.dialoguebranch.web.service.storage.model.DBUser;
 import com.dialoguebranch.web.service.storage.model.DBVariableHistory;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -108,5 +109,28 @@ public interface DBVariableHistoryRepository extends JpaRepository<DBVariableHis
 	List<DBVariableHistory> findByNameInRangeOrderByIdDesc(@Param("user") DBUser user,
 			@Param("project") DBProject project, @Param("name") String name,
 			@Param("from") long from, @Param("to") long to, Pageable pageable);
+
+
+	/**
+	 * Deletes all users' variable history in the given project, when a project is deleted with its
+	 * users' variables (#315).
+	 *
+	 * @param project the project.
+	 * @return the number of history entries deleted.
+	 */
+	@Modifying
+	@Query("delete from DBVariableHistory h where h.project = :project")
+	int deleteByProject(@Param("project") DBProject project);
+
+	/**
+	 * Deletes the variable history of the given user, in every project, when the user's data is
+	 * erased (#320).
+	 *
+	 * @param user the user.
+	 * @return the number of history entries deleted.
+	 */
+	@Modifying
+	@Query("delete from DBVariableHistory h where h.user = :user")
+	int deleteByUser(@Param("user") DBUser user);
 
 }

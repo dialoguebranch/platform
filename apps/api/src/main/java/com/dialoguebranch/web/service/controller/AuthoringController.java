@@ -33,8 +33,10 @@ import com.dialoguebranch.execution.parser.DialogueBranchParser;
 import com.dialoguebranch.web.service.QueryRunner;
 import com.dialoguebranch.web.service.auth.Permission;
 import com.dialoguebranch.web.service.controller.schema.authoring.*;
+import com.dialoguebranch.web.service.controller.schema.authoring.DiscardedDialogueChanges;
 import com.dialoguebranch.web.service.controller.schema.authoring.DraftNodeResponse;
 import com.dialoguebranch.web.service.controller.schema.authoring.ImportedScript;
+import com.dialoguebranch.web.service.controller.schema.authoring.ImportedTranslation;
 import com.dialoguebranch.web.service.controller.schema.authoring.PreamblePayload;
 import com.dialoguebranch.web.service.controller.schema.authoring.RenameNodeResponse;
 import com.dialoguebranch.web.service.exception.BadRequestException;
@@ -42,9 +44,11 @@ import com.dialoguebranch.web.service.exception.ConflictException;
 import com.dialoguebranch.web.service.exception.HttpException;
 import com.dialoguebranch.web.service.exception.NotFoundException;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
+import com.dialoguebranch.web.service.project.DraftDiscardService;
 import com.dialoguebranch.web.service.project.DraftProjectService;
 import com.dialoguebranch.web.service.project.ProjectService;
 import com.dialoguebranch.web.service.project.ScriptImportService;
+import com.dialoguebranch.web.service.project.TranslationImportService;
 import com.dialoguebranch.web.service.storage.model.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -54,11 +58,15 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 
@@ -89,6 +97,8 @@ public class AuthoringController {
 	private final DraftDialogueService draftDialogueService;
 	private final DraftProjectService draftProjectService;
 	private final ScriptImportService scriptImportService;
+	private final TranslationImportService translationImportService;
+	private final DraftDiscardService draftDiscardService;
 
 	private static final Logger logger = LoggerFactory.getLogger(AuthoringController.class);
 
@@ -102,15 +112,22 @@ public class AuthoringController {
 	 * @param draftProjectService service used to resolve a language code into the project's
 	 *                            registered draft translation language a translation targets.
 	 * @param scriptImportService service that imports {@code .dlb} scripts as draft dialogues.
+	 * @param translationImportService service that imports translation files as draft
+	 *                                 translations.
+	 * @param draftDiscardService service that discards a draft dialogue's changes.
 	 */
 	public AuthoringController(ProjectService projectService,
 							   DraftDialogueService draftDialogueService,
 							   DraftProjectService draftProjectService,
-							   ScriptImportService scriptImportService) {
+							   ScriptImportService scriptImportService,
+							   TranslationImportService translationImportService,
+							   DraftDiscardService draftDiscardService) {
 		this.projectService = projectService;
 		this.draftDialogueService = draftDialogueService;
 		this.draftProjectService = draftProjectService;
 		this.scriptImportService = scriptImportService;
+		this.translationImportService = translationImportService;
+		this.draftDiscardService = draftDiscardService;
 	}
 
 	/**
@@ -152,7 +169,7 @@ public class AuthoringController {
 	}
 
 	/**
-	 * Rejects further editing (or test-running, see {@link DraftExecutionController}) of a
+	 * Rejects further editing (or test-running, see {@link TestSessionController}) of a
 	 * dialogue that is currently pending deletion, until that deletion is reverted via
 	 * {@code /restore-dialogue}.
 	 *
@@ -361,6 +378,50 @@ public class AuthoringController {
 	}
 
 	/**
+	 * Discards a draft dialogue's changes (#363): makes it identical to its latest published
+	 * version again (nodes, headers and positions, preamble, translations, and its published name
+	 * if it was renamed), so it is no longer marked as changed. See {@link
+	 * DraftDiscardService#discardChanges}.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project the dialogue belongs to.
+	 * @param dialogueName the draft name of the dialogue.
+	 * @return the dialogue's name now (its published name) and before.
+	 * @throws HttpException if the project or dialogue does not exist, the dialogue was never
+	 * published or is pending deletion, its published name is taken, a translation language was
+	 * renamed since it was published, or the user is not authorized.
+	 */
+	@Operation(summary = "Discard a draft dialogue's changes, back to its published version.")
+	@Parameter(name = "version", hidden = true)
+	@PostMapping("/discard-dialogue-changes")
+	public DiscardedDialogueChanges discardDialogueChanges(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug,
+			@RequestParam(value = "dialogueName") String dialogueName
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("POST /v{}/authoring/discard-dialogue-changes [user: {}]",
+							version, user);
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					DBDraftDialogue dialogue = draftDialogueService
+							.findDialogue(project, dialogueName)
+							.orElseThrow(() -> new NotFoundException(
+									"Dialogue not found: " + dialogueName));
+					checkNotDeleted(dialogue);
+					return draftDiscardService.discardChanges(project, dialogue);
+				},
+				version, response, "", Permission.DIALOGUE_AUTHOR);
+	}
+
+	/**
 	 * Imports one or more {@code .dlb} scripts into one folder of a project, as draft content
 	 * (#339). Each file becomes the draft dialogue named after the folder and the file name
 	 * without {@code .dlb}. All or nothing: if any file is refused, nothing is imported, and the
@@ -400,6 +461,111 @@ public class AuthoringController {
 							.orElseThrow(() -> new NotFoundException(
 									"Project not found: " + projectSlug));
 					return scriptImportService.importScripts(project, folder, files, replace);
+				},
+				version, response, "", Permission.DIALOGUE_AUTHOR);
+	}
+
+	/**
+	 * Imports one or more translation files ({@code .json}) into a translation language of a
+	 * project, as draft translations (#340). Each file becomes the translation of the existing
+	 * draft dialogue named after the folder and the file name without {@code .json}. All or
+	 * nothing: if any file is refused, nothing is imported, and the error lists the problems per
+	 * file. A file is refused when it isn't a valid translation file (the check of {@code
+	 * /update-translation}, #376), has no translations, or its dialogue doesn't exist or is
+	 * pending deletion. Entries that match no term of the dialogue, and terms without an entry,
+	 * don't refuse a file; they are counted in the result.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project to import into.
+	 * @param language the code of the translation language to import into.
+	 * @param folder the folder of the dialogues; empty for the project root.
+	 * @param files the translation files (UTF-8, at most 1 MB each, at most 100 per import).
+	 * @param replace whether a file may replace a dialogue's existing translation in this
+	 *                language; without it, an existing translation refuses the import.
+	 * @return the result per file.
+	 * @throws HttpException if the project or translation language doesn't exist, the language
+	 * is pending deletion, any file is refused, or the user is not authorized.
+	 */
+	@Operation(summary = "Import translation files into a translation language of a project.")
+	@Parameter(name = "version", hidden = true)
+	@PostMapping(value = "/import-translations", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public List<ImportedTranslation> importTranslations(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug,
+			@RequestParam(value = "language") String language,
+			@RequestParam(value = "folder", defaultValue = "") String folder,
+			@RequestParam(value = "files") List<MultipartFile> files,
+			@RequestParam(value = "replace", defaultValue = "false") boolean replace
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("POST /v{}/authoring/import-translations [user: {}]", version,
+							user);
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					DBDraftTranslationLanguage translationLanguage =
+							resolveTranslationLanguage(project, language);
+					checkNotDeleted(translationLanguage);
+					return translationImportService.importTranslations(project,
+							translationLanguage, folder, files, replace);
+				},
+				version, response, "", Permission.DIALOGUE_AUTHOR);
+	}
+
+	/**
+	 * Exports one draft dialogue as a downloadable {@code .dlb} script (#341): its current
+	 * <em>draft</em> content (what an author sees in Authoring Mode, not the published version),
+	 * with its preamble and nodes in their current order. It is the counterpart of {@code
+	 * /import-scripts}: the file imports again, unchanged, as a dialogue of the same name. The
+	 * dialogue's translations are not part of the file.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project the dialogue belongs to.
+	 * @param dialogueName the name of the draft dialogue to export, including its folder.
+	 * @return the script as UTF-8 text, with a {@code Content-Disposition: attachment} header
+	 * naming the file after the dialogue (without its folder) and {@code .dlb}.
+	 * @throws HttpException if the project or dialogue does not exist, or the user is not
+	 * authorized.
+	 */
+	@Operation(summary = "Export a draft dialogue as a downloadable .dlb script.")
+	@Parameter(name = "version", hidden = true)
+	@GetMapping("/export-dialogue")
+	public ResponseEntity<byte[]> exportDialogue(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug,
+			@RequestParam(value = "dialogueName") String dialogueName
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("GET /v{}/authoring/export-dialogue [user: {}]", version, user);
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					DBDraftDialogue dialogue = draftDialogueService
+							.findDialogue(project, dialogueName)
+							.orElseThrow(() -> new NotFoundException(
+									"Dialogue not found: " + dialogueName));
+					// Dialogue names only hold letters, digits, '_' and '-' (and '/' for folders),
+					// so the file name is plain ASCII.
+					String fileName = dialogueName.substring(dialogueName.lastIndexOf('/') + 1)
+							+ ".dlb";
+					return ResponseEntity.ok()
+							.contentType(new MediaType("text", "plain", StandardCharsets.UTF_8))
+							.header(HttpHeaders.CONTENT_DISPOSITION,
+									ContentDisposition.attachment().filename(fileName).build().toString())
+							.body(draftDialogueService.reconstructScript(dialogue)
+									.getBytes(StandardCharsets.UTF_8));
 				},
 				version, response, "", Permission.DIALOGUE_AUTHOR);
 	}
@@ -840,7 +1006,9 @@ public class AuthoringController {
 	// ----------------------------------------------------------------------- //
 
 	/**
-	 * Creates or updates the translation for a draft dialogue in a given language.
+	 * Creates or updates the translation for a draft dialogue in a given language. The content
+	 * is checked and stored re-serialised, see {@link DraftDialogueService#checkTranslationContent}
+	 * (#376).
 	 *
 	 * @param request the HTTP request (to retrieve authentication headers).
 	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
@@ -851,8 +1019,8 @@ public class AuthoringController {
 	 * @param language the language code of the translation to create or update.
 	 * @param payload the raw JSON translation content.
 	 * @return the created or updated translation.
-	 * @throws HttpException if the dialogue is pending deletion, the project or dialogue does
-	 * not exist, or the user is not authorized.
+	 * @throws HttpException if the content isn't a valid translation, the dialogue is pending
+	 * deletion, the project or dialogue does not exist, or the user is not authorized.
 	 */
 	@Operation(summary = "Create or update a translation for a draft dialogue.")
 	@Parameter(name = "version", hidden = true)
@@ -881,8 +1049,10 @@ public class AuthoringController {
 					DBDraftTranslationLanguage translationLanguage =
 							resolveTranslationLanguage(project, language);
 					checkNotDeleted(translationLanguage);
+					String content = DraftDialogueService.requireValidTranslationContent(
+							dialogueName, payload.getContent());
 					return draftDialogueService.createOrUpdateTranslation(dialogue,
-							translationLanguage, payload.getContent());
+							translationLanguage, content);
 				},
 				version, response, "", Permission.DIALOGUE_AUTHOR);
 	}

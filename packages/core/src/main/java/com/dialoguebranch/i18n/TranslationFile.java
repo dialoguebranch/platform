@@ -43,7 +43,7 @@ import java.util.Map;
  * A {@link TranslationFile} is an object representation of a JSON file that contains translations
  * for a single Dialogue Branch script. The body of a {@link TranslationFile} consists of a mapping
  * from speakerNames to a map of {term,translation}-pairs, where the "speaker name" for the user
- * is defined in {@link SourceTranslatable#USER}, e.g.:
+ * is defined in {@link DialogueBranchConstants#DLB_USER_SPEAKER}, e.g.:
  *
  * <pre>
  * {
@@ -110,7 +110,7 @@ public class TranslationFile {
 	 * {@code speakerName} already exists, the new {@code term}/{@code translation} pair is appended
 	 * to it; otherwise a new speaker entry is created.
 	 *
-	 * @param speakerName the name of the speaker, or {@link SourceTranslatable#USER} for the user.
+	 * @param speakerName the name of the speaker, or {@link DialogueBranchConstants#DLB_USER_SPEAKER} for the user.
 	 * @param term        the source-language term to translate.
 	 * @param translation the target-language translation of the term.
 	 */

@@ -21,7 +21,6 @@ import IconButton from '../widgets/IconButton.vue';
 import MainPagePanelHeader from '../widgets/MainPagePanelHeader.vue';
 import MainPagePanelContainer from '../widgets/MainPagePanelContainer.vue';
 import DialogueTreeNode from './DialogueTreeNode.vue';
-import ImportScriptsModal from './ImportScriptsModal.vue';
 
 const props = defineProps({
     openTabs: { type: Array, default: () => [] },
@@ -33,12 +32,16 @@ const emit = defineEmits([
     'hasUnpublishedChanges',
     'openDialogue',
     'dialoguesReplaced',
+    'dialogueDeleted',
 ]);
 
 const client = useClient();
 const authoringClient = useAuthoringClient();
 
 const isDraftMode = computed(() => state.value.mode === DLB_APP_MODE_DRAFT);
+// While simulating a user (#411), dialogues always start afresh as test sessions: their real
+// ongoing dialogue isn't offered to resume (or cancel).
+const simulating = computed(() => state.value.delegate?.mode === 'simulate');
 
 // The tree is rebuilt only when a new list arrives (rawRoot); re-sorting is a cheap re-derivation
 // that doesn't need a refetch.
@@ -90,6 +93,7 @@ function buildTree(entries) {
             _isNew: entry.isNew,
             _isChanged: entry.isChanged,
             _isDeleted: entry.isDeleted,
+            _previousPublishedName: entry.previousPublishedName ?? null,
             _updatedAt: entry.updatedAt,
             _nodeCount: entry.nodeCount,
         };
@@ -116,17 +120,6 @@ function entriesKey(entries) {
     );
 }
 
-// ---- Script import (#339) ----
-
-const draftDialogues = ref([]);
-const showImportScripts = ref(false);
-
-function onScriptsImported(results) {
-    listDialogues();
-    const replaced = results.filter((result) => result.replaced).map((result) => result.dialogueName);
-    if (replaced.length) emit('dialoguesReplaced', replaced);
-}
-
 function listDialogues() {
     const projectSlug = state.value.selectedProject?.slug;
     dismissError();
@@ -148,13 +141,13 @@ function listDialogues() {
             // a dialogue that's new, changed, or pending deletion — not merely because a draft row
             // exists (it may already be perfectly in sync with what's published).
             emit('hasUnpublishedChanges', drafts.some((d) => d.isNew || d.isChanged || d.isDeleted));
-            draftDialogues.value = drafts.map((d) => ({ name: d.name, isDeleted: d.isDeleted }));
             entries = drafts.map((d) => ({
                 name: d.name,
                 isPublished: !d.isNew,
                 isNew: d.isNew,
                 isChanged: d.isChanged,
                 isDeleted: d.isDeleted,
+                previousPublishedName: d.previousPublishedName,
                 updatedAt: d.updatedAt,
                 nodeCount: d.nodeCount,
             }));
@@ -293,6 +286,19 @@ function doCancel() {
     });
 }
 
+// A dialogue's draft content was replaced (its changes discarded, #363): the list changes, and
+// open tabs of it (under its old or new name) must reload.
+function onDialoguesReplaced(dialogueNames) {
+    listDialogues();
+    emit('dialoguesReplaced', dialogueNames);
+}
+
+// A dialogue was deleted (#390): it shows as pending deletion now, and its open tabs close.
+function onDialogueDeleted(dialogueName) {
+    listDialogues();
+    emit('dialogueDeleted', dialogueName);
+}
+
 listDialogues();
 
 defineExpose({
@@ -302,17 +308,10 @@ defineExpose({
 
 <template>
     <div class="flex flex-col gap-1" v-bind="attrs">
-        <ImportScriptsModal
-            v-if="showImportScripts"
-            :dialogues="draftDialogues"
-            @close="showImportScripts = false"
-            @imported="onScriptsImported"
-        />
         <MainPagePanelHeader title="Dialogue Browser" class="sm:ml-2">
             <template #buttons>
-                <IconButton v-if="!isDraftMode" icon="fa-solid fa-rotate-left" title="Retrieve most recent ongoing (server-side) dialogue" :disabled="hasActiveDialogue" @click="checkOngoingDialogue" />
+                <IconButton v-if="!isDraftMode && !simulating" icon="fa-solid fa-rotate-left" title="Retrieve most recent ongoing (server-side) dialogue" :disabled="hasActiveDialogue" @click="checkOngoingDialogue" />
                 <IconButton v-if="isDraftMode" icon="fa-solid fa-plus" title="New Dialogue" @click="onNewDialogueClick" />
-                <IconButton v-if="isDraftMode" icon="fa-solid fa-file-import" title="Import Scripts" @click="showImportScripts = true" />
                 <IconButton
                     icon="fa-solid fa-arrows-rotate"
                     :class="{ 'animate-spin': reloading }"
@@ -386,6 +385,8 @@ defineExpose({
                 @toggleFolder="toggleFolder"
                 @openDialogue="(name) => $emit('openDialogue', name)"
                 @dialoguesChanged="listDialogues"
+                @dialoguesReplaced="onDialoguesReplaced"
+                @dialogueDeleted="onDialogueDeleted"
             />
         </MainPagePanelContainer>
     </div>

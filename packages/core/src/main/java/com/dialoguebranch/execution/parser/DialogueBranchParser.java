@@ -447,6 +447,12 @@ public class DialogueBranchParser implements AutoCloseable {
 						nodeState.getSpeakerLine(),
 						nodeState.getSpeakerColumn());
 			}
+			if (speaker.equals(DialogueBranchConstants.DLB_USER_SPEAKER)) {
+				throw new LineNumberParseException("Speaker name \"" +
+						DialogueBranchConstants.DLB_USER_SPEAKER + "\" is reserved for the " +
+						"user's replies in translations", nodeState.getSpeakerLine(),
+						nodeState.getSpeakerColumn());
+			}
 		}
 		return new NodeHeader(title, speaker, headerMap);
 	}

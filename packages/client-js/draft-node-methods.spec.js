@@ -91,6 +91,60 @@ describe('draft preamble', () => {
     });
 });
 
+describe('deleteProject', () => {
+    it('keeps the users\' data by default', async () => {
+        const { client, fetch } = clientReturning(null);
+        await client.deleteProject('proj');
+        expect(fetch.mock.calls[0][0]).toBe('/api/v1/project/delete-project?projectSlug=proj&deleteVariables=false&deleteLogs=false');
+        expect(fetch.mock.calls[0][1].method).toBe('POST');
+    });
+
+    it('passes the options to delete the users\' data too', async () => {
+        const { client, fetch } = clientReturning(null);
+        await client.deleteProject('proj', { deleteVariables: true, deleteLogs: true });
+        expect(fetch.mock.calls[0][0]).toBe('/api/v1/project/delete-project?projectSlug=proj&deleteVariables=true&deleteLogs=true');
+    });
+});
+
+describe('deleted projects', () => {
+    it('lists them', async () => {
+        const list = [{ slug: 'x__deleted', displayName: 'X', deletedAt: '2026-10-15T10:00:00Z', usersWithVariables: 2, dialogueLogs: 5 }];
+        const { client, fetch } = clientReturning(list);
+        expect(await client.listDeletedProjects()).toEqual(list);
+        expect(fetch.mock.calls[0][0]).toBe('/api/v1/project/list-deleted-projects');
+        expect(fetch.mock.calls[0][1].method).toBe('GET');
+    });
+
+    it('purges one', async () => {
+        const { client, fetch } = clientReturning(null);
+        await client.purgeDeletedProject('x__deleted');
+        expect(fetch.mock.calls[0][0]).toBe('/api/v1/project/purge-deleted-project?projectSlug=x__deleted');
+        expect(fetch.mock.calls[0][1].method).toBe('POST');
+    });
+});
+
+describe('discardAllDraftChanges', () => {
+    it('POSTs the project and returns the counts', async () => {
+        const { client, fetch } = clientReturning({ dialoguesReverted: 4, dialoguesRemoved: 1 });
+        const result = await client.discardAllDraftChanges('proj');
+        const [url, init] = fetch.mock.calls[0];
+        expect(url).toBe('/api/v1/project/discard-draft-changes?projectSlug=proj');
+        expect(init.method).toBe('POST');
+        expect(result).toEqual({ dialoguesReverted: 4, dialoguesRemoved: 1 });
+    });
+});
+
+describe('discardDraftDialogueChanges', () => {
+    it('POSTs the project and dialogue and returns the names', async () => {
+        const { client, fetch } = clientReturning({ dialogueName: 'main', discardedName: 'intro/renamed' });
+        const result = await client.discardDraftDialogueChanges('proj', 'intro/renamed');
+        const [url, init] = fetch.mock.calls[0];
+        expect(url).toBe('/api/v1/authoring/discard-dialogue-changes?projectSlug=proj&dialogueName=intro%2Frenamed');
+        expect(init.method).toBe('POST');
+        expect(result).toEqual({ dialogueName: 'main', discardedName: 'intro/renamed' });
+    });
+});
+
 describe('importScripts', () => {
     it('sends the project, folder, replace flag and files as multipart form data', async () => {
         const { client, fetch } = clientReturning([
@@ -114,5 +168,75 @@ describe('importScripts', () => {
         const init = fetch.mock.calls[0][1];
         expect(init.body.get('replace')).toBe('false');
         expect(init.body.get('folder')).toBe('');
+    });
+});
+
+describe('importTranslations', () => {
+    it('sends the project, language, folder, replace flag and files as multipart form data', async () => {
+        const { client, fetch } = clientReturning([
+            { fileName: 'welcome.json', dialogueName: 'onboarding/welcome', replaced: true,
+                unmatchedEntries: 1, untranslatedTerms: 0 },
+        ]);
+        const welcome = new File(['{"Robin":{"Hello.":"Hallo."}}'], 'welcome.json', { type: 'application/json' });
+        const results = await client.importTranslations('proj', 'nl', 'onboarding', [welcome], { replace: true });
+        const [url, init] = fetch.mock.calls[0];
+        expect(url).toBe('/api/v1/authoring/import-translations');
+        expect(init.method).toBe('POST');
+        expect(init.body.get('projectSlug')).toBe('proj');
+        expect(init.body.get('language')).toBe('nl');
+        expect(init.body.get('folder')).toBe('onboarding');
+        expect(init.body.get('replace')).toBe('true');
+        expect(init.body.getAll('files').map((f) => f.name)).toEqual(['welcome.json']);
+        expect(results[0].unmatchedEntries).toBe(1);
+    });
+
+    it('does not replace by default and imports into the root for an empty folder', async () => {
+        const { client, fetch } = clientReturning([]);
+        await client.importTranslations('proj', 'nl', '', [new File(['{}'], 'a.json')]);
+        const init = fetch.mock.calls[0][1];
+        expect(init.body.get('replace')).toBe('false');
+        expect(init.body.get('folder')).toBe('');
+    });
+});
+
+describe('exportDialogue', () => {
+    function clientDownloading(response) {
+        const fetch = vi.fn(async () => response);
+        return { client: new DialogueBranchAuthoringClient({ baseUrl: '/api/v1', fetch }), fetch };
+    }
+
+    it('GETs the dialogue and returns the script as a blob', async () => {
+        const script = '// About.\ntitle: Start\n---\nHé.\n===\n';
+        const { client, fetch } = clientDownloading(new Response(script, {
+            status: 200, headers: { 'content-type': 'text/plain;charset=UTF-8' },
+        }));
+        const blob = await client.exportDialogue('proj', 'onboarding/welcome');
+        const [url, init] = fetch.mock.calls[0];
+        expect(url).toBe('/api/v1/authoring/export-dialogue?projectSlug=proj&dialogueName=onboarding%2Fwelcome');
+        expect(init.method).toBe('GET');
+        expect(blob).toBeInstanceOf(Blob);
+        expect(await blob.text()).toBe(script);
+    });
+
+    it('rejects with the server\'s error when the export is refused', async () => {
+        const { client } = clientDownloading(new Response(JSON.stringify({
+            code: 'NOT_FOUND', message: 'Dialogue not found: nope',
+        }), { status: 404, headers: { 'content-type': 'application/json' } }));
+        const error = await client.exportDialogue('proj', 'nope').catch((e) => e);
+        expect(error).toBeInstanceOf(Error);
+        expect(error.status).toBe(404);
+        expect(error.code).toBe('NOT_FOUND');
+        expect(error.message).toBe('Dialogue not found: nope');
+    });
+});
+
+describe('eraseUser', () => {
+    it('POSTs the subject and returns the counts', async () => {
+        const { client, fetch } = clientReturning({ variables: 3, variableHistory: 5, dialogueLogs: 2 });
+        const result = await client.eraseUser('a b/c');
+        const [url, init] = fetch.mock.calls[0];
+        expect(url).toBe('/api/v1/users/erase-user?subject=a%20b%2Fc');
+        expect(init.method).toBe('POST');
+        expect(result).toEqual({ variables: 3, variableHistory: 5, dialogueLogs: 2 });
     });
 });

@@ -36,6 +36,7 @@ import com.dialoguebranch.execution.parser.BodyTokenizer;
 import com.dialoguebranch.json.JsonMapper;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.jspecify.annotations.Nullable;
 
 import java.io.*;
 import java.net.URL;
@@ -43,21 +44,24 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
- * This class can parse a Dialogue Branch translation file. The file should contain a
- * JSON object with key-value pairs as exported by POEditor. There are two types
- * of key-value pairs:
+ * This class can parse a Dialogue Branch translation file. The file contains a JSON object of
+ * speaker groups: each key is the name of a speaker, as a whole (#377), with {@link
+ * com.dialoguebranch.model.common.DialogueBranchConstants#DLB_USER_SPEAKER} for the user's
+ * replies, and each value is a JSON object with two types of key-value pairs:
  *
  * <ul>
  *   <li>Key and value are strings. The key is a translatable in one language, and the value is a
  *   translatable in another language. A translatable should be the string representation of a
  *   {@link Translatable}. That is a text that may include variables and &lt;&lt;input&gt;&gt;
  *   commands.</li>
- *   <li>The key is a string the value is a JSON object. In this case the key is a context string,
- *   and the value contains translatable key-value pairs.</li>
+ *   <li>The key is a string and the value is a JSON object: a context group. The key is a list of
+ *   context names, separated by whitespace (for example {@code female_addressee}), and the value
+ *   contains key-value pairs of these same two types. Context groups can be nested; an entry
+ *   gets the contexts of every group it is in.</li>
  * </ul>
  *
- * <p>This parser ignores context strings and returns a flat map of translatables. This means that
- * it does not support different translations of the same string with different contexts.</p>
+ * <p>A translation at the top level, outside a speaker group, is a parse error: a translation
+ * only applies to text of its own speaker, so it could never be used.</p>
  *
  * @author Dennis Hofs
  */
@@ -148,27 +152,48 @@ public class TranslationParser {
 			result.getParseErrors().add(ex);
 			return result;
 		}
-		parse(new LinkedHashSet<>(), map, translations, result);
+		parseSpeakerGroups(map, translations, result);
 		if (result.getParseErrors().isEmpty())
 			result.setTranslations(translations);
 		return result;
 	}
 
-	private static void parse(Set<String> context, Map<String,?> map,
+	private static void parseSpeakerGroups(Map<String,?> map,
+			Map<Translatable,List<ContextTranslation>> translations,
+			TranslationParserResult parseResult) {
+		for (String key : map.keySet()) {
+			Object value = map.get(key);
+			String speaker = key.trim();
+			if (value instanceof String) {
+				parseResult.getParseErrors().add(new ParseException(String.format(
+						"Translation \"%s\" has no speaker: put it inside the group of the " +
+						"speaker it translates", key)));
+			} else if (speaker.isEmpty()) {
+				parseResult.getParseErrors().add(new ParseException(
+						"Found a speaker group without a speaker name"));
+			} else {
+				Map<String,?> group = toMap(key, value, parseResult);
+				if (group != null)
+					parse(speaker, new LinkedHashSet<>(), group, translations, parseResult);
+			}
+		}
+	}
+
+	private static void parse(String speaker, Set<String> context, Map<String,?> map,
 			Map<Translatable,List<ContextTranslation>> translations,
 			TranslationParserResult parseResult) {
 		for (String key : map.keySet()) {
 			Object value = map.get(key);
 			if (value instanceof String) {
-				parseTranslatable(context, key, (String)value, translations,
+				parseTranslatable(speaker, context, key, (String)value, translations,
 						parseResult);
 			} else {
-				parseContextMap(key, value, translations, parseResult);
+				parseContextMap(speaker, context, key, value, translations, parseResult);
 			}
 		}
 	}
 
-	private static void parseTranslatable(Set<String> context, String key,
+	private static void parseTranslatable(String speaker, Set<String> context, String key,
 			String value,
 			Map<Translatable,List<ContextTranslation>> translations,
 			TranslationParserResult parseResult) {
@@ -184,7 +209,7 @@ public class TranslationParser {
 		}
 		if (source != null) {
 			try {
-				checkDuplicateTranslation(source, context, translations);
+				checkDuplicateTranslation(source, speaker, context, translations);
 			} catch (ParseException ex) {
 				parseResult.getParseErrors().add(ex);
 				success = false;
@@ -210,11 +235,11 @@ public class TranslationParser {
 				transList = new ArrayList<>();
 				translations.put(source, transList);
 			}
-			transList.add(new ContextTranslation(context, transValue));
+			transList.add(new ContextTranslation(speaker, context, transValue));
 		}
 	}
 
-	private static void checkDuplicateTranslation(Translatable source,
+	private static void checkDuplicateTranslation(Translatable source, String speaker,
 												  Set<String> context,
 												  Map<Translatable,List<ContextTranslation>> translations)
 			throws ParseException {
@@ -222,34 +247,45 @@ public class TranslationParser {
 			return;
 		List<ContextTranslation> sourceTrans = translations.get(source);
 		for (ContextTranslation trans : sourceTrans) {
-			if (trans.context().equals(context)) {
+			if (trans.speaker().equals(speaker) && trans.context().equals(context)) {
 				throw new ParseException(String.format(
-						"Found duplicate translation \"%s\" with context %s",
-						source, context));
+						"Found duplicate translation \"%s\" for speaker \"%s\" with context %s",
+						source, speaker, context));
 			}
 		}
 	}
 
-	private static void parseContextMap(String key, Object value,
-			Map<Translatable,List<ContextTranslation>> translations,
+	private static void parseContextMap(String speaker, Set<String> outerContext, String key,
+			Object value, Map<Translatable,List<ContextTranslation>> translations,
 			TranslationParserResult parseResult) {
+		Set<String> context = new LinkedHashSet<>(outerContext);
 		String contextListStr = key.trim();
-		Set<String> context = new LinkedHashSet<>();
 		if (!contextListStr.isEmpty()) {
 			String[] contextList = contextListStr.split("\\s+");
 			Collections.addAll(context, contextList);
 		}
-		Map<String,?> map;
+		Map<String,?> map = toMap(key, value, parseResult);
+		if (map != null)
+			parse(speaker, context, map, translations, parseResult);
+	}
+
+	/**
+	 * Returns the value of a group as a map, or {@code null} after adding a parse error if it
+	 * isn't one.
+	 */
+	private static @Nullable Map<String,?> toMap(String key, Object value,
+			TranslationParserResult parseResult) {
 		try {
-			map = JsonMapper.convert(value,
-					new TypeReference<Map<String, ?>>() {});
+			Map<String,?> map = JsonMapper.convert(value, new TypeReference<Map<String, ?>>() {});
+			if (map == null)
+				throw new ParseException("not a group of translations");
+			return map;
 		} catch (ParseException ex) {
 			parseResult.getParseErrors().add(new ParseException(
-					"Failed to parse translation map after context key \"" +
+					"Failed to parse translation map after key \"" +
 					key + "\": " + ex.getMessage(), ex));
-			return;
+			return null;
 		}
-		parse(context, map, translations, parseResult);
 	}
 
 	private static Translatable parseTranslationString(String translation)

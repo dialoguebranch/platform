@@ -78,14 +78,6 @@ public class ExternalVariableServiceUpdater implements VariableStoreOnChangeList
 		this.projectSlug = projectSlug;
 	}
 
-	/** Adds the {@code (issuer, subject, projectSlug)} identity parameters to an EVS request. */
-	private void addIdentityParams(LinkedMultiValueMap<String, String> params,
-			String userTimeZoneString) {
-		params.put("issuer", Arrays.asList(issuer));
-		params.put("subject", Arrays.asList(subject));
-		params.put("projectSlug", Arrays.asList(projectSlug));
-		params.put("timeZone", Arrays.asList(userTimeZoneString));
-	}
 
 	/**
 	 * Processes a list of variable store changes and notifies the external variable service of
@@ -112,30 +104,8 @@ public class ExternalVariableServiceUpdater implements VariableStoreOnChangeList
 							evs.getUrl(), evs.getApiVersion());
 
 					if (change instanceof VariableStoreChange.Clear) {
-						RestTemplate restTemplate = new RestTemplate();
-						HttpHeaders requestHeaders = new HttpHeaders();
-						requestHeaders.set("Authorization", "Bearer " + evs.getApiKey());
-
-						String notifyClearedUrl = evs.getUrl()
-								+ "/v" + evs.getApiVersion()
-								+ "/variables/notify-cleared";
-
-						LinkedMultiValueMap<String, String> allRequestParams =
-								new LinkedMultiValueMap<>();
-						addIdentityParams(allRequestParams, userTimeZoneString);
-
-						HttpEntity<?> entity = new HttpEntity<>(requestHeaders);
-						UriComponentsBuilder builder =
-								UriComponentsBuilder.fromUriString(notifyClearedUrl)
-										.queryParams(
-												(LinkedMultiValueMap<String, String>) allRequestParams);
-						UriComponents uriComponents = builder.build().encode();
-
-						ResponseEntity<Object> response = restTemplate.exchange(
-								uriComponents.toUri(),
-								HttpMethod.POST,
-								entity,
-								Object.class);
+						new ExternalVariableServiceClient(dlbProperties).notifyCleared(issuer,
+								subject, projectSlug, userTimeZoneString);
 
 					} else if (change instanceof VariableStoreChange.Remove) {
 						Collection<String> variableNames =
@@ -175,7 +145,8 @@ public class ExternalVariableServiceUpdater implements VariableStoreOnChangeList
 					+ "/variables/notify-updated";
 
 			LinkedMultiValueMap<String, String> allRequestParams = new LinkedMultiValueMap<>();
-			addIdentityParams(allRequestParams, userTimeZoneString);
+			ExternalVariableServiceClient.addIdentityParams(allRequestParams, issuer, subject,
+					projectSlug, userTimeZoneString);
 
 			HttpEntity<?> entity = new HttpEntity<>(variablesToUpdate, requestHeaders);
 			UriComponentsBuilder builder =

@@ -1,16 +1,16 @@
 <script setup>
 import { inject, onBeforeUnmount, onMounted, ref, useTemplateRef } from 'vue';
 import { useClient, getBrowserTimeZone } from '../../composables/client.js';
-import { useStateManagement } from '../../composables/state-management.js';
 import { showError, dismissError } from '../../composables/error-toast.js';
 import { describeError } from '../../composables/error-message.js';
 import { logEvent } from '../../composables/debug-log.js';
 import BalloonDialogueComponent from '../partials/BalloonDialogueComponent.vue';
+import PageHeader from '../widgets/PageHeader.vue';
+import PageGreeting from '../widgets/PageGreeting.vue';
 
 const state = inject('state');
 const config = inject('config');
 const client = useClient();
-const stateManagement = useStateManagement();
 
 const projectSlug = config.participant.projectSlug;
 const dialogueName = config.participant.dialogueName;
@@ -43,10 +43,18 @@ function startDialogue() {
     .catch((error) => {
         // Shown inline (not as a toast) since this is the participant's whole screen — there's
         // nothing else to look at while it's broken, unlike the editor/admin app's dialogue tabs.
-        startError.value = {
-            message: error.message ?? `Could not start dialogue "${dialogueName}" in project "${projectSlug}".`,
-            errors: error.errors,
-        };
+        // The dialogue a participant starts is fixed when Studio is built (see config.js), so a 404
+        // means it isn't set up here: trying again can't help.
+        startError.value = error?.status === 404
+            ? {
+                message: 'There is no test dialogue set up to run for your user role (participant). Please contact an administrator.',
+                errors: null,
+                canRetry: false,
+            }
+            : {
+                message: error.message ?? 'Could not start the dialogue.',
+                errors: error.errors,
+            };
     });
 }
 
@@ -97,9 +105,6 @@ function onSelectReply(dialogueStep, reply, inputValues) {
     });
 }
 
-function onLogoutClick() {
-    stateManagement.logout();
-}
 
 const onWindowResize = () => balloons.value?.resize();
 
@@ -114,32 +119,29 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-    <div class="min-w-screen min-h-screen bg-background flex flex-col">
-        <div class="w-full flex items-center justify-between px-4 pt-3 shrink-0">
-            <span class="font-title text-xs text-grey-dark">
-                Logged in as <span class="font-semibold text-orange-darker">{{ state.user.name }}</span>
-            </span>
-            <button
-                type="button"
-                class="font-title text-xs text-grey-dark hover:text-orange-darker cursor-pointer"
-                @click="onLogoutClick"
-            >Log out</button>
-        </div>
+    <div class="min-h-screen bg-background flex flex-col">
+        <PageHeader>
+            <PageGreeting>Hey <span class="font-semibold text-orange-darker">{{ state.user.name }}</span>, welcome to the participant test view.</PageGreeting>
+        </PageHeader>
 
-        <img class="block pt-4 mx-auto w-[200px] sm:w-[320px] shrink-0" src="../../assets/img/dlb-long.png" alt="Dialogue Branch" />
-
-        <div class="grow min-h-0 mt-4 max-w-3xl w-full mx-auto">
-            <BalloonDialogueComponent
-                ref="balloons"
-                :dialogueName="dialogueName"
-                :dialogueSteps="dialogueSteps"
-                :dialogueEnded="dialogueEnded"
-                :dialogueCancelled="dialogueCancelled"
-                :awaitingReply="awaitingReply"
-                :startError="startError"
-                @selectReply="onSelectReply"
-                @restartDialogue="startDialogue"
-            />
+        <!-- The dialogue itself, framed in a white box that is as tall as its content (the page
+             scrolls if it doesn't fit) -->
+        <div class="w-full max-w-3xl mx-auto px-4 mb-6">
+            <div>
+                <div class="bg-white rounded-2xl shadow-md" data-test="dialogue-frame">
+                    <BalloonDialogueComponent
+                        ref="balloons"
+                        :dialogueName="dialogueName"
+                        :dialogueSteps="dialogueSteps"
+                        :dialogueEnded="dialogueEnded"
+                        :dialogueCancelled="dialogueCancelled"
+                        :awaitingReply="awaitingReply"
+                        :startError="startError"
+                        @selectReply="onSelectReply"
+                        @restartDialogue="startDialogue"
+                    />
+                </div>
+            </div>
         </div>
     </div>
 </template>

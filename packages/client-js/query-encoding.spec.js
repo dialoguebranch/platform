@@ -53,30 +53,32 @@ describe("query parameter encoding", () => {
             .toContain("name=name%26scope&value=one%3D1%26two%3D2");
     });
 
-    it("encodes draft-session string parameters", () => {
+    it("encodes test-session string parameters", () => {
         const client = new DialogueBranchAuthoringClient({ baseUrl: "/api/v1" });
 
-        expect(captureUrl(client, c => c.startDraftDialogue({ projectSlug: "project", dialogueName: "draft", language: "en&debug=true" })))
+        expect(captureUrl(client, c => c.startTestSession({ projectSlug: "project", dialogueName: "draft", language: "en&debug=true" })))
             .toContain("language=en%26debug%3Dtrue");
-        expect(captureUrl(client, c => c.progressDraftDialogue({ draftSessionId: "draft&admin=true", replyId: 1 })))
-            .toContain("draftSessionId=draft%26admin%3Dtrue");
-        expect(captureUrl(client, c => c.cancelDraftDialogue("draft&admin=true")))
-            .toContain("draftSessionId=draft%26admin%3Dtrue");
-        expect(captureUrl(client, c => c.revertDraftVariables({ draftSessionId: "draft&admin=true" })))
-            .toContain("draftSessionId=draft%26admin%3Dtrue");
+        expect(captureUrl(client, c => c.progressTestSession({ testSessionId: "s&admin=true", replyId: 1 })))
+            .toContain("testSessionId=s%26admin%3Dtrue");
+        expect(captureUrl(client, c => c.cancelTestSession("s&admin=true")))
+            .toContain("testSessionId=s%26admin%3Dtrue");
+        expect(captureUrl(client, c => c.getTestVariables({ projectSlug: "p&admin=true" })))
+            .toContain("projectSlug=p%26admin%3Dtrue");
+        expect(captureUrl(client, c => c.resetTestVariables({ projectSlug: "p&admin=true" })))
+            .toContain("projectSlug=p%26admin%3Dtrue");
     });
 
     it("builds listUsers' URL from its options, including pagination", () => {
         const client = new DialogueBranchAuthoringClient({ baseUrl: "/api/v1" });
 
         expect(captureUrl(client, c => c.listUsers()))
-            .toBe("/api/v1/users?username=");
-        expect(captureUrl(client, c => c.listUsers({ usernameFragment: "har&admin=true" })))
-            .toBe("/api/v1/users?username=har%26admin%3Dtrue");
-        expect(captureUrl(client, c => c.listUsers({ usernameFragment: "harm", page: 2, pageSize: 100 })))
-            .toBe("/api/v1/users?username=harm&page=2&pageSize=100");
+            .toBe("/api/v1/users?search=");
+        expect(captureUrl(client, c => c.listUsers({ search: "har&admin=true" })))
+            .toBe("/api/v1/users?search=har%26admin%3Dtrue");
+        expect(captureUrl(client, c => c.listUsers({ search: "harm", page: 2, pageSize: 100 })))
+            .toBe("/api/v1/users?search=harm&page=2&pageSize=100");
         // page 0 is a legitimate value, not "omit" — must not be dropped by a falsy check.
         expect(captureUrl(client, c => c.listUsers({ page: 0, pageSize: 0 })))
-            .toBe("/api/v1/users?username=&page=0&pageSize=0");
+            .toBe("/api/v1/users?search=&page=0&pageSize=0");
     });
 });

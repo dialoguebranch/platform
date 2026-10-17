@@ -30,7 +30,7 @@ The header consists of a series of lines, each with a `key: value`-pair (a *tag*
 The two required key-value pairs are:
 
 * `title` — a String matching `[A-Za-z0-9_-]+` that uniquely identifies this *Node* within this dialogue (matching is case-insensitive).
-* `speaker` — a String that defines the name of the *Agent* speaking in this *Node*. Required for every node, **except** a node titled [`End`](#ending-a-dialogue), whose speaker is ignored even if present.
+* `speaker` — a String that defines the name of the *Agent* speaking in this *Node*. Required for every node, **except** a node titled [`End`](#ending-a-dialogue), whose speaker is ignored even if present. The name `_user` is reserved: translation files use it for the user's replies, so it can't be a speaker name.
 
 You are free to define other key-value pairs that might serve as meta-data in your application. The following tags are reserved; the first two are used by the visual editor in Dialogue Branch Studio (see [Dialogue Branch Web Services](/web-services/)):
 
@@ -56,7 +56,7 @@ position: -416,112
 
 ### Body
 
-The body of a *Node* contains at least one *Statement* and zero or more *Reply*'s. A very basic example is given below:
+The body of a *Node* contains zero or more *Statement*s and zero or more *Reply*'s. A very basic example is given below:
 
 ```text
 Hello, my name is Robin!
@@ -66,6 +66,8 @@ Hello, my name is Robin!
 ```
 
 This **Node** defines a **Statement** "*Hello, my name is Robin!*", uttered by the **Agent** "*Robin*" and two possible **Reply** options. When a user selects "*Nice to meet you Robin!*" he will be forwarded to a **Node** labeled `NodeRobin2`, and when he selects "*Goodbye.*" he will be forwarded to the **Node** labeled `NodeEnd`.
+
+A **Node** usually starts with a **Statement**, but it doesn't have to. A body with only **Reply** options (for example `[[Continue.|NodeRobin2]]`), or with only commands such as `<<set>>`, is valid: the **Agent** then says nothing, and the user only sees the replies. A body may also be empty; such a **Node** ends the dialogue, like one with a statement and no replies.
 
 ![Example node body](/images/example-nodes-body.png)
 

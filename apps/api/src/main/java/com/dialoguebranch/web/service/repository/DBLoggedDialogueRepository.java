@@ -31,7 +31,11 @@ package com.dialoguebranch.web.service.repository;
 import com.dialoguebranch.web.service.storage.model.DBLoggedDialogue;
 import com.dialoguebranch.web.service.storage.model.DBUser;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -113,5 +117,61 @@ public interface DBLoggedDialogueRepository extends JpaRepository<DBLoggedDialog
 	 * @return {@code true} if a logged dialogue with this session identifier already exists.
 	 */
 	boolean existsByUserAndSessionId(DBUser user, String sessionId);
+
+
+	/**
+	 * Deletes all users' logged dialogues of the project with the given slug, when a project is
+	 * deleted with its users' dialogue logs (#315).
+	 *
+	 * @param projectSlug the project's slug.
+	 * @return the number of logged dialogues deleted.
+	 */
+	@Modifying
+	@Query("delete from DBLoggedDialogue l where l.projectSlug = :projectSlug")
+	int deleteByProjectSlug(@Param("projectSlug") String projectSlug);
+
+	/**
+	 * Moves all users' logged dialogues of a project to another slug, when a deleted project's slug
+	 * is renamed (#315), so they stay with the deleted project instead of a new project that takes
+	 * over the slug.
+	 *
+	 * @param from the project's slug.
+	 * @param to   the slug the deleted project gets.
+	 * @return the number of logged dialogues moved.
+	 */
+	@Modifying
+	@Query("update DBLoggedDialogue l set l.projectSlug = :to where l.projectSlug = :from")
+	int renameProjectSlug(@Param("from") String from, @Param("to") String to);
+
+
+	/**
+	 * Counts the logged dialogues of the project with the given slug (#403).
+	 *
+	 * @param projectSlug the project's slug.
+	 * @return the number of logged dialogues.
+	 */
+	long countByProjectSlug(String projectSlug);
+
+	/**
+	 * Deletes all logged dialogues of the given user, in every project, when the user's data is
+	 * erased (#320).
+	 *
+	 * @param user the user.
+	 * @return the number of logged dialogues deleted.
+	 */
+	@Modifying
+	@Query("delete from DBLoggedDialogue l where l.user = :user")
+	int deleteByUser(@Param("user") DBUser user);
+
+	/**
+	 * Counts the logged dialogues of each of the given users, in every project, for the {@code
+	 * /users} listing.
+	 *
+	 * @param users the users.
+	 * @return one {@code [user id, count]} row per user that has logged dialogues.
+	 */
+	@Query("select l.user.id, count(l) from DBLoggedDialogue l where l.user in :users "
+			+ "group by l.user.id")
+	List<Object[]> countByUsers(@Param("users") Collection<DBUser> users);
 
 }

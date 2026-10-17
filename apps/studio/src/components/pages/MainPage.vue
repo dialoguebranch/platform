@@ -6,7 +6,11 @@ import { useStateManagement } from '../../composables/state-management.js';
 import DialogueBrowser from '../partials/DialogueBrowser.vue';
 import ConfigureProjectModal from '../partials/ConfigureProjectModal.vue';
 import PublishProjectWizardModal from '../partials/PublishProjectWizardModal.vue';
+import ImportScriptsModal from '../partials/ImportScriptsModal.vue';
+import ImportTranslationsModal from '../partials/ImportTranslationsModal.vue';
 import SetDelegateUserModal from '../partials/SetDelegateUserModal.vue';
+import DelegateConfirmModal from '../partials/DelegateConfirmModal.vue';
+import DelegateBanner from '../partials/DelegateBanner.vue';
 import TechnicalInfoModal from '../partials/TechnicalInfoModal.vue';
 import HeaderMenuItem from '../widgets/HeaderMenuItem.vue';
 import DialogueWorkspace from '../partials/DialogueWorkspace.vue';
@@ -15,6 +19,7 @@ import VariableBrowser from '../partials/VariableBrowser.vue';
 import { DLB_APP_MODE_LIVE, DLB_APP_MODE_DRAFT } from '../../StudioClientState.js';
 import { showError } from '../../composables/error-toast.js';
 import { describeError } from '../../composables/error-message.js';
+import { downloadBlob } from '../../composables/download-blob.js';
 
 const config = inject('config');
 const state = inject('state');
@@ -141,6 +146,8 @@ function selectMode(mode) {
     if (state.value.mode === mode) return;
     state.value.mode = mode;
     dialogueWorkspace.value?.clearAllTabs();
+    // Simulating or acting as someone is a choice made in one mode, never carried into the other.
+    if (state.value.delegate) applyDelegate(null);
     dialogueBrowser.value?.listDialogues();
     // The "Test dialogues in:" selector offers draft languages in Authoring Mode and published
     // languages in Live Mode — refresh it so switching modes doesn't leave it showing the other
@@ -212,6 +219,61 @@ const publishDisabledReason = computed(() => {
 
 const showPublishWizard = ref(false);
 
+// ---- Discard All Draft Changes (#364) ----
+// The inverse of Publish: brings the whole draft back to the latest published version, so it has
+// the same permission and needs a published version to go back to.
+
+const canDiscardAll = computed(() => canPublish.value && !!state.value.selectedProject?.latestVersion);
+const discardAllDisabledReason = computed(() => {
+    if (!isAdmin.value) return "You don't have permission to discard the project's draft changes.";
+    if (state.value.mode !== DLB_APP_MODE_DRAFT) return 'Switch to Authoring Mode to discard draft changes.';
+    if (!state.value.selectedProject?.latestVersion) {
+        return "This project hasn't been published yet, so there are no published changes to go back to.";
+    }
+    if (!hasUnpublishedChanges.value) return 'There are no draft changes to discard.';
+    return '';
+});
+
+// { changed, added, deleted } dialogue counts while the confirmation is open, or null.
+const discardAllPrompt = ref(null);
+const discardingAll = ref(false);
+
+function onDiscardAllClick() {
+    if (!canDiscardAll.value) return;
+    closeProjectMenu();
+    authoringClient.listDraftDialogues(state.value.selectedProject.slug)
+        .then((dialogues) => {
+            discardAllPrompt.value = {
+                changed: dialogues.filter((d) => !d.isNew && !d.isDeleted && d.isChanged).length,
+                added: dialogues.filter((d) => d.isNew).length,
+                deleted: dialogues.filter((d) => d.isDeleted && !d.isNew).length,
+            };
+        })
+        .catch((error) => {
+            showError(describeError(error));
+        });
+}
+
+function confirmDiscardAll() {
+    const slug = state.value.selectedProject.slug;
+    discardingAll.value = true;
+    authoringClient.discardAllDraftChanges(slug)
+        .then(() => {
+            discardAllPrompt.value = null;
+            // Dialogues may have been removed or renamed back, so no open tab can be trusted.
+            dialogueWorkspace.value?.clearAllTabs();
+            dialogueBrowser.value?.listDialogues();
+            dialogueWorkspace.value?.loadAvailableLanguages();
+            return authoringClient.getProject(slug).then((project) => refreshProjectMetadataChanged(project));
+        })
+        .catch((error) => {
+            showError(describeError(error));
+        })
+        .finally(() => {
+            discardingAll.value = false;
+        });
+}
+
 function onPublishProjectClick() {
     if (!canPublish.value) return;
     closeProjectMenu();
@@ -238,16 +300,7 @@ function onExportProjectClick() {
     const slug = state.value.selectedProject.slug;
     exporting.value = true;
     authoringClient.exportProject(slug)
-        .then((blob) => {
-            const url = URL.createObjectURL(blob);
-            const anchor = document.createElement('a');
-            anchor.href = url;
-            anchor.download = slug + '.zip';
-            document.body.appendChild(anchor);
-            anchor.click();
-            anchor.remove();
-            URL.revokeObjectURL(url);
-        })
+        .then((blob) => downloadBlob(blob, slug + '.zip'))
         .catch((error) => {
             showError(describeError(error));
         })
@@ -267,39 +320,108 @@ function onProjectPublished(version) {
     dialogueBrowser.value?.listDialogues();
 }
 
-const activeDelegateUser = ref(null);
+// ---- Importing scripts (#339) and translations (#340) ----
+// Both import into the draft content, so like Configure/Publish they're Authoring-Mode-only; any
+// author may import (DIALOGUE_AUTHOR), not only an admin.
+
+const isAuthor = computed(() => isAdmin.value || !!state.value.user?.roles?.includes('editor'));
+const canImport = computed(() => isAuthor.value && state.value.mode === DLB_APP_MODE_DRAFT);
+const importDisabledReason = computed(() => {
+    if (!isAuthor.value) return "You don't have permission to import into this project.";
+    if (state.value.mode !== DLB_APP_MODE_DRAFT) return 'Switch to Authoring Mode to import.';
+    return '';
+});
+
+// 'scripts' or 'translations' while that import modal is open.
+const importKind = ref(null);
+const importDialogues = ref([]);
+const importLanguages = ref([]);
+
+function onImportClick(kind) {
+    if (!canImport.value) return;
+    closeProjectMenu();
+    const slug = state.value.selectedProject?.slug;
+    // The modals preview against the current draft dialogues (and, for translations, the
+    // project's translation languages), so fetch them fresh rather than relying on whatever the
+    // Dialogue Browser last loaded.
+    Promise.all([
+        authoringClient.listDraftDialogues(slug),
+        kind === 'translations' ? authoringClient.getProject(slug) : Promise.resolve(null),
+    ])
+        .then(([dialogues, project]) => {
+            importDialogues.value = (dialogues ?? []).map((d) => ({
+                name: d.name, isDeleted: d.isDeleted, translatedInto: d.translatedInto ?? [],
+            }));
+            importLanguages.value = (project?.draftTranslationLanguages ?? [])
+                .filter((l) => !l.isDeleted)
+                .map((l) => ({ code: l.translationLanguageCode, name: l.translationLanguageName }));
+            importKind.value = kind;
+        })
+        .catch((error) => {
+            showError(describeError(error));
+        });
+}
+
+function onScriptsImported(results) {
+    dialogueBrowser.value?.listDialogues();
+    const replaced = results.filter((result) => result.replaced).map((result) => result.dialogueName);
+    if (replaced.length) dialogueWorkspace.value?.dialoguesReplaced(replaced);
+}
+
+function onTranslationsImported(results) {
+    dialogueBrowser.value?.listDialogues();
+    dialogueWorkspace.value?.translationsReplaced(results.map((result) => result.dialogueName));
+}
+
+// A delegate is set on the shared clients, which outlive this page: clear it whenever a project
+// is opened, so that one set in a previous project can't stay active unseen (#407).
+setDelegateUser(null);
+state.value.delegate = null;
+const activeDelegateUser = computed(() => state.value.delegate?.label ?? null);
+// Simulating a user (#411) runs dialogues against a copy of their variables, as test sessions
+// (see DialogueWorkspace); acting as them ('act') does so for real.
+const simulating = computed(() => state.value.delegate?.mode === 'simulate');
 const showDelegateModal = ref(false);
-const delegateConfirmAction = ref(null);
+// A pending change of the delegate, waiting for confirmation: { change: { mode, label }, apply }.
+const delegateConfirm = ref(null);
 
 function onSetDelegateUserClick() {
     closeUserMenu();
     showDelegateModal.value = true;
 }
 
-// payload: { subject, label } — subject is sent to the API, label is what we show.
+// Sets (or, with null, clears) the user being acted for, on the clients and in the page state.
+function applyDelegate(delegate) {
+    setDelegateUser(delegate?.subject ?? null);
+    state.value.delegate = delegate;
+    variableBrowser.value?.loadVariables();
+}
+
+// payload: { subject, label, mode } — subject is sent to the API, label is what we show, mode is
+// 'simulate' or 'act'.
 function onDelegateApply(payload) {
     showDelegateModal.value = false;
     const subject = payload?.subject || null;
-    delegateConfirmAction.value = () => {
-        setDelegateUser(subject);
-        activeDelegateUser.value = subject ? (payload.label || subject) : null;
-        variableBrowser.value?.loadVariables();
-    };
+    if (!subject) return;
+    const delegate = { subject, label: payload.label || subject, mode: payload.mode };
+    delegateConfirm.value = { change: { mode: delegate.mode, label: delegate.label }, apply: () => applyDelegate(delegate) };
 }
 
 function onDelegateClear() {
     showDelegateModal.value = false;
-    delegateConfirmAction.value = () => {
-        setDelegateUser(null);
-        activeDelegateUser.value = null;
-        variableBrowser.value?.loadVariables();
-    };
+    delegateConfirm.value = { change: { mode: null, label: activeDelegateUser.value }, apply: () => applyDelegate(null) };
 }
 
-function confirmDelegateAction() {
+// Stopping, from the banner, needs no confirmation: the user is choosing to change nothing more.
+function stopDelegate() {
     dialogueWorkspace.value?.clearAllTabs();
-    delegateConfirmAction.value?.();
-    delegateConfirmAction.value = null;
+    applyDelegate(null);
+}
+
+function confirmDelegateChange() {
+    dialogueWorkspace.value?.clearAllTabs();
+    delegateConfirm.value?.apply();
+    delegateConfirm.value = null;
 }
 
 function onResumeDialogue(dialogueName) {
@@ -316,10 +438,6 @@ function onOpenDialogue(dialogueName) {
 
 function onNewDialogueStep() {
     variableBrowser.value?.loadVariables();
-}
-
-function onDialoguesReplaced(dialogueNames) {
-    dialogueWorkspace.value?.dialoguesReplaced(dialogueNames);
 }
 
 function onDialogueSaved() {
@@ -441,6 +559,17 @@ function onWorkspaceModeChanged(mode) {
                     </button>
                     <button
                         type="button"
+                        :class="['flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm transition-colors', canDiscardAll ? 'text-orange-darker hover:bg-grey-lighter cursor-pointer' : 'text-grey-light cursor-not-allowed']"
+                        :disabled="!canDiscardAll"
+                        :title="discardAllDisabledReason"
+                        data-test="menu-discard-all"
+                        @click="onDiscardAllClick"
+                    >
+                        <FontAwesomeIcon icon="fa-solid fa-rotate-left" class="w-4" :class="canDiscardAll ? 'text-orange-medium' : 'text-grey-light'" />
+                        Discard All Draft Changes…
+                    </button>
+                    <button
+                        type="button"
                         :class="['flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm transition-colors', (canExportProject && !exporting) ? 'text-orange-darker hover:bg-grey-lighter cursor-pointer' : 'text-grey-light cursor-not-allowed']"
                         :disabled="!canExportProject || exporting"
                         :title="exportProjectDisabledReason"
@@ -448,6 +577,29 @@ function onWorkspaceModeChanged(mode) {
                     >
                         <FontAwesomeIcon :icon="exporting ? 'fa-solid fa-circle-notch' : 'fa-solid fa-file-export'" :class="['w-4', canExportProject ? 'text-orange-medium' : 'text-grey-light', { 'animate-spin': exporting }]" />
                         Export Project
+                    </button>
+                    <div class="border-t border-grey-light mx-3"></div>
+                    <button
+                        type="button"
+                        :class="['flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm transition-colors', canImport ? 'text-orange-darker hover:bg-grey-lighter cursor-pointer' : 'text-grey-light cursor-not-allowed']"
+                        :disabled="!canImport"
+                        :title="importDisabledReason"
+                        data-test="menu-import-scripts"
+                        @click="onImportClick('scripts')"
+                    >
+                        <FontAwesomeIcon icon="fa-solid fa-file-import" class="w-4" :class="canImport ? 'text-orange-medium' : 'text-grey-light'" />
+                        Import Scripts
+                    </button>
+                    <button
+                        type="button"
+                        :class="['flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm transition-colors', canImport ? 'text-orange-darker hover:bg-grey-lighter cursor-pointer' : 'text-grey-light cursor-not-allowed']"
+                        :disabled="!canImport"
+                        :title="importDisabledReason"
+                        data-test="menu-import-translations"
+                        @click="onImportClick('translations')"
+                    >
+                        <FontAwesomeIcon icon="fa-solid fa-language" class="w-4" :class="canImport ? 'text-orange-medium' : 'text-grey-light'" />
+                        Import Translations
                     </button>
                     <div class="border-t border-grey-light mx-3"></div>
                     <button type="button" class="flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm text-orange-darker hover:bg-grey-lighter cursor-pointer transition-colors" @click="onSwitchProjectClick">
@@ -471,7 +623,7 @@ function onWorkspaceModeChanged(mode) {
                         </span>
                         <span class="font-title text-sm font-bold text-white">
                             {{ state.user?.name }}
-                            <span v-if="activeDelegateUser" class="font-normal text-orange-light text-xs"> → {{ activeDelegateUser }}</span>
+                            <span v-if="activeDelegateUser" class="font-normal text-orange-light text-xs"> → {{ activeDelegateUser }}<template v-if="simulating"> (simulating)</template><template v-else> (acting)</template></span>
                         </span>
                         <span class="font-mono text-[10px] text-orange-light">{{ Array.isArray(state.user?.roles) ? state.user.roles.join(', ') : state.user?.roles }}</span>
                     </div>
@@ -484,12 +636,12 @@ function onWorkspaceModeChanged(mode) {
                     class="fixed z-[9999] min-w-[200px] bg-white shadow-lg border border-grey-light rounded-b overflow-hidden"
                     :style="{ top: userMenuPos.top + 'px', left: userMenuPos.left + 'px' }"
                 >
-                    <button type="button" class="flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm text-orange-darker hover:bg-grey-lighter cursor-pointer transition-colors" @click="onSetDelegateUserClick">
+                    <button v-if="isAdmin" type="button" data-test="set-delegate-user" class="flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm text-orange-darker hover:bg-grey-lighter cursor-pointer transition-colors" @click="onSetDelegateUserClick">
                         <FontAwesomeIcon icon="fa-solid fa-user-gear" class="w-4 text-orange-medium" />
                         Set Delegate User
                         <span v-if="activeDelegateUser" class="ml-auto text-xs font-mono text-orange-darker bg-orange-light/30 px-1.5 py-0.5 rounded">{{ activeDelegateUser }}</span>
                     </button>
-                    <div class="border-t border-grey-light mx-3"></div>
+                    <div v-if="isAdmin" class="border-t border-grey-light mx-3"></div>
                     <button type="button" class="flex items-center gap-3 w-full px-4 py-2.5 font-title text-sm text-orange-darker hover:bg-grey-lighter cursor-pointer transition-colors" @click="onLogoutClick">
                         <FontAwesomeIcon icon="fa-solid fa-right-from-bracket" class="w-4 text-orange-medium" />
                         Log out
@@ -503,17 +655,45 @@ function onWorkspaceModeChanged(mode) {
             <div class="grow"></div>
         </header>
 
+        <DelegateConfirmModal
+            v-if="delegateConfirm"
+            :change="delegateConfirm.change"
+            @confirm="confirmDelegateChange"
+            @cancel="delegateConfirm = null"
+        />
+
         <Teleport to="body">
-            <div v-if="delegateConfirmAction" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
-                <div class="bg-white rounded-xl shadow-2xl p-5 font-title text-sm w-96">
-                    <div class="font-bold text-orange-darker mb-2 flex items-center gap-2">
-                        <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" class="text-orange-medium" />
-                        Change Delegate User
+            <div v-if="discardAllPrompt" class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50" data-test="discard-all-prompt">
+                <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col">
+                    <div class="flex items-center gap-2 px-5 py-4 bg-orange-darker rounded-t-xl text-white font-title font-bold">
+                        <FontAwesomeIcon icon="fa-solid fa-rotate-left" />
+                        Discard All Draft Changes
                     </div>
-                    <p class="text-grey-dark mb-4">All ongoing dialogues will be lost. Are you sure you want to proceed?</p>
-                    <div class="flex gap-2 justify-end">
-                        <button type="button" class="px-3 py-1.5 rounded border border-grey-light text-grey-dark hover:bg-grey-lighter text-xs font-semibold cursor-pointer" @click="delegateConfirmAction = null">Cancel</button>
-                        <button type="button" class="px-3 py-1.5 rounded bg-orange-darker text-white hover:bg-orange-dark text-xs font-semibold cursor-pointer" @click="confirmDelegateAction">Okay, proceed</button>
+                    <div class="px-5 py-4 flex flex-col gap-3 text-sm font-title">
+                        <p>
+                            Discard every draft change in <span class="font-bold text-orange-darker">{{ state.selectedProject?.displayName }}</span>?
+                            The whole draft becomes identical to its published version (v{{ state.selectedProject?.latestVersion?.versionNumber }}) again:
+                        </p>
+                        <ul class="list-disc ml-5 text-xs">
+                            <li>{{ discardAllPrompt.changed }} changed dialogue(s) go back to their published content and name;</li>
+                            <li>{{ discardAllPrompt.added }} new dialogue(s) are removed;</li>
+                            <li>{{ discardAllPrompt.deleted }} dialogue(s) pending deletion are restored;</li>
+                            <li>the project's name, description and translation languages go back to the published ones.</li>
+                        </ul>
+                        <div class="flex items-start gap-2 border border-orange-medium/40 bg-orange-light/10 text-orange-darker rounded-lg px-3 py-2.5 text-xs">
+                            <FontAwesomeIcon icon="fa-solid fa-circle-exclamation" class="shrink-0 mt-0.5" />
+                            <span>This can't be undone, and it discards everyone's draft changes in this project. Open tabs are closed.</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-end gap-3 px-5 py-4 border-t border-grey-light bg-grey-lighter rounded-b-xl">
+                        <button type="button" class="px-3 py-2 rounded font-title text-sm text-grey-dark border border-grey-light hover:bg-grey-light cursor-pointer" :disabled="discardingAll" @click="discardAllPrompt = null">Cancel</button>
+                        <button
+                            type="button"
+                            class="px-3 py-2 rounded font-title text-sm text-white bg-orange-darker hover:bg-orange-dark cursor-pointer disabled:opacity-40"
+                            :disabled="discardingAll"
+                            data-test="discard-all-confirm"
+                            @click="confirmDiscardAll"
+                        >{{ discardingAll ? 'Discarding…' : 'Discard all changes' }}</button>
                     </div>
                 </div>
             </div>
@@ -525,6 +705,20 @@ function onWorkspaceModeChanged(mode) {
             :projectDisplayName="state.selectedProject?.displayName ?? state.selectedProject?.slug"
             @close="showPublishWizard = false"
             @published="onProjectPublished"
+        />
+
+        <ImportScriptsModal
+            v-if="importKind === 'scripts'"
+            :dialogues="importDialogues"
+            @close="importKind = null"
+            @imported="onScriptsImported"
+        />
+        <ImportTranslationsModal
+            v-if="importKind === 'translations'"
+            :dialogues="importDialogues"
+            :languages="importLanguages"
+            @close="importKind = null"
+            @imported="onTranslationsImported"
         />
 
         <ResizablePanels
@@ -544,10 +738,12 @@ function onWorkspaceModeChanged(mode) {
                     @activateTab="onActivateTab"
                     @hasUnpublishedChanges="hasUnpublishedDialogueChanges = $event"
                     @openDialogue="onOpenDialogue"
-                    @dialoguesReplaced="onDialoguesReplaced"
+                    @dialoguesReplaced="(names) => dialogueWorkspace?.dialoguesReplaced(names)"
+                    @dialogueDeleted="(name) => dialogueWorkspace?.dialogueDeleted(name)"
                 />
             </template>
             <template #main>
+                <DelegateBanner v-if="state.delegate" :delegate="state.delegate" @stop="stopDelegate" />
                 <DialogueWorkspace ref="dialogue-workspace" class="grow" @newDialogueStep="onNewDialogueStep" @dialogueSaved="onDialogueSaved" @modeChanged="onWorkspaceModeChanged" />
             </template>
             <template #right>
