@@ -35,6 +35,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- Studio: the participant view frames the dialogue (the owl, speech bubbles and replies) in a
+  white box with rounded corners, instead of showing it directly on the grey page.
 - Studio: acting on behalf of another user for real (*Act as*) is treated as the powerful
   operation it is ([#330](https://github.com/dialoguebranch/platform/issues/330)): choosing it warns
   that the user's dialogue logs, variables and history change as if they acted themselves, the

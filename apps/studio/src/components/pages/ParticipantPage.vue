@@ -128,18 +128,22 @@ onBeforeUnmount(() => {
 
         <img class="block pt-4 mx-auto w-[200px] sm:w-[320px] shrink-0" src="../../assets/img/dlb-long.png" alt="Dialogue Branch" />
 
-        <div class="grow min-h-0 mt-4 max-w-3xl w-full mx-auto">
-            <BalloonDialogueComponent
-                ref="balloons"
-                :dialogueName="dialogueName"
-                :dialogueSteps="dialogueSteps"
-                :dialogueEnded="dialogueEnded"
-                :dialogueCancelled="dialogueCancelled"
-                :awaitingReply="awaitingReply"
-                :startError="startError"
-                @selectReply="onSelectReply"
-                @restartDialogue="startDialogue"
-            />
+        <!-- The dialogue itself, framed in a white box on the grey page: as tall as its content, the
+             page scrolls if it doesn't fit -->
+        <div class="flex justify-center mt-4 mb-6 px-4">
+            <div class="w-full max-w-3xl bg-white rounded-2xl shadow-md" data-test="dialogue-frame">
+                <BalloonDialogueComponent
+                    ref="balloons"
+                    :dialogueName="dialogueName"
+                    :dialogueSteps="dialogueSteps"
+                    :dialogueEnded="dialogueEnded"
+                    :dialogueCancelled="dialogueCancelled"
+                    :awaitingReply="awaitingReply"
+                    :startError="startError"
+                    @selectReply="onSelectReply"
+                    @restartDialogue="startDialogue"
+                />
+            </div>
         </div>
     </div>
 </template>
