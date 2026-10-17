@@ -15,7 +15,7 @@ const emit = defineEmits(['confirm', 'cancel']);
 
 <template>
     <Teleport to="body">
-        <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40" data-test="delegate-confirm" @click.self="emit('cancel')">
+        <div class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40" data-test="delegate-confirm">
             <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col font-title text-sm">
                 <div
                     class="flex items-center gap-2 px-5 py-4 rounded-t-xl text-white font-bold"

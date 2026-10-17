@@ -97,9 +97,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 ### Fixed
 
 - Studio: a long page, such as the Users list, also got a horizontal scrollbar.
-- Studio: clicking outside a dialog with input fields, such as *New Project* or the node editor,
-  closed it, losing what was typed; these dialogs now close only with their close button or
-  *Cancel*.
+- Studio: clicking outside a dialog, such as *New Project* or the node editor, closed it, losing
+  what was typed; dialogs now close only with their close button or *Cancel*.
 - Studio: when the participant view's dialogue doesn't exist, a participant now gets a plain message
   instead of a technical error with a *Try Again* button that couldn't help.
 - Web service and Studio: test sessions stayed in memory, each with its own parsed copy of the
