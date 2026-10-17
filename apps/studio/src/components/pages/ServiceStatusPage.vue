@@ -1,5 +1,6 @@
 <script setup>
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import StudioWordmark from '../widgets/StudioWordmark.vue';
 
 defineProps({
     apiUp: { type: Boolean, default: false },
@@ -15,7 +16,8 @@ function retry() {
 
 <template>
     <div class="min-w-screen min-h-screen bg-background flex flex-col items-center justify-center font-title px-4">
-        <img class="w-[240px] sm:w-[320px] mb-6" src="../../assets/img/dlb-long.png" alt="Dialogue Branch" />
+        <img class="w-[200px] sm:w-[320px]" src="../../assets/img/dlb-long.png" alt="Dialogue Branch" />
+        <StudioWordmark class="mt-2 mb-6" />
         <div class="bg-box rounded-xl shadow-md max-w-md w-full px-6 py-8 text-center">
             <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" class="text-4xl text-orange-darker mb-4" />
             <h1 class="font-bold text-lg mb-2">Service Unavailable</h1>
