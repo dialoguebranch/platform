@@ -1,5 +1,5 @@
 <script setup>
-import { inject, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import { computed, inject, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import PageHeader from '../widgets/PageHeader.vue';
 import PageGreeting from '../widgets/PageGreeting.vue';
@@ -12,6 +12,18 @@ const state = inject('state');
 const client = useAuthoringClient();
 
 const projects = ref([]);
+// The search field above the list: shows only the projects whose name, slug or description
+// contains the text, case-insensitively.
+const projectQuery = ref('');
+const visibleProjects = computed(() => {
+    const query = projectQuery.value.trim().toLowerCase();
+    if (!query) return projects.value;
+    return projects.value.filter((project) => [
+        project.latestVersion?.displayName ?? project.draftDisplayName,
+        project.slug,
+        project.latestVersion?.description ?? project.draftDescription,
+    ].some((text) => text?.toLowerCase().includes(query)));
+});
 const loading = ref(true);
 const errorMessage = ref('');
 
@@ -232,9 +244,21 @@ function confirmPurge() {
         <div class="w-full px-4 pb-12 max-w-3xl mx-auto">
             <!-- The page itself, framed in a white box like the participant view's dialogue -->
             <div class="bg-white rounded-2xl shadow-md p-4 sm:p-6" data-test="page-frame">
-                <div class="flex items-center justify-between mb-4">
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
                     <h2 class="font-title font-bold text-lg">Select a Project</h2>
-                    <div class="flex items-center gap-2">
+                    <input
+                        v-model="projectQuery"
+                        type="search"
+                        class="w-full sm:w-72 bg-white px-3 py-1.5 rounded-md border-[2px] border-solid border-gray-300 font-title text-sm focus:outline-none focus:border-orange-medium"
+                        placeholder="Search by name, slug or description…"
+                        data-test="project-search"
+                    />
+                </div>
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    <p class="flex-1 min-w-48 text-xs font-title text-grey-dark">
+                        The Dialogue Branch projects on this Web Service. Open one to write, test and publish its dialogues.
+                    </p>
+                    <div class="flex items-center gap-2 shrink-0 ml-auto">
                         <button
                             type="button"
                             :class="['flex items-center gap-1.5 px-3 py-1.5 rounded text-white text-xs font-title font-semibold transition-colors', isAdmin ? 'bg-orange-darker hover:bg-orange-dark cursor-pointer' : 'bg-orange-medium cursor-not-allowed opacity-60']"
@@ -293,10 +317,15 @@ function confirmPurge() {
                     <p class="mt-1">{{ isAdmin ? 'Use the New Project button above to create one.' : "You don't have permission to create projects — ask an administrator to set one up for you." }}</p>
                 </div>
 
+                <!-- Nothing matches the search -->
+                <div v-else-if="visibleProjects.length === 0" class="text-center py-8 text-grey-dark font-title text-sm" data-test="projects-no-match">
+                    No projects match your search.
+                </div>
+
                 <!-- Project list -->
                 <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button
-                        v-for="project in projects"
+                        v-for="project in visibleProjects"
                         :key="project.slug"
                         type="button"
                         class="relative text-left bg-orange-light/30 rounded-xl px-5 py-4 hover:shadow-md hover:border-orange-darker border border-orange-light transition-all cursor-pointer group"

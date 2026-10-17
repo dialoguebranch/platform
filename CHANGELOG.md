@@ -9,6 +9,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Studio: the project selection page has a search field that filters the projects by name, slug
+  or description, and a line explaining the page, like the Users page.
 - Studio, web service and client-js: simulate a user, to investigate a problem they have without
   changing any of their data ([#411](https://github.com/dialoguebranch/platform/issues/411)).
   *Set Delegate User* now offers *Simulate as* (the default) and *Act as*. While simulating,
