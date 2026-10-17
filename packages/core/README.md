@@ -140,9 +140,7 @@ Here is a list of common useful tasks:
   written to `build/reports/tests/test/index.html`.
 
 Some more advanced tasks:
-- `./gradlew javadoc` - Generate the Javadoc HTML pages in `/build/reports/javadoc/`. This can be
-  used to generate Javadoc from the latest source in order to update the official hosted docs that
-  can be found at https://dialoguebranch.com/docs/dialogue-branch/dev/dlb-core-java/index.html
+- `./gradlew javadoc` - Generate the Javadoc HTML pages in `/build/reports/javadoc/`.
 - `./gradlew wrapper --gradle-version latest` - Generates the Gradle Wrapper files, targeting the
   latest Gradle version. Replace "latest" with a specific version number to generate wrapper scripts
   for the indicated version. This can be used e.g. to upgrade the Gradle version. Note that the
