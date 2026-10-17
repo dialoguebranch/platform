@@ -42,6 +42,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `dlb-core-java`'s public API) and which are internal to Studio. From here on, only a change to a
   stable surface is labelled **Breaking:**; a change to an internal one is labelled
   **Internal API:**. Release notes up to 0.7.0 are unchanged.
+- Web service: a new project's starter dialogue has a preamble saying it was generated
+  automatically.
 - Studio: a refreshed look for the participant view and the project and user pages: a shared
   header with the logo, a "Studio" wordmark, a divider and a greeting; for editors and admins a menu
   bar to switch between *Project Management* and *User Management* (admins only), replacing the

@@ -67,6 +67,8 @@ public class ProjectService {
 	private static final String DEFAULT_NODE_TITLE = "Start";
 	private static final String DEFAULT_NODE_SPEAKER = "Agent";
 	private static final String DEFAULT_NODE_BODY = "Start your dialogue here...";
+	private static final String DEFAULT_PREAMBLE = "// This dialogue was generated automatically "
+			+ "when the project was created, as a starting point.";
 
 	private final DBProjectRepository projectRepository;
 	private final DBDraftTranslationLanguageRepository draftTranslationLanguageRepository;
@@ -192,8 +194,8 @@ public class ProjectService {
 
 	/**
 	 * Creates and persists a new project exactly as {@link #createProject}, and additionally
-	 * creates a starter draft dialogue named {@code "default"} with a single {@code "Start"} node,
-	 * so every new project authored through the API has something to run immediately. Used only by
+	 * creates a starter draft dialogue named {@code "default"} with a single {@code "Start"} node
+	 * and a preamble saying it was generated automatically, so every new project authored through the API has something to run immediately. Used only by
 	 * the {@code /create-project} endpoint (the "Create New Project" wizard flow).
 	 *
 	 * @param slug               the unique project slug.
@@ -210,6 +212,7 @@ public class ProjectService {
 				sourceLanguageCode, sourceLanguageName);
 
 		DBDraftDialogue dialogue = draftDialogueService.createDialogue(project, DEFAULT_DIALOGUE_NAME);
+		draftDialogueService.updatePreamble(dialogue, DEFAULT_PREAMBLE);
 		NodeHeader header = new NodeHeader(DEFAULT_NODE_TITLE, DEFAULT_NODE_SPEAKER);
 		draftDialogueService.createNode(dialogue, DEFAULT_NODE_TITLE, header.toString(), DEFAULT_NODE_BODY);
 
