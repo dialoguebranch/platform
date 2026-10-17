@@ -16,7 +16,7 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 // Font Awesome ships) instead of these specific ones bloats the production bundle by well over
 // 1 MB for icons that are never rendered.
 import {
-    faAlignLeft, faAnglesLeft, faAnglesRight, faArrowLeft, faArrowUpRightFromSquare, faArrowsRotate, faBug,
+    faAlignLeft, faAnglesLeft, faAnglesRight, faArrowDownWideShort, faArrowLeft, faArrowUpRightFromSquare, faArrowsRotate, faBug,
     faCaretDown, faCaretRight, faCaretUp, faCheck, faCircle, faCircleArrowRight, faCircleCheck,
     faCircleChevronLeft, faCircleChevronRight, faCircleExclamation, faCircleInfo, faCircleNotch,
     faCircleXmark, faClockRotateLeft, faCloudArrowUp, faCookieBite, faDiagramProject, faEllipsis, faFileExport,
@@ -29,7 +29,7 @@ import {
 import { faComment, faComments, faCopy } from '@fortawesome/free-regular-svg-icons';
 
 library.add(
-    faAlignLeft, faAnglesLeft, faAnglesRight, faArrowLeft, faArrowUpRightFromSquare, faArrowsRotate, faBug,
+    faAlignLeft, faAnglesLeft, faAnglesRight, faArrowDownWideShort, faArrowLeft, faArrowUpRightFromSquare, faArrowsRotate, faBug,
     faCaretDown, faCaretRight, faCaretUp, faCheck, faCircle, faCircleArrowRight, faCircleCheck,
     faCircleChevronLeft, faCircleChevronRight, faCircleExclamation, faCircleInfo, faCircleNotch,
     faCircleXmark, faClockRotateLeft, faCloudArrowUp, faCookieBite, faDiagramProject, faEllipsis, faFileExport,

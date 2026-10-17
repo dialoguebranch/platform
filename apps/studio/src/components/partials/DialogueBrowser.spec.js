@@ -72,16 +72,11 @@ function mountBrowser(options = {}) {
                     props: ['name', 'node', 'path', 'openFolders', 'sortMode', 'forceExpanded', 'depth'],
                     template: '<div class="stub-tree-node" :data-name="name" :data-file="node._file">{{ name }}</div>',
                 },
-                IconButton: {
-                    name: 'IconButton',
-                    props: ['icon', 'title', 'disabled'],
-                    template: '<button type="button" :title="title" :disabled="disabled" @click="$emit(\'click\')"><slot /></button>',
-                },
                 MainPagePanelHeader: {
                     template: '<header><slot /><slot name="buttons" /></header>',
                 },
                 MainPagePanelContainer: {
-                    template: '<div class="panel-container"><slot /></div>',
+                    template: '<div class="panel-container"><slot name="toolbar" /><slot /></div>',
                 },
                 teleport: true,
             },
@@ -162,16 +157,18 @@ describe('DialogueBrowser', () => {
         const { wrapper, state } = mountBrowser({ mode: DLB_APP_MODE_DRAFT });
         await flushPromises();
 
-        const select = wrapper.find('select[title="Sort dialogues"]');
-        await select.setValue(SORT_UPDATED_DESC);
+        const sortButton = wrapper.find('[data-test="sort-dialogues"]');
+        await sortButton.trigger('click');
+        await wrapper.find(`[data-test="sort-${SORT_UPDATED_DESC}"]`).trigger('click');
         await flushPromises();
 
-        expect(select.element.value).toBe(SORT_UPDATED_DESC);
+        expect(sortButton.attributes('title')).toBe('Sort dialogues: Last updated (newest)');
+        expect(wrapper.find(`[data-test="sort-${SORT_UPDATED_DESC}"]`).exists()).toBe(false);
 
         state.value.mode = DLB_APP_MODE_LIVE;
         await flushPromises();
 
-        expect(select.element.value).toBe(SORT_DEFAULT);
+        expect(sortButton.attributes('title')).toBe('Sort dialogues: Default (folders first)');
     });
 
     it('handles new dialogue creation workflow', async () => {

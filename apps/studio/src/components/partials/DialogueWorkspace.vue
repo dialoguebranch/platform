@@ -913,7 +913,7 @@ function onSelectReply(dialogueStep, reply, inputValues) {
 
 <template>
     <div class="flex flex-col gap-1">
-        <MainPagePanelHeader title="Dialogue Workspace">
+        <MainPagePanelHeader title="Dialogue Workspace" icon="fa-regular fa-comments">
             <template #buttons>
                 <span v-if="availableLanguages.length > 0" class="self-center text-xs font-title text-grey-dark whitespace-nowrap">Test dialogues in:</span>
                 <select
@@ -969,7 +969,7 @@ function onSelectReply(dialogueStep, reply, inputValues) {
         <div class="flex flex-col grow min-h-0">
 
         <!-- Tab bar -->
-        <div class="flex items-end bg-white pt-2 relative z-[100]">
+        <div class="flex items-end bg-grey-lighter pt-2 relative z-[100]">
             <div class="absolute bottom-0 left-0 right-0 h-px bg-grey-light pointer-events-none z-0"></div>
             <button
                 type="button"
@@ -990,7 +990,7 @@ function onSelectReply(dialogueStep, reply, inputValues) {
                     class="flex items-center gap-1 px-2 py-0.5 font-title text-xs rounded-t border shrink-0 cursor-pointer"
                     :class="tab.id === activeTabId
                         ? 'bg-white border-grey-light border-b-2 border-b-white text-orange-darker font-semibold relative z-[100] -mb-px'
-                        : 'bg-grey-lighter border-grey-light border-b-0 text-grey-dark hover:bg-white'"
+                        : 'bg-grey-light/40 border-grey-light border-b-0 text-grey-dark hover:bg-white'"
                     @click="activeTabId = tab.id"
                 >
                     <FontAwesomeIcon v-if="tab.isDraftTest" icon="fa-solid fa-flask" class="text-[10px]" title="Draft test" />

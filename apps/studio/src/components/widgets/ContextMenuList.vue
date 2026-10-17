@@ -176,6 +176,9 @@ function itemKey(item, index) {
                     @pointerenter="onPointerEnter(index)"
                     @keydown="onKeydown($event, index)"
                 >
+                    <span v-if="item.checked !== undefined" class="w-4 shrink-0 flex justify-center">
+                        <FontAwesomeIcon v-if="item.checked" icon="fa-solid fa-check" />
+                    </span>
                     <FontAwesomeIcon v-if="item.icon" :icon="item.icon" class="w-4 shrink-0" />
                     <span class="flex-1 truncate">{{ item.label }}</span>
                     <FontAwesomeIcon v-if="item.children" icon="fa-solid fa-caret-right" class="text-[10px]" />

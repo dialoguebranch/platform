@@ -16,7 +16,7 @@ const offClasses = ['bg-mode-selector-off', 'hover:bg-mode-selector-off-hover'];
 </script>
 
 <template>
-    <div class="rounded-full bg-icon-button-disabled flex items-center bg-mode-selector-bg p-0.5 gap-1.5">
+    <div class="shrink-0 rounded-full bg-icon-button-disabled flex items-center bg-mode-selector-bg p-0.5 gap-1.5">
         <button v-for="mode in modes"
             class="rounded-full w-6.5 h-6.5 cursor-pointer"
             :class="model === mode.name ? onClasses : offClasses"

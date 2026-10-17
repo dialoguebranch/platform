@@ -627,7 +627,7 @@ function onWorkspaceModeChanged(mode) {
             </div>
             <div class="grow"></div>
         </header>
-        <ModeBar class="mb-3" :mode="state.mode" :delegate="state.delegate" @stop="stopDelegate" />
+        <ModeBar class="mb-2" :mode="state.mode" :delegate="state.delegate" @stop="stopDelegate" />
 
         <DelegateConfirmModal
             v-if="delegateConfirm"

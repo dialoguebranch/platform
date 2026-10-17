@@ -3,7 +3,7 @@ export default { inheritAttrs: false };
 </script>
 
 <script setup>
-import { computed, inject, ref, watch, useAttrs } from 'vue';
+import { computed, inject, ref, watch, useAttrs, useTemplateRef } from 'vue';
 const attrs = useAttrs();
 import { useClient, useAuthoringClient, getBrowserTimeZone } from '../../composables/client.js';
 import { describeError } from '../../composables/error-message.js';
@@ -17,9 +17,10 @@ import { DLB_APP_MODE_DRAFT } from '../../StudioClientState.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 
 const state = inject('state');
-import IconButton from '../widgets/IconButton.vue';
 import MainPagePanelHeader from '../widgets/MainPagePanelHeader.vue';
 import MainPagePanelContainer from '../widgets/MainPagePanelContainer.vue';
+import ToolbarButton from '../widgets/ToolbarButton.vue';
+import ContextMenu from '../widgets/ContextMenu.vue';
 import DialogueTreeNode from './DialogueTreeNode.vue';
 
 const props = defineProps({
@@ -58,6 +59,13 @@ const sortOptions = computed(() => [
         { value: SORT_SIZE_ASC, label: 'Size (smallest)' },
     ] : []),
 ]);
+// Sorting is a small menu behind a toolbar button, the same size as the toolbar's other buttons.
+const sortButton = useTemplateRef('sortButton');
+const sortMenuOpen = ref(false);
+const sortLabel = computed(() => sortOptions.value.find((opt) => opt.value === sortMode.value)?.label ?? '');
+const sortMenuItems = computed(() => sortOptions.value.map((opt) => ({
+    label: opt.label, value: opt.value, checked: opt.value === sortMode.value, test: 'sort-' + opt.value,
+})));
 const searchQuery = ref('');
 const isSearching = computed(() => searchQuery.value.trim().length > 0);
 const tree = computed(() => sortTreeLevel(
@@ -308,51 +316,50 @@ defineExpose({
 
 <template>
     <div class="flex flex-col gap-1" v-bind="attrs">
-        <MainPagePanelHeader title="Dialogue Browser" class="sm:ml-2">
-            <template #buttons>
-                <IconButton v-if="!isDraftMode && !simulating" icon="fa-solid fa-rotate-left" title="Retrieve most recent ongoing (server-side) dialogue" :disabled="hasActiveDialogue" @click="checkOngoingDialogue" />
-                <IconButton v-if="isDraftMode" icon="fa-solid fa-plus" title="New Dialogue" @click="onNewDialogueClick" />
-                <IconButton
-                    icon="fa-solid fa-arrows-rotate"
-                    :class="{ 'animate-spin': reloading }"
-                    title="Refresh dialogue list"
-                    :disabled="reloading"
-                    @click="listDialogues"
-                />
+        <MainPagePanelHeader title="Dialogue Browser" icon="fa-solid fa-folder-open" class="sm:ml-2" />
+
+        <MainPagePanelContainer class="sm:ml-1" body-class="p-1 gap-0.5 flex flex-col">
+            <template #toolbar>
+                <!-- Filter + sort strip: the box's first row, as tall as the workspace's tab strip -->
+                <div class="flex items-center gap-1.5 px-1 h-[29px]">
+                    <div class="relative flex-1 min-w-0">
+                        <FontAwesomeIcon icon="fa-solid fa-magnifying-glass" class="absolute left-2 top-1/2 -translate-y-1/2 text-grey-dark text-[10px] pointer-events-none" />
+                        <input
+                            v-model="searchQuery"
+                            type="text"
+                            placeholder="Filter dialogues…"
+                            class="w-full h-6 pl-6 pr-6 text-xs font-title border border-grey-light rounded-lg bg-white focus:outline-none focus:border-orange-dark"
+                            @keyup.esc="searchQuery = ''"
+                        />
+                        <button
+                            v-if="searchQuery"
+                            type="button"
+                            title="Clear filter"
+                            class="absolute right-1.5 top-1/2 -translate-y-1/2 text-grey-dark hover:text-orange-dark cursor-pointer"
+                            @click="searchQuery = ''"
+                        >
+                            <FontAwesomeIcon icon="fa-solid fa-xmark" class="text-[10px]" />
+                        </button>
+                    </div>
+                    <ToolbarButton
+                        ref="sortButton"
+                        icon="fa-solid fa-arrow-down-wide-short"
+                        :title="'Sort dialogues: ' + sortLabel"
+                        data-test="sort-dialogues"
+                        @click="sortMenuOpen = true"
+                    />
+                    <ContextMenu
+                        v-if="sortMenuOpen"
+                        :items="sortMenuItems"
+                        :anchor="sortButton.$el"
+                        @select="(item) => { sortMode = item.value; }"
+                        @close="sortMenuOpen = false"
+                    />
+                    <ToolbarButton v-if="!isDraftMode && !simulating" icon="fa-solid fa-rotate-left" title="Retrieve most recent ongoing (server-side) dialogue" :disabled="hasActiveDialogue" @click="checkOngoingDialogue" />
+                    <ToolbarButton v-if="isDraftMode" icon="fa-solid fa-plus" title="New Dialogue" @click="onNewDialogueClick" />
+                    <ToolbarButton icon="fa-solid fa-arrows-rotate" title="Refresh dialogue list" :spin="reloading" :disabled="reloading" @click="listDialogues" />
+                </div>
             </template>
-        </MainPagePanelHeader>
-
-        <!-- Filter + sort strip -->
-        <div class="flex items-center gap-1.5 px-1 sm:ml-1">
-            <div class="relative flex-1 min-w-0">
-                <FontAwesomeIcon icon="fa-solid fa-magnifying-glass" class="absolute left-2 top-1/2 -translate-y-1/2 text-grey-dark text-[10px] pointer-events-none" />
-                <input
-                    v-model="searchQuery"
-                    type="text"
-                    placeholder="Filter dialogues…"
-                    class="w-full h-7.5 pl-6 pr-6 text-xs font-title border border-grey-light rounded-lg bg-white focus:outline-none focus:border-orange-dark"
-                    @keyup.esc="searchQuery = ''"
-                />
-                <button
-                    v-if="searchQuery"
-                    type="button"
-                    title="Clear filter"
-                    class="absolute right-1.5 top-1/2 -translate-y-1/2 text-grey-dark hover:text-orange-dark cursor-pointer"
-                    @click="searchQuery = ''"
-                >
-                    <FontAwesomeIcon icon="fa-solid fa-xmark" class="text-[10px]" />
-                </button>
-            </div>
-            <select
-                v-model="sortMode"
-                title="Sort dialogues"
-                class="h-7.5 px-2 shrink-0 border border-grey-light rounded-lg text-xs font-title focus:outline-none focus:border-orange-dark bg-white cursor-pointer"
-            >
-                <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-            </select>
-        </div>
-
-        <MainPagePanelContainer class="p-1 gap-0.5 flex flex-col sm:ml-1">
             <div v-if="showNewDialogueInput" class="flex items-center gap-1 p-1">
                 <input
                     v-model="newDialogueName"

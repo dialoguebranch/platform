@@ -57,5 +57,5 @@ const classes = computed(() => {
 
 <template>
     <button v-if="type === 'list-item'" class="w-5 h-5 flex items-center justify-center" :class="classes" :title="title" :disabled="disabled"><FontAwesomeIcon :icon="icon" /></button>
-    <button v-else class="rounded-full w-7.5 h-7.5" :class="classes" :title="title" :disabled="disabled"><FontAwesomeIcon class="text-white" :icon="icon" /></button>
+    <button v-else class="rounded-full w-7.5 h-7.5 shrink-0" :class="classes" :title="title" :disabled="disabled"><FontAwesomeIcon class="text-white" :icon="icon" /></button>
 </template>
