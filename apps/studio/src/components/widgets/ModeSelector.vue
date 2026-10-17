@@ -11,19 +11,23 @@ function onModeClick(mode) {
     model.value = mode.name;
 }
 
-const onClasses = ['bg-mode-selector-on', 'hover:bg-mode-selector-on-hover'];
-const offClasses = ['bg-mode-selector-off', 'hover:bg-mode-selector-off-hover'];
 </script>
 
 <template>
-    <div class="shrink-0 rounded-full bg-icon-button-disabled flex items-center bg-mode-selector-bg p-0.5 gap-1.5">
-        <button v-for="mode in modes"
-            class="rounded-full w-6.5 h-6.5 cursor-pointer"
-            :class="model === mode.name ? onClasses : offClasses"
+    <div class="flex shrink-0 rounded-lg overflow-hidden border border-grey-light">
+        <button v-for="(mode, index) in modes"
+            type="button"
+            class="h-[26px] px-2.5 flex items-center justify-center gap-1.5 text-xs font-title whitespace-nowrap cursor-pointer"
+            :class="[
+                model === mode.name ? 'bg-orange-dark text-white' : 'bg-white text-grey-dark hover:bg-grey-lighter',
+                { 'border-l border-grey-light': index > 0 },
+            ]"
             :title="mode.title"
+            :data-test="'mode-' + mode.name"
             @click="onModeClick(mode)"
         >
-            <FontAwesomeIcon class="text-white w-4 h-4" :icon="mode.icon" />
+            <FontAwesomeIcon :icon="mode.icon" />
+            <span v-if="mode.label">{{ mode.label }}</span>
         </button>
     </div>
 </template>

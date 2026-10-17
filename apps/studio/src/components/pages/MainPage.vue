@@ -437,12 +437,6 @@ function onActivateTab(tabId) {
 function onResizePanels() {
     dialogueWorkspace.value.resize();
 }
-
-function onWorkspaceModeChanged(mode) {
-    if (mode === 'edit') {
-        panels.value?.collapsePanel('right');
-    }
-}
 </script>
 
 <template>
@@ -719,7 +713,7 @@ function onWorkspaceModeChanged(mode) {
                 />
             </template>
             <template #main>
-                <DialogueWorkspace ref="dialogue-workspace" class="grow" @newDialogueStep="onNewDialogueStep" @dialogueSaved="onDialogueSaved" @modeChanged="onWorkspaceModeChanged" />
+                <DialogueWorkspace ref="dialogue-workspace" class="grow" @newDialogueStep="onNewDialogueStep" @dialogueSaved="onDialogueSaved" />
             </template>
             <template #right>
                 <VariableBrowser ref="variable-browser" class="grow" @changeVariable="onChangeVariable" @collapse="panels?.collapsePanel('right')" />

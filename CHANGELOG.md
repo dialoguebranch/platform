@@ -50,6 +50,11 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   click, and a mode bar under the header says which mode you're in, in its colour (amber for Live,
   green for Authoring). Simulating or acting as another user is shown in the mode bar too, which
   turns red while acting as them, instead of in a banner above the dialogue.
+- Studio: the Dialogue Workspace's view switch is in its title row, with a label on each view
+  (*Test (speech bubbles)*, *Test (text style)*, *Edit Dialogue*, *Translate Dialogue*), and its
+  other controls are in a toolbar above the tabs. Opening *Edit Dialogue* no longer collapses the
+  Variable Browser, and the workspace's own reset of the test values is gone: the Variable Browser
+  has one.
 - Studio: the Dialogue Browser can be collapsed, like the Variable Browser; both fold away with a
   button on their edge next to the Dialogue Workspace, and stay collapsed after a reload.
 - Studio: the Dialogue Browser, Dialogue Workspace and Variable Browser line up, with restyled

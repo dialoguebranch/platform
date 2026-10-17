@@ -14,7 +14,7 @@ import NodeEditPanel from './NodeEditPanel.vue';
 import PreambleBar from './PreambleBar.vue';
 
 // Pure content component — no header of its own. It's only ever embedded in
-// DialogueWorkspace.vue's "edit" mode, whose own header (with the balloon/text/edit
+// DialogueWorkspace.vue's "edit" mode, whose own toolbar (with the balloon/text/edit
 // ModeSelector) also hosts this component's Add Node / Refresh actions, via the exposed
 // addNode/reload/isLoading/isCreatingNode below.
 const props = defineProps({
