@@ -1,9 +1,8 @@
 <script setup>
 import { inject, onMounted, ref, watch } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import StudioWordmark from '../widgets/StudioWordmark.vue';
+import PageHeader from '../widgets/PageHeader.vue';
 import { useAuthoringClient } from '../../composables/client.js';
-import { useStateManagement } from '../../composables/state-management.js';
 import { useUserSearch } from '../../composables/user-search.js';
 
 // The Users page (#407): every user the Web Service knows, with how much data it holds for each,
@@ -12,7 +11,6 @@ import { useUserSearch } from '../../composables/user-search.js';
 
 const state = inject('state');
 const client = useAuthoringClient();
-const stateManagement = useStateManagement();
 
 const { query, results, loading, loadError, hasMore, search, refresh, loadMore } = useUserSearch();
 
@@ -23,9 +21,6 @@ function backToProjects() {
     state.value.adminPage = null;
 }
 
-function onLogoutClick() {
-    stateManagement.logout();
-}
 
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
@@ -88,27 +83,19 @@ function confirmErase() {
 
 <template>
     <div class="min-w-screen min-h-screen bg-background flex flex-col items-center">
-        <div class="w-full flex justify-between px-4 pt-3">
+        <PageHeader>
             <button
                 type="button"
-                class="flex items-center gap-1.5 font-title text-xs text-grey-dark hover:text-orange-darker cursor-pointer"
+                class="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-orange-darker/40 bg-white/60 text-orange-darker hover:bg-white cursor-pointer"
                 data-test="back-to-projects"
                 @click="backToProjects"
             >
                 <FontAwesomeIcon icon="fa-solid fa-arrow-left" />
                 Projects
             </button>
-            <button
-                type="button"
-                class="font-title text-xs text-grey-dark hover:text-orange-darker cursor-pointer"
-                @click="onLogoutClick"
-            >Log out</button>
-        </div>
+        </PageHeader>
 
-        <img class="block pt-4 w-[200px] sm:w-[320px]" src="../../assets/img/dlb-long.png" alt="Dialogue Branch" />
-        <StudioWordmark class="mt-2" />
-
-        <div class="w-full px-4 mt-8 pb-12 max-w-3xl mx-auto">
+        <div class="w-full px-4 mt-4 pb-12 max-w-3xl mx-auto">
             <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
                 <h2 class="font-title font-bold text-lg">Users</h2>
                 <input

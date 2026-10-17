@@ -41,6 +41,10 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   view.") and a small *Log out* button sit right above the dialogue instead of "Logged in as"
   and *Log out* in the screen's corners, and a brown divider with a small diamond
   separates the logo from the page.
+- Studio: the project selection and Users pages get the same header as the participant view: the
+  divider under the logo, and a bar right above the content with a greeting ("Hey \<user\>, welcome
+  to Dialogue Branch Studio.") or the way back to the projects on the left, and a small *Log out*
+  button on the right.
 - Studio: "Studio" under the Dialogue Branch logo is styled as part of the logo, in its colours,
   on the project selection and Users pages and now also in the participant view; the logo on the
   project selection and Users pages is the same, smaller size as in the participant view. The

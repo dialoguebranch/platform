@@ -1,15 +1,13 @@
 <script setup>
 import { inject, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import StudioWordmark from '../widgets/StudioWordmark.vue';
+import PageHeader from '../widgets/PageHeader.vue';
 import { useAuthoringClient } from '../../composables/client.js';
-import { useStateManagement } from '../../composables/state-management.js';
 import CreateProjectWizardModal from '../partials/CreateProjectWizardModal.vue';
 import ImportProjectModal from '../partials/ImportProjectModal.vue';
 
 const state = inject('state');
 const client = useAuthoringClient();
-const stateManagement = useStateManagement();
 
 const projects = ref([]);
 const loading = ref(true);
@@ -105,9 +103,6 @@ function selectProject(project) {
     state.value.selectedProject = { slug: project.slug, displayName: project.latestVersion?.displayName ?? project.draftDisplayName ?? project.slug, latestVersion: project.latestVersion ?? null };
 }
 
-function onLogoutClick() {
-    stateManagement.logout();
-}
 
 const isAdmin = state.value.user?.roles?.includes('admin');
 
@@ -227,18 +222,14 @@ function confirmPurge() {
 
 <template>
     <div class="min-w-screen min-h-screen bg-background flex flex-col items-center">
-        <div class="w-full flex justify-end px-4 pt-3">
-            <button
-                type="button"
-                class="font-title text-xs text-grey-dark hover:text-orange-darker cursor-pointer"
-                @click="onLogoutClick"
-            >Log out</button>
-        </div>
+        <PageHeader>
+            <span class="flex items-start gap-1.5" data-test="greeting">
+                <FontAwesomeIcon icon="fa-regular fa-comment" class="shrink-0 mt-0.5 text-orange-darker" />
+                <span>Hey <span class="font-semibold text-orange-darker">{{ state.user?.name }}</span>, welcome to Dialogue Branch Studio.</span>
+            </span>
+        </PageHeader>
 
-        <img class="block pt-4 w-[200px] sm:w-[320px]" src="../../assets/img/dlb-long.png" alt="Dialogue Branch" />
-        <StudioWordmark class="mt-2" />
-
-        <div class="w-full px-4 mt-8 pb-12 max-w-3xl mx-auto">
+        <div class="w-full px-4 mt-4 pb-12 max-w-3xl mx-auto">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="font-title font-bold text-lg">Select a Project</h2>
                 <div class="flex items-center gap-2">
