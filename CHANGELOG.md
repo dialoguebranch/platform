@@ -115,6 +115,12 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Web service: a request the caller got wrong is answered with its own 4xx and the reason, instead
+  of a generic `500 Internal Server Error` ([#220](https://github.com/dialoguebranch/platform/issues/220)):
+  a missing required parameter or upload part (`400`), a parameter of the wrong type (`400`), an
+  unsupported content type (`415`) or method (`405`) and an upload that is too large (`413`). An
+  upload that arrives without its file, for example because a proxy didn't pass the body on, now
+  says so. Real server errors still answer `500`, without details.
 - Studio: the *Documentation* link in the user menu pointed to a page that no longer exists; it
   now opens the documentation site.
 - Studio: deleting, adding or renaming a dialogue collapsed every folder in the Dialogue Browser;
