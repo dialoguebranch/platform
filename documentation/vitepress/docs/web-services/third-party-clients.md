@@ -6,8 +6,8 @@ Your own client application can connect to the Dialogue Branch Web Service direc
 
 If your client is JavaScript-based, you may not need to hand-roll the workflow below at all. `@dialoguebranch/client-js`'s default export, `DialogueBranchClient`, is a playback-only client for exactly this scenario — running dialogues against a Web Service from outside Dialogue Branch Studio — with no framework dependency, so it runs in a browser, Node, or (in principle) React Native. (The package also ships `DialogueBranchAuthoringClient`, at its `./authoring` subpath, for project/dialogue authoring — that's what Dialogue Branch Studio itself uses; a playback-only consumer never needs it.) It lives at `packages/client-js` in the platform monorepo, is published as plain ESM with no build step required, and its constructor takes the transport (a `fetch` implementation, credentials mode, and hooks for attaching auth, logging calls, and handling a `401`) as options rather than assuming a particular environment.
 
-::: info Not yet on npm
-`@dialoguebranch/client-js` isn't published to the npm registry yet — Dialogue Branch Studio itself currently consumes it as a local dependency within the monorepo. Until it's published, treat its source as a reference implementation of the workflow described below, or vendor it directly. Follow [issue #88](https://github.com/dialoguebranch/platform/issues/88) for publishing status.
+::: tip Install from npm
+`@dialoguebranch/client-js` is published to the npm registry with every release, at the same version as the Web Service: `npm install @dialoguebranch/client-js`. Dialogue Branch Studio itself consumes it as a local dependency within the monorepo.
 :::
 
 ## Authenticating

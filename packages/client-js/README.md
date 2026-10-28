@@ -19,10 +19,14 @@ these are deliberately kept separate.
 
 ## Install
 
-Not yet published to npm (tracked separately as
-[#230](https://github.com/dialoguebranch/platform/issues/230)). Within this monorepo, `apps/studio`
-consumes it as a local `file:` dependency — the same pattern works for another package in this
-repo:
+Published to npm with every release, at the same version as the Web Service:
+
+```bash
+npm install @dialoguebranch/client-js
+```
+
+Within this monorepo, `apps/studio` consumes it as a local `file:` dependency instead, and the same
+pattern works for another package in this repo:
 
 ```json
 {
