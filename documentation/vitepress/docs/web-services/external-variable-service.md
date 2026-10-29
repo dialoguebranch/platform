@@ -33,7 +33,24 @@ The External Variable Service is an outside system that can be slow or down, and
 The Web Service does not retry a failed call.
 
 ::: info Note
-It is worthwhile to make sure that the External Variable Service answers the request for variable updates quickly, because any delay will delay the starting of dialogue execution in the Dialogue Branch Web Service - which will negatively impact your end-user's experience. Apply caching, and make use of the provided `updatedTime` parameter that is passed along with each Variable, to make quick judgements whether a variable needs to be updated at all.
+It is worthwhile to make sure that the External Variable Service answers the request for variable updates quickly, because any delay will delay the starting of dialogue execution in the Dialogue Branch Web Service - which will negatively impact your end-user's experience. Apply caching, and make use of the `updatedTime` that is passed along with each Variable (the moment since which the Web Service has held its value), to make quick judgements whether a variable needs to be updated at all.
+:::
+
+## Answering a request for updates
+
+The Web Service sends `retrieve-updates` the Variables a dialogue uses, each with its current value and `updatedTime`: the moment since which the Web Service has held that value, or none if it has no value. Answer with only the Variables that have a new value, each as its `name` and `value`:
+
+```json
+[
+  { "name": "temperatureAtUserLocation", "value": 14 },
+  { "name": "lastWorkout", "value": null }
+]
+```
+
+A `null` value removes the Variable. The Web Service stores every update as updated at the moment it receives it, as it does for a value set in a dialogue or through its own end-points, so that is the `updatedTime` it reports from then on. An `updatedTime` or `updatedTimeZone` in your answer is ignored.
+
+::: warning Breaking change
+Earlier, the Web Service stored the `updatedTime` your service sent with an update. It now ignores it and records when it received the update.
 :::
 
 ## Request identity

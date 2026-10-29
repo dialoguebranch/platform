@@ -31,6 +31,7 @@ package com.dialoguebranch.web.service.storage;
 import com.dialoguebranch.execution.Variable;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.VariableUpdatedSource;
+import com.dialoguebranch.web.service.DateTimeUtils;
 import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.controller.schema.SupportedVariableInfo;
 import com.dialoguebranch.web.service.exception.ErrorCode;
@@ -48,6 +49,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.List;
 
@@ -252,19 +254,23 @@ public class ExternalVariableServiceClient {
 	/**
 	 * Writes updated values received from the External Variable Service into a variable store,
 	 * with source {@link VariableUpdatedSource#EXTERNAL}: a {@code null} value removes the
-	 * variable.
+	 * variable. Only the name and value of an update are used: it is stored as updated now, when
+	 * this service received it, in the user's time zone, as for every other source (#321). An
+	 * {@code updatedTime} the External Variable Service sends is ignored.
 	 *
 	 * @param store the variable store to update.
 	 * @param updates the updated variables, as returned by {@link #retrieveUpdates}.
 	 */
 	public static void applyUpdates(VariableStore store, Variable[] updates) {
+		if (updates.length == 0) return;
+		ZonedDateTime received = DateTimeUtils.nowMs(store.getUser().getTimeZone());
 		for (Variable variable : updates) {
 			logger.info(variable.toString());
 			if (variable.getValue() != null) {
-				store.setValue(variable.getName(), variable.getValue(), true,
-						variable.getZonedUpdatedTime(), VariableUpdatedSource.EXTERNAL);
+				store.setValue(variable.getName(), variable.getValue(), true, received,
+						VariableUpdatedSource.EXTERNAL);
 			} else {
-				store.removeByName(variable.getName(), true, variable.getZonedUpdatedTime(),
+				store.removeByName(variable.getName(), true, received,
 						VariableUpdatedSource.EXTERNAL);
 			}
 		}

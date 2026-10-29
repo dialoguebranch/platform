@@ -28,7 +28,9 @@
 
 package com.dialoguebranch.web.service.storage;
 
+import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.Variable;
+import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.VariableUpdatedSource;
 import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.exception.ErrorCode;
@@ -47,6 +49,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -158,5 +161,24 @@ class ExternalVariableServiceClientTest {
 		FakeExternalVariableService.Request request = service.requests().get(0);
 		assertEquals("/v1/variables/notify-updated", request.path());
 		assertTrue(request.body().contains("\"steps\""), request.body());
+	}
+
+	@Test
+	void anUpdateIsStoredAsUpdatedWhenItWasReceived() {
+		ZoneId zone = ZoneId.of("Europe/Amsterdam");
+		VariableStore store = new VariableStore(new User("sub", zone));
+		store.setValue("gone", "old", false, ZonedDateTime.now(zone), VariableUpdatedSource.UNKNOWN);
+		long before = System.currentTimeMillis();
+
+		ExternalVariableServiceClient.applyUpdates(store, new Variable[] {
+				new Variable("steps", 42, 0L, "UTC", VariableUpdatedSource.UNKNOWN),
+				new Variable("gone", null, 0L, "UTC", VariableUpdatedSource.UNKNOWN)});
+
+		Variable steps = store.getVariable("steps");
+		assertEquals(42, steps.getValue());
+		assertTrue(steps.getUpdatedTime() >= before, "updatedTime " + steps.getUpdatedTime());
+		assertEquals("Europe/Amsterdam", steps.getUpdatedTimeZone());
+		assertEquals(VariableUpdatedSource.EXTERNAL, steps.getUpdatedSource());
+		assertNull(store.getVariable("gone"));
 	}
 }

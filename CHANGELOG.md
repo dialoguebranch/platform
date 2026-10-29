@@ -42,6 +42,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `dlb-core-java`'s public API) and which are internal to Studio. From here on, only a change to a
   stable surface is labelled **Breaking:**; a change to an internal one is labelled
   **Internal API:**. Release notes up to 0.7.0 are unchanged.
+- **Breaking:** Web service: a variable updated by the External Variable Service is stored as
+  updated when the Web Service received it, as for every other source, so `/variables/get` returns
+  that time as its `updatedTime` ([#321](https://github.com/dialoguebranch/platform/issues/321)).
+  The `retrieve-updates` response now carries each variable's `name` and `value` only; an
+  `updatedTime` or `updatedTimeZone` it still sends is ignored. The request still sends each
+  variable's `updatedTime`, which now means the Web Service has held that value since then.
+  `mock-variable-service` answers with name and value only.
 - Web service: a new project's starter dialogue has a preamble saying it was generated
   automatically.
 - Studio: *Live Mode* can only be chosen once a project has a published version; an unpublished
