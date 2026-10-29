@@ -13,7 +13,10 @@
 # `mock-variable-service`, with the API pointed at it. Run Studio separately (`npm run dev`
 # in apps/studio) as in setup #2 in compose.yml's header.
 #
-# All values here are dev-only and match the mock's own `DLB_AUTH_API_KEY: dev`.
+# The API authenticates to the mock with a Keycloak access token (issue #428): it gets one with the
+# client-credentials grant as the `dlb-web-service-evs` client, and the mock accepts it because it
+# is issued by the dev realm, for the `dlb-variable-service` audience, with its `evs-access` role.
+# All three are in the realm export (import/dialoguebranch-realm.json); the secret is dev-only.
 
 services:
 
@@ -22,7 +25,9 @@ services:
       DLB_EXTERNAL_VARIABLE_SERVICE_ENABLED: "true"
       DLB_EXTERNAL_VARIABLE_SERVICE_URL: http://mock-variable-service:8090
       DLB_EXTERNAL_VARIABLE_SERVICE_API_VERSION: "1"
-      DLB_EXTERNAL_VARIABLE_SERVICE_API_KEY: dev
+      DLB_EXTERNAL_VARIABLE_SERVICE_OAUTH2_TOKEN_URI: http://keycloak:8080/realms/dialoguebranch/protocol/openid-connect/token
+      DLB_EXTERNAL_VARIABLE_SERVICE_OAUTH2_CLIENT_ID: dlb-web-service-evs
+      DLB_EXTERNAL_VARIABLE_SERVICE_OAUTH2_CLIENT_SECRET: dev-evs-secret
     depends_on:
       mock-variable-service:
         condition: service_started

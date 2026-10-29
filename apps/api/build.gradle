@@ -77,6 +77,8 @@ dependencies {
 	implementation 'org.flywaydb:flyway-core:11.8.2'
 	implementation 'org.flywaydb:flyway-mysql:11.8.2'
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server:3.5.4'
+	// Client-credentials tokens for the calls to the External Variable Service (#428)
+	implementation 'org.springframework.security:spring-security-oauth2-client:6.5.2'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator:3.5.4'
 
 	implementation 'org.mariadb.jdbc:mariadb-java-client:3.5.4'

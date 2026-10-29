@@ -42,6 +42,17 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `dlb-core-java`'s public API) and which are internal to Studio. From here on, only a change to a
   stable surface is labelled **Breaking:**; a change to an internal one is labelled
   **Internal API:**. Release notes up to 0.7.0 are unchanged.
+- **Breaking:** Web service: the Web Service authenticates to the External Variable Service with
+  an OAuth2 access token instead of a static API key
+  ([#428](https://github.com/dialoguebranch/platform/issues/428)). It gets the token from Keycloak
+  with the client-credentials grant, caches it and fetches a new one shortly before it expires,
+  and sends it as `Authorization: Bearer` on every call. The `dlb.external-variable-service.api-key`
+  setting is gone; new settings `dlb.external-variable-service.oauth2.token-uri`, `client-id`,
+  `client-secret` and optional `scope` replace it, and the Web Service does not start without
+  them while the integration is enabled. An External Variable Service must check the token's
+  signature, issuer, expiry, audience and role, as described on its documentation page;
+  `mock-variable-service` does, and the Docker stack's realm has the clients and role for it.
+  Failing to get a token is handled like any other failed call and never breaks a dialogue.
 - **Breaking:** Web service: a variable updated by the External Variable Service is stored as
   updated when the Web Service received it, as for every other source, so `/variables/get` returns
   that time as its `updatedTime` ([#321](https://github.com/dialoguebranch/platform/issues/321)).

@@ -29,7 +29,7 @@ If you have an existing back-end service, and you want it to take up the role of
     * `/variables/retrieve-updates`
     * `/variables/notify-updated`
     * `/variables/notify-cleared`
-  * Verify the access token that is sent along with every request to these end-points (`Authorization: Bearer <someToken>`). At the moment, `someToken` is a pre-configured API Key, defined in the Web Service as `externalVariableServiceAPIKey`, but additional security schemes may be implemented at a later point in time.
+  * Verify the access token that is sent along with every request to these end-points (`Authorization: Bearer <token>`): a Keycloak access token the Web Service gets with the client-credentials grant. Check its signature against the realm's public keys, its issuer and expiry, that your service's client id is in its audience (`aud`), and that it has your service's role in `resource_access.<your client id>.roles`. This mock does exactly that, with Spring Security (`SecurityConfig`), configured with `dlb.auth.issuer-uri`, `audience` (`dlb-variable-service`) and `required-role` (`evs-access`).
 
 ## Building and Running
 Typically, this Dummy service is deployed alongside the DLB Web Service, Keycloak, and other services. However, if you want to run this as a standalone service, follow these steps:

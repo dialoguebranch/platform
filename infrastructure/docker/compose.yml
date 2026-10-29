@@ -299,11 +299,18 @@ services:
   # overlay (see its header) rather than setting the variables by hand:
   #   docker compose -f compose.yml -f compose.variable-service.yml --profile api up -d
   #
+  # Every variables call needs a Keycloak access token for it (issue #428): issued by the dev
+  # realm, for the `dlb-variable-service` audience, with its `evs-access` role, as the API gets
+  # with the client-credentials grant as `dlb-web-service-evs` (see the overlay).
+  #
   # To point an API running OUTSIDE this stack (e.g. ./gradlew bootRun) at it, set:
   #   DLB_EXTERNAL_VARIABLE_SERVICE_ENABLED=true
   #   DLB_EXTERNAL_VARIABLE_SERVICE_URL=http://localhost:8090
-  #   DLB_EXTERNAL_VARIABLE_SERVICE_API_KEY=dev
-  # (matching the DLB_AUTH_API_KEY set below).
+  #   DLB_EXTERNAL_VARIABLE_SERVICE_OAUTH2_TOKEN_URI=http://localhost:8081/realms/dialoguebranch/protocol/openid-connect/token
+  #   DLB_EXTERNAL_VARIABLE_SERVICE_OAUTH2_CLIENT_ID=dlb-web-service-evs
+  #   DLB_EXTERNAL_VARIABLE_SERVICE_OAUTH2_CLIENT_SECRET=dev-evs-secret
+  # and start this service with DLB_MOCK_EVS_ISSUER_URI=http://localhost:8081/realms/dialoguebranch,
+  # since Keycloak names itself after the address a token was asked from.
   # ---------------------------------------------------------------------------
 
   mock-variable-service:
@@ -314,9 +321,13 @@ services:
       - variable-service
     container_name: dlb-dev-mock-variable-service
     environment:
-      DLB_AUTH_API_KEY: dev
+      DLB_AUTH_ISSUER_URI: ${DLB_MOCK_EVS_ISSUER_URI:-http://keycloak:8080/realms/dialoguebranch}
+      DLB_AUTH_JWK_SET_URI: http://keycloak:8080/realms/dialoguebranch/protocol/openid-connect/certs
     ports:
       - "8090:8090"
+    depends_on:
+      keycloak-sync:
+        condition: service_completed_successfully
 
 volumes:
   mariadb-data:

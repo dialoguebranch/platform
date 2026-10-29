@@ -42,9 +42,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Base64;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -62,15 +64,26 @@ class ExternalVariableServiceClientTest {
 		if (service != null) service.stop();
 	}
 
-	private static ExternalVariableServiceClient clientFor(String url, Duration readTimeout) {
+	private static ExternalVariableServiceClient clientFor(FakeExternalVariableService service,
+			Duration readTimeout) {
+		return new ExternalVariableServiceClient(propertiesFor(service, readTimeout));
+	}
+
+	private static DlbProperties propertiesFor(FakeExternalVariableService service,
+			Duration readTimeout) {
 		DlbProperties properties = new DlbProperties();
 		DlbProperties.ExternalVariableService evs = properties.getExternalVariableService();
-		evs.setEnabled(true);
-		evs.setUrl(url);
-		evs.setApiVersion(1);
-		evs.setApiKey("test-key");
+		service.configure(evs);
 		evs.setConnectTimeout(Duration.ofMillis(500));
 		evs.setReadTimeout(readTimeout);
+		return properties;
+	}
+
+	/** A client whose tokens come from a working authorization server, at an unreachable EVS. */
+	private ExternalVariableServiceClient clientForUnreachableService() throws IOException {
+		service = FakeExternalVariableService.answering(200, "[]", Duration.ZERO);
+		DlbProperties properties = propertiesFor(service, Duration.ofSeconds(1));
+		properties.getExternalVariableService().setUrl(unreachableUrl());
 		return new ExternalVariableServiceClient(properties);
 	}
 
@@ -87,7 +100,7 @@ class ExternalVariableServiceClientTest {
 
 	@Test
 	void throwsServiceUnavailableWhenExternalVariableServiceCannotBeReached() throws IOException {
-		ExternalVariableServiceClient client = clientFor(unreachableUrl(), Duration.ofSeconds(1));
+		ExternalVariableServiceClient client = clientForUnreachableService();
 
 		ServiceUnavailableException exception = assertThrows(ServiceUnavailableException.class,
 				() -> client.getSupportedVariables("default-test"));
@@ -100,7 +113,7 @@ class ExternalVariableServiceClientTest {
 
 	@Test
 	void anUnreachableServiceNeverBreaksTheCaller() throws IOException {
-		ExternalVariableServiceClient client = clientFor(unreachableUrl(), Duration.ofSeconds(1));
+		ExternalVariableServiceClient client = clientForUnreachableService();
 
 		assertEquals(0, client.retrieveUpdates("iss", "sub", "p", "UTC", oneVariable(), false)
 				.length);
@@ -111,7 +124,7 @@ class ExternalVariableServiceClientTest {
 	@Test
 	void aServiceThatAnswersWithAnErrorNeverBreaksTheCaller() throws IOException {
 		service = FakeExternalVariableService.answering(500, "", Duration.ZERO);
-		ExternalVariableServiceClient client = clientFor(service.url(), Duration.ofSeconds(1));
+		ExternalVariableServiceClient client = clientFor(service, Duration.ofSeconds(1));
 
 		assertEquals(0, client.retrieveUpdates("iss", "sub", "p", "UTC", oneVariable(), false)
 				.length);
@@ -123,7 +136,7 @@ class ExternalVariableServiceClientTest {
 	@Test
 	void aSlowServiceIsCutOffByTheReadTimeout() throws IOException {
 		service = FakeExternalVariableService.answering(200, "[]", Duration.ofSeconds(3));
-		ExternalVariableServiceClient client = clientFor(service.url(), Duration.ofMillis(300));
+		ExternalVariableServiceClient client = clientFor(service, Duration.ofMillis(300));
 
 		long start = System.nanoTime();
 		Variable[] updates = client.retrieveUpdates("iss", "sub", "p", "UTC", oneVariable(), false);
@@ -138,7 +151,7 @@ class ExternalVariableServiceClientTest {
 		service = FakeExternalVariableService.answering(200,
 				"[{\"name\":\"steps\",\"value\":42,\"updatedTime\":0,\"timeZone\":\"UTC\"}]",
 				Duration.ZERO);
-		ExternalVariableServiceClient client = clientFor(service.url(), Duration.ofSeconds(1));
+		ExternalVariableServiceClient client = clientFor(service, Duration.ofSeconds(1));
 
 		Variable[] updates = client.retrieveUpdates("iss", "sub", "p", "UTC", oneVariable(), true);
 
@@ -148,13 +161,13 @@ class ExternalVariableServiceClientTest {
 		assertEquals("/v1/variables/retrieve-updates", request.path());
 		assertTrue(request.query().contains("subject=sub"), request.query());
 		assertTrue(request.query().contains("testSession=true"), request.query());
-		assertEquals("Bearer test-key", request.authorization());
+		assertEquals("Bearer token-1", request.authorization());
 	}
 
 	@Test
 	void notifyUpdatedSendsTheChangedVariables() throws IOException {
 		service = FakeExternalVariableService.answering(200, "", Duration.ZERO);
-		ExternalVariableServiceClient client = clientFor(service.url(), Duration.ofSeconds(1));
+		ExternalVariableServiceClient client = clientFor(service, Duration.ofSeconds(1));
 
 		client.notifyUpdated("iss", "sub", "p", "UTC", oneVariable());
 
@@ -180,5 +193,96 @@ class ExternalVariableServiceClientTest {
 		assertEquals("Europe/Amsterdam", steps.getUpdatedTimeZone());
 		assertEquals(VariableUpdatedSource.EXTERNAL, steps.getUpdatedSource());
 		assertNull(store.getVariable("gone"));
+	}
+
+	@Test
+	void theTokenIsFetchedWithTheClientCredentialsAndReused() throws IOException {
+		service = FakeExternalVariableService.answering(200, "[]", Duration.ZERO);
+		ExternalVariableServiceClient client = clientFor(service, Duration.ofSeconds(1));
+
+		client.retrieveUpdates("iss", "sub", "p", "UTC", oneVariable(), false);
+		client.notifyUpdated("iss", "sub", "p", "UTC", oneVariable());
+		client.notifyCleared("iss", "sub", "p", "UTC");
+
+		assertEquals(1, service.tokenRequests().size());
+		FakeExternalVariableService.Request tokenRequest = service.tokenRequests().get(0);
+		assertTrue(tokenRequest.body().contains("grant_type=client_credentials"),
+				tokenRequest.body());
+		assertEquals("Basic " + Base64.getEncoder().encodeToString(
+				"dlb-web-service-evs:test-secret".getBytes(StandardCharsets.UTF_8)),
+				tokenRequest.authorization());
+		assertEquals(3, service.requests().size());
+		for (FakeExternalVariableService.Request request : service.requests()) {
+			assertEquals("Bearer token-1", request.authorization());
+		}
+	}
+
+	@Test
+	void aTokenAboutToExpireIsFetchedAgain() throws IOException {
+		service = FakeExternalVariableService.answering(200, "[]", Duration.ZERO);
+		service.tokenLifetimeSeconds = 30;
+		ExternalVariableServiceClient client = clientFor(service, Duration.ofSeconds(1));
+
+		client.notifyCleared("iss", "sub", "p", "UTC");
+		client.notifyCleared("iss", "sub", "p", "UTC");
+
+		assertEquals(2, service.tokenRequests().size());
+		assertEquals("Bearer token-2", service.requests().get(1).authorization());
+	}
+
+	@Test
+	void aRejectedTokenIsDiscarded() throws IOException {
+		service = FakeExternalVariableService.answering(401, "", Duration.ZERO);
+		ExternalVariableServiceClient client = clientFor(service, Duration.ofSeconds(1));
+
+		assertDoesNotThrow(() -> client.notifyCleared("iss", "sub", "p", "UTC"));
+		client.notifyCleared("iss", "sub", "p", "UTC");
+
+		assertEquals("Bearer token-1", service.requests().get(0).authorization());
+		assertEquals("Bearer token-2", service.requests().get(1).authorization());
+	}
+
+	@Test
+	void anAuthorizationServerThatFailsNeverBreaksTheCaller() throws IOException {
+		service = FakeExternalVariableService.answering(200, "[]", Duration.ZERO);
+		service.tokenStatus = 401;
+		ExternalVariableServiceClient client = clientFor(service, Duration.ofSeconds(1));
+
+		assertEquals(0, client.retrieveUpdates("iss", "sub", "p", "UTC", oneVariable(), false)
+				.length);
+		assertDoesNotThrow(() -> client.notifyUpdated("iss", "sub", "p", "UTC", oneVariable()));
+		assertDoesNotThrow(() -> client.notifyCleared("iss", "sub", "p", "UTC"));
+		assertThrows(ServiceUnavailableException.class, () -> client.getSupportedVariables("p"));
+		assertEquals(0, service.requests().size());
+	}
+
+	@Test
+	void anUnreachableAuthorizationServerNeverBreaksTheCaller() throws IOException {
+		service = FakeExternalVariableService.answering(200, "[]", Duration.ZERO);
+		DlbProperties properties = propertiesFor(service, Duration.ofSeconds(1));
+		properties.getExternalVariableService().getOauth2().setTokenUri(unreachableUrl());
+		ExternalVariableServiceClient client = new ExternalVariableServiceClient(properties);
+
+		assertEquals(0, client.retrieveUpdates("iss", "sub", "p", "UTC", oneVariable(), false)
+				.length);
+		assertDoesNotThrow(() -> client.notifyCleared("iss", "sub", "p", "UTC"));
+		assertEquals(0, service.requests().size());
+	}
+
+	@Test
+	void missingOAuth2SettingsStopTheServiceAtStartup() {
+		DlbProperties properties = new DlbProperties();
+		DlbProperties.ExternalVariableService evs = properties.getExternalVariableService();
+		evs.setEnabled(true);
+		evs.setUrl("http://127.0.0.1:1");
+		evs.getOauth2().setTokenUri("http://127.0.0.1:1/token");
+
+		IllegalStateException exception = assertThrows(IllegalStateException.class,
+				() -> new ExternalVariableServiceClient(properties));
+
+		assertTrue(exception.getMessage().contains("client-id, client-secret"),
+				exception.getMessage());
+		evs.setEnabled(false);
+		assertDoesNotThrow(() -> new ExternalVariableServiceClient(properties));
 	}
 }

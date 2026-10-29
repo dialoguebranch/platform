@@ -59,5 +59,8 @@ ENV DLB_DATA_DIR=/usr/local/dialogue-branch/data/dlb-external-var-service
 # environment block, or Docker Secrets.
 #
 # Optional:
-#   DLB_AUTH_API_KEY — API key that callers (e.g. dlb-web-service) must present
+#   DLB_AUTH_ISSUER_URI   — the Keycloak realm whose access tokens are accepted
+#   DLB_AUTH_JWK_SET_URI  — its public keys, if not under DLB_AUTH_ISSUER_URI
+#   DLB_AUTH_AUDIENCE     — the client id that must be in a token's "aud" (dlb-variable-service)
+#   DLB_AUTH_REQUIRED_ROLE — the role a token must have for it (evs-access)
 # -------------------------------------------------------------------------

@@ -29,9 +29,7 @@
 package com.dialoguebranch.web.varservice.controller;
 
 import com.dialoguebranch.web.varservice.exception.BadRequestException;
-import com.dialoguebranch.web.varservice.exception.ErrorCode;
 import com.dialoguebranch.web.varservice.exception.HttpFieldError;
-import com.dialoguebranch.web.varservice.exception.UnauthorizedException;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.net.URLDecoder;
@@ -136,33 +134,6 @@ public class ControllerFunctions {
 						"Query parameters not accepted, parameters must be set in the request body.");
 			}
 		}
-	}
-
-	/**
-	 * Convenience method for extracting a provided Access Token (an "API Key" in the case of this
-	 * dummy service implementation) from the "Authorization" header of the given {@code request}.
-	 *
-	 * @param request the {@link HttpServletRequest} from which to extract the API Key.
-	 * @return the API Key from the "Authorization: Bearer TOKEN" header.
-	 * @throws UnauthorizedException in case no valid API Key is present in the header.
-	 */
-	public static String extractAPIKey(HttpServletRequest request) throws UnauthorizedException {
-
-		String token = request.getHeader("Authorization");
-
-		if(token != null) {
-
-			if (token.startsWith("Bearer ")) {
-				token = token.substring(7);
-				if(!token.isEmpty()) return token;
-			}
-
-			throw new UnauthorizedException(ErrorCode.ACCESS_TOKEN_INVALID,
-					"Provided API Key is invalid (empty).");
-
-		}
-
-		throw new UnauthorizedException(ErrorCode.ACCESS_TOKEN_NOT_FOUND, "API Key not found");
 	}
 
 }

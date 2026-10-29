@@ -78,7 +78,12 @@ the Authorization Code + PKCE flow.
 | `DLB_EXTERNAL_VARIABLE_SERVICE_ENABLED` | `false` | No | Enable the external variable service |
 | `DLB_EXTERNAL_VARIABLE_SERVICE_URL` | — | When enabled | URL of the external variable service |
 | `DLB_EXTERNAL_VARIABLE_SERVICE_API_VERSION` | `1` | No | API version to use |
-| `DLB_EXTERNAL_VARIABLE_SERVICE_API_KEY` | — | When enabled | API key for authentication |
+| `DLB_EXTERNAL_VARIABLE_SERVICE_OAUTH2_TOKEN_URI` | — | When enabled | Token end-point where the Web Service gets its access token (client-credentials grant) |
+| `DLB_EXTERNAL_VARIABLE_SERVICE_OAUTH2_CLIENT_ID` | — | When enabled | The Web Service's confidential client for these calls |
+| `DLB_EXTERNAL_VARIABLE_SERVICE_OAUTH2_CLIENT_SECRET` | — | When enabled | That client's secret |
+| `DLB_EXTERNAL_VARIABLE_SERVICE_OAUTH2_SCOPE` | — | No | Scopes to request, space-separated |
+| `DLB_EXTERNAL_VARIABLE_SERVICE_CONNECT_TIMEOUT` | `2s` | No | How long a call may take to connect |
+| `DLB_EXTERNAL_VARIABLE_SERVICE_READ_TIMEOUT` | `5s` | No | How long a call may wait for its response |
 
 ### Changing the port
 

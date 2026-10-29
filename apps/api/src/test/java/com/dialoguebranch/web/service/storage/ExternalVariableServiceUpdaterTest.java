@@ -55,12 +55,10 @@ class ExternalVariableServiceUpdaterTest {
 		if (service != null) service.stop();
 	}
 
-	private static VariableStore storeNotifying(String url) {
+	private static VariableStore storeNotifying(FakeExternalVariableService service) {
 		DlbProperties properties = new DlbProperties();
 		DlbProperties.ExternalVariableService evs = properties.getExternalVariableService();
-		evs.setEnabled(true);
-		evs.setUrl(url);
-		evs.setApiKey("test-key");
+		service.configure(evs);
 		evs.setConnectTimeout(Duration.ofMillis(500));
 		evs.setReadTimeout(Duration.ofMillis(500));
 		VariableStore store = new VariableStore(new User("sub", ZONE));
@@ -72,7 +70,7 @@ class ExternalVariableServiceUpdaterTest {
 	@Test
 	void aChangeFromADialogueIsSentToTheService() throws IOException {
 		service = FakeExternalVariableService.answering(200, "", Duration.ZERO);
-		VariableStore store = storeNotifying(service.url());
+		VariableStore store = storeNotifying(service);
 
 		store.setValue("mood", "good", true, ZonedDateTime.now(ZONE),
 				VariableUpdatedSource.DLB_SCRIPT);
@@ -85,7 +83,7 @@ class ExternalVariableServiceUpdaterTest {
 	@Test
 	void aChangeFromTheServiceItselfIsNotSentBack() throws IOException {
 		service = FakeExternalVariableService.answering(200, "", Duration.ZERO);
-		VariableStore store = storeNotifying(service.url());
+		VariableStore store = storeNotifying(service);
 
 		store.setValue("steps", 42, true, ZonedDateTime.now(ZONE),
 				VariableUpdatedSource.EXTERNAL);
@@ -96,7 +94,7 @@ class ExternalVariableServiceUpdaterTest {
 	@Test
 	void aFailingOrSlowServiceNeverBreaksTheDialogueTurn() throws IOException {
 		service = FakeExternalVariableService.answering(500, "", Duration.ofSeconds(2));
-		VariableStore store = storeNotifying(service.url());
+		VariableStore store = storeNotifying(service);
 
 		assertDoesNotThrow(() -> store.setValue("mood", "good", true, ZonedDateTime.now(ZONE),
 				VariableUpdatedSource.DLB_SCRIPT));

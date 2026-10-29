@@ -28,14 +28,11 @@
 
 package com.dialoguebranch.web.varservice.controller;
 
-import com.dialoguebranch.web.varservice.DlbVarServiceProperties;
 import com.dialoguebranch.web.varservice.ProtocolVersion;
 import com.dialoguebranch.web.varservice.controller.schema.DLBVariablePayload;
 import com.dialoguebranch.web.varservice.controller.schema.DLBVariableUpdatePayload;
 import com.dialoguebranch.web.varservice.controller.schema.SupportedVariablePayload;
 import com.dialoguebranch.web.varservice.exception.BadRequestException;
-import com.dialoguebranch.web.varservice.exception.ErrorCode;
-import com.dialoguebranch.web.varservice.exception.UnauthorizedException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -49,7 +46,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -76,9 +72,6 @@ import java.util.Random;
 @Tag(name = "1. Variables",
 	 description = "End-points for retrieving variables from- and sending to the service")
 public class VariablesController {
-
-	@Autowired
-	DlbVarServiceProperties properties;
 
 	/** The logger used for logging (debug) info to log files. */
 	private static final Logger logger = LoggerFactory.getLogger(VariablesController.class);
@@ -204,13 +197,7 @@ public class VariablesController {
 		if(subject.isEmpty()) {
 			throw new BadRequestException("Missing 'subject' in request.");
 		} else {
-			String providedAPIKey = ControllerFunctions.extractAPIKey(request);
-			if(properties.getAuth().getApiKey().equals(providedAPIKey)) {
-				return executeRetrieveUpdates(subject, timeZone, dlbVariables);
-			} else {
-				throw new UnauthorizedException(ErrorCode.ACCESS_TOKEN_INVALID,
-						"Invalid API Key provided.");
-			}
+			return executeRetrieveUpdates(subject, timeZone, dlbVariables);
 		}
 	}
 
@@ -422,13 +409,7 @@ public class VariablesController {
 		if(subject.isEmpty()) {
 			throw new BadRequestException("Missing 'subject' in request.");
 		} else {
-			String providedAPIKey = ControllerFunctions.extractAPIKey(request);
-			if(properties.getAuth().getApiKey().equals(providedAPIKey)) {
-				return executeNotifyUpdated(subject, timeZone, dlbVariables);
-			} else {
-				throw new UnauthorizedException(ErrorCode.ACCESS_TOKEN_INVALID,
-						"Invalid API Key provided.");
-			}
+			return executeNotifyUpdated(subject, timeZone, dlbVariables);
 		}
 
 	}
@@ -533,13 +514,7 @@ public class VariablesController {
 		if(subject.isEmpty()) {
 			throw new BadRequestException("Missing 'subject' in request.");
 		} else {
-			String providedAPIKey = ControllerFunctions.extractAPIKey(request);
-			if(properties.getAuth().getApiKey().equals(providedAPIKey)) {
-				return executeNotifyCleared(subject, timeZone);
-			} else {
-				throw new UnauthorizedException(ErrorCode.ACCESS_TOKEN_INVALID,
-						"Invalid API Key provided.");
-			}
+			return executeNotifyCleared(subject, timeZone);
 		}
 
 	}
@@ -633,12 +608,6 @@ public class VariablesController {
 
 		if(projectSlug == null || projectSlug.isEmpty()) {
 			throw new BadRequestException("Missing 'projectSlug' in request.");
-		}
-
-		String providedAPIKey = ControllerFunctions.extractAPIKey(request);
-		if(!properties.getAuth().getApiKey().equals(providedAPIKey)) {
-			throw new UnauthorizedException(ErrorCode.ACCESS_TOKEN_INVALID,
-					"Invalid API Key provided.");
 		}
 
 		return List.of(
