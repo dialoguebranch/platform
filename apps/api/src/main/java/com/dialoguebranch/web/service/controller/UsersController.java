@@ -29,7 +29,6 @@
 package com.dialoguebranch.web.service.controller;
 
 import com.dialoguebranch.web.service.Application;
-import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.QueryRunner;
 import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.auth.Permission;
@@ -216,17 +215,10 @@ public class UsersController {
 	 */
 	private void notifyExternalVariableService(String issuer, String subject,
 			Map<String, String> clearedProjects) {
-		DlbProperties properties = application.getDlbProperties();
-		if (!properties.getExternalVariableService().isEnabled()) return;
-		clearedProjects.forEach((projectSlug, timeZone) -> {
-			try {
-				new ExternalVariableServiceClient(properties).notifyCleared(issuer, subject,
-						projectSlug, timeZone);
-			} catch (Exception ex) {
-				logger.error("Failed to notify the External Variable Service that the variables " +
-						"of erased user '{}' in project '{}' were cleared: {}",
-						subject, projectSlug, ex.getMessage(), ex);
-			}
-		});
+		ExternalVariableServiceClient client =
+				application.getApplicationManager().getExternalVariableServiceClient();
+		if (!client.isEnabled()) return;
+		clearedProjects.forEach((projectSlug, timeZone) ->
+				client.notifyCleared(issuer, subject, projectSlug, timeZone));
 	}
 }

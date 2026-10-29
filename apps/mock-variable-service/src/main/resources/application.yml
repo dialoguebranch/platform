@@ -11,11 +11,15 @@ springdoc:
     operations-sorter: method
     tags-sorter: alpha
 
-# !! WARNING: Override dlb.auth.api-key in production via DLB_AUTH_API_KEY !!
 dlb:
   version: ${version:unknown}
   build-time: ${buildTime:}
   base-url: http://localhost:8090/dlb-external-var-service
   data-dir: config
+  # Every variables call needs a Keycloak access token issued by issuer-uri, with audience in
+  # its "aud" claim and required-role among resource_access.<audience>.roles.
   auth:
-    api-key: change-me-in-production
+    issuer-uri: http://localhost:8081/realms/dialoguebranch
+    # jwk-set-uri: defaults to Keycloak's, <issuer-uri>/protocol/openid-connect/certs
+    audience: dlb-variable-service
+    required-role: evs-access

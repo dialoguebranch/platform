@@ -33,7 +33,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 /**
  * Typed configuration properties for the Dialogue Branch External Variable Service, bound from
  * {@code application.yml} under the {@code dlb} prefix. Environment variables follow Spring's
- * relaxed binding convention: {@code DLB_AUTH_API_KEY} overrides {@code dlb.auth.api-key}.
+ * relaxed binding convention: {@code DLB_AUTH_ISSUER_URI} overrides {@code dlb.auth.issuer-uri}.
  *
  * @author Dennis Hofs
  * @author Harm op den Akker
@@ -62,10 +62,30 @@ public class DlbVarServiceProperties {
 	public Auth getAuth() { return auth; }
 	public void setAuth(Auth auth) { this.auth = auth; }
 
+	/**
+	 * What an access token must have to be accepted (#428): issued by {@code issuerUri} and signed
+	 * with one of its keys, not expired, with {@code audience} in its {@code aud} claim, and with
+	 * {@code requiredRole} among its {@code resource_access.<audience>.roles}.
+	 */
 	public static class Auth {
-		private String apiKey = "";
+		private String issuerUri = "http://localhost:8081/realms/dialoguebranch";
+		private String jwkSetUri = "";
+		private String audience = "dlb-variable-service";
+		private String requiredRole = "evs-access";
 
-		public String getApiKey() { return apiKey; }
-		public void setApiKey(String apiKey) { this.apiKey = apiKey; }
+		public String getIssuerUri() { return issuerUri; }
+		public void setIssuerUri(String issuerUri) { this.issuerUri = issuerUri; }
+
+		/** The issuer's public keys; empty for Keycloak's own, under {@code issuerUri}. */
+		public String getJwkSetUri() {
+			return jwkSetUri.isEmpty() ? issuerUri + "/protocol/openid-connect/certs" : jwkSetUri;
+		}
+		public void setJwkSetUri(String jwkSetUri) { this.jwkSetUri = jwkSetUri; }
+
+		public String getAudience() { return audience; }
+		public void setAudience(String audience) { this.audience = audience; }
+
+		public String getRequiredRole() { return requiredRole; }
+		public void setRequiredRole(String requiredRole) { this.requiredRole = requiredRole; }
 	}
 }

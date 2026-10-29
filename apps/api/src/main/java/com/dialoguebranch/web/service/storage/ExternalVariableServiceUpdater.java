@@ -33,22 +33,22 @@ import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.VariableStoreChange;
 import com.dialoguebranch.execution.VariableStoreOnChangeListener;
 import com.dialoguebranch.execution.VariableUpdatedSource;
-import com.dialoguebranch.web.service.DlbProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.*;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponents;
-import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * A {@link VariableStoreOnChangeListener} that forwards Dialogue Branch Variable changes to the
  * configured external variable service. When a variable is set, removed, or the store is cleared,
- * this updater notifies the external service via the appropriate REST endpoint so that downstream
- * systems remain in sync.
+ * this updater notifies the external service through the {@link ExternalVariableServiceClient},
+ * so that downstream systems remain in sync. Changes that came from the external service itself
+ * are not sent back.
+ *
+ * <p>It runs inside a dialogue turn, so it never lets a failure escape: the client already logs a
+ * failed or timed-out call, and anything else is logged here (#219).</p>
  *
  * @author Harm op den Akker
  */
@@ -56,7 +56,7 @@ public class ExternalVariableServiceUpdater implements VariableStoreOnChangeList
 
 	private static final Logger logger =
 			LoggerFactory.getLogger(ExternalVariableServiceUpdater.class);
-	private final DlbProperties dlbProperties;
+	private final ExternalVariableServiceClient client;
 	private final String issuer;
 	private final String subject;
 	private final String projectSlug;
@@ -65,19 +65,18 @@ public class ExternalVariableServiceUpdater implements VariableStoreOnChangeList
 	 * Creates an instance of {@link ExternalVariableServiceUpdater} scoped to one user's variable
 	 * store within one project.
 	 *
-	 * @param dlbProperties the application configuration properties (external service URL + credentials).
+	 * @param client the client that makes the requests to the external variable service.
 	 * @param issuer the token issuer (full OIDC {@code iss} URL) of the user who owns the store.
 	 * @param subject the OIDC {@code sub} of that user.
 	 * @param projectSlug the slug of the project the variable store is scoped to.
 	 */
-	public ExternalVariableServiceUpdater(DlbProperties dlbProperties, String issuer,
+	public ExternalVariableServiceUpdater(ExternalVariableServiceClient client, String issuer,
 			String subject, String projectSlug) {
-		this.dlbProperties = dlbProperties;
+		this.client = client;
 		this.issuer = issuer;
 		this.subject = subject;
 		this.projectSlug = projectSlug;
 	}
-
 
 	/**
 	 * Processes a list of variable store changes and notifies the external variable service of
@@ -88,77 +87,37 @@ public class ExternalVariableServiceUpdater implements VariableStoreOnChangeList
 	 */
 	@Override
 	public void onChange(VariableStore variableStore, List<VariableStoreChange> changes) {
+		if (!client.isEnabled()) return;
+		try {
+			notify(variableStore.getUser().getTimeZone().toString(), changes);
+		} catch (RuntimeException ex) {
+			logger.error("Failed to notify the External Variable Service of changed variables of " +
+					"user '{}' in project '{}': {}", subject, projectSlug, ex.getMessage(), ex);
+		}
+	}
 
-		DlbProperties.ExternalVariableService evs = dlbProperties.getExternalVariableService();
-		String userTimeZoneString = variableStore.getUser().getTimeZone().toString();
-
+	private void notify(String timeZone, List<VariableStoreChange> changes) {
 		List<Variable> variablesToUpdate = new ArrayList<>();
-
 		for (VariableStoreChange change : changes) {
-			VariableUpdatedSource source = change.getSource();
+			if (change.getSource().equals(VariableUpdatedSource.EXTERNAL)) continue;
+			long updatedTime = change.getTime().toEpochSecond() * 1000;
 
-			if (!source.equals(VariableUpdatedSource.EXTERNAL)) {
-
-				if (evs.isEnabled()) {
-					logger.info("An external Dialogue Branch Variable Service is enabled at {}/v{}/",
-							evs.getUrl(), evs.getApiVersion());
-
-					if (change instanceof VariableStoreChange.Clear) {
-						new ExternalVariableServiceClient(dlbProperties).notifyCleared(issuer,
-								subject, projectSlug, userTimeZoneString);
-
-					} else if (change instanceof VariableStoreChange.Remove) {
-						Collection<String> variableNames =
-								((VariableStoreChange.Remove) change).getVariableNames();
-
-						for (String variableName : variableNames) {
-							long updatedTime = change.getTime().toEpochSecond() * 1000;
-							variablesToUpdate.add(
-									new Variable(variableName, null, updatedTime,
-											userTimeZoneString, change.getSource()));
-						}
-					} else if (change instanceof VariableStoreChange.Put) {
-						Map<String, Object> changedVariables =
-								((VariableStoreChange.Put) change).getVariables();
-
-						long updatedTime = change.getTime().toEpochSecond() * 1000;
-
-						for (String variableName : changedVariables.keySet()) {
-							Object variableValue = changedVariables.get(variableName);
-							variablesToUpdate.add(
-									new Variable(variableName, variableValue, updatedTime,
-											userTimeZoneString, change.getSource()));
-						}
-					}
+			if (change instanceof VariableStoreChange.Clear) {
+				client.notifyCleared(issuer, subject, projectSlug, timeZone);
+			} else if (change instanceof VariableStoreChange.Remove remove) {
+				for (String variableName : remove.getVariableNames()) {
+					variablesToUpdate.add(new Variable(variableName, null, updatedTime, timeZone,
+							change.getSource()));
+				}
+			} else if (change instanceof VariableStoreChange.Put put) {
+				for (Map.Entry<String, Object> entry : put.getVariables().entrySet()) {
+					variablesToUpdate.add(new Variable(entry.getKey(), entry.getValue(),
+							updatedTime, timeZone, change.getSource()));
 				}
 			}
 		}
-
 		if (!variablesToUpdate.isEmpty()) {
-			RestTemplate restTemplate = new RestTemplate();
-			HttpHeaders requestHeaders = new HttpHeaders();
-			requestHeaders.setContentType(MediaType.valueOf("application/json"));
-			requestHeaders.set("Authorization", "Bearer " + evs.getApiKey());
-
-			String notifyUpdatesUrl = evs.getUrl()
-					+ "/v" + evs.getApiVersion()
-					+ "/variables/notify-updated";
-
-			LinkedMultiValueMap<String, String> allRequestParams = new LinkedMultiValueMap<>();
-			ExternalVariableServiceClient.addIdentityParams(allRequestParams, issuer, subject,
-					projectSlug, userTimeZoneString);
-
-			HttpEntity<?> entity = new HttpEntity<>(variablesToUpdate, requestHeaders);
-			UriComponentsBuilder builder =
-					UriComponentsBuilder.fromUriString(notifyUpdatesUrl)
-							.queryParams((LinkedMultiValueMap<String, String>) allRequestParams);
-			UriComponents uriComponents = builder.build().encode();
-
-			ResponseEntity<Object> response = restTemplate.exchange(
-					uriComponents.toUri(),
-					HttpMethod.POST,
-					entity,
-					Object.class);
+			client.notifyUpdated(issuer, subject, projectSlug, timeZone, variablesToUpdate);
 		}
 	}
 }

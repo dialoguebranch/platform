@@ -28,13 +28,11 @@
 
 package com.dialoguebranch.web.varservice.controller;
 
-import com.dialoguebranch.web.varservice.DlbVarServiceProperties;
 import com.dialoguebranch.web.varservice.ProtocolVersion;
 import com.dialoguebranch.web.varservice.controller.schema.DLBVariablePayload;
+import com.dialoguebranch.web.varservice.controller.schema.DLBVariableUpdatePayload;
 import com.dialoguebranch.web.varservice.controller.schema.SupportedVariablePayload;
 import com.dialoguebranch.web.varservice.exception.BadRequestException;
-import com.dialoguebranch.web.varservice.exception.ErrorCode;
-import com.dialoguebranch.web.varservice.exception.UnauthorizedException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -48,7 +46,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -75,9 +72,6 @@ import java.util.Random;
 @Tag(name = "1. Variables",
 	 description = "End-points for retrieving variables from- and sending to the service")
 public class VariablesController {
-
-	@Autowired
-	DlbVarServiceProperties properties;
 
 	/** The logger used for logging (debug) info to log files. */
 	private static final Logger logger = LoggerFactory.getLogger(VariablesController.class);
@@ -111,8 +105,10 @@ public class VariablesController {
 	 *
 	 * <p>In this dummy implementation, for every variable that you include in the request list
 	 * there is a 50% chance that it will be returned in the response list with the same value as
-	 * provided in the request, and the lastUpdated time set to the current UTC time in epoch
-	 * seconds.</p>
+	 * provided in the request.</p>
+	 *
+	 * <p>The response carries each updated variable's name and value only: the Web Service
+	 * records when it received an update as the variable's updated time.</p>
 	 *
 	 * @param request the {@link HttpServletRequest} that generated the request.
 	 * @param response the {@link HttpServletResponse} that generated the request.
@@ -120,7 +116,7 @@ public class VariablesController {
 	 * @param subject the subject of the Dialogue Branch user.
 	 * @param timeZone the current time zone of the Dialogue Branch user (e.g. "Europe/Lisbon").
 	 * @param dlbVariables the List of Dialogue Branch Variables for which to check for updates.
-	 * @return A list of {@link DLBVariablePayload}s representing all updated variables.
+	 * @return A list of {@link DLBVariableUpdatePayload}s representing all updated variables.
 	 * @throws Exception in case of a network or service error.
 	 */
 	@Operation(summary = "Retrieve updates for a given list of Dialogue Branch Variables",
@@ -140,17 +136,19 @@ public class VariablesController {
 			"updated: 'currentDate', 'currentTime', and 'dayPart' (one of 'morning', 'afternoon', " +
 				"'evening', or 'night', based on the current hour). Furthermore, for every other variable " +
 			"that is included in the request list there is a 50% chance that it will be returned " +
-			"in the response list, with the same value as provided in the request, and the " +
-			"lastUpdated time set to the current UTC time in epoch seconds.")
+			"in the response list, with the same value as provided in the request." +
+			"<br/><br/>The response carries each updated variable's name and value only (a null " +
+			"value removes the variable): the Web Service records when it received an update as " +
+			"the variable's updated time.")
 	@ApiResponses(value = {
 		@ApiResponse(responseCode = "200",
 			description = "Successful operation",
 			content = @Content(
 				array = @ArraySchema(
-					schema = @Schema(implementation = DLBVariablePayload.class)))) })
+					schema = @Schema(implementation = DLBVariableUpdatePayload.class)))) })
 	@RequestMapping(value="/retrieve-updates", method= RequestMethod.POST, consumes={
 			MediaType.APPLICATION_JSON_VALUE })
-	public List<DLBVariablePayload> retrieveUpdates (
+	public List<DLBVariableUpdatePayload> retrieveUpdates (
 		HttpServletRequest request,
 		HttpServletResponse response,
 
@@ -199,13 +197,7 @@ public class VariablesController {
 		if(subject.isEmpty()) {
 			throw new BadRequestException("Missing 'subject' in request.");
 		} else {
-			String providedAPIKey = ControllerFunctions.extractAPIKey(request);
-			if(properties.getAuth().getApiKey().equals(providedAPIKey)) {
-				return executeRetrieveUpdates(subject, timeZone, dlbVariables);
-			} else {
-				throw new UnauthorizedException(ErrorCode.ACCESS_TOKEN_INVALID,
-						"Invalid API Key provided.");
-			}
+			return executeRetrieveUpdates(subject, timeZone, dlbVariables);
 		}
 	}
 
@@ -222,25 +214,25 @@ public class VariablesController {
 	 * the user's provided time zone.</p>
 	 *
 	 * <p>For every other Dialogue Branch Variable for which an update is requested, there is a 50%
-	 * chance that this variable will be included in the result set with a lastUpdated timestamp of
-	 * "now" (in the provided time zone of the user), without changing its value.</p>
+	 * chance that this variable will be included in the result set, without changing its
+	 * value.</p>
 	 *
 	 * @param subject the {@code String} identifier of the user who's variable updates are requested.
 	 * @param timeZone the time zone of the user as one of {@code TimeZone.getAvailableIDs()}
 	 *                 (IANA Codes)
 	 * @param parameters the {@code List} of {@link DLBVariablePayload}s for which it should be
 	 *               verified if an update is needed.
-	 * @return a {@code List} of {@link DLBVariablePayload}s with each of the parameters for which
-	 * an updated value has been found (note that this may be an empty list).
+	 * @return a {@code List} of {@link DLBVariableUpdatePayload}s with each of the parameters for
+	 * which an updated value has been found (note that this may be an empty list).
 	 */
-	private List<DLBVariablePayload> executeRetrieveUpdates (String subject, String timeZone,
+	private List<DLBVariableUpdatePayload> executeRetrieveUpdates (String subject, String timeZone,
 															 List<DLBVariablePayload> parameters)
 			throws BadRequestException {
 
 		// Parse the timeZone String into a ZoneId to verify it was given in the right format
 		ZoneId timeZoneId = ControllerFunctions.parseTimeZone(timeZone);
 
-		List<DLBVariablePayload> result = new ArrayList<>();
+		List<DLBVariableUpdatePayload> result = new ArrayList<>();
 
 		Random random = new Random();
 
@@ -275,12 +267,9 @@ public class VariablesController {
 				DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 				ZonedDateTime currentDateTime = ZonedDateTime.ofInstant(Instant.now(),timeZoneId);
 				String readableDateString = currentDateTime.format(formatter);
-				DLBVariablePayload newParam = new DLBVariablePayload(
+				DLBVariableUpdatePayload newParam = new DLBVariableUpdatePayload(
 						parameterToUpdate.getName(),
-						readableDateString,
-						Instant.now().toEpochMilli(),
-						timeZone
-				);
+						readableDateString);
 				result.add(newParam);
 			}
 
@@ -289,12 +278,9 @@ public class VariablesController {
 				DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
 				ZonedDateTime currentDateTime = ZonedDateTime.ofInstant(Instant.now(),timeZoneId);
 				String readableTimeString = currentDateTime.format(formatter);
-				DLBVariablePayload newParam = new DLBVariablePayload(
+				DLBVariableUpdatePayload newParam = new DLBVariableUpdatePayload(
 						parameterToUpdate.getName(),
-						readableTimeString,
-						Instant.now().toEpochMilli(),
-						timeZone
-				);
+						readableTimeString);
 				result.add(newParam);
 			}
 
@@ -302,22 +288,17 @@ public class VariablesController {
 			else if(parameterToUpdate.getName().equals("dayPart")) {
 				ZonedDateTime currentDateTime = ZonedDateTime.ofInstant(Instant.now(),timeZoneId);
 				String dayPart = determineDayPart(currentDateTime.getHour());
-				DLBVariablePayload newParam = new DLBVariablePayload(
+				DLBVariableUpdatePayload newParam = new DLBVariableUpdatePayload(
 						parameterToUpdate.getName(),
-						dayPart,
-						Instant.now().toEpochMilli(),
-						timeZone
-				);
+						dayPart);
 				result.add(newParam);
 			}
 
 			// With 50% chance, return the variable as if it has been updated
 			else if(random.nextBoolean()) {
-				DLBVariablePayload newParam = new DLBVariablePayload(
+				DLBVariableUpdatePayload newParam = new DLBVariableUpdatePayload(
 						parameterToUpdate.getName(),
-						parameterToUpdate.getValue(),
-						Instant.now().toEpochMilli(),
-						timeZone);
+						parameterToUpdate.getValue());
 				result.add(newParam);
 			}
 
@@ -428,13 +409,7 @@ public class VariablesController {
 		if(subject.isEmpty()) {
 			throw new BadRequestException("Missing 'subject' in request.");
 		} else {
-			String providedAPIKey = ControllerFunctions.extractAPIKey(request);
-			if(properties.getAuth().getApiKey().equals(providedAPIKey)) {
-				return executeNotifyUpdated(subject, timeZone, dlbVariables);
-			} else {
-				throw new UnauthorizedException(ErrorCode.ACCESS_TOKEN_INVALID,
-						"Invalid API Key provided.");
-			}
+			return executeNotifyUpdated(subject, timeZone, dlbVariables);
 		}
 
 	}
@@ -539,13 +514,7 @@ public class VariablesController {
 		if(subject.isEmpty()) {
 			throw new BadRequestException("Missing 'subject' in request.");
 		} else {
-			String providedAPIKey = ControllerFunctions.extractAPIKey(request);
-			if(properties.getAuth().getApiKey().equals(providedAPIKey)) {
-				return executeNotifyCleared(subject, timeZone);
-			} else {
-				throw new UnauthorizedException(ErrorCode.ACCESS_TOKEN_INVALID,
-						"Invalid API Key provided.");
-			}
+			return executeNotifyCleared(subject, timeZone);
 		}
 
 	}
@@ -639,12 +608,6 @@ public class VariablesController {
 
 		if(projectSlug == null || projectSlug.isEmpty()) {
 			throw new BadRequestException("Missing 'projectSlug' in request.");
-		}
-
-		String providedAPIKey = ControllerFunctions.extractAPIKey(request);
-		if(!properties.getAuth().getApiKey().equals(providedAPIKey)) {
-			throw new UnauthorizedException(ErrorCode.ACCESS_TOKEN_INVALID,
-					"Invalid API Key provided.");
 		}
 
 		return List.of(

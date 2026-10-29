@@ -119,7 +119,19 @@ dlb:
     enabled: false
     url: ""
     api-version: 1
-    api-key: ""
+    # Every call carries an OAuth2 access token that the Web Service gets with the
+    # client-credentials grant from this client, and refreshes before it expires. All but scope
+    # are required when enabled.
+    oauth2:
+      token-uri: ""
+      client-id: ""
+      client-secret: ""
+      scope: ""
+    # Every call fails after these, and a failed call never breaks a dialogue: a dialogue start
+    # waits at most connect-timeout + read-timeout for retrieve-updates, then goes on with the
+    # values it has.
+    connect-timeout: 2s
+    read-timeout: 5s
 
   # ---- Session ----
   # How long an in-memory UserService may sit idle before it's evicted (see

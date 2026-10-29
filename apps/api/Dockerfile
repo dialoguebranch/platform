@@ -82,5 +82,7 @@ ENV DLB_SESSION_IDLE_TIMEOUT_MINUTES=60
 #
 # Optional (only needed when the relevant feature is enabled):
 #   DLB_EXTERNAL_VARIABLE_SERVICE_URL        — URL of the external variable service
-#   DLB_EXTERNAL_VARIABLE_SERVICE_API_KEY    — API key for the external variable service
+#   DLB_EXTERNAL_VARIABLE_SERVICE_OAUTH2_TOKEN_URI     — token end-point for its access token
+#   DLB_EXTERNAL_VARIABLE_SERVICE_OAUTH2_CLIENT_ID     — the Web Service's client for it
+#   DLB_EXTERNAL_VARIABLE_SERVICE_OAUTH2_CLIENT_SECRET — that client's secret
 # -------------------------------------------------------------------------

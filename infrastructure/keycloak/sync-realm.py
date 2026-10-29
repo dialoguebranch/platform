@@ -9,6 +9,12 @@ Needed because Keycloak's own --import-realm only ever fires on a genuinely fres
 brand-new server, or wiped volumes); once the realm already exists (e.g. a developer's existing
 local MariaDB volume, with their own test data in it), re-mounting this same file does nothing.
 
+It also adds client roles listed in the file but missing from the live realm, and gives each
+service account (a "users" entry with a serviceAccountClientId, such as the Web Service's
+dlb-web-service-evs client for the External Variable Service, issue #428) any client role the file
+lists for it but it doesn't have yet. A service account is created with its client, so these
+role mappings are the part --import-realm would otherwise be the only one to set up.
+
 Deliberately additive-only, never destructive: existing entries in these list/attribute fields are
 never removed, and every other field on an existing client (secret, id, everything else) is left
 completely untouched — a client is fetched, has just these lists unioned in-place, and PUT back,
@@ -209,6 +215,48 @@ def sync_client(desired: dict, token: str) -> None:
         print(f"Already up to date: {client_id}")
 
 
+def client_uuid(client_id: str, token: str) -> str:
+    found = api("GET", f"/admin/realms/{REALM}/clients?clientId={urllib.parse.quote(client_id)}", token)
+    return found[0]["id"]
+
+
+def sync_client_roles(realm: dict, token: str) -> None:
+    """Creates each client role listed in the realm export that the live client lacks."""
+    for client_id, roles in realm.get("roles", {}).get("client", {}).items():
+        uuid = client_uuid(client_id, token)
+        existing = {role["name"] for role in api("GET", f"/admin/realms/{REALM}/clients/{uuid}/roles", token)}
+        for role in roles:
+            if role["name"] not in existing:
+                api(
+                    "POST",
+                    f"/admin/realms/{REALM}/clients/{uuid}/roles",
+                    token,
+                    {"name": role["name"], "description": role.get("description", "")},
+                )
+                print(f"Created missing client role: {client_id}/{role['name']}")
+
+
+def sync_service_account_roles(realm: dict, token: str) -> None:
+    """Gives each service account in the realm export the client roles it lists but lacks."""
+    for user in realm.get("users", []):
+        owner = user.get("serviceAccountClientId")
+        if not owner:
+            continue
+        account = api("GET", f"/admin/realms/{REALM}/clients/{client_uuid(owner, token)}/service-account-user", token)
+        for client_id, role_names in user.get("clientRoles", {}).items():
+            uuid = client_uuid(client_id, token)
+            path = f"/admin/realms/{REALM}/users/{account['id']}/role-mappings/clients/{uuid}"
+            have = {role["name"] for role in api("GET", path, token)}
+            missing = [
+                api("GET", f"/admin/realms/{REALM}/clients/{uuid}/roles/{urllib.parse.quote(name)}", token)
+                for name in role_names
+                if name not in have
+            ]
+            if missing:
+                api("POST", path, token, missing)
+                print(f"Gave {account['username']} the client roles {client_id}/{[r['name'] for r in missing]}")
+
+
 def main() -> None:
     with open(REALM_EXPORT_PATH) as f:
         raw = f.read()
@@ -234,6 +282,8 @@ def main() -> None:
     for client in realm["clients"]:
         apply_session_env_overrides(client)
         sync_client(client, token)
+    sync_client_roles(realm, token)
+    sync_service_account_roles(realm, token)
 
 
 if __name__ == "__main__":

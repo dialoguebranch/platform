@@ -31,6 +31,8 @@ package com.dialoguebranch.web.service;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
+import java.time.Duration;
+
 /**
  * Typed configuration for the Dialogue Branch Web Service, bound from {@code application.yml} (and
  * environment variable overrides) via Spring Boot's {@code @ConfigurationProperties} mechanism.
@@ -426,7 +428,7 @@ public class DlbProperties {
 		private boolean enabled = false;
 		private String url = "";
 		private int apiVersion = 1;
-		private String apiKey = "";
+		private OAuth2 oauth2 = new OAuth2();
 
 		/**
 		 * Returns whether the external variable service is enabled.
@@ -471,18 +473,129 @@ public class DlbProperties {
 		public void setApiVersion(int apiVersion) { this.apiVersion = apiVersion; }
 
 		/**
-		 * Returns the API key used to authenticate with the external variable service.
+		 * Returns the OAuth2 client-credentials settings the Web Service uses to get the access
+		 * token it sends to the external variable service.
 		 *
-		 * @return the API key.
+		 * @return the OAuth2 settings.
 		 */
-		public String getApiKey() { return apiKey; }
+		public OAuth2 getOauth2() { return oauth2; }
 
 		/**
-		 * Sets the API key used to authenticate with the external variable service.
+		 * Sets the OAuth2 client-credentials settings the Web Service uses to get the access
+		 * token it sends to the external variable service.
 		 *
-		 * @param apiKey the API key.
+		 * @param oauth2 the OAuth2 settings.
 		 */
-		public void setApiKey(String apiKey) { this.apiKey = apiKey; }
+		public void setOauth2(OAuth2 oauth2) { this.oauth2 = oauth2; }
+
+		private Duration connectTimeout = Duration.ofSeconds(2);
+		private Duration readTimeout = Duration.ofSeconds(5);
+
+		/**
+		 * Returns how long a call to the external variable service may take to connect before it
+		 * fails.
+		 *
+		 * @return the connect timeout.
+		 */
+		public Duration getConnectTimeout() { return connectTimeout; }
+
+		/**
+		 * Sets how long a call to the external variable service may take to connect before it
+		 * fails.
+		 *
+		 * @param connectTimeout the connect timeout.
+		 */
+		public void setConnectTimeout(Duration connectTimeout) { this.connectTimeout = connectTimeout; }
+
+		/**
+		 * Returns how long a call to the external variable service may wait for its response
+		 * before it fails. A dialogue start waits at most this long for {@code retrieve-updates}.
+		 *
+		 * @return the read timeout.
+		 */
+		public Duration getReadTimeout() { return readTimeout; }
+
+		/**
+		 * Sets how long a call to the external variable service may wait for its response before
+		 * it fails.
+		 *
+		 * @param readTimeout the read timeout.
+		 */
+		public void setReadTimeout(Duration readTimeout) { this.readTimeout = readTimeout; }
+
+		/**
+		 * The OAuth2 client-credentials settings with which the Web Service gets an access token
+		 * for its calls to the external variable service, from Keycloak or another authorization
+		 * server (#428). All but {@code scope} are required when the integration is enabled.
+		 *
+		 * @author Harm op den Akker
+		 */
+		public static class OAuth2 {
+
+			/** Creates a new {@link OAuth2} configuration instance with default values. */
+			public OAuth2() { }
+
+			private String tokenUri = "";
+			private String clientId = "";
+			private String clientSecret = "";
+			private String scope = "";
+
+			/**
+			 * Returns the token end-point of the authorization server.
+			 *
+			 * @return the token URI.
+			 */
+			public String getTokenUri() { return tokenUri; }
+
+			/**
+			 * Sets the token end-point of the authorization server.
+			 *
+			 * @param tokenUri the token URI.
+			 */
+			public void setTokenUri(String tokenUri) { this.tokenUri = tokenUri; }
+
+			/**
+			 * Returns the id of the Web Service's confidential client.
+			 *
+			 * @return the client id.
+			 */
+			public String getClientId() { return clientId; }
+
+			/**
+			 * Sets the id of the Web Service's confidential client.
+			 *
+			 * @param clientId the client id.
+			 */
+			public void setClientId(String clientId) { this.clientId = clientId; }
+
+			/**
+			 * Returns the secret of the Web Service's confidential client.
+			 *
+			 * @return the client secret.
+			 */
+			public String getClientSecret() { return clientSecret; }
+
+			/**
+			 * Sets the secret of the Web Service's confidential client.
+			 *
+			 * @param clientSecret the client secret.
+			 */
+			public void setClientSecret(String clientSecret) { this.clientSecret = clientSecret; }
+
+			/**
+			 * Returns the scopes to request, space-separated; empty for none.
+			 *
+			 * @return the scopes.
+			 */
+			public String getScope() { return scope; }
+
+			/**
+			 * Sets the scopes to request, space-separated; empty for none.
+			 *
+			 * @param scope the scopes.
+			 */
+			public void setScope(String scope) { this.scope = scope; }
+		}
 	}
 
 	// --------------------------------------------------------- //

@@ -241,8 +241,8 @@ public class UserService {
 		});
 		if (applicationManager.getDlbProperties().getExternalVariableService().isEnabled()) {
 			store.addOnChangeListener(new ExternalVariableServiceUpdater(
-					applicationManager.getDlbProperties(), userId.issuer(), userId.subject(),
-					projectSlug));
+					applicationManager.getExternalVariableServiceClient(), userId.issuer(),
+					userId.subject(), projectSlug));
 		}
 		return store;
 	}
@@ -478,7 +478,7 @@ public class UserService {
 				}
 			}
 
-			Variable[] retrievedVariables = new ExternalVariableServiceClient(dlbProperties)
+			Variable[] retrievedVariables = applicationManager.getExternalVariableServiceClient()
 					.retrieveUpdates(userId.issuer(), userId.subject(), projectSlug,
 					dialogueBranchUser.getTimeZone().toString(), varsToUpdate, false);
 			if (retrievedVariables.length == 0) {

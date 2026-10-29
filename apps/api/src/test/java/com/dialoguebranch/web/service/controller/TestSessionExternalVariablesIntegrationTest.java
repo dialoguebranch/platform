@@ -106,8 +106,13 @@ class TestSessionExternalVariablesIntegrationTest {
 			String body = new String(exchange.getRequestBody().readAllBytes(),
 					StandardCharsets.UTF_8);
 			String path = exchange.getRequestURI().getPath();
-			received.add(new Received(path, exchange.getRequestURI().getQuery(), body));
 			byte[] answer = "[]".getBytes(StandardCharsets.UTF_8);
+			if (path.equals("/token")) {
+				answer = "{\"access_token\":\"t\",\"token_type\":\"Bearer\",\"expires_in\":300}"
+						.getBytes(StandardCharsets.UTF_8);
+			} else {
+				received.add(new Received(path, exchange.getRequestURI().getQuery(), body));
+			}
 			if (path.endsWith("/retrieve-updates")) {
 				long now = System.currentTimeMillis();
 				answer = ("[{\"name\":\"mark\",\"value\":\"from-evs\",\"updatedTime\":" + now
@@ -126,7 +131,9 @@ class TestSessionExternalVariablesIntegrationTest {
 		evs.setEnabled(true);
 		evs.setUrl("http://127.0.0.1:" + server.getAddress().getPort());
 		evs.setApiVersion(1);
-		evs.setApiKey("test-key");
+		evs.getOauth2().setTokenUri("http://127.0.0.1:" + server.getAddress().getPort() + "/token");
+		evs.getOauth2().setClientId("dlb-web-service-evs");
+		evs.getOauth2().setClientSecret("test-secret");
 	}
 
 	@AfterEach

@@ -52,10 +52,8 @@ tasks.withType(JavaCompile).configureEach {
 dependencies {
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:3.5.4'
 
-	// https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt-api
-	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
-	implementation 'io.jsonwebtoken:jjwt-jackson:0.12.6'
-	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+	// Checks the Keycloak access token on every variables call (#428)
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server:3.5.4'
 
 	// https://mvnrepository.com/artifact/javax.xml.bind/jaxb-api
 	implementation 'javax.xml.bind:jaxb-api:2.4.0-b180830.0359'
@@ -71,6 +69,10 @@ dependencies {
 
 	// Strange, but this solves Factory method 'clientHttpRequestFactoryBuilder' threw exception with message: org/apache/hc/client5/http/ssl/TlsSocketStrategy
 	implementation 'org.apache.httpcomponents.client5:httpclient5:5.4.1'
+
+	testImplementation 'org.springframework.boot:spring-boot-starter-test:3.5.4'
+	testImplementation 'org.springframework.security:spring-security-test:6.5.2'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
 }
 
@@ -114,6 +116,7 @@ tasks.register('checkResources') {
 }
 
 test {
+	useJUnitPlatform()
 	testLogging.showStandardStreams = true
 }
 

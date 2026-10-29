@@ -18,7 +18,7 @@ This is the way that you can connect the Dialogue Branch Web Service to your exi
 
 This specific module `dlb-external-var-service` is a Dummy implementation that provides the bare minimum functionality of what an "External Variable Service" must provide. It is used for testing the connection between DLB Web Service and this external service. Specifically, this is what it does:
 
-  * For every variable that you include in the request list to `/variables/retrieve-updates` there is a 50% chance that it will be returned in the response list with the same value as provided in the request, and the lastUpdated time set to the current UTC time in epoch seconds.
+  * For every variable that you include in the request list to `/variables/retrieve-updates` there is a 50% chance that it will be returned in the response list with the same value as provided in the request. Updated variables are returned as name and value only.
   * If an update is requested for a variable with name `$currentDate` and/or `$currentTime`, those two variables will be updated and returned to reflect the current date and time in the user's provided time zone.
   * If an update is requested for a variable with name `$dayPart`, it will be updated and returned as one of `"morning"` (6-11h), `"afternoon"` (12-17h), `"evening"` (18-21h), or `"night"` (22-5h), based on the current hour in the user's provided time zone.
   * Calls to `/notify-updated` and `/notify-cleared` will be checked for correctness (e.g. Authorization header must be correct), but otherwise don't result in anything.
@@ -29,7 +29,7 @@ If you have an existing back-end service, and you want it to take up the role of
     * `/variables/retrieve-updates`
     * `/variables/notify-updated`
     * `/variables/notify-cleared`
-  * Verify the access token that is sent along with every request to these end-points (`Authorization: Bearer <someToken>`). At the moment, `someToken` is a pre-configured API Key, defined in the Web Service as `externalVariableServiceAPIKey`, but additional security schemes may be implemented at a later point in time.
+  * Verify the access token that is sent along with every request to these end-points (`Authorization: Bearer <token>`): a Keycloak access token the Web Service gets with the client-credentials grant. Check its signature against the realm's public keys, its issuer and expiry, that your service's client id is in its audience (`aud`), and that it has your service's role in `resource_access.<your client id>.roles`. This mock does exactly that, with Spring Security (`SecurityConfig`), configured with `dlb.auth.issuer-uri`, `audience` (`dlb-variable-service`) and `required-role` (`evs-access`).
 
 ## Building and Running
 Typically, this Dummy service is deployed alongside the DLB Web Service, Keycloak, and other services. However, if you want to run this as a standalone service, follow these steps:

@@ -363,6 +363,15 @@
           "containerId": "cf866d9b-a366-4507-b2ce-835c8b8ca750",
           "attributes": {}
         }
+      ],
+      "dlb-variable-service": [
+        {
+          "name": "evs-access",
+          "description": "May call the External Variable Service: given to the Web Service's dlb-web-service-evs client.",
+          "composite": false,
+          "clientRole": true,
+          "attributes": {}
+        }
       ]
     }
   },
@@ -419,7 +428,21 @@
   "webAuthnPolicyPasswordlessAvoidSameAuthenticatorRegister": false,
   "webAuthnPolicyPasswordlessAcceptableAaguids": [],
   "webAuthnPolicyPasswordlessExtraOrigins": [],
-  "users": [],
+  "users": [
+    {
+      "username": "service-account-dlb-web-service-evs",
+      "enabled": true,
+      "serviceAccountClientId": "dlb-web-service-evs",
+      "realmRoles": [
+        "default-roles-dialoguebranch"
+      ],
+      "clientRoles": {
+        "dlb-variable-service": [
+          "evs-access"
+        ]
+      }
+    }
+  ],
   "scopeMappings": [
     {
       "clientScope": "offline_access",
@@ -871,6 +894,92 @@
         "offline_access",
         "microprofile-jwt"
       ]
+    },
+    {
+      "clientId": "dlb-variable-service",
+      "name": "Dialogue Branch External Variable Service",
+      "description": "The External Variable Service: the audience of the Web Service's tokens for it, and the holder of the evs-access role",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [],
+      "webOrigins": [],
+      "notBefore": 0,
+      "bearerOnly": true,
+      "consentRequired": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "publicClient": false,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "standard.token.exchange.enabled": "false",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "backchannel.logout.revoke.offline.tokens": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": false,
+      "nodeReRegistrationTimeout": -1,
+      "defaultClientScopes": [],
+      "optionalClientScopes": []
+    },
+    {
+      "clientId": "dlb-web-service-evs",
+      "name": "Dialogue Branch Web Service (External Variable Service calls)",
+      "description": "The Web Service's own client, with which it gets the tokens for its calls to the External Variable Service (client-credentials grant)",
+      "surrogateAuthRequired": false,
+      "enabled": true,
+      "alwaysDisplayInConsole": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "dev-evs-secret",
+      "redirectUris": [],
+      "webOrigins": [],
+      "notBefore": 0,
+      "bearerOnly": false,
+      "consentRequired": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "authorizationServicesEnabled": false,
+      "publicClient": false,
+      "frontchannelLogout": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "realm_client": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "standard.token.exchange.enabled": "false",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "backchannel.logout.revoke.offline.tokens": "false"
+      },
+      "authenticationFlowBindingOverrides": {},
+      "fullScopeAllowed": true,
+      "nodeReRegistrationTimeout": -1,
+      "protocolMappers": [
+        {
+          "name": "dlb-variable-service audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "dlb-variable-service",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ],
+      "defaultClientScopes": [
+        "roles",
+        "basic"
+      ],
+      "optionalClientScopes": []
     }
   ],
   "clientScopes": [

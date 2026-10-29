@@ -42,6 +42,24 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `dlb-core-java`'s public API) and which are internal to Studio. From here on, only a change to a
   stable surface is labelled **Breaking:**; a change to an internal one is labelled
   **Internal API:**. Release notes up to 0.7.0 are unchanged.
+- **Breaking:** Web service: the Web Service authenticates to the External Variable Service with
+  an OAuth2 access token instead of a static API key
+  ([#428](https://github.com/dialoguebranch/platform/issues/428)). It gets the token from Keycloak
+  with the client-credentials grant, caches it and fetches a new one shortly before it expires,
+  and sends it as `Authorization: Bearer` on every call. The `dlb.external-variable-service.api-key`
+  setting is gone; new settings `dlb.external-variable-service.oauth2.token-uri`, `client-id`,
+  `client-secret` and optional `scope` replace it, and the Web Service does not start without
+  them while the integration is enabled. An External Variable Service must check the token's
+  signature, issuer, expiry, audience and role, as described on its documentation page;
+  `mock-variable-service` does, and the Docker stack's realm has the clients and role for it.
+  Failing to get a token is handled like any other failed call and never breaks a dialogue.
+- **Breaking:** Web service: a variable updated by the External Variable Service is stored as
+  updated when the Web Service received it, as for every other source, so `/variables/get` returns
+  that time as its `updatedTime` ([#321](https://github.com/dialoguebranch/platform/issues/321)).
+  The `retrieve-updates` response now carries each variable's `name` and `value` only; an
+  `updatedTime` or `updatedTimeZone` it still sends is ignored. The request still sends each
+  variable's `updatedTime`, which now means the Web Service has held that value since then.
+  `mock-variable-service` answers with name and value only.
 - Web service: a new project's starter dialogue has a preamble saying it was generated
   automatically.
 - Studio: *Live Mode* can only be chosen once a project has a published version; an unpublished
@@ -115,6 +133,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Web service: a slow or unreachable External Variable Service no longer breaks or stalls a
+  dialogue ([#219](https://github.com/dialoguebranch/platform/issues/219)). Every call to it now
+  has a connect and a read timeout, new settings `dlb.external-variable-service.connect-timeout`
+  (default `2s`) and `read-timeout` (default `5s`). A failed `retrieve-updates` lets the dialogue
+  start with the values it has, and a failed `notify-updated` or `notify-cleared` is logged while
+  the change, clear or erase stays in effect; before, a failed notification could throw in the
+  middle of a dialogue turn, and a hanging service could block it indefinitely.
 - Web service: a request the caller got wrong is answered with its own 4xx and the reason, instead
   of a generic `500 Internal Server Error` ([#220](https://github.com/dialoguebranch/platform/issues/220)):
   a missing required parameter or upload part (`400`), a parameter of the wrong type (`400`), an

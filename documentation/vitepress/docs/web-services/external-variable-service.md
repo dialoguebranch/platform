@@ -17,10 +17,66 @@ The External Variable Service integration is enabled through the following `dlb.
 * `dlb.external-variable-service.enabled` — set to `true` to enable the integration; `false` (the default) disables it entirely.
 * `dlb.external-variable-service.url` — the base URL where the external variable service can be reached.
 * `dlb.external-variable-service.api-version` — the API version to use when calling the external variable service.
-* `dlb.external-variable-service.api-key` — an API key used to authenticate the Web Service's calls to the external variable service.
+* `dlb.external-variable-service.oauth2.token-uri` — the token end-point where the Web Service gets the access token for its calls, for example `https://keycloak.example.com/realms/dialoguebranch/protocol/openid-connect/token`.
+* `dlb.external-variable-service.oauth2.client-id` and `client-secret` — the Web Service's own confidential client for these calls (see [Authentication](#authentication)).
+* `dlb.external-variable-service.oauth2.scope` — scopes to request, space-separated (optional).
+* `dlb.external-variable-service.connect-timeout` — how long a call may take to connect before it fails (default `2s`).
+* `dlb.external-variable-service.read-timeout` — how long a call may wait for the response before it fails (default `5s`).
+
+With the integration enabled, the Web Service does not start unless `token-uri`, `client-id` and `client-secret` are set.
+
+## Authentication
+
+Every call the Web Service makes to the External Variable Service carries an OAuth2 access token, as `Authorization: Bearer <token>`. The Web Service gets it from Keycloak (or another authorization server) with the client-credentials grant, as its own confidential client, and keeps using it until shortly before it expires. If your service answers `401`, the Web Service gets a new token for its next call.
+
+::: warning Breaking change
+Earlier, the Web Service sent one static API key (`dlb.external-variable-service.api-key`). That setting is gone. To move an existing External Variable Service over, first let it accept the new tokens, if need be next to the old key for a short while, then upgrade the Web Service.
+:::
+
+Your External Variable Service must check every token before answering:
+
+* **Signature:** signed by one of the realm's public keys (for Keycloak, `<realm URL>/protocol/openid-connect/certs`).
+* **Issuer and expiry:** `iss` is the realm the Web Service gets its tokens from, and the token has not expired.
+* **Audience:** your service's own client id is in `aud`, so a token meant for another service is refused.
+* **Role:** the token has your service's role, for example `evs-access` in `resource_access.<your client id>.roles`.
+
+Refuse a request that fails any of these, with `401` (no valid token) or `403` (no role). In Keycloak, set this up as follows:
+
+1. A client for your service, for example `dlb-variable-service`, with no login flows enabled, and a client role `evs-access`.
+2. A confidential client for the Web Service, for example `dlb-web-service-evs`, with only *Service accounts* (client credentials) enabled, an *Audience* mapper that adds `dlb-variable-service` to the access token, and its service account given the role `evs-access` of `dlb-variable-service`.
+
+The Docker stack in `infrastructure/docker` has exactly these two clients in its realm, and `apps/mock-variable-service` checks tokens this way.
+
+## When the External Variable Service fails
+
+The External Variable Service is an outside system that can be slow or down, and the Web Service never lets that break a dialogue. Every call has the timeouts above, and so does getting its token. A call that fails, times out, gets a response other than a success, or for which no token could be got, is logged, and then:
+
+* `retrieve-updates`: the dialogue starts with the values the Web Service already has, as if no updates were needed. A dialogue start therefore waits at most the connect and read timeouts for your service.
+* `notify-updated`: the change stays in effect in the Web Service; your service misses it. The next `retrieve-updates` sends the Web Service's current values along, so your service can catch up there.
+* `notify-cleared`: the clear, or the erase of a user's data, stays in effect in the Web Service.
+* `supported`: the only exception. It answers an explicit question, so the Web Service reports the failure to its caller instead of an empty list (see [Reporting supported variables](#reporting-supported-variables)).
+
+The Web Service does not retry a failed call.
 
 ::: info Note
-It is worthwhile to make sure that the External Variable Service answers the request for variable updates quickly, because any delay will delay the starting of dialogue execution in the Dialogue Branch Web Service - which will negatively impact your end-user's experience. Apply caching, and make use of the provided `updatedTime` parameter that is passed along with each Variable, to make quick judgements whether a variable needs to be updated at all.
+It is worthwhile to make sure that the External Variable Service answers the request for variable updates quickly, because any delay will delay the starting of dialogue execution in the Dialogue Branch Web Service - which will negatively impact your end-user's experience. Apply caching, and make use of the `updatedTime` that is passed along with each Variable (the moment since which the Web Service has held its value), to make quick judgements whether a variable needs to be updated at all.
+:::
+
+## Answering a request for updates
+
+The Web Service sends `retrieve-updates` the Variables a dialogue uses, each with its current value and `updatedTime`: the moment since which the Web Service has held that value, or none if it has no value. Answer with only the Variables that have a new value, each as its `name` and `value`:
+
+```json
+[
+  { "name": "temperatureAtUserLocation", "value": 14 },
+  { "name": "lastWorkout", "value": null }
+]
+```
+
+A `null` value removes the Variable. The Web Service stores every update as updated at the moment it receives it, as it does for a value set in a dialogue or through its own end-points, so that is the `updatedTime` it reports from then on. An `updatedTime` or `updatedTimeZone` in your answer is ignored.
+
+::: warning Breaking change
+Earlier, the Web Service stored the `updatedTime` your service sent with an update. It now ignores it and records when it received the update.
 :::
 
 ## Request identity
@@ -63,7 +119,7 @@ To make this discoverable, your External Variable Service may implement one addi
 
 `GET /v{version}/variables/supported?projectSlug=<slug>`
 
-* Same static API-key authentication as `retrieve-updates`/`notify-updated`/`notify-cleared`.
+* Same token authentication as `retrieve-updates`/`notify-updated`/`notify-cleared` (see [Authentication](#authentication)).
 * `projectSlug` is **required**, not optional. An External Variable Service deployment is typically multi-tenant (one deployment, many projects), and which variables it can actually compute may differ per project — a project without a given data integration enabled should not advertise a variable it can never fill for that project's users. A single-project EVS can simply ignore the parameter and return the same list every time; requiring it costs that implementation nothing.
 * Response: a bare JSON array of objects, each with a required `name` and an optional `description`, e.g.:
 

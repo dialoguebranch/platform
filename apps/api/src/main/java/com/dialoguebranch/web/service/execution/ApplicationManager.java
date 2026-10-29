@@ -106,6 +106,7 @@ public class ApplicationManager {
 	private final Map<String, Set<String>> projectLanguages = new LinkedHashMap<>();
 
 	private final DlbProperties dlbProperties;
+	private final ExternalVariableServiceClient externalVariableServiceClient;
 
 	/**
 	 * Active {@link UserService}s, keyed implicitly by {@code User.id} (see {@link
@@ -136,13 +137,17 @@ public class ApplicationManager {
 	 *                        com.dialoguebranch.web.service.storage.model.DBUser} that owns each
 	 *                       user's logged dialogues.
 	 * @param loggedDialogueRepository repository used to read, create, and update logged dialogues.
+	 * @param externalVariableServiceClient the client for the External Variable Service, shared
+	 *                                      by all user sessions (#219).
 	 */
 	public ApplicationManager(DlbProperties dlbProperties,
 							  VariableStoreDatabaseStorageHandler storageHandler,
 							  VariableHistoryStorageHandler historyStorageHandler,
 							  DBUserRepository userRepository,
-							  DBLoggedDialogueRepository loggedDialogueRepository) {
+							  DBLoggedDialogueRepository loggedDialogueRepository,
+							  ExternalVariableServiceClient externalVariableServiceClient) {
 		this.dlbProperties = dlbProperties;
+		this.externalVariableServiceClient = externalVariableServiceClient;
 		this.userServiceFactory = new UserServiceFactory(this, storageHandler,
 				historyStorageHandler, userRepository, loggedDialogueRepository);
 	}
@@ -167,6 +172,15 @@ public class ApplicationManager {
 	 */
 	public DlbProperties getDlbProperties() {
 		return dlbProperties;
+	}
+
+	/**
+	 * Returns the client for the External Variable Service, shared by all user sessions.
+	 *
+	 * @return the External Variable Service client.
+	 */
+	public ExternalVariableServiceClient getExternalVariableServiceClient() {
+		return externalVariableServiceClient;
 	}
 
 	// ------------------------------------------------------------ //
@@ -364,7 +378,7 @@ public class ApplicationManager {
 	 */
 	public List<SupportedVariableInfo> getSupportedVariablesFromExternalService(String projectSlug)
 			throws NotImplementedException, ServiceUnavailableException {
-		return new ExternalVariableServiceClient(dlbProperties).getSupportedVariables(projectSlug);
+		return externalVariableServiceClient.getSupportedVariables(projectSlug);
 	}
 
 	/**
