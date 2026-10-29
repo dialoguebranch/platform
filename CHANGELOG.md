@@ -115,6 +115,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Web service: a slow or unreachable External Variable Service no longer breaks or stalls a
+  dialogue ([#219](https://github.com/dialoguebranch/platform/issues/219)). Every call to it now
+  has a connect and a read timeout, new settings `dlb.external-variable-service.connect-timeout`
+  (default `2s`) and `read-timeout` (default `5s`). A failed `retrieve-updates` lets the dialogue
+  start with the values it has, and a failed `notify-updated` or `notify-cleared` is logged while
+  the change, clear or erase stays in effect; before, a failed notification could throw in the
+  middle of a dialogue turn, and a hanging service could block it indefinitely.
 - Web service: a request the caller got wrong is answered with its own 4xx and the reason, instead
   of a generic `500 Internal Server Error` ([#220](https://github.com/dialoguebranch/platform/issues/220)):
   a missing required parameter or upload part (`400`), a parameter of the wrong type (`400`), an

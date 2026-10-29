@@ -31,6 +31,7 @@ package com.dialoguebranch.web.service;
 import com.dialoguebranch.web.service.execution.ApplicationManager;
 import com.dialoguebranch.web.service.repository.DBLoggedDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBUserRepository;
+import com.dialoguebranch.web.service.storage.ExternalVariableServiceClient;
 import com.dialoguebranch.web.service.storage.VariableHistoryStorageHandler;
 import com.dialoguebranch.web.service.storage.VariableStoreDatabaseStorageHandler;
 import jakarta.annotation.PostConstruct;
@@ -73,6 +74,8 @@ public class Application implements ApplicationListener<ApplicationEvent> {
 	private DBUserRepository userRepository;
 	@Autowired
 	private DBLoggedDialogueRepository loggedDialogueRepository;
+	@Autowired
+	private ExternalVariableServiceClient externalVariableServiceClient;
 	private ApplicationManager applicationManager = null;
 	private final Long launchedTime = Instant.now().toEpochMilli();
 
@@ -93,7 +96,8 @@ public class Application implements ApplicationListener<ApplicationEvent> {
 	@PostConstruct
 	private void initApp() {
 		applicationManager = new ApplicationManager(dlbProperties, storageHandler,
-				historyStorageHandler, userRepository, loggedDialogueRepository);
+				historyStorageHandler, userRepository, loggedDialogueRepository,
+				externalVariableServiceClient);
 	}
 
 	// ----------------------------------------------------------- //

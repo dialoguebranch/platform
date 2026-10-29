@@ -18,6 +18,19 @@ The External Variable Service integration is enabled through the following `dlb.
 * `dlb.external-variable-service.url` — the base URL where the external variable service can be reached.
 * `dlb.external-variable-service.api-version` — the API version to use when calling the external variable service.
 * `dlb.external-variable-service.api-key` — an API key used to authenticate the Web Service's calls to the external variable service.
+* `dlb.external-variable-service.connect-timeout` — how long a call may take to connect before it fails (default `2s`).
+* `dlb.external-variable-service.read-timeout` — how long a call may wait for the response before it fails (default `5s`).
+
+## When the External Variable Service fails
+
+The External Variable Service is an outside system that can be slow or down, and the Web Service never lets that break a dialogue. Every call has the timeouts above. A call that fails, times out or gets a response other than a success is logged, and then:
+
+* `retrieve-updates`: the dialogue starts with the values the Web Service already has, as if no updates were needed. A dialogue start therefore waits at most the connect and read timeouts for your service.
+* `notify-updated`: the change stays in effect in the Web Service; your service misses it. The next `retrieve-updates` sends the Web Service's current values along, so your service can catch up there.
+* `notify-cleared`: the clear, or the erase of a user's data, stays in effect in the Web Service.
+* `supported`: the only exception. It answers an explicit question, so the Web Service reports the failure to its caller instead of an empty list (see [Reporting supported variables](#reporting-supported-variables)).
+
+The Web Service does not retry a failed call.
 
 ::: info Note
 It is worthwhile to make sure that the External Variable Service answers the request for variable updates quickly, because any delay will delay the starting of dialogue execution in the Dialogue Branch Web Service - which will negatively impact your end-user's experience. Apply caching, and make use of the provided `updatedTime` parameter that is passed along with each Variable, to make quick judgements whether a variable needs to be updated at all.

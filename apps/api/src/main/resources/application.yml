@@ -120,6 +120,11 @@ dlb:
     url: ""
     api-version: 1
     api-key: ""
+    # Every call fails after these, and a failed call never breaks a dialogue: a dialogue start
+    # waits at most connect-timeout + read-timeout for retrieve-updates, then goes on with the
+    # values it has.
+    connect-timeout: 2s
+    read-timeout: 5s
 
   # ---- Session ----
   # How long an in-memory UserService may sit idle before it's evicted (see

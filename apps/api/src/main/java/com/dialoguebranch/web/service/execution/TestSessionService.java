@@ -557,7 +557,8 @@ public class TestSessionService {
 			Variable variable = copy.getVariable(name);
 			current.add(variable != null ? variable : Variable.unknown(name));
 		}
-		Variable[] updates = new ExternalVariableServiceClient(dlbProperties).retrieveUpdates(
+		Variable[] updates = application.getApplicationManager().getExternalVariableServiceClient()
+				.retrieveUpdates(
 				copyKey.testerIssuer(), copyKey.userSubject(), copyKey.projectSlug(),
 				copy.getUser().getTimeZone().toString(), current, true);
 		ExternalVariableServiceClient.applyUpdates(copy, updates);

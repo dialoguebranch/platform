@@ -31,6 +31,8 @@ package com.dialoguebranch.web.service;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 
+import java.time.Duration;
+
 /**
  * Typed configuration for the Dialogue Branch Web Service, bound from {@code application.yml} (and
  * environment variable overrides) via Spring Boot's {@code @ConfigurationProperties} mechanism.
@@ -483,6 +485,41 @@ public class DlbProperties {
 		 * @param apiKey the API key.
 		 */
 		public void setApiKey(String apiKey) { this.apiKey = apiKey; }
+
+		private Duration connectTimeout = Duration.ofSeconds(2);
+		private Duration readTimeout = Duration.ofSeconds(5);
+
+		/**
+		 * Returns how long a call to the external variable service may take to connect before it
+		 * fails.
+		 *
+		 * @return the connect timeout.
+		 */
+		public Duration getConnectTimeout() { return connectTimeout; }
+
+		/**
+		 * Sets how long a call to the external variable service may take to connect before it
+		 * fails.
+		 *
+		 * @param connectTimeout the connect timeout.
+		 */
+		public void setConnectTimeout(Duration connectTimeout) { this.connectTimeout = connectTimeout; }
+
+		/**
+		 * Returns how long a call to the external variable service may wait for its response
+		 * before it fails. A dialogue start waits at most this long for {@code retrieve-updates}.
+		 *
+		 * @return the read timeout.
+		 */
+		public Duration getReadTimeout() { return readTimeout; }
+
+		/**
+		 * Sets how long a call to the external variable service may wait for its response before
+		 * it fails.
+		 *
+		 * @param readTimeout the read timeout.
+		 */
+		public void setReadTimeout(Duration readTimeout) { this.readTimeout = readTimeout; }
 	}
 
 	// --------------------------------------------------------- //
