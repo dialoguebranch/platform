@@ -378,6 +378,100 @@ class ProjectExportImportServiceTest {
 		return projectService.findBySlug(slug).orElseThrow();
 	}
 
+	// -------------------- Archives made with an operating system's own tools (#444) ---------- //
+
+	/** A project's {@code dlb-project.xml}, with the given slug. */
+	private static String projectXml(String slug) {
+		return """
+				<?xml version="1.0" encoding="UTF-8"?>
+				<dlb-project name="Finder" slug="%s" version="1">
+				  <description>Zipped on macOS.</description>
+				  <language-map>
+					<source-language name="English" code="en"/>
+				  </language-map>
+				</dlb-project>
+				""".formatted(slug);
+	}
+
+	private static final String SCRIPT = "title: Start\nspeaker: Narrator\n---\nHello.\n===\n";
+
+	/** What an AppleDouble resource-fork file starts with: binary, with control characters. */
+	private static final String APPLE_DOUBLE = "\u0000\u0005\u0016\u0007\u0000\u0002\u0000\u0000Mac OS X";
+
+	@Test
+	void importIgnoresWhatMacOsFinderAddsToAnArchive() throws Exception {
+		byte[] archive = buildZip(
+				new String[] {"dlb-project.xml", projectXml("import-finder-metadata")},
+				new String[] {"en/main.dlb", SCRIPT},
+				new String[] {".DS_Store", APPLE_DOUBLE},
+				new String[] {"en/.DS_Store", APPLE_DOUBLE},
+				new String[] {"en/._main.dlb", APPLE_DOUBLE},
+				new String[] {"__MACOSX/._dlb-project.xml", APPLE_DOUBLE},
+				new String[] {"__MACOSX/en/._main.dlb", APPLE_DOUBLE},
+				new String[] {"Thumbs.db", APPLE_DOUBLE},
+				new String[] {"en/desktop.ini", APPLE_DOUBLE});
+
+		DBProject imported = projectImportService.importProject(
+				zipMultipartFile(archive, "finder.zip"));
+
+		List<DBDraftDialogue> dialogues = draftDialogueService.listDialogues(imported);
+		assertEquals(List.of("main"), dialogues.stream().map(DBDraftDialogue::getName).toList());
+	}
+
+	@Test
+	void importFindsAProjectInTheOneFolderAnArchiveHolds() throws Exception {
+		// Finder's Compress on the project's folder, rather than on its contents
+		byte[] archive = buildZip(
+				new String[] {"My Project/dlb-project.xml", projectXml("import-finder-folder")},
+				new String[] {"My Project/en/main.dlb", SCRIPT},
+				new String[] {"My Project/.DS_Store", APPLE_DOUBLE},
+				new String[] {"__MACOSX/My Project/._dlb-project.xml", APPLE_DOUBLE},
+				new String[] {"__MACOSX/My Project/en/._main.dlb", APPLE_DOUBLE});
+
+		DBProject imported = projectImportService.importProject(
+				zipMultipartFile(archive, "My Project.zip"));
+
+		assertEquals("import-finder-folder", imported.getSlug());
+		assertTrue(draftDialogueService.findDialogue(imported, "main").isPresent());
+	}
+
+	@Test
+	void importStillReportsARealErrorAmongWhatFinderAdds() {
+		byte[] archive = buildZip(
+				new String[] {"dlb-project.xml", projectXml("import-finder-error")},
+				new String[] {"en/main.dlb", "title: Start\nspeaker: Narrator\n---\n[[Go|Nowhere]]\n===\n"},
+				new String[] {"__MACOSX/en/._main.dlb", APPLE_DOUBLE});
+
+		BadRequestException error = assertThrows(BadRequestException.class,
+				() -> projectImportService.importProject(zipMultipartFile(archive, "error.zip")));
+		assertTrue(error.getMessage().contains("Nowhere"), error.getMessage());
+		assertFalse(error.getMessage().contains("__MACOSX"), error.getMessage());
+	}
+
+	@Test
+	void importRejectsAnArchiveWithoutAProjectInItsRootOrItsOneFolder() {
+		byte[] archive = buildZip(
+				new String[] {"first/dlb-project.xml", projectXml("import-two-folders")},
+				new String[] {"second/en/main.dlb", SCRIPT});
+
+		assertThrows(BadRequestException.class, () -> projectImportService.importProject(
+				zipMultipartFile(archive, "two-folders.zip")));
+	}
+
+	@Test
+	void systemEntriesAreRecognised() {
+		assertTrue(ProjectImportService.isSystemEntry("__MACOSX/"));
+		assertTrue(ProjectImportService.isSystemEntry("__MACOSX/en/._main.dlb"));
+		assertTrue(ProjectImportService.isSystemEntry("en/._main.dlb"));
+		assertTrue(ProjectImportService.isSystemEntry(".DS_Store"));
+		assertTrue(ProjectImportService.isSystemEntry("My Project/THUMBS.DB"));
+		assertTrue(ProjectImportService.isSystemEntry("en/desktop.ini"));
+		assertFalse(ProjectImportService.isSystemEntry("en/main.dlb"));
+		assertFalse(ProjectImportService.isSystemEntry("dlb-project.xml"));
+		assertFalse(ProjectImportService.isSystemEntry("en/_main.dlb"));
+		assertFalse(ProjectImportService.isSystemEntry("en/"));
+	}
+
 	private static MockMultipartFile zipMultipartFile(byte[] content, String filename) {
 		return new MockMultipartFile("file", filename, "application/zip", content);
 	}
