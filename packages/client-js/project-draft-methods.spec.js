@@ -56,3 +56,14 @@ describe('updateProjectDraft', () => {
         expect(JSON.parse(fetch.mock.calls[0][1].body)).not.toHaveProperty('speakers');
     });
 });
+
+describe('findSpeakerReferences', () => {
+    it('asks for the speaker, encoded', async () => {
+        const { client, fetch } = clientReturning({ nodes: 2, dialogues: 1, translations: 0 });
+        const result = await client.findSpeakerReferences('p', 'Martin McOwl');
+
+        expect(fetch.mock.calls[0][0])
+            .toBe('/api/v1/project/find-speaker-references?projectSlug=p&speaker=Martin%20McOwl');
+        expect(result).toEqual({ nodes: 2, dialogues: 1, translations: 0 });
+    });
+});

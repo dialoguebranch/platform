@@ -97,3 +97,15 @@ export function speakersDiffer(a, b) {
         || (s.gender ?? 'undefined') !== (right[i].gender ?? 'undefined')
         || !!s.default !== !!right[i].default);
 }
+
+/**
+ * Returns whether a node's speaker isn't one of the project's speakers, which the publish check
+ * reports as a warning (#397). Never for a project without speakers, or a node without a speaker.
+ *
+ * @param {?string} name the node's speaker.
+ * @param {Array} speakers the project's speakers.
+ * @returns {boolean} `true` if the speaker is set but undefined in the project.
+ */
+export function isUndefinedSpeaker(name, speakers) {
+    return !!name && speakers.length > 0 && !speakers.some((s) => s.name === name);
+}

@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -422,9 +423,28 @@ public class DraftProjectService {
 		}
 
 		List<Speaker> resolvedSpeakers = null;
+		// Old name -> new name, for each entry that renames a current speaker (#398).
+		Map<String, String> renames = new LinkedHashMap<>();
 		if (speakers != null) {
 			resolvedSpeakers = new ArrayList<>();
+			Set<String> currentNames = new HashSet<>();
+			for (DBDraftSpeaker current : project.getDraftSpeakers())
+				currentNames.add(current.getName());
 			for (SpeakerPayload entry : speakers) {
+				String previousName = entry.getPreviousName();
+				if (previousName != null && !previousName.equals(entry.getName())) {
+					if (!currentNames.contains(previousName)) {
+						errors.add(new HttpFieldError("speakers", "Can't rename the speaker '"
+								+ previousName + "': the project has no such speaker."));
+						continue;
+					}
+					if (renames.containsKey(previousName)) {
+						errors.add(new HttpFieldError("speakers", "The speaker '" + previousName
+								+ "' is renamed more than once."));
+						continue;
+					}
+					renames.put(previousName, entry.getName());
+				}
 				Speaker.Gender gender = Speaker.Gender.UNDEFINED;
 				if (entry.getGender() != null) {
 					gender = Speaker.Gender.fromValue(entry.getGender());
@@ -476,7 +496,8 @@ public class DraftProjectService {
 				throw new IllegalStateException(e);
 			}
 		}
-		if (resolvedSpeakers != null) setDraftSpeakers(project, resolvedSpeakers);
+		if (resolvedSpeakers != null) setDraftSpeakers(project, resolvedSpeakers, renames);
+		if (!renames.isEmpty()) draftDialogueService.renameSpeakers(project, renames);
 
 		return project;
 	}
@@ -497,6 +518,29 @@ public class DraftProjectService {
 	 */
 	@Transactional
 	public void setDraftSpeakers(DBProject project, List<Speaker> speakers) {
+		setDraftSpeakers(project, speakers, Map.of());
+	}
+
+	/**
+	 * Makes the project's draft speakers exactly the given list, like {@link
+	 * #setDraftSpeakers(DBProject, List)}, where a speaker renamed in {@code renames} keeps its
+	 * row under its new name. Only the list of speakers changes; see {@link
+	 * DraftDialogueService#renameSpeakers} for the nodes and translations.
+	 *
+	 * @param project  the project, managed in the current transaction.
+	 * @param speakers the speakers, already checked with {@link Speaker#validate}.
+	 * @param renames  the new name for each renamed speaker's old name.
+	 */
+	@Transactional
+	public void setDraftSpeakers(DBProject project, List<Speaker> speakers,
+			Map<String, String> renames) {
+		if (!renames.isEmpty()) {
+			// A rename can take a name another row still holds (a swap, or a speaker removed in
+			// the same batch), which the unique name per project refuses while the rows are
+			// flushed. The rows carry nothing but these fields, so start from an empty list.
+			project.getDraftSpeakers().clear();
+			projectRepository.saveAndFlush(project);
+		}
 		Map<String, DBDraftSpeaker> byName = new HashMap<>();
 		for (DBDraftSpeaker existing : project.getDraftSpeakers()) {
 			byName.put(existing.getName(), existing);

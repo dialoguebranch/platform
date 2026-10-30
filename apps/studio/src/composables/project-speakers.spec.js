@@ -27,7 +27,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { speakerForNewNode, checkNewSpeakerName, speakersDiffer } from './project-speakers.js';
+import { speakerForNewNode, checkNewSpeakerName, speakersDiffer, isUndefinedSpeaker } from './project-speakers.js';
 
 const SPEAKERS = [
     { name: 'Anna', gender: 'female', default: false },
@@ -67,5 +67,16 @@ describe('speakersDiffer', () => {
         expect(speakersDiffer(SPEAKERS, SPEAKERS.slice(1))).toBe(true);
         expect(speakersDiffer([{ name: 'A', gender: 'male' }], [{ name: 'A', gender: 'female' }])).toBe(true);
         expect(speakersDiffer([{ name: 'A', default: true }], [{ name: 'A' }])).toBe(true);
+    });
+});
+
+describe('isUndefinedSpeaker (#397)', () => {
+    const speakers = [{ name: 'Robin' }];
+
+    it('is true only for a set speaker that the project doesn\'t define', () => {
+        expect(isUndefinedSpeaker('Robni', speakers)).toBe(true);
+        expect(isUndefinedSpeaker('Robin', speakers)).toBe(false);
+        expect(isUndefinedSpeaker('', speakers)).toBe(false);
+        expect(isUndefinedSpeaker('Anyone', [])).toBe(false);
     });
 });

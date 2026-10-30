@@ -37,6 +37,7 @@ import com.dialoguebranch.i18n.TranslationParserResult;
 import com.dialoguebranch.i18n.Translator;
 import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.common.ResourceType;
+import com.dialoguebranch.model.common.Speaker;
 import com.dialoguebranch.model.execute.*;
 import org.jspecify.annotations.Nullable;
 
@@ -60,6 +61,7 @@ import java.util.Set;
  */
 public class ProjectParser {
 	private final ScriptLoader scriptLoader;
+	private final @Nullable List<Speaker> speakers;
 
 	private final Map<ResourcePointer, Dialogue> dialogues = new LinkedHashMap<>();
 	private final Map<ResourcePointer,Map<Translatable,List<ContextTranslation>>>
@@ -78,7 +80,23 @@ public class ProjectParser {
 	 * @param scriptLoader the {@link ScriptLoader} implementation.
 	 */
 	public ProjectParser(ScriptLoader scriptLoader) {
+		this(scriptLoader, null);
+	}
+
+	/**
+	 * Creates an instance of a {@link ProjectParser} with a given {@link ScriptLoader} and the
+	 * project's speakers, for a loader that can't provide the project's metadata itself (one that
+	 * isn't a {@link ProjectScriptLoader}, such as a project read from a database). A node whose
+	 * speaker isn't one of {@code speakers} is reported as a warning.
+	 *
+	 * @param scriptLoader the {@link ScriptLoader} implementation.
+	 * @param speakers the project's speakers, or {@code null} to take them from the loader's
+	 *                 project metadata when it is a {@link ProjectScriptLoader} (and none
+	 *                 otherwise).
+	 */
+	public ProjectParser(ScriptLoader scriptLoader, @Nullable List<Speaker> speakers) {
 		this.scriptLoader = scriptLoader;
+		this.speakers = speakers;
 	}
 
 	// ------------------------------------------------------- //
@@ -190,6 +208,9 @@ public class ProjectParser {
 		OrphanedNodeValidator.detect(allParsedDialogues, dialoguesByName,
 				(file, warning) -> getWarnings(readResult, file).add(warning));
 
+		UndefinedSpeakerValidator.detect(allParsedDialogues, projectSpeakers(),
+				(file, warning) -> getWarnings(readResult, file).add(warning));
+
 		for (ResourcePointer fileDescription : translationFiles) {
 			if (fileDescriptionsSet.contains(fileDescription)) {
 				getParseErrors(readResult, fileDescription).add(new ParseException(
@@ -209,6 +230,18 @@ public class ProjectParser {
 			if (transParseResult.getParseErrors().isEmpty())
 				translations.put(fileDescription, transParseResult.getTranslations());
 		}
+	}
+
+	/**
+	 * Returns the project's speakers: the ones given to the constructor, else those of the
+	 * loader's project metadata, else none.
+	 */
+	private List<Speaker> projectSpeakers() {
+		if (speakers != null)
+			return speakers;
+		if (scriptLoader instanceof ProjectScriptLoader projectScriptLoader)
+			return projectScriptLoader.getProjectMetaData().getSpeakers();
+		return List.of();
 	}
 
 	private List<ParseException> getParseErrors(ProjectParserResult readResult,

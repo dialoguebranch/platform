@@ -201,6 +201,12 @@ function onProjectConfigured(updated) {
     // Configure Project may have added/removed a translation language — refresh the "Test
     // dialogues in:" selector so it reflects the latest list without needing a page reload.
     dialogueWorkspace.value?.loadAvailableLanguages();
+    // Renaming a speaker (#398) changed nodes and translations across the project: the dialogues
+    // are now marked changed, and every open tab may show stale content.
+    if (updated.renamedSpeakers) {
+        dialogueBrowser.value?.listDialogues();
+        dialogueWorkspace.value?.speakersRenamed();
+    }
 }
 
 // Whether the currently selected project's draft metadata (display name, description,

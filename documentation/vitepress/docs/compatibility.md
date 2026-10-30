@@ -47,7 +47,7 @@ All end-points are under `/v1`, for example `/v1/dialogue/start`. *Stable* end-p
 | `/info/external-variable-service` | Internal (Studio's status bar) |
 | `/auth/logout`, `validate` | Stable |
 | `/project/list-projects`, `get-project`, `create-project`, `delete-project`, `export-project`, `import-project` | Stable |
-| `/project/update-project`, `update-draft`, `discard-draft-changes`, `add-translation-language`, `remove-translation-language`, `restore-translation-language`, `find-language-references` | Internal (Studio's *Configure Project*) |
+| `/project/update-project`, `update-draft`, `discard-draft-changes`, `add-translation-language`, `remove-translation-language`, `restore-translation-language`, `find-language-references`, `find-speaker-references` | Internal (Studio's *Configure Project*) |
 | `/project/list-deleted-projects`, `purge-deleted-project` | Internal (Studio's admin *Deleted projects*) |
 | `/publish/list-versions`, `next-version`, `verify`, `create-version` | Stable |
 | `/authoring/import-scripts`, `import-translations`, `export-dialogue` | Stable |

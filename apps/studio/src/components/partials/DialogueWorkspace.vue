@@ -520,6 +520,17 @@ function translationsReplaced(dialogueNames) {
     }
 }
 
+// Called after renaming speakers (#398) changed nodes and translations across the project: every
+// tab may show stale content. The open graph or Translation Editor reloads; a test running in a
+// tab is reconciled the same way as after editing (see handleReturnFromEdit).
+function speakersRenamed() {
+    for (const tab of tabs.value) tab.dialogueEdited = true;
+    if (!activeTab.value) return;
+    if (selectedMode.value === 'edit') dialogueEditor.value?.reload();
+    else if (selectedMode.value === 'translate') translationEditor.value?.reload();
+    else handleReturnFromEdit(activeTab.value);
+}
+
 // Called whenever the mode switches away from 'edit' back to Balloon/Text. If the dialogue in the
 // tab being left was edited and already had a test running, that test's content is now stale:
 // a "live" (published, logged) test is force-switched to an ephemeral draft test (with a notice,
@@ -702,6 +713,7 @@ defineExpose({
     dialoguesReplaced,
     dialogueDeleted,
     translationsReplaced,
+    speakersRenamed,
 });
 
 // ---- Tab bar scroll ----

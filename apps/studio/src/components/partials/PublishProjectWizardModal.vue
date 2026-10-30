@@ -20,7 +20,7 @@ const currentStep = ref(1);
 // Step 2: verifying the draft for errors, without publishing anything.
 const verifying = ref(false);
 const verifyError = ref('');
-const verifyResult = ref(null); // { valid, errors } — see PublishService.VerifyResult
+const verifyResult = ref(null); // { valid, errors, warnings } — see PublishService.VerifyResult
 
 function runVerify() {
     verifying.value = true;
@@ -39,6 +39,12 @@ function runVerify() {
 }
 
 const errorDialogueNames = computed(() => Object.keys(verifyResult.value?.errors ?? {}));
+// Warnings (such as orphaned nodes, or a speaker that isn't one of the project's) never stop a
+// publish; they're listed so the author can decide.
+const warningDialogueNames = computed(() =>
+    Object.keys(verifyResult.value?.warnings ?? {}).filter((name) => verifyResult.value.warnings[name].length));
+const warningCount = computed(() => warningDialogueNames.value
+    .reduce((count, name) => count + verifyResult.value.warnings[name].length, 0));
 
 // Step 3: the version number this publish would create, and the final publish action itself.
 const loadingNextVersion = ref(false);
@@ -175,6 +181,20 @@ function submitPublish() {
                                         <div class="font-title font-bold text-sm text-orange-darker">{{ name }}</div>
                                         <ul class="list-disc list-inside text-sm text-grey-dark">
                                             <li v-for="(msg, i) in verifyResult.errors[name]" :key="i">{{ msg }}</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </template>
+                            <template v-if="warningCount">
+                                <div class="flex items-center gap-2 border border-orange-medium/50 bg-orange-light/20 text-orange-darker rounded-xl px-4 py-3 text-sm font-title" data-test="verify-warnings">
+                                    <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" class="shrink-0" />
+                                    {{ warningCount }} warning{{ warningCount === 1 ? '' : 's' }}. These don't stop publishing, but may point to a mistake.
+                                </div>
+                                <div class="max-h-64 overflow-y-auto border border-grey-light rounded-lg divide-y divide-grey-light">
+                                    <div v-for="name in warningDialogueNames" :key="name" class="px-3 py-2" data-test="verify-warning-dialogue">
+                                        <div class="font-title font-bold text-sm text-orange-darker">{{ name }}</div>
+                                        <ul class="list-disc list-inside text-sm text-grey-dark">
+                                            <li v-for="(msg, i) in verifyResult.warnings[name]" :key="i">{{ msg }}</li>
                                         </ul>
                                     </div>
                                 </div>

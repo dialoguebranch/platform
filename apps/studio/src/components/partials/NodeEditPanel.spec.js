@@ -199,6 +199,12 @@ describe('NodeEditPanel project speakers (#396)', () => {
             t.key === 'speaker' ? { key: 'speaker', value: 'Martin McOlw' } : t) });
         expect(options(wrapper)).toContain('Martin McOlw (not a project speaker)');
         expect(wrapper.find('[data-test="node-speaker-select"]').element.value).toBe('Martin McOlw');
+        expect(wrapper.find('[data-test="node-undefined-speaker-warning"]').exists()).toBe(true);
+    });
+
+    it('shows no warning for one of the project\'s speakers', () => {
+        const wrapper = mountPanel();
+        expect(wrapper.find('[data-test="node-undefined-speaker-warning"]').exists()).toBe(false);
     });
 
     it('stays free text when the project has no speakers', () => {

@@ -45,7 +45,8 @@ For the exact syntax of the `.dlb` script format this library parses and execute
 The non-interactive validate mode is suited to CI. Alongside parse errors, it also reports
 **warnings** for issues that can never cause a runtime error but likely indicate an authoring
 mistake — such as an **orphaned node**: a node that no reply link points to and that isn't its
-own dialogue's Start node. Warnings are printed but do not affect the exit status.
+own dialogue's Start node, or a node whose **speaker isn't one of the project's speakers** (only
+when the project defines speakers). Warnings are printed but do not affect the exit status.
 
 ## Documentation
 

@@ -47,7 +47,11 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
@@ -248,5 +252,124 @@ class ProjectSpeakersIntegrationTest {
 						.param("projectSlug", slug + "__deleted")))
 				.andExpect(status().isNoContent());
 		getProject(slug).andExpect(status().isNotFound());
+	}
+
+	private ResultActions verify(String slug) throws Exception {
+		return mockMvc.perform(asAdmin(post("/v1/publish/verify").param("projectSlug", slug)));
+	}
+
+	@Test
+	void verifyWarnsAboutANodeWhoseSpeakerIsUndefinedWithoutFailing() throws Exception {
+		String slug = newProject();
+		updateDraft(slug, "[{\"name\":\"Robin\"}]").andExpect(status().isOk());
+
+		verify(slug)
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.valid").value(true))
+				.andExpect(jsonPath("$.warnings.*[*]", hasItem(
+						containsString("\"Anna\", which isn't one of the project's speakers"))));
+		publish(slug);
+	}
+
+	@Test
+	void verifyHasNoSpeakerWarningsWithoutSpeakers() throws Exception {
+		String slug = newProject();
+
+		verify(slug)
+				.andExpect(jsonPath("$.valid").value(true))
+				.andExpect(jsonPath("$.warnings").isEmpty());
+	}
+
+	// -------------------- Renaming a speaker (#398) -------------------- //
+
+	/** A project whose speaker Anna speaks in two dialogues and has a Dutch translation. */
+	private String projectWithAnna() throws Exception {
+		String slug = newProject();
+		mockMvc.perform(asAdmin(multipart("/v1/authoring/import-scripts")
+						.file(new MockMultipartFile("files", "second.dlb", "text/plain",
+								("title: Start\nspeaker: Anna\n---\nHi.\n[[Next|Next]]\n===\n"
+										+ "title: Next\nspeaker: Narrator\n---\nOn we go.\n===\n")
+										.getBytes(StandardCharsets.UTF_8)))
+						.param("projectSlug", slug).param("replace", "true")))
+				.andExpect(status().isOk());
+		mockMvc.perform(asAdmin(post("/v1/project/update-draft").param("projectSlug", slug)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"addLanguages\":[{\"translationLanguageName\":\"Dutch\","
+								+ "\"translationLanguageCode\":\"nl\"}],\"speakers\":" + SPEAKERS + "}")))
+				.andExpect(status().isOk());
+		mockMvc.perform(asAdmin(post("/v1/authoring/update-translation").param("projectSlug", slug)
+						.param("dialogueName", "main").param("language", "nl")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"content\":\"{\\\"Anna\\\":{\\\"Hello.\\\":\\\"Hallo.\\\"}}\"}")))
+				.andExpect(status().isOk());
+		return slug;
+	}
+
+	private String nodeSpeakers(String slug, String dialogue) throws Exception {
+		return mockMvc.perform(asAdmin(get("/v1/authoring/list-nodes").param("projectSlug", slug)
+						.param("dialogueName", dialogue)))
+				.andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString();
+	}
+
+	private String translation(String slug) throws Exception {
+		return mockMvc.perform(asAdmin(get("/v1/authoring/get-translation").param("projectSlug", slug)
+						.param("dialogueName", "main").param("language", "nl")))
+				.andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString();
+	}
+
+	@Test
+	void findSpeakerReferencesCountsNodesDialoguesAndTranslations() throws Exception {
+		String slug = projectWithAnna();
+		mockMvc.perform(asAdmin(get("/v1/project/find-speaker-references")
+						.param("projectSlug", slug).param("speaker", "Anna")))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.nodes").value(2))
+				.andExpect(jsonPath("$.dialogues").value(2))
+				.andExpect(jsonPath("$.translations").value(1));
+	}
+
+	@Test
+	void renamingASpeakerRenamesItInTheNodesAndTranslations() throws Exception {
+		String slug = projectWithAnna();
+		updateDraft(slug, """
+				[{"name": "Martin McOwl", "gender": "male", "default": true},
+				 {"name": "Annie", "previousName": "Anna", "gender": "female"},
+				 {"name": "Narrator"}]""").andExpect(status().isOk());
+
+		getProject(slug)
+				.andExpect(jsonPath("$.draftSpeakers[*].name",
+						contains("Martin McOwl", "Annie", "Narrator")))
+				.andExpect(jsonPath("$.draftSpeakers[1].gender").value("female"));
+		assertTrue(nodeSpeakers(slug, "main").contains("\"value\":\"Annie\""));
+		assertTrue(nodeSpeakers(slug, "second").contains("\"value\":\"Annie\""));
+		assertFalse(nodeSpeakers(slug, "second").contains("\"value\":\"Anna\""));
+		assertTrue(translation(slug).contains("Annie"));
+		assertFalse(translation(slug).contains("Anna\\\""));
+	}
+
+	@Test
+	void swappingTwoSpeakersNamesWorks() throws Exception {
+		String slug = projectWithAnna();
+		updateDraft(slug, """
+				[{"name": "Martin McOwl", "gender": "male", "default": true},
+				 {"name": "Narrator", "previousName": "Anna", "gender": "female"},
+				 {"name": "Anna", "previousName": "Narrator"}]""").andExpect(status().isOk());
+
+		getProject(slug).andExpect(jsonPath("$.draftSpeakers[*].name",
+				contains("Martin McOwl", "Narrator", "Anna")));
+		String second = nodeSpeakers(slug, "second");
+		assertTrue(second.indexOf("\"value\":\"Narrator\"") < second.indexOf("\"value\":\"Anna\""),
+				"The first node's speaker should now be Narrator, the second one's Anna: " + second);
+	}
+
+	@Test
+	void renamingASpeakerTheProjectDoesntHaveIsRefused() throws Exception {
+		String slug = projectWithAnna();
+		updateDraft(slug, "[{\"name\": \"Annie\", \"previousName\": \"Ann\"}]")
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.fieldErrors[0].field").value("speakers"));
+		assertTrue(nodeSpeakers(slug, "main").contains("\"value\":\"Anna\""));
 	}
 }
