@@ -32,6 +32,7 @@ import com.dialoguebranch.exception.ParseException;
 import com.dialoguebranch.execution.Variable;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.VariableUpdatedSource;
+import com.dialoguebranch.model.common.VariableNames;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.DateTimeUtils;
 import com.dialoguebranch.web.service.ProtocolVersion;
@@ -328,7 +329,7 @@ public class VariablesController {
 			String projectSlug, String variableName, String from, String to, int page,
 			int pageSize) throws BadRequestException, NotFoundException, ParseException {
 		String name = variableName == null || variableName.isBlank() ? null : variableName.trim();
-		if (name != null && !name.matches("[A-Za-z]\\w*")) {
+		if (name != null && !VariableNames.isValid(name)) {
 			throw BadRequestException.withInvalidInput(new HttpFieldError("variableName",
 					"Invalid variable name: " + name));
 		}
@@ -539,7 +540,7 @@ public class VariablesController {
 		String[] nameArray = trimmed.split("\\s+");
 		List<String> invalidNames = new ArrayList<>();
 		for (String name : nameArray) {
-			if (!name.matches("[A-Za-z]\\w*"))
+			if (!VariableNames.isValid(name))
 				invalidNames.add(name);
 		}
 		if (!invalidNames.isEmpty()) {
@@ -648,7 +649,7 @@ public class VariablesController {
 			throws Exception {
 		List<HttpFieldError> errors = new ArrayList<>();
 
-		if (!name.matches("[A-Za-z]\\w*")) {
+		if (!VariableNames.isValid(name)) {
 			errors.add(new HttpFieldError("name",
 					"Invalid variable name: " + name));
 			throw BadRequestException.withInvalidInput(errors);
@@ -769,7 +770,7 @@ public class VariablesController {
 
 		List<String> invalidNames = new ArrayList<>();
 		for (String name : variables.keySet()) {
-			if (!name.matches("[A-Za-z]\\w*"))
+			if (!VariableNames.isValid(name))
 				invalidNames.add(name);
 		}
 
