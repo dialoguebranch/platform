@@ -841,3 +841,73 @@ describe('VariableBrowser — test variables in Authoring Mode', () => {
         expect(authoring.getTestVariables).toHaveBeenCalledTimes(1);
     });
 });
+
+describe('VariableBrowser — supported-variable hints (#434)', () => {
+    const { DLB_APP_MODE_DRAFT, DLB_APP_MODE_LIVE } = studioModes;
+    const SUPPORTED = [
+        { name: 'dayPart', description: 'Part of the day', type: 'string',
+            values: ['morning', 'night'], readOnly: true },
+        { name: 'example.number', description: null, type: 'number', values: null, readOnly: false },
+        { name: 'example.noHints', description: null, type: null, values: null, readOnly: null },
+    ];
+
+    function mountIn(mode) {
+        const state = ref({ selectedProject: { slug: 'default-test' }, mode });
+        return mount(VariableBrowser, {
+            global: { provide: { state }, stubs: { FontAwesomeIcon: true } },
+        });
+    }
+
+    const row = (wrapper, name) => wrapper.findAll('[data-test="project-variable"]')
+        .find((r) => r.text().startsWith('$' + name));
+
+    beforeEach(() => {
+        authoring.listSupportedVariables.mockResolvedValue(SUPPORTED);
+        authoring.getTestVariables.mockResolvedValue([{ name: 'dayPart', value: 'night' },
+            { name: 'example.number', value: '3' }]);
+        playback.getVariables.mockResolvedValue([{ name: 'dayPart', value: 'night' }]);
+    });
+
+    it('shows each supported variable\'s type and a lock when it is read-only', async () => {
+        const wrapper = mountIn(DLB_APP_MODE_LIVE);
+        await flushPromises();
+        await openMode(wrapper, 'Used');
+
+        expect(row(wrapper, 'dayPart').get('[data-test="supported-type"]').text()).toBe('string');
+        expect(row(wrapper, 'dayPart').find('[data-test="supported-read-only"]').exists()).toBe(true);
+        expect(row(wrapper, 'example.number').get('[data-test="supported-type"]').text()).toBe('number');
+        expect(row(wrapper, 'example.number').find('[data-test="supported-read-only"]').exists()).toBe(false);
+        expect(row(wrapper, 'example.noHints').find('[data-test="supported-type"]').exists()).toBe(false);
+        expect(row(wrapper, 'currentTime').find('[data-test="supported-type"]').exists()).toBe(false);
+    });
+
+    it('puts the description and allowed values in the row\'s tooltip', async () => {
+        const wrapper = mountIn(DLB_APP_MODE_LIVE);
+        await flushPromises();
+        await openMode(wrapper, 'Used');
+
+        const title = row(wrapper, 'dayPart').attributes('title');
+        expect(title).toContain('Part of the day');
+        expect(title).toContain('Allowed values: morning, night');
+        expect(title).toContain('Read-only');
+        expect(row(wrapper, 'currentTime').attributes('title')).not.toContain('External Variable Service');
+    });
+
+    it('marks a read-only variable in the test values, saying a change stays in the test values', async () => {
+        const wrapper = mountIn(DLB_APP_MODE_DRAFT);
+        await flushPromises();
+
+        const locks = wrapper.findAll('[data-test="value-read-only"]');
+        expect(locks).toHaveLength(1);
+        expect(locks[0].attributes('title')).toContain('only changes the test values');
+    });
+
+    it('marks a read-only variable in the stored values, saying the service replaces a change', async () => {
+        const wrapper = mountIn(DLB_APP_MODE_LIVE);
+        await flushPromises();
+
+        const locks = wrapper.findAll('[data-test="value-read-only"]');
+        expect(locks).toHaveLength(1);
+        expect(locks[0].attributes('title')).toContain('at the next dialogue start');
+    });
+});
