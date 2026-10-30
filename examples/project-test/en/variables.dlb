@@ -83,7 +83,34 @@ speaker: Martin McOwl
 colorID: 0
 position: 1472,84
 ---
-Variables must start with a $-sign and then any small or capital letter ([a-z] or [A-Z]). Besides that you can use any combination of letters, numbers and underscores to define your variable name.
+Variables must start with a $-sign and then any small or capital letter ([a-z] or [A-Z]) or an underscore. Besides that you can use any combination of letters, numbers and underscores to define your variable name, and dots to split it into parts.
+
+[[DottedNames]]
+===
+title: DottedNames
+tags:
+speaker: Martin McOwl
+colorID: 0
+position: 1472,300
+---
+<<set $user.settings.theme = "dark">>
+
+A name can have several parts, separated by dots, like 'user.settings.theme'. It is still one variable, and a full stop right after it just ends the sentence: your theme is $user.settings.theme.
+
+<<if $user.settings.theme == "dark">>
+Dotted names work in conditions too.
+<<endif>>
+
+[[Switch to the light theme.|DottedNames2|<<set $user.settings.theme = "light">>]]
+[[Keep it dark.|DottedNames2]]
+===
+title: DottedNames2
+tags:
+speaker: Martin McOwl
+colorID: 0
+position: 1768,300
+---
+Your theme is now $user.settings.theme.
 
 [[Variables4]]
 ===
