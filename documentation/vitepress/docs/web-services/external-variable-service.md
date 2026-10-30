@@ -134,9 +134,9 @@ To make this discoverable, your External Variable Service may implement one addi
 
   ```json
   [
-    { "name": "steps.today", "description": "Steps taken so far today", "type": "number", "readOnly": true },
-    { "name": "user.settings.screenHalf", "type": "string", "values": ["off", "left", "right"], "readOnly": false },
-    { "name": "partOfDay" }
+    { "name": "visits.count", "description": "How often the user has visited", "type": "number", "readOnly": true },
+    { "name": "settings.theme", "type": "string", "values": ["light", "dark"], "readOnly": false },
+    { "name": "nickname" }
   ]
   ```
 

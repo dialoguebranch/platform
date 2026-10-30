@@ -124,13 +124,13 @@ describe('VariableHistoryEntry.fromJSON', () => {
 describe('SupportedVariable.fromJSON', () => {
     it('carries the name, description and the hints the service gave', () => {
         const variable = SupportedVariable.fromJSON({
-            name: 'user.settings.screenHalf', description: 'Which half of the screen to use',
-            type: 'string', values: ['off', 'left', 'right'], readOnly: false,
+            name: 'settings.theme', description: 'The colour theme',
+            type: 'string', values: ['light', 'dark'], readOnly: false,
         });
-        expect(variable.name).toBe('user.settings.screenHalf');
-        expect(variable.description).toBe('Which half of the screen to use');
+        expect(variable.name).toBe('settings.theme');
+        expect(variable.description).toBe('The colour theme');
         expect(variable.type).toBe('string');
-        expect(variable.values).toEqual(['off', 'left', 'right']);
+        expect(variable.values).toEqual(['light', 'dark']);
         expect(variable.readOnly).toBe(false);
     });
 

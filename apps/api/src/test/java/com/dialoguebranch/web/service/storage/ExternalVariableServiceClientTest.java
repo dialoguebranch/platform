@@ -116,20 +116,20 @@ class ExternalVariableServiceClientTest {
 	@Test
 	void supportedVariablesCarryTheServicesHintsAndOnlyThose() throws Exception {
 		service = FakeExternalVariableService.answering(200, """
-				[{"name": "steps.today", "description": "Steps so far today", "type": "number",
-				  "readOnly": true, "unit": "steps"},
-				 {"name": "user.settings.screenHalf", "type": "string",
-				  "values": ["off", "left", "right"], "readOnly": false},
+				[{"name": "visits.count", "description": "How often the user has visited",
+				  "type": "number", "readOnly": true, "unit": "visits"},
+				 {"name": "settings.theme", "type": "string",
+				  "values": ["light", "dark"], "readOnly": false},
 				 {"name": "mood"}]
 				""", Duration.ZERO);
 		ExternalVariableServiceClient client = clientFor(service, Duration.ofSeconds(1));
 
 		List<SupportedVariableInfo> supported = client.getSupportedVariables("p");
 
-		assertEquals(new SupportedVariableInfo("steps.today", "Steps so far today", "number",
+		assertEquals(new SupportedVariableInfo("visits.count", "How often the user has visited", "number",
 				null, true), supported.get(0));
-		assertEquals(new SupportedVariableInfo("user.settings.screenHalf", null, "string",
-				List.of("off", "left", "right"), false), supported.get(1));
+		assertEquals(new SupportedVariableInfo("settings.theme", null, "string",
+				List.of("light", "dark"), false), supported.get(1));
 		assertEquals(new SupportedVariableInfo("mood", null, null, null, null), supported.get(2));
 		// A hint the service left out stays absent on the way to Studio.
 		assertEquals("{\"name\":\"mood\"}", new ObjectMapper().writeValueAsString(supported.get(2)));

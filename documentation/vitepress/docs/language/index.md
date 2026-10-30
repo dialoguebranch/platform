@@ -218,16 +218,16 @@ You can use variables within your **Statements**. A variable starts with a `$`-s
 * `$_privateVar`
 * `$var123`
 
-A name may also consist of several parts separated by dots, such as `$user.settings.brightness` or `$steps.today`. It is still one variable: the dots are part of its name, and variables are not nested. A dot only belongs to the name when a letter or underscore follows it, so a full stop after a variable at the end of a sentence just works:
+A name may also consist of several parts separated by dots, such as `$user.firstName` or `$settings.theme`. It is still one variable: the dots are part of its name, and variables are not nested. A dot only belongs to the name when a letter or underscore follows it, so a full stop after a variable at the end of a sentence just works:
 
 ```text
-Your last reading was taken at $readingTime.
+Your current score is $score.
 ```
 
-Here the variable is `$readingTime`, followed by a full stop. In the same way, `$value.5` is the variable `$value` followed by `.5`. A name never ends in a dot and never contains two dots in a row. This rule is the same everywhere a variable appears: in **Statements**, **Replies**, quoted strings and the expressions of `<<set>>` and `<<if>>`.
+Here the variable is `$score`, followed by a full stop. In the same way, `$value.5` is the variable `$value` followed by `.5`. A name never ends in a dot and never contains two dots in a row. This rule is the same everywhere a variable appears: in **Statements**, **Replies**, quoted strings and the expressions of `<<set>>` and `<<if>>`.
 
 ::: tip Naming variables
-Once a project has many variables, give them structured names. Let the first part name the domain or owner of the variable, such as `user.` for a user's settings, `steps.` for step counts, or `onboarding.` for progress through an onboarding, and write each part in camelCase: `$user.settings.screenHalf`, `$steps.today`, `$onboarding.firstUseDone`. Names starting with `dlb.` are reserved for variables with a meaning defined by Dialogue Branch itself.
+Once a project has many variables, give them structured names. Let the first part name the domain or owner of the variable, and write each part in camelCase, for example `$user.firstName` or `$settings.theme`. Names starting with `dlb.` are reserved for variables with a meaning defined by Dialogue Branch itself.
 :::
 
 These variables can be used within **Statements** to inject their values into a sentence, like so:

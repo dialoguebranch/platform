@@ -51,9 +51,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `dlb-core-java`'s public API) and which are internal to Studio. From here on, only a change to a
   stable surface is labelled **Breaking:**; a change to an internal one is labelled
   **Internal API:**. Release notes up to 0.7.0 are unchanged.
-- **Breaking:** Language: variable names may contain dots, so `$user.settings.brightness` is one
+- **Breaking:** Language: variable names may contain dots, so `$settings.theme` is one
   variable ([#432](https://github.com/dialoguebranch/platform/issues/432)). A dot belongs to the
-  name only when a letter or underscore follows it, so `$readingTime.` at the end of a sentence is
+  name only when a letter or underscore follows it, so `$score.` at the end of a sentence is
   still a variable followed by a full stop. The rule is the same in text, replies, quoted strings
   and `<<set>>`/`<<if>>` expressions. As a side effect, `$m.key` in an expression no longer reads
   a field of a map held in `$m` (an undocumented behaviour of the expression engine) but the

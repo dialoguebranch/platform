@@ -61,10 +61,10 @@ public class VariableNamesTest {
 
 	@Test
 	public void validNames() {
-		assertTrue(VariableNames.isValid("brightness"));
+		assertTrue(VariableNames.isValid("theme"));
 		assertTrue(VariableNames.isValid("_internal"));
-		assertTrue(VariableNames.isValid("user.settings.brightness"));
-		assertTrue(VariableNames.isValid("steps.today2"));
+		assertTrue(VariableNames.isValid("user.settings.theme"));
+		assertTrue(VariableNames.isValid("visits.count2"));
 		assertTrue(VariableNames.isValid("a._b"));
 	}
 
@@ -82,9 +82,9 @@ public class VariableNamesTest {
 
 	@Test
 	public void aDotIsPartOfTheNameOnlyWhenALetterOrUnderscoreFollows() {
-		assertEquals("user.settings.brightness", nameAt("$user.settings.brightness is set"));
-		assertEquals("readingTime", nameAt("$readingTime."));
-		assertEquals("readingTime", nameAt("$readingTime. Then"));
+		assertEquals("user.settings.theme", nameAt("$user.settings.theme is set"));
+		assertEquals("score", nameAt("$score."));
+		assertEquals("score", nameAt("$score. Then"));
 		assertEquals("value", nameAt("$value.5"));
 		assertEquals("a", nameAt("$a..b"));
 		assertEquals("a._b", nameAt("$a._b"));
@@ -98,31 +98,31 @@ public class VariableNamesTest {
 	@Test
 	public void bodyTextReadsADottedName() throws Exception {
 		ResolvedNodeBody body = execute("""
-				Brightness $user.settings.brightness, taken at $readingTime.
-				""", new HashMap<>(Map.of("user.settings.brightness", 7, "readingTime", "noon")));
+				Theme $user.settings.theme, score $score.
+				""", new HashMap<>(Map.of("user.settings.theme", "dark", "score", 7)));
 
-		assertEquals("Brightness 7, taken at noon.", body.getSegments().get(0).toString());
+		assertEquals("Theme dark, score 7.", body.getSegments().get(0).toString());
 	}
 
 	@Test
 	public void setAndIfUseTheDottedNameAsOneVariable() throws Exception {
 		Map<String,Object> variables = new LinkedHashMap<>();
 		ResolvedNodeBody body = execute("""
-				<<set $user.settings.screenHalf = "left">>
-				<<if $user.settings.screenHalf == "left">>Left half.<<else>>Whole screen.<<endif>>
+				<<set $settings.theme = "dark">>
+				<<if $settings.theme == "dark">>Dark.<<else>>Light.<<endif>>
 				""", variables);
 
-		assertEquals("left", variables.get("user.settings.screenHalf"));
-		assertFalse(variables.containsKey("user"));
-		assertEquals("Left half.", body.getSegments().get(0).toString().trim());
+		assertEquals("dark", variables.get("settings.theme"));
+		assertFalse(variables.containsKey("settings"));
+		assertEquals("Dark.", body.getSegments().get(0).toString().trim());
 	}
 
 	@Test
 	public void anExpressionReadsADottedNameAsOneVariable() throws Exception {
 		Map<String,Object> variables = new HashMap<>();
-		variables.put("steps.today", 4200);
-		assertEquals(4200, evaluate("$steps.today", variables));
-		assertEquals(Set.of("steps.today"), variableNames("$steps.today + 1"));
+		variables.put("visits.count", 42);
+		assertEquals(42, evaluate("$visits.count", variables));
+		assertEquals(Set.of("visits.count"), variableNames("$visits.count + 1"));
 	}
 
 	@Test
@@ -139,7 +139,7 @@ public class VariableNamesTest {
 
 	@Test
 	public void aTranslationKeepsADottedName() throws Exception {
-		String dlb = "title: Start\nspeaker: Robot\n---\nSteps today: $steps.today.\n===\n";
+		String dlb = "title: Start\nspeaker: Robot\n---\nVisits: $visits.count.\n===\n";
 		Dialogue dialogue;
 		try (DialogueBranchParser parser =
 				new DialogueBranchParser("dotted", new StringReader(dlb))) {
@@ -148,14 +148,14 @@ public class VariableNamesTest {
 			dialogue = result.getDialogue();
 		}
 		TranslationParserResult translations = TranslationParser.parse(new StringReader(
-				"{\"Robot\": {\"Steps today: $steps.today.\": \"Stappen vandaag: $steps.today.\"}}"));
+				"{\"Robot\": {\"Visits: $visits.count.\": \"Bezoeken: $visits.count.\"}}"));
 		assertEquals(List.of(), translations.getParseErrors());
 		Dialogue translated = new Translator(new TranslationContext(),
 				translations.getTranslations()).translate(dialogue);
 
 		NodeBody body = (NodeBody) translated.getNodeById("Start").getBody();
-		ResolvedNodeBody resolved = body.execute(new HashMap<>(Map.of("steps.today", 4200)), true);
-		assertEquals("Stappen vandaag: 4200.", resolved.getSegments().get(0).toString().trim());
+		ResolvedNodeBody resolved = body.execute(new HashMap<>(Map.of("visits.count", 42)), true);
+		assertEquals("Bezoeken: 42.", resolved.getSegments().get(0).toString().trim());
 	}
 
 	@Test
