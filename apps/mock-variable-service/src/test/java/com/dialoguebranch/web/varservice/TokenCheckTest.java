@@ -149,6 +149,25 @@ class TokenCheckTest {
 	}
 
 	@Test
+	void aDialoguesChangeToAnExampleVariableComesBack() throws Exception {
+		String bearer = "Bearer " + token(KEY, ISSUER, AUDIENCE, List.of("evs-access"), 300);
+		mockMvc.perform(post("/v1/variables/notify-updated")
+						.param("subject", "round-trip").param("projectSlug", "p")
+						.param("timeZone", "Europe/Amsterdam").header("Authorization", bearer)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("[{\"name\": \"example.number\", \"value\": 123}]"))
+				.andExpect(status().isOk());
+
+		mockMvc.perform(post("/v1/variables/retrieve-updates")
+						.param("subject", "round-trip").param("projectSlug", "p")
+						.param("timeZone", "Europe/Amsterdam").header("Authorization", bearer)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("[{\"name\": \"example.number\"}]"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].value").value(123));
+	}
+
+	@Test
 	void aRequestWithoutATokenIsRefused() throws Exception {
 		mockMvc.perform(get("/v1/variables/supported").param("projectSlug", "p"))
 				.andExpect(status().isUnauthorized());
