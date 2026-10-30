@@ -50,6 +50,7 @@ public class UpdateProjectDraftPayload {
 	private List<UUID> removeLanguageIds;
 	private List<AddTranslationLanguagePayload> addLanguages;
 	private List<UpdateDraftLanguagePayload> updateLanguages;
+	private List<SpeakerPayload> speakers;
 
 	/**
 	 * Returns the new draft display name for the project.
@@ -122,4 +123,19 @@ public class UpdateProjectDraftPayload {
 	 *                        code).
 	 */
 	public void setUpdateLanguages(List<UpdateDraftLanguagePayload> updateLanguages) { this.updateLanguages = updateLanguages; }
+
+	/**
+	 * Returns the project's new list of speakers (#394), replacing the current one, or
+	 * {@code null} to leave the speakers as they are.
+	 *
+	 * @return the new speakers, in order, or {@code null}.
+	 */
+	public List<SpeakerPayload> getSpeakers() { return speakers; }
+
+	/**
+	 * Sets the project's new list of speakers.
+	 *
+	 * @param speakers the new speakers, in order, or {@code null} to leave them as they are.
+	 */
+	public void setSpeakers(List<SpeakerPayload> speakers) { this.speakers = speakers; }
 }

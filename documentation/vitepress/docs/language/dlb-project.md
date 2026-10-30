@@ -85,6 +85,16 @@ Both a **Source Language** and a **Translation Language** are defined by a *name
 
 ![Dialogue Branch project language map](/images/dlb-project-language-map.png)
 
+### Speakers
+
+A Dialogue Branch Project can define the **Speakers** its dialogues use: the names a node's `speaker` tag can have. Defining them is optional; a project without speakers works as it always has, and any name can be used as a node's speaker.
+
+A **Speaker** has:
+
+* a *name*, exactly as it appears in a node's `speaker` tag, spaces included. It can't be empty, can't start or end with spaces, and can't be `_user`, which is reserved for the user's replies. No two speakers have the same name.
+* a *gender*: `male`, `female` or `undefined` (the default when left out). Translations into languages where a text changes with the speaker's gender use it.
+* whether it is the *default* speaker: at most one speaker is. It only helps editors, who give it to a new node; it means nothing when a dialogue runs.
+
 ## Dialogue Branch Project Metadata file
 
 A Dialogue Branch Project's metadata is stored in a `dlb-project.xml` file at the root of the project. The root element is `dlb-project`, with a required `name` attribute and optional `version` and `slug` attributes. `slug` (shown below) is normally only populated by the Web Service, when it writes out a project's metadata as part of its Export Project feature — see the Note on `projectSlug` above; when hand-authoring a project file yourself, you can safely omit it:
@@ -100,7 +110,14 @@ A Dialogue Branch Project's metadata is stored in a `dlb-project.xml` file at th
     <translation-language name="Dutch (Netherlands)" code="nl-NL" />
     <translation-language name="Portuguese (Portugal)" code="pt-PT" />
   </language-map>
+  <speakers>
+    <speaker name="Martin McOwl" gender="male" default="true" />
+    <speaker name="Anna" gender="female" />
+    <speaker name="Narrator" />
+  </speakers>
 </dlb-project>
 ```
 
 The `code` attribute of each `<source-language>`/`<translation-language>` element must match the name of its corresponding language folder at the project root (e.g. `code="en"` corresponds to the `en/` folder shown above).
+
+The `<speakers>` element is optional. Each `<speaker>` has a required `name`, an optional `gender` (`male`, `female` or `undefined`, the default) and an optional `default` (`true` or `false`, the default), following the rules under [Speakers](#speakers). A project whose speakers break one of those rules doesn't load.

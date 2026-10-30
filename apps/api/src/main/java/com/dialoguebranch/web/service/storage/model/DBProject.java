@@ -30,9 +30,12 @@ package com.dialoguebranch.web.service.storage.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
 
 import java.time.Instant;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
 
@@ -76,6 +79,15 @@ public class DBProject {
 
 	@OneToMany(mappedBy = "project", fetch = FetchType.EAGER)
 	private Set<DBDraftTranslationLanguage> draftTranslationLanguages = new HashSet<>();
+
+	// The draft speakers (#394), in the order they are defined. EAGER, since project JSON is
+	// serialized outside a Hibernate session, and SUBSELECT, so listing projects loads all their
+	// speakers in one query rather than one per project.
+	@OneToMany(mappedBy = "project", fetch = FetchType.EAGER, cascade = CascadeType.ALL,
+			orphanRemoval = true)
+	@Fetch(FetchMode.SUBSELECT)
+	@OrderBy("position")
+	private Set<DBDraftSpeaker> draftSpeakers = new LinkedHashSet<>();
 
 	@OneToMany(mappedBy = "project")
 	@JsonIgnore
@@ -253,6 +265,17 @@ public class DBProject {
 	 */
 	public Set<DBDraftTranslationLanguage> getDraftTranslationLanguages() {
 		return draftTranslationLanguages;
+	}
+
+	/**
+	 * Returns the project's draft speakers (#394), in the order they are defined: edited
+	 * independently of the published version's speakers (see
+	 * {@link DBProjectVersion#getSpeakers()}) until the project is next published.
+	 *
+	 * @return the draft speakers.
+	 */
+	public Set<DBDraftSpeaker> getDraftSpeakers() {
+		return draftSpeakers;
 	}
 
 	/**

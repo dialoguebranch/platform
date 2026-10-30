@@ -306,6 +306,8 @@ public class ProjectService {
 		// The project's (eagerly fetched) view of them must not keep pointing at deleted rows, or
 		// saving the project below would try to re-resolve them.
 		project.getDraftTranslationLanguages().clear();
+		// Its draft speakers go too (#394), like the rest of the project's definitions.
+		project.getDraftSpeakers().clear();
 
 		String slug = project.getSlug();
 		if (deleteVariables) {

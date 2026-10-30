@@ -28,13 +28,16 @@
 
 package com.dialoguebranch.web.service.project;
 
+import com.dialoguebranch.model.common.Speaker;
 import com.dialoguebranch.web.service.controller.schema.authoring.AddTranslationLanguagePayload;
+import com.dialoguebranch.web.service.controller.schema.authoring.SpeakerPayload;
 import com.dialoguebranch.web.service.controller.schema.authoring.UpdateDraftLanguagePayload;
 import com.dialoguebranch.web.service.exception.BadRequestException;
 import com.dialoguebranch.web.service.exception.ConflictException;
 import com.dialoguebranch.web.service.exception.HttpFieldError;
 import com.dialoguebranch.web.service.repository.DBDraftTranslationLanguageRepository;
 import com.dialoguebranch.web.service.repository.DBProjectRepository;
+import com.dialoguebranch.web.service.storage.model.DBDraftSpeaker;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslationLanguage;
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import org.springframework.stereotype.Service;
@@ -42,6 +45,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -293,6 +297,8 @@ public class DraftProjectService {
 	 *                          deletion.
 	 * @param addLanguages      new draft translation languages to add.
 	 * @param updateLanguages   existing draft translation languages to rename (name and/or code).
+	 * @param speakers          the project's new list of draft speakers (#394), replacing the
+	 *                          current one, or {@code null} to leave them as they are.
 	 * @return the updated project.
 	 * @throws BadRequestException if any translation language id doesn't resolve to one owned by
 	 * this project, a name/code is missing, the same language id appears in both {@code
@@ -304,7 +310,8 @@ public class DraftProjectService {
 	@Transactional
 	public DBProject updateDraft(DBProject project, String displayName, String description,
 			List<UUID> removeLanguageIds, List<AddTranslationLanguagePayload> addLanguages,
-			List<UpdateDraftLanguagePayload> updateLanguages) throws BadRequestException {
+			List<UpdateDraftLanguagePayload> updateLanguages, List<SpeakerPayload> speakers)
+			throws BadRequestException {
 		// The caller (ProjectController) loads `project` via its own, already-completed query, so
 		// it arrives here detached with a stale, eagerly-fetched draftTranslationLanguages
 		// snapshot — re-fetch as managed for the same reason PublishService.publish() does (see
@@ -414,6 +421,33 @@ public class DraftProjectService {
 			}
 		}
 
+		List<Speaker> resolvedSpeakers = null;
+		if (speakers != null) {
+			resolvedSpeakers = new ArrayList<>();
+			for (SpeakerPayload entry : speakers) {
+				Speaker.Gender gender = Speaker.Gender.UNDEFINED;
+				if (entry.getGender() != null) {
+					gender = Speaker.Gender.fromValue(entry.getGender());
+					if (gender == null) {
+						errors.add(new HttpFieldError("speakers", "Unknown gender '"
+								+ entry.getGender() + "' for the speaker '" + entry.getName()
+								+ "': expected 'male', 'female' or 'undefined'."));
+						continue;
+					}
+				}
+				if (entry.getName() == null) {
+					errors.add(new HttpFieldError("speakers", "A speaker needs a name."));
+					continue;
+				}
+				resolvedSpeakers.add(new Speaker(entry.getName(), gender, entry.isDefault()));
+			}
+			try {
+				Speaker.validate(resolvedSpeakers);
+			} catch (IllegalArgumentException e) {
+				errors.add(new HttpFieldError("speakers", e.getMessage()));
+			}
+		}
+
 		if (!errors.isEmpty()) {
 			throw BadRequestException.withInvalidInput(errors);
 		}
@@ -442,8 +476,57 @@ public class DraftProjectService {
 				throw new IllegalStateException(e);
 			}
 		}
+		if (resolvedSpeakers != null) setDraftSpeakers(project, resolvedSpeakers);
 
 		return project;
+	}
+
+	// ------------------------------------------------------------- //
+	// -------------------- Speakers (#393, #394) -------------------- //
+	// ------------------------------------------------------------- //
+
+	/**
+	 * Makes the project's draft speakers exactly the given list, in its order. A speaker whose name
+	 * is already in the draft keeps its row and gets the new gender, default and position; one
+	 * whose name isn't is added; a draft speaker not in the list is removed. Matching by name,
+	 * rather than replacing every row, keeps the unique name within a project from clashing while
+	 * the change is saved.
+	 *
+	 * @param project  the project, managed in the current transaction.
+	 * @param speakers the speakers, already checked with {@link Speaker#validate}.
+	 */
+	@Transactional
+	public void setDraftSpeakers(DBProject project, List<Speaker> speakers) {
+		Map<String, DBDraftSpeaker> byName = new HashMap<>();
+		for (DBDraftSpeaker existing : project.getDraftSpeakers()) {
+			byName.put(existing.getName(), existing);
+		}
+		Set<String> kept = new HashSet<>();
+		for (int i = 0; i < speakers.size(); i++) {
+			Speaker speaker = speakers.get(i);
+			kept.add(speaker.name());
+			DBDraftSpeaker row = byName.get(speaker.name());
+			if (row == null) {
+				row = new DBDraftSpeaker();
+				row.setProject(project);
+				project.getDraftSpeakers().add(row);
+			}
+			row.copyFrom(speaker, i);
+		}
+		project.getDraftSpeakers().removeIf(row -> !kept.contains(row.getName()));
+		projectRepository.save(project);
+	}
+
+	/**
+	 * Returns the project's draft speakers as core's {@link Speaker}s, in their order.
+	 *
+	 * @param project the project.
+	 * @return the draft speakers.
+	 */
+	public List<Speaker> listDraftSpeakers(DBProject project) {
+		return project.getDraftSpeakers().stream()
+				.sorted(Comparator.comparingInt(DBDraftSpeaker::getPosition))
+				.map(DBDraftSpeaker::toSpeaker).toList();
 	}
 
 }

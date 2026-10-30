@@ -145,7 +145,7 @@ class DraftProjectServiceTest {
 
 		DBProject updated = draftProjectService.updateDraft(project, "New Name", "New description",
 				List.of(), List.of(addPayload("German", "de-DE")),
-				List.of(updatePayload(existing, "Dutch (Netherlands)", "nl")));
+				List.of(updatePayload(existing, "Dutch (Netherlands)", "nl")), null);
 
 		assertEquals("New Name", updated.getDraftDisplayName());
 		assertEquals("New description", updated.getDraftDescription());
@@ -165,7 +165,7 @@ class DraftProjectServiceTest {
 				"Should Not Be Saved", "",
 				List.of(),
 				List.of(addPayload("Dutch", "nl"), addPayload("Dutch (again)", "nl")),
-				List.of()));
+				List.of(), null));
 
 		assertNotEquals("Should Not Be Saved",
 				projectService.findBySlug("update-draft-atomic-test").orElseThrow().getDraftDisplayName());
@@ -184,7 +184,7 @@ class DraftProjectServiceTest {
 		// mutate-and-check validation would incorrectly reject this.
 		draftProjectService.updateDraft(project, project.getDraftDisplayName(),
 				project.getDraftDescription(), List.of(), List.of(),
-				List.of(updatePayload(languageA, "Dutch", "de"), updatePayload(languageB, "German", "nl")));
+				List.of(updatePayload(languageA, "Dutch", "de"), updatePayload(languageB, "German", "nl")), null);
 
 		assertEquals("de",
 				draftProjectService.findById(languageA.getId()).orElseThrow().getTranslationLanguageCode());
@@ -205,7 +205,7 @@ class DraftProjectServiceTest {
 		assertThrows(BadRequestException.class, () -> draftProjectService.updateDraft(project,
 				project.getDraftDisplayName(), project.getDraftDescription(),
 				List.of(language.getId()), List.of(),
-				List.of(updatePayload(language, "Dutch (Netherlands)", "nl-NL"))));
+				List.of(updatePayload(language, "Dutch (Netherlands)", "nl-NL")), null));
 
 		// Nothing applied: the language is untouched, neither removed nor renamed.
 		DBDraftTranslationLanguage unchanged = draftProjectService.findById(language.getId()).orElseThrow();
@@ -243,7 +243,7 @@ class DraftProjectServiceTest {
 
 		draftProjectService.updateDraft(project, project.getDraftDisplayName(),
 				project.getDraftDescription(), List.of(), List.of(),
-				List.of(updatePayload(language, "Dutch", "nl-NL")));
+				List.of(updatePayload(language, "Dutch", "nl-NL")), null);
 
 		PublishService.PublishResult secondPublish = publishService.publish(project, null);
 		if (!secondPublish.isSuccess()) {
@@ -281,7 +281,7 @@ class DraftProjectServiceTest {
 
 		draftProjectService.updateDraft(project, project.getDraftDisplayName(),
 				project.getDraftDescription(), List.of(), List.of(),
-				List.of(updatePayload(language, "Dutch", "nl-NL")));
+				List.of(updatePayload(language, "Dutch", "nl-NL")), null);
 		PublishService.PublishResult secondPublish = publishService.publish(project, null);
 		if (!secondPublish.isSuccess()) {
 			throw new AssertionError("Publish failed: " + secondPublish.getErrors());
@@ -310,7 +310,7 @@ class DraftProjectServiceTest {
 
 		DBProject updated = draftProjectService.updateDraft(project, project.getDraftDisplayName(),
 				project.getDraftDescription(), List.of(language.getId()),
-				List.of(addPayload("Dutch (new)", "nl")), List.of());
+				List.of(addPayload("Dutch (new)", "nl")), List.of(), null);
 
 		assertTrue(draftProjectService.findDraftLanguage(project, "nl").isPresent());
 		assertFalse(draftProjectService.findDraftLanguage(project, "nl").orElseThrow().getIsDeleted());

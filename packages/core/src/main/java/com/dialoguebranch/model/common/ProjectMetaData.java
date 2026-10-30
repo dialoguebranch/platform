@@ -78,6 +78,12 @@ public class ProjectMetaData {
 	 */
 	private @Nullable StorageSource storageSource;
 
+	/**
+	 * The speakers the project defines (#393), in the order they are defined; empty for a project
+	 * that defines none.
+	 */
+	private List<Speaker> speakers = List.of();
+
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
@@ -210,6 +216,41 @@ public class ProjectMetaData {
 	 */
 	public void setStorageSource(StorageSource storageSource) {
 		this.storageSource = storageSource;
+	}
+
+	/**
+	 * Returns the speakers this project defines, in the order they are defined, or an empty list
+	 * if it defines none.
+	 *
+	 * @return the project's speakers.
+	 */
+	public List<Speaker> getSpeakers() {
+		return speakers;
+	}
+
+	/**
+	 * Sets the speakers this project defines, after checking them (see {@link Speaker#validate}).
+	 *
+	 * @param speakers the project's speakers, in the order they are defined.
+	 * @throws IllegalArgumentException if the speakers break one of the rules.
+	 */
+	public void setSpeakers(List<Speaker> speakers) {
+		Speaker.validate(speakers);
+		this.speakers = List.copyOf(speakers);
+	}
+
+	/**
+	 * Returns the speaker with the given name, or {@code null} if this project defines none by
+	 * that name.
+	 *
+	 * @param name the speaker's name.
+	 * @return the speaker, or {@code null}.
+	 */
+	public @Nullable Speaker getSpeaker(String name) {
+		for (Speaker speaker : speakers) {
+			if (speaker.name().equals(name)) return speaker;
+		}
+		return null;
 	}
 
 	// ------------------------------------------------------- //
@@ -364,6 +405,9 @@ public class ProjectMetaData {
 		result += "[version:"+version+"]\n";
 		if(languageMap != null)
 			result += languageMap.toString();
+		for (Speaker speaker : speakers)
+			result += "[speaker:" + speaker.name() + ", " + speaker.gender().value()
+					+ (speaker.isDefault() ? ", default" : "") + "]\n";
 		return result;
 	}
 
