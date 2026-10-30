@@ -24,6 +24,12 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   then marked the dialogue as changed in two separate steps, so a failure between them left the
   dialogue's *Draft* status wrong ([#217](https://github.com/dialoguebranch/platform/issues/217));
   both now happen together or not at all.
+- Web service and Studio: importing a project from a zip made with macOS Finder's *Compress* failed
+  validation ([#444](https://github.com/dialoguebranch/platform/issues/444)). The import now leaves
+  out what an operating system adds to an archive for its own use (everything under `__MACOSX/`,
+  `._` files, `.DS_Store`, `Thumbs.db` and `desktop.ini`), and also finds the project when the
+  archive holds nothing but one folder with it, as when you compress the project's folder rather
+  than its contents.
 
 ## [0.8.0] - 2026-10-30
 

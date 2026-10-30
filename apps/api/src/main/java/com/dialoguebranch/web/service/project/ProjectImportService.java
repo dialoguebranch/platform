@@ -51,6 +51,9 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -77,6 +80,14 @@ public class ProjectImportService {
 	/** Entry count cap, guarding against an archive with an excessive number of tiny entries. */
 	private static final int MAX_ENTRY_COUNT = 20_000;
 
+	/**
+	 * File names an operating system adds to an archive or a folder for its own use, never project
+	 * content (#444): macOS Finder's {@code .DS_Store}, and Windows' {@code Thumbs.db} and
+	 * {@code desktop.ini}. Compared case-insensitively.
+	 */
+	private static final Set<String> SYSTEM_FILE_NAMES = Set.of(".ds_store", "thumbs.db",
+			"desktop.ini");
+
 	private static final Logger logger = LoggerFactory.getLogger(ProjectImportService.class);
 
 	private final ProjectService projectService;
@@ -101,7 +112,8 @@ public class ProjectImportService {
 	 * @param archive the uploaded archive.
 	 * @return the newly created and published project.
 	 * @throws BadRequestException if the archive is missing, empty, too large, not a well-formed
-	 * {@code .zip}, has no {@code dlb-project.xml} at its root, that file has no {@code slug}
+	 * {@code .zip}, has no {@code dlb-project.xml} at its root (or in the one folder that is all
+	 * it holds), that file has no {@code slug}
 	 * attribute (i.e. it was not produced by {@link ProjectExportService}), or its content fails
 	 * project validation.
 	 * @throws ConflictException   if a project with the archive's slug already exists.
@@ -124,8 +136,9 @@ public class ProjectImportService {
 
 		try {
 			extractArchive(archive, tempDir);
+			Path projectDir = findProjectDir(tempDir);
 
-			File markerFile = new File(tempDir.toFile(), PROJECT_MARKER_FILE);
+			File markerFile = new File(projectDir.toFile(), PROJECT_MARKER_FILE);
 			if (!markerFile.isFile()) {
 				throw new BadRequestException("Archive does not contain a " + PROJECT_MARKER_FILE +
 						" at its root.");
@@ -152,7 +165,7 @@ public class ProjectImportService {
 				throw new ConflictException("A project with slug '" + slug + "' already exists.");
 			}
 
-			FileSystemScriptLoader scriptLoader = new FileSystemScriptLoader(tempDir.toFile());
+			FileSystemScriptLoader scriptLoader = new FileSystemScriptLoader(projectDir.toFile());
 			ProjectParserResult parserResult;
 			try {
 				parserResult = new ProjectParser(scriptLoader).parse();
@@ -188,6 +201,11 @@ public class ProjectImportService {
 	 * would escape {@code targetDir} ("zip slip") and enforcing the entry-count and
 	 * uncompressed-size caps declared above.
 	 *
+	 * <p>Entries an operating system adds for its own use are left out (#444, see {@link
+	 * #isSystemEntry}), so they are neither validated nor stored, such as everything macOS Finder
+	 * puts under {@code __MACOSX/}. They still count towards both caps: their data is decompressed
+	 * to get past them all the same.</p>
+	 *
 	 * @param archive   the uploaded archive.
 	 * @param targetDir the (already-created, empty) directory to extract into.
 	 * @throws BadRequestException if the archive cannot be read, contains a path-traversal entry,
@@ -212,13 +230,18 @@ public class ProjectImportService {
 							"Archive contains an entry with an invalid path: " + entry.getName());
 				}
 
+				boolean skip = isSystemEntry(entry.getName());
 				if (entry.isDirectory()) {
-					Files.createDirectories(resolved);
+					if (!skip) Files.createDirectories(resolved);
 					continue;
 				}
 
-				Files.createDirectories(resolved.getParent());
-				try (OutputStream out = Files.newOutputStream(resolved)) {
+				OutputStream out = OutputStream.nullOutputStream();
+				if (!skip) {
+					Files.createDirectories(resolved.getParent());
+					out = Files.newOutputStream(resolved);
+				}
+				try (OutputStream target = out) {
 					byte[] buffer = new byte[8192];
 					int read;
 					while ((read = zip.read(buffer)) != -1) {
@@ -228,7 +251,7 @@ public class ProjectImportService {
 									"(limit " + (MAX_UNCOMPRESSED_SIZE_BYTES / (1024 * 1024)) +
 									" MB).");
 						}
-						out.write(buffer, 0, read);
+						target.write(buffer, 0, read);
 					}
 				}
 				zip.closeEntry();
@@ -237,6 +260,50 @@ public class ProjectImportService {
 			throw new BadRequestException("Failed to read uploaded archive — is it a valid .zip " +
 					"file? (" + e.getMessage() + ")");
 		}
+	}
+
+	/**
+	 * Returns whether an archive entry is something an operating system added for its own use
+	 * rather than project content (#444): anything under a {@code __MACOSX} folder, which macOS
+	 * Finder's <i>Compress</i> fills with a resource-fork file for every file; an AppleDouble file
+	 * ({@code ._<name>}); or one of the {@link #SYSTEM_FILE_NAMES}.
+	 *
+	 * @param entryName the entry's path within the archive, with {@code /} as separator.
+	 * @return {@code true} if the entry is to be left out.
+	 */
+	static boolean isSystemEntry(String entryName) {
+		String[] parts = entryName.replace('\\', '/').split("/");
+		for (String part : parts) {
+			if (part.equals("__MACOSX")) return true;
+		}
+		String name = parts.length == 0 ? "" : parts[parts.length - 1];
+		return name.startsWith("._") || SYSTEM_FILE_NAMES.contains(name.toLowerCase(Locale.ROOT));
+	}
+
+	/**
+	 * Returns the folder of the extracted archive that holds the project: the archive's root, or,
+	 * when {@code dlb-project.xml} isn't there and the root holds nothing but one folder that has
+	 * it, that folder (#444). That is what macOS Finder makes when you compress the project's
+	 * folder rather than its contents, and the command line does when you zip a folder by name.
+	 *
+	 * @param extractedDir the folder the archive was extracted into.
+	 * @return the folder that holds the project, or {@code extractedDir} if there is none, so the
+	 * import reports the missing {@code dlb-project.xml} the usual way.
+	 * @throws BadRequestException if the extracted folder can't be read.
+	 */
+	private Path findProjectDir(Path extractedDir) throws BadRequestException {
+		if (Files.isRegularFile(extractedDir.resolve(PROJECT_MARKER_FILE))) return extractedDir;
+		List<Path> children;
+		try (Stream<Path> list = Files.list(extractedDir)) {
+			children = list.toList();
+		} catch (IOException e) {
+			throw new BadRequestException("Failed to read archive contents: " + e.getMessage());
+		}
+		if (children.size() == 1 && Files.isDirectory(children.get(0))
+				&& Files.isRegularFile(children.get(0).resolve(PROJECT_MARKER_FILE))) {
+			return children.get(0);
+		}
+		return extractedDir;
 	}
 
 	/**
