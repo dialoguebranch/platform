@@ -326,14 +326,22 @@ const loadProjectVariables = () => {
 };
 
 // Best-effort, same as loadProjectVariables(): most deployments won't have an EVS configured at
-// all, which surfaces as a rejected request here, not a special "empty" response — that's expected,
-// not an error, so it's swallowed the same way rather than shown to the user.
+// all, which surfaces as a rejected request here (501), not a special "empty" response — that's
+// expected, not an error, so it's swallowed. Only a configured service that can't be reached (503)
+// is shown, as a line in the "Used" list (#430).
+const supportedUnreachable = ref(false);
 const loadSupportedVariables = () => {
     const slug = state.value.selectedProject?.slug;
     if (!slug) return;
     authoringClient.listSupportedVariables(slug)
-        .then((vars) => { supportedVariables.value = vars; })
-        .catch(() => { supportedVariables.value = []; });
+        .then((vars) => {
+            supportedVariables.value = vars;
+            supportedUnreachable.value = false;
+        })
+        .catch((error) => {
+            supportedVariables.value = [];
+            supportedUnreachable.value = error?.status === 503;
+        });
 };
 
 function refresh() {
@@ -534,6 +542,11 @@ onMounted(() => {
                  Names the current user has a value for show solid; ones with no value yet are
                  slightly dimmed. -->
             <div v-if="mode === 'project'" class="flex flex-col gap-0.5 m-1">
+                <div v-if="supportedUnreachable" data-test="supported-unreachable"
+                    class="flex items-start gap-1.5 font-title text-[10px] italic text-grey-dark px-1 pb-0.5">
+                    <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" class="shrink-0 mt-0.5" />
+                    <span>The External Variable Service can't be reached right now, so the variables it supports aren't listed.</span>
+                </div>
                 <div v-for="v in displayedProjectVariables" :key="v.name"
                     class="group flex items-center bg-grey-lighter px-1 py-0.5 gap-2"
                     :class="{ 'opacity-60': !storedNames.has(v.name) }"

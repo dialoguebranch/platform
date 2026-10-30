@@ -34,15 +34,19 @@ import com.dialoguebranch.web.service.ProtocolVersion;
 import com.dialoguebranch.web.service.QueryRunner;
 import com.dialoguebranch.web.service.ServiceContext;
 import com.dialoguebranch.web.service.auth.Permission;
+import com.dialoguebranch.web.service.controller.schema.ExternalVariableServiceInfo;
+import com.dialoguebranch.web.service.controller.schema.ExternalVariableServiceStatus;
 import com.dialoguebranch.web.service.controller.schema.ServiceInfoPayload;
 import com.dialoguebranch.web.service.controller.schema.TechnicalInfoPayload;
 import com.dialoguebranch.web.service.exception.HttpException;
+import com.dialoguebranch.web.service.storage.ExternalVariableServiceClient;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -197,9 +201,71 @@ public class InfoController {
 					payload.setKeycloakBaseUrl(keycloak.getBaseUrl());
 					payload.setKeycloakRealm(keycloak.getRealm());
 
+					DlbProperties.ExternalVariableService evs =
+							properties.getExternalVariableService();
+					ExternalVariableServiceClient.Diagnostics diagnostics =
+							evsClient().diagnostics();
+					payload.setExternalVariableService(new ExternalVariableServiceInfo(
+							evs.isEnabled(), evs.isEnabled() ? evs.getUrl() : null,
+							epochMillis(diagnostics.lastSuccess()),
+							epochMillis(diagnostics.lastFailure()), diagnostics.lastError(),
+							diagnostics.failuresInARow()));
+
 					return payload;
 				},
 				version, response, "", Permission.SERVICE_INFO_TECHNICAL);
+	}
+
+	// -------------------------------------------------------------------------------------- //
+	// -------------------- END-POINT: "/info/external-variable-service" -------------------- //
+	// -------------------------------------------------------------------------------------- //
+
+	/**
+	 * Returns whether the configured External Variable Service is running (#430), for Studio's
+	 * status bar. The check is made at most every
+	 * {@link ExternalVariableServiceClient#STATUS_CACHE_TIME}; see
+	 * {@link ExternalVariableServiceClient#status}. Only the state is returned: where the service
+	 * is, and why a call failed, are in the admin-only {@code /info/technical}.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version The API version to use, e.g. '1'.
+	 * @return the status.
+	 * @throws HttpException if the request is unauthenticated or the user lacks the permission.
+	 */
+	@SecurityRequirement(name = "bearerAuth")
+	@SecurityRequirement(name = "oauth2")
+	@Operation(summary = "Whether the configured External Variable Service is running.",
+		description = "Returns NOT_CONFIGURED, REACHABLE or UNREACHABLE, checked at most every " +
+			"30 seconds. Accessible for users with the 'editor' or 'admin' role.")
+	@Parameter(name = "version", hidden = true)
+	@GetMapping("/external-variable-service")
+	public ExternalVariableServiceStatus externalVariableService(
+			HttpServletRequest request,
+			HttpServletResponse response,
+
+			@Parameter(hidden = true, description = "API Version to use, e.g. '1'")
+			@PathVariable(value = "version")
+			String version
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("GET /v{}/info/external-variable-service [user: {}]", version,
+							user);
+					ExternalVariableServiceClient.Status status = evsClient().status();
+					return new ExternalVariableServiceStatus(status.state().name(),
+							epochMillis(status.checkedAt()));
+				},
+				version, response, "", Permission.VARIABLE_INSPECT_PROJECT);
+	}
+
+	private ExternalVariableServiceClient evsClient() {
+		return application.getApplicationManager().getExternalVariableServiceClient();
+	}
+
+	private static @Nullable Long epochMillis(@Nullable Instant instant) {
+		return instant != null ? instant.toEpochMilli() : null;
 	}
 
 }

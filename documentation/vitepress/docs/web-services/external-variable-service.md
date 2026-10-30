@@ -58,6 +58,8 @@ The External Variable Service is an outside system that can be slow or down, and
 
 The Web Service does not retry a failed call.
 
+To see whether your service is running at all, Dialogue Branch Studio shows its state in the status bar at the bottom of the screen ("External Variable Service: connected" or "not reachable"). To find out, the Web Service makes one `GET /variables/supported` call with its token, at most every 30 seconds. Any answer counts as running, even a `404` or `501` from a service that doesn't implement this optional end-point. A `401` or `403` doesn't, and neither do a refused connection, a timeout or a failed token request. A single failed call for a dialogue doesn't change the state. Admins find the details in Studio's *Technical Information*: the configured URL, the last successful and failed calls, the last error and the number of failed calls in a row.
+
 ::: info Note
 It is worthwhile to make sure that the External Variable Service answers the request for variable updates quickly, because any delay will delay the starting of dialogue execution in the Dialogue Branch Web Service - which will negatively impact your end-user's experience. Apply caching, and make use of the `updatedTime` that is passed along with each Variable (the moment since which the Web Service has held its value), to make quick judgements whether a variable needs to be updated at all.
 :::

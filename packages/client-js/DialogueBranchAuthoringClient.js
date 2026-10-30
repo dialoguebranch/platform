@@ -62,6 +62,23 @@ export class DialogueBranchAuthoringClient extends BaseClient {
         .then((response) => this._handleResponse(response));
     }
 
+    /**
+     * Returns whether the Web Service's configured External Variable Service is running, as
+     * checked by the Web Service at most every 30 seconds. Requires the `editor`/`admin` role.
+     * Where the service is and why its calls failed are in {@link getTechnicalInfo}, for admins.
+     *
+     * @returns {Promise<{state: string, checkedAt: ?number}>} `state` is `NOT_CONFIGURED`,
+     * `REACHABLE` or `UNREACHABLE`; `checkedAt` is the time of the check in epoch milliseconds,
+     * or `null` when no service is configured.
+     */
+    getExternalVariableServiceStatus() {
+        return this._fetch(this._baseUrl + "/info/external-variable-service", {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+        })
+        .then((response) => this._handleResponse(response));
+    }
+
     // -----------------------------------------------
     // ---------- Project CRUD & publishing ----------
     // -----------------------------------------------

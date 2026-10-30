@@ -80,7 +80,8 @@ public enum Permission {
 	/**
 	 * Inspect a project's variables: every variable its dialogues reference
 	 * ({@code /variables/list-project}), and every variable its configured External Variable
-	 * Service reports as supported ({@code /variables/list-supported}).
+	 * Service reports as supported ({@code /variables/list-supported}); and whether that service
+	 * is running at all ({@code /info/external-variable-service}, #430).
 	 */
 	VARIABLE_INSPECT_PROJECT,
 

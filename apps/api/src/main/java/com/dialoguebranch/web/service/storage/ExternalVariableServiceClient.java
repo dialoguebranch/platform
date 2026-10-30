@@ -37,10 +37,13 @@ import com.dialoguebranch.web.service.controller.schema.SupportedVariableInfo;
 import com.dialoguebranch.web.service.exception.ErrorCode;
 import com.dialoguebranch.web.service.exception.NotImplementedException;
 import com.dialoguebranch.web.service.exception.ServiceUnavailableException;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -68,11 +71,16 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.io.IOException;
 import java.net.URI;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Makes every request of the Web Service to the configured External Variable Service (EVS),
@@ -101,6 +109,10 @@ import java.util.List;
  * authorization server can't be reached or refuses, the call fails like any other. A {@code 401}
  * from the service discards the cached token, so the next call gets a fresh one.</p>
  *
+ * <p>For Studio's status bar and Technical Information (#430), {@link #status} checks whether the
+ * service is running at all, and {@link #diagnostics} reports the outcomes of this client's own
+ * calls. Both are recorded here, in one place, so no caller has to do anything for them.</p>
+ *
  * @author Harm op den Akker
  */
 @Component
@@ -115,10 +127,25 @@ public class ExternalVariableServiceClient {
 	/** The principal the token is cached under: the Web Service itself, not a user. */
 	private static final String PRINCIPAL = "dlb-web-service";
 
+	/** How long the outcome of a {@link #status} check is reused before checking again. */
+	static final Duration STATUS_CACHE_TIME = Duration.ofSeconds(30);
+
 	private final DlbProperties dlbProperties;
 	private final SimpleClientHttpRequestFactory requestFactory;
 	private final RestClient restClient;
 	private TokenSource tokenSource;
+	private final Clock clock;
+
+	// The outcomes of this client's calls, for diagnostics (#430)
+	private volatile @Nullable Instant lastSuccess;
+	private volatile @Nullable Instant lastFailure;
+	private volatile @Nullable String lastError;
+	private final AtomicInteger failuresInARow = new AtomicInteger();
+
+	private @Nullable Status lastStatus;
+
+	/** Set while {@link #status} checks the service, whose own call isn't one of the diagnostics. */
+	private static final ThreadLocal<Boolean> CHECKING = ThreadLocal.withInitial(() -> false);
 
 	/**
 	 * Creates an instance of {@link ExternalVariableServiceClient}.
@@ -128,8 +155,22 @@ public class ExternalVariableServiceClient {
 	 * @throws IllegalStateException if the integration is enabled without its required OAuth2
 	 *                               settings, which stops the Web Service at startup.
 	 */
+	@Autowired
 	public ExternalVariableServiceClient(DlbProperties dlbProperties) {
+		this(dlbProperties, Clock.systemUTC());
+	}
+
+	/**
+	 * Creates the client with the given clock, which tests use to control when a cached
+	 * {@link #status} expires.
+	 *
+	 * @param dlbProperties the configuration, from which the {@code external-variable-service}
+	 *                      settings are read.
+	 * @param clock the clock for the time of a call or a status check.
+	 */
+	ExternalVariableServiceClient(DlbProperties dlbProperties, Clock clock) {
 		this.dlbProperties = dlbProperties;
+		this.clock = clock;
 		DlbProperties.ExternalVariableService evs = dlbProperties.getExternalVariableService();
 		if (evs.isEnabled()) checkOAuth2Settings(evs.getOauth2());
 		requestFactory = new SimpleClientHttpRequestFactory();
@@ -138,10 +179,21 @@ public class ExternalVariableServiceClient {
 		this.restClient = RestClient.builder()
 				.requestFactory(requestFactory)
 				.requestInterceptor((request, body, execution) -> {
-					ClientHttpResponse response = execution.execute(request, body);
-					if (response.getStatusCode().value() == HttpStatus.UNAUTHORIZED.value()) {
-						forgetToken();
+					ClientHttpResponse response;
+					try {
+						response = execution.execute(request, body);
+					} catch (IOException ex) {
+						// An exception's own message can be as bare as the host name, so say
+						// what was being reached and what went wrong.
+						recordFailure("Could not reach " + request.getURI().getHost() + ": "
+								+ ex.getClass().getSimpleName()
+								+ (ex.getMessage() != null ? " (" + ex.getMessage() + ")" : ""));
+						throw ex;
 					}
+					int status = response.getStatusCode().value();
+					if (status == HttpStatus.UNAUTHORIZED.value()) forgetToken();
+					if (response.getStatusCode().is2xxSuccessful()) recordSuccess();
+					else recordFailure("HTTP " + status + " from " + request.getURI().getPath());
 					return response;
 				})
 				.build();
@@ -371,9 +423,108 @@ public class ExternalVariableServiceClient {
 			if (client == null) throw new RestClientException("No access token was issued");
 			return "Bearer " + client.getAccessToken().getTokenValue();
 		} catch (OAuth2AuthorizationException | IllegalStateException ex) {
-			throw new RestClientException("Could not get an access token for the External " +
-					"Variable Service from " + oauth2.getTokenUri() + ": " + ex.getMessage(), ex);
+			RestClientException failure = new RestClientException("Could not get an access token " +
+					"for the External Variable Service from " + oauth2.getTokenUri() + ": " +
+					ex.getMessage(), ex);
+			recordFailure(failure.getMessage());
+			throw failure;
 		}
+	}
+
+	// -------------------- Status and diagnostics (#430) -------------------- //
+
+	/** Whether a configured External Variable Service is running, as far as a check can tell. */
+	public enum State {
+		/** No External Variable Service is configured. */
+		NOT_CONFIGURED,
+		/** The service answered, and accepted the Web Service's token. */
+		REACHABLE,
+		/** The service didn't answer, refused the token, or no token could be got. */
+		UNREACHABLE
+	}
+
+	/**
+	 * The outcome of a {@link #status} check.
+	 *
+	 * @param state whether the service is running.
+	 * @param checkedAt when it was checked, or {@code null} if no service is configured.
+	 */
+	public record Status(State state, @Nullable Instant checkedAt) {
+	}
+
+	/**
+	 * The outcomes of this client's own calls to the service, for admins.
+	 *
+	 * @param lastSuccess when a call last succeeded, or {@code null} if none has.
+	 * @param lastFailure when a call last failed, or {@code null} if none has.
+	 * @param lastError why the last failed call failed, or {@code null} if none has.
+	 * @param failuresInARow how many calls failed since the last one that succeeded.
+	 */
+	public record Diagnostics(@Nullable Instant lastSuccess, @Nullable Instant lastFailure,
+			@Nullable String lastError, int failuresInARow) {
+	}
+
+	/**
+	 * Checks whether the configured service is running at all, reusing the outcome of a check
+	 * made less than {@link #STATUS_CACHE_TIME} ago. The check is one {@code GET
+	 * /variables/supported} with the Web Service's token: any HTTP answer, even a {@code 404} or
+	 * {@code 501} from a service that doesn't implement that optional end-point, means it is
+	 * running, except a {@code 401} or {@code 403}, which means it refused the token. A refused
+	 * connection, a timeout or a failed token request means it isn't. A single failed call made
+	 * for a dialogue doesn't change the status; only a check does.
+	 *
+	 * @return the status.
+	 */
+	public synchronized Status status() {
+		if (!isEnabled()) return new Status(State.NOT_CONFIGURED, null);
+		Instant now = clock.instant();
+		if (lastStatus != null && lastStatus.checkedAt() != null
+				&& lastStatus.checkedAt().plus(STATUS_CACHE_TIME).isAfter(now)) {
+			return lastStatus;
+		}
+		LinkedMultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+		params.put("projectSlug", Collections.singletonList(""));
+		State state;
+		CHECKING.set(true);
+		try {
+			HttpStatusCode code = restClient.get()
+					.uri(uri("supported", params))
+					.header(HttpHeaders.AUTHORIZATION, authorization())
+					.exchange((request, response) -> response.getStatusCode());
+			state = code.value() == HttpStatus.UNAUTHORIZED.value()
+					|| code.value() == HttpStatus.FORBIDDEN.value()
+					? State.UNREACHABLE : State.REACHABLE;
+		} catch (RestClientException ex) {
+			state = State.UNREACHABLE;
+		} finally {
+			CHECKING.remove();
+		}
+		lastStatus = new Status(state, now);
+		return lastStatus;
+	}
+
+	/**
+	 * Returns the outcomes of this client's own calls to the service since the Web Service
+	 * started: the calls made for dialogues and for Studio, not the {@link #status} check, whose
+	 * request may well be refused while the service is fine.
+	 *
+	 * @return the diagnostics.
+	 */
+	public Diagnostics diagnostics() {
+		return new Diagnostics(lastSuccess, lastFailure, lastError, failuresInARow.get());
+	}
+
+	private void recordSuccess() {
+		if (CHECKING.get()) return;
+		lastSuccess = clock.instant();
+		failuresInARow.set(0);
+	}
+
+	private void recordFailure(String reason) {
+		if (CHECKING.get()) return;
+		lastFailure = clock.instant();
+		lastError = reason;
+		failuresInARow.incrementAndGet();
 	}
 
 	/** Discards the cached access token, so that the next call gets a new one. */

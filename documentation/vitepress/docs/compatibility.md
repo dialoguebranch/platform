@@ -44,6 +44,7 @@ All end-points are under `/v1`, for example `/v1/dialogue/start`. *Stable* end-p
 | `/log/get-session`, `verify-id` | Stable |
 | `/info/all` | Stable |
 | `/info/technical` | Internal (admin diagnostics) |
+| `/info/external-variable-service` | Internal (Studio's status bar) |
 | `/auth/logout`, `validate` | Stable |
 | `/project/list-projects`, `get-project`, `create-project`, `delete-project`, `export-project`, `import-project` | Stable |
 | `/project/update-project`, `update-draft`, `discard-draft-changes`, `add-translation-language`, `remove-translation-language`, `restore-translation-language`, `find-language-references` | Internal (Studio's *Configure Project*) |

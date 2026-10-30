@@ -71,6 +71,10 @@ public class TechnicalInfoPayload {
 			example = "dialoguebranch")
 	private String keycloakRealm;
 
+	@Schema(description = "The configured External Variable Service, and how this service's " +
+			"calls to it went (#430)")
+	private ExternalVariableServiceInfo externalVariableService;
+
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
@@ -238,6 +242,22 @@ public class TechnicalInfoPayload {
 	 */
 	public void setKeycloakRealm(String keycloakRealm) {
 		this.keycloakRealm = keycloakRealm;
+	}
+
+	/**
+	 * Returns the configured External Variable Service, and how this service's calls to it went.
+	 * @return the External Variable Service information.
+	 */
+	public ExternalVariableServiceInfo getExternalVariableService() {
+		return externalVariableService;
+	}
+
+	/**
+	 * Sets the configured External Variable Service, and how this service's calls to it went.
+	 * @param externalVariableService the External Variable Service information.
+	 */
+	public void setExternalVariableService(ExternalVariableServiceInfo externalVariableService) {
+		this.externalVariableService = externalVariableService;
 	}
 
 }

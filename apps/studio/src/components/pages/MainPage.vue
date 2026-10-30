@@ -1,7 +1,8 @@
 <script setup>
 import { inject, onMounted, onUnmounted, ref, computed, useTemplateRef } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import { useClient, useAuthoringClient, setDelegateUser } from '../../composables/client.js';
+import { useClient, useAuthoringClient, setDelegateUser, getBrowserTimeZone } from '../../composables/client.js';
+import { statusLabel, STATUS_REFRESH_INTERVAL } from '../../composables/external-variable-service-status.js';
 import { useStateManagement } from '../../composables/state-management.js';
 import DialogueBrowser from '../partials/DialogueBrowser.vue';
 import ConfigureProjectModal from '../partials/ConfigureProjectModal.vue';
@@ -35,6 +36,8 @@ const dialogueBrowser = useTemplateRef('dialogue-browser');
 const appVersion = __APP_VERSION__;
 onUnmounted(() => {
     document.removeEventListener('click', onClickOutsideMenus);
+    window.removeEventListener('focus', refreshEvsStatus);
+    document.removeEventListener('visibilitychange', refreshEvsStatus);
 });
 // The browser only ever talks to this page's own origin; the Web Service sits behind the BFF
 // proxy and has no browser-visible host/port of its own to report. So the connection info just
@@ -42,8 +45,29 @@ onUnmounted(() => {
 const connectionInfo = ref('Not connected.');
 const showTechnicalInfo = ref(false);
 
+// Whether the Web Service's External Variable Service is running (#430). Asked when the page
+// opens and whenever Studio comes back into view, at most every STATUS_REFRESH_INTERVAL: never on
+// a timer, which would keep an idle session alive for as long as Studio is open.
+const evsStatus = ref(null);
+let evsStatusAskedAt = 0;
+const evsStatusLabel = computed(() => statusLabel(evsStatus.value, getBrowserTimeZone()));
+
+function refreshEvsStatus() {
+    if (document.visibilityState === 'hidden') return;
+    if (Date.now() - evsStatusAskedAt < STATUS_REFRESH_INTERVAL) return;
+    evsStatusAskedAt = Date.now();
+    // Inside a promise, so nothing this throws can stop the rest of the page from loading.
+    Promise.resolve()
+        .then(() => authoringClient.getExternalVariableServiceStatus())
+        .then((status) => { evsStatus.value = status; })
+        .catch(() => { evsStatus.value = null; });
+}
+
 onMounted(() => {
     document.addEventListener('click', onClickOutsideMenus);
+    refreshEvsStatus();
+    window.addEventListener('focus', refreshEvsStatus);
+    document.addEventListener('visibilitychange', refreshEvsStatus);
     panels.value.selectMobileTab(0);
     client.getServerInfo()
         .then((info) => {
@@ -741,6 +765,12 @@ function onResizePanels() {
             <span>Dialogue Branch Studio v{{ appVersion }}</span>
             <span class="text-grey-light">|</span>
             <span>{{ connectionInfo }}</span>
+            <template v-if="evsStatusLabel">
+                <span class="text-grey-light">|</span>
+                <span data-test="evs-status" :title="evsStatusLabel.title">
+                    <FontAwesomeIcon v-if="evsStatusLabel.unreachable" icon="fa-solid fa-triangle-exclamation" class="mr-1" />{{ evsStatusLabel.text }}
+                </span>
+            </template>
             <button
                 v-if="isAdmin"
                 class="flex items-center text-gray-400 hover:text-orange-darker cursor-pointer"

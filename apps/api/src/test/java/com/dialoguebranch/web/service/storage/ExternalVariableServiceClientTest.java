@@ -45,7 +45,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Base64;
@@ -308,5 +310,122 @@ class ExternalVariableServiceClientTest {
 				exception.getMessage());
 		evs.setEnabled(false);
 		assertDoesNotThrow(() -> new ExternalVariableServiceClient(properties));
+	}
+
+	// -------------------- Status and diagnostics (#430) -------------------- //
+
+	/** A clock the test moves forward by hand. */
+	private static final class TestClock extends Clock {
+		private Instant now = Instant.parse("2026-10-30T12:00:00Z");
+
+		void advance(Duration duration) { now = now.plus(duration); }
+
+		@Override public ZoneId getZone() { return ZoneId.of("UTC"); }
+		@Override public Clock withZone(ZoneId zone) { return this; }
+		@Override public Instant instant() { return now; }
+	}
+
+	private ExternalVariableServiceClient.State stateWhenAnswering(int status) throws IOException {
+		service = FakeExternalVariableService.answering(status, "", Duration.ZERO);
+		return clientFor(service, Duration.ofSeconds(1)).status().state();
+	}
+
+	@Test
+	void withoutAConfiguredServiceTheStatusIsNotConfigured() {
+		ExternalVariableServiceClient client = new ExternalVariableServiceClient(new DlbProperties());
+		assertEquals(ExternalVariableServiceClient.State.NOT_CONFIGURED, client.status().state());
+		assertNull(client.status().checkedAt());
+	}
+
+	@Test
+	void anyAnswerMeansTheServiceIsRunning() throws IOException {
+		assertEquals(ExternalVariableServiceClient.State.REACHABLE, stateWhenAnswering(200));
+		service.stop();
+		// A service that doesn't implement the optional supported end-point is still running.
+		assertEquals(ExternalVariableServiceClient.State.REACHABLE, stateWhenAnswering(501));
+		service.stop();
+		assertEquals(ExternalVariableServiceClient.State.REACHABLE, stateWhenAnswering(404));
+	}
+
+	@Test
+	void aRefusedTokenMeansTheServiceIsUnreachable() throws IOException {
+		assertEquals(ExternalVariableServiceClient.State.UNREACHABLE, stateWhenAnswering(401));
+		service.stop();
+		assertEquals(ExternalVariableServiceClient.State.UNREACHABLE, stateWhenAnswering(403));
+	}
+
+	@Test
+	void aServiceThatDoesntAnswerIsUnreachable() throws IOException {
+		assertEquals(ExternalVariableServiceClient.State.UNREACHABLE,
+				clientForUnreachableService().status().state());
+	}
+
+	@Test
+	void aServiceForWhichNoTokenCanBeGotIsUnreachable() throws IOException {
+		service = FakeExternalVariableService.answering(200, "[]", Duration.ZERO);
+		service.tokenStatus = 500;
+		assertEquals(ExternalVariableServiceClient.State.UNREACHABLE,
+				clientFor(service, Duration.ofSeconds(1)).status().state());
+	}
+
+	@Test
+	void aStatusIsReusedForAWhile() throws IOException {
+		service = FakeExternalVariableService.answering(200, "[]", Duration.ZERO);
+		TestClock clock = new TestClock();
+		ExternalVariableServiceClient client = new ExternalVariableServiceClient(
+				propertiesFor(service, Duration.ofSeconds(1)), clock);
+
+		ExternalVariableServiceClient.Status first = client.status();
+		clock.advance(ExternalVariableServiceClient.STATUS_CACHE_TIME.minusSeconds(1));
+		assertEquals(first, client.status());
+		assertEquals(1, service.requests().size());
+
+		clock.advance(Duration.ofSeconds(1));
+		ExternalVariableServiceClient.Status second = client.status();
+		assertEquals(2, service.requests().size());
+		assertEquals(clock.instant(), second.checkedAt());
+		assertEquals("/v1/variables/supported", service.requests().get(1).path());
+	}
+
+	@Test
+	void diagnosticsRecordTheOutcomesOfCalls() throws IOException {
+		service = FakeExternalVariableService.answering(500, "", Duration.ZERO);
+		TestClock clock = new TestClock();
+		ExternalVariableServiceClient client = new ExternalVariableServiceClient(
+				propertiesFor(service, Duration.ofSeconds(1)), clock);
+
+		client.notifyUpdated("iss", "sub", "p", "UTC", oneVariable());
+		client.notifyCleared("iss", "sub", "p", "UTC");
+		ExternalVariableServiceClient.Diagnostics failed = client.diagnostics();
+		assertEquals(2, failed.failuresInARow());
+		assertEquals(clock.instant(), failed.lastFailure());
+		assertTrue(failed.lastError().contains("HTTP 500"), failed.lastError());
+		assertNull(failed.lastSuccess());
+
+		service.stop();
+		service = FakeExternalVariableService.answering(200, "", Duration.ZERO);
+		ExternalVariableServiceClient working = new ExternalVariableServiceClient(
+				propertiesFor(service, Duration.ofSeconds(1)), clock);
+		working.notifyUpdated("iss", "sub", "p", "UTC", oneVariable());
+		assertEquals(0, working.diagnostics().failuresInARow());
+		assertEquals(clock.instant(), working.diagnostics().lastSuccess());
+	}
+
+	@Test
+	void theStatusCheckIsntOneOfTheDiagnostics() throws IOException {
+		assertEquals(ExternalVariableServiceClient.State.REACHABLE, stateWhenAnswering(400));
+		ExternalVariableServiceClient unreachable = clientForUnreachableService();
+		unreachable.status();
+		assertEquals(new ExternalVariableServiceClient.Diagnostics(null, null, null, 0),
+				unreachable.diagnostics());
+	}
+
+	@Test
+	void anUnreachableServiceIsRecordedAsAFailure() throws IOException {
+		ExternalVariableServiceClient client = clientForUnreachableService();
+		client.notifyCleared("iss", "sub", "p", "UTC");
+		assertEquals(1, client.diagnostics().failuresInARow());
+		String error = client.diagnostics().lastError();
+		assertTrue(error.startsWith("Could not reach 127.0.0.1: ConnectException"), error);
 	}
 }
