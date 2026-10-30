@@ -7,6 +7,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-10-30
+
 ### Fixed
 
 - Web service: requests of the same user that arrive at the same time, such as a double tap, a
