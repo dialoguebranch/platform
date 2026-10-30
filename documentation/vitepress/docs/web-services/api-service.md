@@ -81,7 +81,7 @@ Reading history requires the `VARIABLE_READ_OWN_HISTORY` permission, which every
 
 Another way of making sure that Dialogue Branch has up-to-date values for Variables, is by using an [External Variable Service](/web-services/external-variable-service). If your configured External Variable Service implements the optional [supported-variables end-point](/web-services/external-variable-service#reporting-supported-variables), you can query which variable names it knows how to compute for a project — useful for confirming a dialogue references the name an EVS actually supports, rather than a typo or mismatch:
 
-* `/variables/list-supported` — takes a required `projectSlug`, and returns the configured External Variable Service's reported list of supported variables for that project (each call is proxied to the EVS live, never cached). Requires the `editor` or `admin` role.
+* `/variables/list-supported` — takes a required `projectSlug`, and returns the configured External Variable Service's reported list of supported variables for that project, with any `description`, `type`, `values` and `readOnly` hints it gave (each call is proxied to the EVS live, never cached). Requires the `editor` or `admin` role.
 
 ## Known Users
 

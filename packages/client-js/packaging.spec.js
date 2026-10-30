@@ -25,7 +25,7 @@ describe('npm package contents', () => {
             'DialogueBranchAuthoringClient.js', 'DialogueBranchError.js', 'protocol.js',
             'model/Action.js', 'model/AutoForwardReply.js', 'model/BasicReply.js',
             'model/DialogueStep.js', 'model/OngoingDialogue.js', 'model/Reply.js',
-            'model/Segment.js', 'model/ServerInfo.js', 'model/Statement.js',
+            'model/Segment.js', 'model/ServerInfo.js', 'model/Statement.js', 'model/SupportedVariable.js',
             'model/User.js', 'model/Variable.js', 'model/VariableHistoryEntry.js',
             'util/AbstractLogger.js', 'util/ConsoleLogger.js', 'package.json',
         ]));

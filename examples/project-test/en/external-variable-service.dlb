@@ -69,4 +69,18 @@ colorID: 0
 position: 548,105
 ---
 Okay, the following information should be provided by the Dummy implementation of the External Variable Service. The current date is $currentDate, and the current time is $currentTime.
+
+It is $dayPart. The service also keeps some example variables for you, which dialogues may change: the number is $example.number, the flag is $example.flag, the choice is $example.choice, and the last one is $example.noHints.
+
+[[Add one to the number.|Test|<<set $example.number = $example.number + 1>>]]
+[[Make the choice "c".|Test|<<set $example.choice = "c">>]]
+[[That's enough.|End]]
+===
+title: End
+tags:
+speaker:
+colorID: 5
+position: 548,400
+---
+
 ===

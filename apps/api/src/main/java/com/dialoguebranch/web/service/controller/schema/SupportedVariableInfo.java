@@ -29,18 +29,32 @@
 package com.dialoguebranch.web.service.controller.schema;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import java.util.List;
 
 /**
  * One entry in the {@code /variables/list-supported} response, and in the wire format of the
- * External Variable Service's own {@code /variables/supported} end-point: a variable name a
- * configured External Variable Service can compute for a given project. Extra fields an EVS sends
- * are ignored rather than rejected, since the contract may grow (e.g. a {@code type} field once
- * variable declarations exist).
+ * External Variable Service's own {@code /variables/supported} end-point: a variable a configured
+ * External Variable Service owns for a given project. Extra fields a service sends are ignored
+ * rather than rejected, since the contract may grow.
+ *
+ * <p>{@code type}, {@code values} and {@code readOnly} are optional hints for authors (#433):
+ * Studio shows them and warns about them, but neither the core library nor the Web Service
+ * enforces them. They are passed through as the service sent them; a hint the service leaves out
+ * stays absent, never filled in with a default.</p>
  *
  * @param name        the variable name (without the {@code $} sigil).
  * @param description a short, human-readable description of what the variable holds, or
- *                     {@code null} if the EVS did not provide one.
+ *                    {@code null} if the service did not provide one.
+ * @param type        {@code number}, {@code string} or {@code boolean}, or {@code null} if the
+ *                    service did not say.
+ * @param values      the values the variable may take, or {@code null} if any value is allowed.
+ * @param readOnly    {@code true} if the service computes or controls the variable and doesn't
+ *                    accept changes from a dialogue, or {@code null} if the service did not say.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record SupportedVariableInfo(String name, String description) {
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record SupportedVariableInfo(String name, String description, String type,
+		List<Object> values, Boolean readOnly) {
 }

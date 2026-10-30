@@ -387,18 +387,18 @@ class VariableHistoryIntegrationTest {
 	@Test
 	void aDottedNameIsOneVariable() throws Exception {
 		String subject = newSubject();
-		setSingle(subject, "user.settings.screenHalf", "left");
+		setSingle(subject, "settings.theme", "dark");
 
 		mockMvc.perform(as(get("/v1/variables/get").param("projectSlug", PROJECT)
-						.param("variableNames", "user.settings.screenHalf")
+						.param("variableNames", "settings.theme")
 						.param("timeZone", "Europe/Lisbon"), subject, "participant"))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$[0].name").value("user.settings.screenHalf"))
-				.andExpect(jsonPath("$[0].value").value("left"));
-		mockMvc.perform(history(subject).param("variableName", "user.settings.screenHalf"))
+				.andExpect(jsonPath("$[0].name").value("settings.theme"))
+				.andExpect(jsonPath("$[0].value").value("dark"));
+		mockMvc.perform(history(subject).param("variableName", "settings.theme"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$", hasSize(1)))
-				.andExpect(jsonPath("$[0].value").value("left"));
+				.andExpect(jsonPath("$[0].value").value("dark"));
 	}
 
 	@Test

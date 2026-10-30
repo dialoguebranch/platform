@@ -43,6 +43,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -56,7 +57,14 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.oneOf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -93,6 +101,70 @@ class TokenCheckTest {
 	void aValidTokenWithTheRoleIsAccepted() throws Exception {
 		mockMvc.perform(supported(token(KEY, ISSUER, AUDIENCE, List.of("evs-access"), 300)))
 				.andExpect(status().isOk());
+	}
+
+	@Test
+	void theSupportedVariablesCarryTheirHints() throws Exception {
+		// Not about the token check, but this class already sets up a valid token (#433).
+		mockMvc.perform(supported(token(KEY, ISSUER, AUDIENCE, List.of("evs-access"), 300)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].name").value("currentDate"))
+				.andExpect(jsonPath("$[0].type").value("string"))
+				.andExpect(jsonPath("$[0].readOnly").value(true))
+				.andExpect(jsonPath("$[0].values").doesNotExist())
+				.andExpect(jsonPath("$[2].name").value("dayPart"))
+				.andExpect(jsonPath("$[2].values[3]").value("night"))
+				.andExpect(jsonPath("$[3].name").value("example.number"))
+				.andExpect(jsonPath("$[3].type").value("number"))
+				.andExpect(jsonPath("$[3].readOnly").value(false))
+				.andExpect(jsonPath("$[4].type").value("boolean"))
+				.andExpect(jsonPath("$[5].values[0]").value("a"))
+				.andExpect(jsonPath("$[6].name").value("example.noHints"))
+				.andExpect(jsonPath("$[6].type").doesNotExist())
+				.andExpect(jsonPath("$[6].values").doesNotExist())
+				.andExpect(jsonPath("$[6].readOnly").doesNotExist());
+	}
+
+	@Test
+	void onlySupportedVariablesGetAValue() throws Exception {
+		// Not about the token check, but this class already sets up a valid token.
+		mockMvc.perform(post("/v1/variables/retrieve-updates")
+						.param("subject", "s").param("timeZone", "Europe/Amsterdam")
+						.header("Authorization", "Bearer "
+								+ token(KEY, ISSUER, AUDIENCE, List.of("evs-access"), 300))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								[{"name": "currentDate"}, {"name": "example.number"},
+								 {"name": "example.flag"}, {"name": "example.choice"},
+								 {"name": "example.noHints"}, {"name": "notSupported", "value": "x"}]
+								"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$", hasSize(5)))
+				.andExpect(jsonPath("$[*].name", not(hasItem("notSupported"))))
+				.andExpect(jsonPath("$[1].name").value("example.number"))
+				.andExpect(jsonPath("$[1].value").isNumber())
+				.andExpect(jsonPath("$[2].value").isBoolean())
+				.andExpect(jsonPath("$[3].value", is(oneOf("a", "b", "c"))))
+				.andExpect(jsonPath("$[4].value").isString());
+	}
+
+	@Test
+	void aDialoguesChangeToAnExampleVariableComesBack() throws Exception {
+		String bearer = "Bearer " + token(KEY, ISSUER, AUDIENCE, List.of("evs-access"), 300);
+		mockMvc.perform(post("/v1/variables/notify-updated")
+						.param("subject", "round-trip").param("projectSlug", "p")
+						.param("timeZone", "Europe/Amsterdam").header("Authorization", bearer)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("[{\"name\": \"example.number\", \"value\": 123}]"))
+				.andExpect(status().isOk());
+
+		mockMvc.perform(post("/v1/variables/retrieve-updates")
+						.param("subject", "round-trip").param("projectSlug", "p")
+						.param("timeZone", "Europe/Amsterdam").header("Authorization", bearer)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("[{\"name\": \"example.number\"}]"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].value").value(123));
 	}
 
 	@Test

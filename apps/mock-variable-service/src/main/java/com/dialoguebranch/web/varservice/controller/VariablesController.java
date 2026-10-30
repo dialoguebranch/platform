@@ -28,6 +28,7 @@
 
 package com.dialoguebranch.web.varservice.controller;
 
+import com.dialoguebranch.web.varservice.ExampleVariables;
 import com.dialoguebranch.web.varservice.ProtocolVersion;
 import com.dialoguebranch.web.varservice.controller.schema.DLBVariablePayload;
 import com.dialoguebranch.web.varservice.controller.schema.DLBVariableUpdatePayload;
@@ -57,7 +58,6 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 /**
  * Controller for the /variables/ -end-points of the Dialogue Branch External Variable Service
@@ -76,14 +76,21 @@ public class VariablesController {
 	/** The logger used for logging (debug) info to log files. */
 	private static final Logger logger = LoggerFactory.getLogger(VariablesController.class);
 
+	/** This service's values for the example variables, which dialogues may change. */
+	private final ExampleVariables exampleVariables;
+
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
 
 	/**
 	 * Instances of this class are constructed through Spring.
+	 *
+	 * @param exampleVariables this service's values for the example variables.
 	 */
-	public VariablesController() { }
+	public VariablesController(ExampleVariables exampleVariables) {
+		this.exampleVariables = exampleVariables;
+	}
 
 	// -----------------------------------------------------------------------
 	// -------------------- END-POINT: "retrieve-updates" --------------------
@@ -103,9 +110,12 @@ public class VariablesController {
 	 * <p>You must pass along the current timezone of the user (client) so that certain time
 	 * sensitive variables may be correctly set according to the timezone of the user</p>
 	 *
-	 * <p>In this dummy implementation, for every variable that you include in the request list
-	 * there is a 50% chance that it will be returned in the response list with the same value as
-	 * provided in the request.</p>
+	 * <p>In this dummy implementation, only the variables this service reports as supported get a
+	 * value (see {@code /variables/supported}): {@code currentDate}, {@code currentTime} and
+	 * {@code dayPart} from the current time in the user's time zone, and the {@code example.*}
+	 * variables the value this service keeps for the user, which starts as a random value of
+	 * their declared type. Any other variable in the request is not
+	 * this service's to answer for, and is never returned.</p>
 	 *
 	 * <p>The response carries each updated variable's name and value only: the Web Service
 	 * records when it received an update as the variable's updated time.</p>
@@ -132,11 +142,12 @@ public class VariablesController {
 			"<br/><br/>You must pass along the current timezone of the user (client) so that " +
 			"certain time sensitive variables may be correctly set according to the timezone of " +
 			"the user." +
-			"<br/><br/>In this dummy implementation, three specific variables will always be " +
-			"updated: 'currentDate', 'currentTime', and 'dayPart' (one of 'morning', 'afternoon', " +
-				"'evening', or 'night', based on the current hour). Furthermore, for every other variable " +
-			"that is included in the request list there is a 50% chance that it will be returned " +
-			"in the response list, with the same value as provided in the request." +
+			"<br/><br/>In this dummy implementation, only the variables this service reports as " +
+			"supported (see '/variables/supported') get a value: 'currentDate', 'currentTime' " +
+			"and 'dayPart' (one of 'morning', 'afternoon', 'evening', or 'night', based on the " +
+			"current hour) from the current time in the user's time zone, and the 'example.*' " +
+			"variables the value this service keeps for the user, which starts as a random value " +
+			"of their declared type. Any other variable in the request is never returned." +
 			"<br/><br/>The response carries each updated variable's name and value only (a null " +
 			"value removes the variable): the Web Service records when it received an update as " +
 			"the variable's updated time.")
@@ -197,7 +208,8 @@ public class VariablesController {
 		if(subject.isEmpty()) {
 			throw new BadRequestException("Missing 'subject' in request.");
 		} else {
-			return executeRetrieveUpdates(subject, timeZone, dlbVariables);
+			return executeRetrieveUpdates(issuer, subject, projectSlug, timeZone, testSession,
+					dlbVariables);
 		}
 	}
 
@@ -208,33 +220,35 @@ public class VariablesController {
 	 *
 	 * <p>In this dummy implementation, the method does the following:</p>
 	 *
-	 * <p>First of all, if an update is requested for a variable with name 'currentDate',
-	 * 'currentTime', and/or 'dayPart', those variables will be updated to reflect the current
-	 * date, time, and part of the day (one of 'morning', 'afternoon', 'evening', or 'night') in
-	 * the user's provided time zone.</p>
+	 * <p>If an update is requested for a variable with name 'currentDate', 'currentTime', and/or
+	 * 'dayPart', those variables will be updated to reflect the current date, time, and part of
+	 * the day (one of 'morning', 'afternoon', 'evening', or 'night') in the user's provided time
+	 * zone. Each {@code example.*} variable gets this service's value for the user, which starts
+	 * as a random value of its declared type (see {@link ExampleVariables}).</p>
 	 *
-	 * <p>For every other Dialogue Branch Variable for which an update is requested, there is a 50%
-	 * chance that this variable will be included in the result set, without changing its
-	 * value.</p>
+	 * <p>A service only answers for the variables it reports as supported, so every other
+	 * variable in the request is left out of the result.</p>
 	 *
+	 * @param issuer the token issuer of the user whose variable updates are requested.
 	 * @param subject the {@code String} identifier of the user who's variable updates are requested.
+	 * @param projectSlug the slug of the project the variables are scoped to.
 	 * @param timeZone the time zone of the user as one of {@code TimeZone.getAvailableIDs()}
 	 *                 (IANA Codes)
+	 * @param testSession whether the request comes from a test session.
 	 * @param parameters the {@code List} of {@link DLBVariablePayload}s for which it should be
 	 *               verified if an update is needed.
 	 * @return a {@code List} of {@link DLBVariableUpdatePayload}s with each of the parameters for
 	 * which an updated value has been found (note that this may be an empty list).
 	 */
-	private List<DLBVariableUpdatePayload> executeRetrieveUpdates (String subject, String timeZone,
-															 List<DLBVariablePayload> parameters)
+	private List<DLBVariableUpdatePayload> executeRetrieveUpdates(String issuer, String subject,
+			String projectSlug, String timeZone, boolean testSession,
+			List<DLBVariablePayload> parameters)
 			throws BadRequestException {
 
 		// Parse the timeZone String into a ZoneId to verify it was given in the right format
 		ZoneId timeZoneId = ControllerFunctions.parseTimeZone(timeZone);
 
 		List<DLBVariableUpdatePayload> result = new ArrayList<>();
-
-		Random random = new Random();
 
 		for (DLBVariablePayload parameterToUpdate : parameters) {
 
@@ -294,13 +308,14 @@ public class VariablesController {
 				result.add(newParam);
 			}
 
-			// With 50% chance, return the variable as if it has been updated
-			else if(random.nextBoolean()) {
-				DLBVariableUpdatePayload newParam = new DLBVariableUpdatePayload(
-						parameterToUpdate.getName(),
-						parameterToUpdate.getValue());
-				result.add(newParam);
+			// The example.* variables get this service's value for the user
+			else if(exampleVariables.isExample(parameterToUpdate.getName())) {
+				result.add(new DLBVariableUpdatePayload(parameterToUpdate.getName(),
+						exampleVariables.get(issuer, subject, projectSlug,
+								parameterToUpdate.getName(), testSession)));
 			}
+
+			// Any other variable isn't one this service supports, so it never answers for it
 
 		}
 
@@ -333,8 +348,10 @@ public class VariablesController {
 	 * <p>You must pass along the current timezone of the user (client) so that certain time
 	 * sensitive variables may be correctly set according to the timezone of the user.</p>
 	 *
-	 * <p>In this dummy implementation, the service will do nothing with your provided variables,
-	 * and the end-point will simply return a status 200 (OK).</p>
+	 * <p>In this dummy implementation, the service keeps a change to one of the {@code example.*}
+	 * variables, which it reports as supported and which dialogues may change, and hands it out
+	 * again on the next {@code retrieve-updates}. Changes to any other variable are only
+	 * logged.</p>
 	 *
 	 * @param request the {@link HttpServletRequest} that generated the request.
 	 * @param response the {@link HttpServletResponse} that generated the request.
@@ -352,8 +369,10 @@ public class VariablesController {
 			"<br/><br/>You must pass along the current timezone of the user (client) so that " +
 			"certain time sensitive variables may be correctly set according to the timezone of " +
 			"the user." +
-			"<br/><br/>In this dummy implementation, the service will do nothing with your " +
-			"provided variables, and the end-point will simply return a status 200 (OK).")
+			"<br/><br/>In this dummy implementation, the service keeps a change to one of the " +
+			"'example.*' variables, which it reports as supported and which dialogues may " +
+			"change, and hands it out again on the next 'retrieve-updates'. Changes to any other " +
+			"variable are only logged.")
 	@ApiResponses(value = {
 			@ApiResponse(responseCode = "200", description = "Successful operation") })
 	@RequestMapping(value="/notify-updated", method= RequestMethod.POST, consumes={
@@ -409,26 +428,28 @@ public class VariablesController {
 		if(subject.isEmpty()) {
 			throw new BadRequestException("Missing 'subject' in request.");
 		} else {
-			return executeNotifyUpdated(subject, timeZone, dlbVariables);
+			return executeNotifyUpdated(issuer, subject, projectSlug, timeZone, dlbVariables);
 		}
 
 	}
 
 	/**
 	 * This method performs the Dummy implementation for updating the given variables in the
-	 * external service. As this is a dummy implementation and there is no real external service,
-	 * the implementation is simply to return "OK", without doing anything.
+	 * external service: it keeps the new values of the {@code example.*} variables, and only logs
+	 * the others.
 	 *
+	 * @param issuer the token issuer of the user for whom variable updates are available.
 	 * @param subject the {@code String} identifier of the user for whom variable updates are
 	 *               available.
 	 * @param timeZone the timeZone of the user as one of {@code TimeZone.getAvailableIDs()} (IANA
 	 *                 Codes)
+	 * @param projectSlug the slug of the project the variables are scoped to.
 	 * @param params the {@code List} of {@link DLBVariablePayload}s that were updated and may need
 	 *               to be processed in the external service.
 	 * @return a {@link ResponseEntity} to indicate whether the update was executed successfully.
 	 */
-	private ResponseEntity<?> executeNotifyUpdated(String subject, String timeZone,
-												   List<DLBVariablePayload> params)
+	private ResponseEntity<?> executeNotifyUpdated(String issuer, String subject,
+			String projectSlug, String timeZone, List<DLBVariablePayload> params)
 			throws BadRequestException {
 
 		// Parse the timeZone String into a ZoneId to verify it was given in the right format
@@ -439,6 +460,10 @@ public class VariablesController {
 
 		for(DLBVariablePayload dlbVariableResultParam : params) {
 			logger.info(dlbVariableResultParam.toString());
+			if (exampleVariables.isExample(dlbVariableResultParam.getName())) {
+				exampleVariables.set(issuer, subject, projectSlug,
+						dlbVariableResultParam.getName(), dlbVariableResultParam.getValue());
+			}
 		}
 
 		return new ResponseEntity<ResponseEntity<?>>(HttpStatus.OK);
@@ -456,8 +481,8 @@ public class VariablesController {
 	 * <p>You must pass along the current timezone of the user (client) so that the clearing of the
 	 * database event may be correctly time logged.</p>
 	 *
-	 * <p>In this dummy implementation, the service will do nothing and will simply return a status
-	 * 200 (OK).</p>
+	 * <p>In this dummy implementation, the service forgets the user's values of the
+	 * {@code example.*} variables in the project, so they start again with random values.</p>
 	 *
 	 * @param request the {@link HttpServletRequest} that generated the request.
 	 * @param response the {@link HttpServletResponse} that generated the request.
@@ -473,8 +498,8 @@ public class VariablesController {
 			"particular user." +
 			"<br/><br/>You must pass along the current timezone of the user (client) so that " +
 			"the clearing of the database event may be correctly time logged." +
-			"<br/><br/>In this dummy implementation, the service will do nothing and will simply " +
-			"return a status 200 (OK).")
+			"<br/><br/>In this dummy implementation, the service forgets the user's values of the " +
+			"'example.*' variables in the project, so they start again with random values.")
 	@ApiResponses(value = {
 			@ApiResponse(responseCode = "200", description = "Successful operation") })
 	@RequestMapping(value="/notify-cleared", method= RequestMethod.POST)
@@ -514,28 +539,31 @@ public class VariablesController {
 		if(subject.isEmpty()) {
 			throw new BadRequestException("Missing 'subject' in request.");
 		} else {
-			return executeNotifyCleared(subject, timeZone);
+			return executeNotifyCleared(issuer, subject, projectSlug, timeZone);
 		}
 
 	}
 
 	/**
 	 * This method performs the Dummy implementation for receiving the notification that a
-	 * Dialogue Branch Variable store has been completely cleared. As this is a dummy implementation
-	 * and there is no real external service, the implementation is simply to return "OK", without
-	 * doing anything.
+	 * Dialogue Branch Variable store has been completely cleared: it forgets the user's values of
+	 * the {@code example.*} variables in the project.
 	 *
+	 * @param issuer the token issuer of the user whose variables were cleared.
 	 * @param subject the {@code String} identifier of the user for whom variable updates are
 	 *               available.
 	 * @param timeZone the timeZone of the user as one of {@code TimeZone.getAvailableIDs()} (IANA
 	 *                 Codes)
+	 * @param projectSlug the slug of the project the variables are scoped to.
 	 * @return a {@link ResponseEntity} to indicate whether the update was executed successfully.
 	 */
-	private ResponseEntity<?> executeNotifyCleared(String subject, String timeZone)
+	private ResponseEntity<?> executeNotifyCleared(String issuer, String subject,
+			String projectSlug, String timeZone)
 			throws BadRequestException {
 
 		// Parse the timeZone String into a ZoneId to verify it was given in the right format
 		ControllerFunctions.parseTimeZone(timeZone);
+		exampleVariables.clear(issuer, subject, projectSlug);
 
 		logger.info("Variable information for user '{}' in timeZone '{}' " +
 				"was successfully cleared.", subject, timeZone);
@@ -561,9 +589,12 @@ public class VariablesController {
 	 * implementation ignores it and always returns the same list &mdash; a real, multi-project
 	 * External Variable Service may support different variables per project.</p>
 	 *
-	 * <p>In this dummy implementation, the reported list is exactly the three variables
+	 * <p>In this dummy implementation, the reported list is the three variables
 	 * {@code retrieveUpdates} always knows how to compute: {@code currentDate}, {@code
-	 * currentTime}, and {@code dayPart}.</p>
+	 * currentTime}, and {@code dayPart}, each with the hints {@code type: string} and
+	 * {@code readOnly: true}, and for {@code dayPart} its allowed {@code values}; followed by four
+	 * {@code example.*} variables that show each hint once. This service keeps a value for each of
+	 * them per user, starting with a random value of the declared type.</p>
 	 *
 	 * @param request the {@link HttpServletRequest} that generated the request.
 	 * @param response the {@link HttpServletResponse} that generated the request.
@@ -578,9 +609,12 @@ public class VariablesController {
 			"<br/><br/>The reported list is static and project-independent capability information " +
 			"(\"can this service compute this variable at all\"), not a per-user value check " +
 			"(that is what 'retrieve-updates' answers)." +
-			"<br/><br/>In this dummy implementation, the reported list is always the same three " +
+			"<br/><br/>In this dummy implementation, the reported list is always the three " +
 			"variables that 'retrieve-updates' knows how to compute: 'currentDate', " +
-			"'currentTime', and 'dayPart'.")
+			"'currentTime', and 'dayPart', each declared as a read-only string, with 'dayPart' " +
+			"listing its allowed values; followed by four 'example.*' variables that show each " +
+			"hint once, for which this service keeps a value per user, starting with a random " +
+			"value of the declared type.")
 	@ApiResponses(value = {
 		@ApiResponse(responseCode = "200",
 			description = "Successful operation",
@@ -610,14 +644,31 @@ public class VariablesController {
 			throw new BadRequestException("Missing 'projectSlug' in request.");
 		}
 
+		// The first three are computed by this service, so a dialogue can't change them
+		// (readOnly). The example.* variables show each hint once; dialogues may change them, and
+		// this service keeps their values (see ExampleVariables).
 		return List.of(
 				new SupportedVariablePayload("currentDate",
-						"Today's date (yyyy-MM-dd) in the user's time zone"),
+						"Today's date (yyyy-MM-dd) in the user's time zone",
+						"string", null, true),
 				new SupportedVariablePayload("currentTime",
-						"The current time (HH:mm:ss) in the user's time zone"),
+						"The current time (HH:mm:ss) in the user's time zone",
+						"string", null, true),
 				new SupportedVariablePayload("dayPart",
 						"One of 'morning', 'afternoon', 'evening', or 'night', based on the " +
-								"current hour in the user's time zone"));
+								"current hour in the user's time zone",
+						"string", List.<Object>of("morning", "afternoon", "evening", "night"), true),
+				new SupportedVariablePayload("example.number",
+						"An example of a number that dialogues may change",
+						"number", null, false),
+				new SupportedVariablePayload("example.flag",
+						"An example of a boolean that dialogues may change",
+						"boolean", null, false),
+				new SupportedVariablePayload("example.choice",
+						"An example of a string limited to a fixed set of values",
+						"string", List.<Object>of("a", "b", "c"), false),
+				new SupportedVariablePayload("example.noHints",
+						"An example of a variable declared without any hints"));
 	}
 
 }

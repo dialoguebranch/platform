@@ -34,8 +34,8 @@ import java.util.regex.Pattern;
  * or checked in a request (#432).
  *
  * <p>A name starts with a letter or underscore, followed by letters, digits and underscores. It may
- * contain dots, so {@code user.settings.brightness} is one name, but a dot belongs to the name only
- * when a letter or underscore follows it. So in {@code $readingTime.} at the end of a sentence the
+ * contain dots, so {@code settings.theme} is one name, but a dot belongs to the name only
+ * when a letter or underscore follows it. So in {@code $score.} at the end of a sentence the
  * dot is a full stop, and in {@code $value.5} the name is {@code value}. A name never ends in a dot
  * and never contains two dots in a row. The variable store is flat: the dotted name is just the
  * key.</p>

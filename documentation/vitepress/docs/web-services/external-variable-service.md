@@ -121,14 +121,26 @@ To make this discoverable, your External Variable Service may implement one addi
 
 * Same token authentication as `retrieve-updates`/`notify-updated`/`notify-cleared` (see [Authentication](#authentication)).
 * `projectSlug` is **required**, not optional. An External Variable Service deployment is typically multi-tenant (one deployment, many projects), and which variables it can actually compute may differ per project — a project without a given data integration enabled should not advertise a variable it can never fill for that project's users. A single-project EVS can simply ignore the parameter and return the same list every time; requiring it costs that implementation nothing.
-* Response: a bare JSON array of objects, each with a required `name` and an optional `description`, e.g.:
+* Response: a bare JSON array of objects, each with a required `name` and these optional fields:
+
+  | Field | Meaning |
+  |---|---|
+  | `description` | A short, human-readable description of what the variable holds. |
+  | `type` | `number`, `string` or `boolean`. There is no date type: a date is a string, described in `description`. |
+  | `values` | The values the variable may take, for a setting with a fixed set of options. |
+  | `readOnly` | `true` if your service computes or controls the variable and doesn't accept changes from a dialogue. |
+
+  For example:
 
   ```json
   [
-    { "name": "stepsToday", "description": "Steps taken so far today" },
-    { "name": "partOfDay" }
+    { "name": "visits.count", "description": "How often the user has visited", "type": "number", "readOnly": true },
+    { "name": "settings.theme", "type": "string", "values": ["light", "dark"], "readOnly": false },
+    { "name": "nickname" }
   ]
   ```
+
+* `type`, `values` and `readOnly` are **hints for authors**. Dialogue Branch Studio shows them, but neither the Web Service nor the core library enforces them, and they don't change how a dialogue runs. Enforcing them is up to your service: if it marks a variable read-only, it should ignore or reject changes to it in `notify-updated`. A dialogue that sets a read-only variable anyway only changes Dialogue Branch's own copy, until the next `retrieve-updates` at a dialogue start replaces it with your value. The Web Service passes the hints on exactly as you send them: a field you leave out stays absent, and is never filled in with a default.
 
 * This is a **static, EVS-wide-per-project** capability list, not a per-user one: it answers "can this EVS compute this variable for this project at all," not "does this specific user have a value right now" (the latter is a legitimate `null` from `retrieve-updates`, a different and unrelated kind of gap).
 

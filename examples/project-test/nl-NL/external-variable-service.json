@@ -6,12 +6,15 @@
         "But sometimes you need to collect data from an 'external' source, like a weather API, or your own user database.": "Maar soms moet u gegevens ophalen uit een 'externe' bron, zoals een weer-API of uw eigen gebruikersdatabase.",
         "That is what the 'Dialogue Branch External Variable Service' is for. It allows you to connect the Web Service to an external source of variable data, which you can build yourself to provide whatever data you like.": "Daarvoor is de 'Dialogue Branch External Variable Service'. Hiermee kunt u de webservice verbinden met een externe bron van variabelengegevens, die u zelf kunt bouwen om welke gegevens u maar wilt aan te leveren.",
         "Does that make a sense?": "Is dat duidelijk?",
-        "Okay, the following information should be provided by the Dummy implementation of the External Variable Service. The current date is $currentDate, and the current time is $currentTime.": "Oké, de volgende informatie zou geleverd moeten worden door de Dummy implementatie van de External Variable Service. De huidige datum is $currentDate, en de huidige tijd is $currentTime."
+        "Okay, the following information should be provided by the Dummy implementation of the External Variable Service. The current date is $currentDate, and the current time is $currentTime. It is $dayPart. The service also keeps some example variables for you, which dialogues may change: the number is $example.number, the flag is $example.flag, the choice is $example.choice, and the last one is $example.noHints.": "Oké, de volgende informatie zou geleverd moeten worden door de Dummy implementatie van de External Variable Service. De huidige datum is $currentDate, en de huidige tijd is $currentTime. Het is $dayPart. De service houdt ook een paar voorbeeldvariabelen voor u bij, die dialogen mogen wijzigen: het getal is $example.number, de vlag is $example.flag, de keuze is $example.choice, en de laatste is $example.noHints."
     },
     "_user": {
         "Whoah?! What is that all about?": "Wauw?! Waar gaat dat allemaal over?",
         "Okay, let's do the test.": "Oké, laten we de test uitvoeren.",
         "Please, explain me again.": "Leg het me nog eens uit, alstublieft.",
-        "Yes, let's run the test.": "Ja, laten we de test uitvoeren."
+        "Yes, let's run the test.": "Ja, laten we de test uitvoeren.",
+        "Add one to the number.": "Tel één op bij het getal.",
+        "Make the choice \"c\".": "Maak de keuze \"c\".",
+        "That's enough.": "Dat is genoeg."
     }
 }

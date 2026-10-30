@@ -6,12 +6,15 @@
         "But sometimes you need to collect data from an 'external' source, like a weather API, or your own user database.": "Mas por vezes precisa de recolher dados de uma fonte 'externa', como uma API meteorológica ou a sua própria base de dados de utilizadores.",
         "That is what the 'Dialogue Branch External Variable Service' is for. It allows you to connect the Web Service to an external source of variable data, which you can build yourself to provide whatever data you like.": "É para isso que serve o 'Dialogue Branch External Variable Service'. Permite-lhe ligar o serviço web a uma fonte externa de dados de variáveis, que pode construir você mesmo para fornecer os dados que quiser.",
         "Does that make a sense?": "Isso faz sentido?",
-        "Okay, the following information should be provided by the Dummy implementation of the External Variable Service. The current date is $currentDate, and the current time is $currentTime.": "Muito bem, as seguintes informações devem ser fornecidas pela implementação Dummy do External Variable Service. A data atual é $currentDate, e a hora atual é $currentTime."
+        "Okay, the following information should be provided by the Dummy implementation of the External Variable Service. The current date is $currentDate, and the current time is $currentTime. It is $dayPart. The service also keeps some example variables for you, which dialogues may change: the number is $example.number, the flag is $example.flag, the choice is $example.choice, and the last one is $example.noHints.": "Muito bem, as seguintes informações devem ser fornecidas pela implementação Dummy do External Variable Service. A data atual é $currentDate, e a hora atual é $currentTime. É $dayPart. O serviço também guarda algumas variáveis de exemplo para si, que os diálogos podem alterar: o número é $example.number, a opção é $example.flag, a escolha é $example.choice, e a última é $example.noHints."
     },
     "_user": {
         "Whoah?! What is that all about?": "Uau?! De que se trata isso?",
         "Okay, let's do the test.": "Está bem, façamos o teste.",
         "Please, explain me again.": "Por favor, explique-me novamente.",
-        "Yes, let's run the test.": "Sim, vamos executar o teste."
+        "Yes, let's run the test.": "Sim, vamos executar o teste.",
+        "Add one to the number.": "Somar um ao número.",
+        "Make the choice \"c\".": "Escolher \"c\".",
+        "That's enough.": "Já chega."
     }
 }

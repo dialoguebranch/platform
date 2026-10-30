@@ -9,6 +9,18 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Web service, client-js and mock-variable-service: an External Variable Service can give each
+  variable it reports in `GET /variables/supported` the optional hints `type` (`number`, `string`
+  or `boolean`), `values` (the allowed values) and `readOnly`
+  ([#433](https://github.com/dialoguebranch/platform/issues/433)). `GET /variables/list-supported`
+  passes them on as sent, and client-js's `listSupportedVariables` now returns `SupportedVariable`
+  objects (also exported from `@dialoguebranch/client-js/protocol`) carrying them. The hints are
+  for authors only and aren't enforced. `mock-variable-service` declares its three variables as
+  read-only strings, with `dayPart`'s allowed values, and adds four `example.*` variables that
+  show each hint once; it keeps their values per user and project in memory, starting with a
+  random value of the declared type and changing when a dialogue changes them. It now only answers
+  `retrieve-updates` for the variables it reports as supported: it no longer returns other
+  variables half of the time with their value unchanged.
 - Studio: a search field on the project page, filtering projects by name, slug or description.
 - Studio, web service and client-js: simulate a user, to investigate a problem they have without
   changing any of their data ([#411](https://github.com/dialoguebranch/platform/issues/411)).
@@ -42,9 +54,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `dlb-core-java`'s public API) and which are internal to Studio. From here on, only a change to a
   stable surface is labelled **Breaking:**; a change to an internal one is labelled
   **Internal API:**. Release notes up to 0.7.0 are unchanged.
-- **Breaking:** Language: variable names may contain dots, so `$user.settings.brightness` is one
+- **Breaking:** Language: variable names may contain dots, so `$settings.theme` is one
   variable ([#432](https://github.com/dialoguebranch/platform/issues/432)). A dot belongs to the
-  name only when a letter or underscore follows it, so `$readingTime.` at the end of a sentence is
+  name only when a letter or underscore follows it, so `$score.` at the end of a sentence is
   still a variable followed by a full stop. The rule is the same in text, replies, quoted strings
   and `<<set>>`/`<<if>>` expressions. As a side effect, `$m.key` in an expression no longer reads
   a field of a map held in `$m` (an undocumented behaviour of the expression engine) but the

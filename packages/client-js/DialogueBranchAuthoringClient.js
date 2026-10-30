@@ -29,6 +29,7 @@
 import { BaseClient } from "./BaseClient.js";
 import { DialogueBranchError } from "./DialogueBranchError.js";
 import { DialogueStep } from "./model/DialogueStep.js";
+import { SupportedVariable } from "./model/SupportedVariable.js";
 import { Variable } from "./model/Variable.js";
 
 /**
@@ -1126,10 +1127,9 @@ export class DialogueBranchAuthoringClient extends BaseClient {
      * supported, proxied through live by the Web Service (never cached).
      *
      * @param {string} projectSlug The project's slug.
-     * @returns {Promise<Object[]>} The supported variables. Rejects if no External Variable
-     * Service is configured for this deployment, or it could not be reached — treat that as "no
-     * EVS info available" rather than a user-facing error, since not every deployment configures
-     * one.
+     * @returns {Promise<SupportedVariable[]>} The supported variables, with the hints the
+     * service gave. Rejects with status `501` if no External Variable Service is configured for
+     * this deployment, or `503` if it could not be reached.
      */
     listSupportedVariables(projectSlug) {
         const url = this._baseUrl + "/variables/list-supported?projectSlug="
@@ -1140,7 +1140,8 @@ export class DialogueBranchAuthoringClient extends BaseClient {
             headers: { "Content-Type": "application/json" }
         })
         .then((response) => this._handleResponse(response))
-        .then((data) => Array.isArray(data) ? data : []);
+        .then((data) => (Array.isArray(data) ? data : [])
+            .map((variable) => SupportedVariable.fromJSON(variable)));
     }
 
 }
