@@ -9,6 +9,12 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Studio: the Variable Browser shows the hints an External Variable Service gives for its
+  supported variables ([#434](https://github.com/dialoguebranch/platform/issues/434)). In *Used*,
+  a variable shows its type and a lock when it is read-only, with its description and allowed
+  values in the tooltip. In *Values* and *Test values*, a lock marks a read-only variable, and its
+  tooltip says what changing it does: only the test values change, or the service's value
+  replaces the change at the next dialogue start.
 - Web service, client-js and mock-variable-service: an External Variable Service can give each
   variable it reports in `GET /variables/supported` the optional hints `type` (`number`, `string`
   or `boolean`), `values` (the allowed values) and `readOnly`

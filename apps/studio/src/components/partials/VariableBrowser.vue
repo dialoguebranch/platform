@@ -17,6 +17,7 @@ import {
     mayHaveMore, resolveExactName, filterSortHistory, needsLoadedOnlyHint,
     HISTORY_PRESETS, presetRange, resolveDateRange,
 } from '@/composables/variable-history.js';
+import { supportedVariableLines, readOnlyNote } from '@/composables/supported-variable-hints.js';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import MainPagePanelHeader from '../widgets/MainPagePanelHeader.vue';
 import MainPagePanelContainer from '../widgets/MainPagePanelContainer.vue';
@@ -79,7 +80,9 @@ const testing = computed(() => state.value.mode === DLB_APP_MODE_DRAFT
     || state.value.delegate?.mode === 'simulate');
 const variables = ref([]);
 const projectVariables = ref([]); // [{ name, read, written }]
-const supportedVariables = ref([]); // [{ name, description }] — from the configured EVS, if any
+const supportedVariables = ref([]); // SupportedVariables from the configured EVS, if any
+// The service's own entry for each variable it supports, with the hints it gave (#434).
+const supportedByName = computed(() => new Map(supportedVariables.value.map((v) => [v.name, v])));
 
 const searchQuery = ref('');
 const sortMode = ref('name-asc');
@@ -101,11 +104,11 @@ const displayedVariables = computed(() => filterSort(variables.value));
 const mergedProjectVariables = computed(() => {
     const byName = new Map();
     for (const v of projectVariables.value)
-        byName.set(v.name, { name: v.name, read: v.read, written: v.written, evsSupported: false });
+        byName.set(v.name, { name: v.name, read: v.read, written: v.written, supported: null });
     for (const v of supportedVariables.value) {
         const existing = byName.get(v.name);
-        if (existing) existing.evsSupported = true;
-        else byName.set(v.name, { name: v.name, read: false, written: false, evsSupported: true });
+        if (existing) existing.supported = v;
+        else byName.set(v.name, { name: v.name, read: false, written: false, supported: v });
     }
     return [...byName.values()];
 });
@@ -534,11 +537,19 @@ onMounted(() => {
                 <div v-for="v in displayedProjectVariables" :key="v.name"
                     class="group flex items-center bg-grey-lighter px-1 py-0.5 gap-2"
                     :class="{ 'opacity-60': !storedNames.has(v.name) }"
-                    :title="storedNames.has(v.name) ? 'You have a value for this' : 'No value set for you yet'">
+                    :title="['$' + v.name,
+                        storedNames.has(v.name) ? 'You have a value for this' : 'No value set for you yet',
+                        ...supportedVariableLines(v.supported)].join('\n')"
+                    data-test="project-variable">
                     <div class="font-title font-semibold text-xs text-orange-darker min-w-0 truncate grow">${{ v.name }}</div>
-                    <FontAwesomeIcon v-if="v.evsSupported" icon="fa-solid fa-satellite-dish"
-                        class="shrink-0 text-[10px] text-grey-dark"
-                        title="Reported as supported by the configured External Variable Service" />
+                    <!-- The service's hints (#434): the type, and a lock for a read-only variable;
+                         the description and allowed values are in the row's tooltip -->
+                    <span v-if="v.supported?.type" data-test="supported-type"
+                        class="shrink-0 rounded px-1 font-title text-[10px] bg-white border border-grey-light text-grey-dark">{{ v.supported.type }}</span>
+                    <FontAwesomeIcon v-if="v.supported?.readOnly === true" icon="fa-solid fa-lock"
+                        data-test="supported-read-only" class="shrink-0 text-[10px] text-grey-dark" />
+                    <FontAwesomeIcon v-if="v.supported" icon="fa-solid fa-satellite-dish"
+                        class="shrink-0 text-[10px] text-grey-dark" />
                     <button type="button" title="Copy name"
                         class="shrink-0 w-5 h-5 flex items-center justify-center text-grey-dark hover:text-orange-dark cursor-pointer opacity-0 group-hover:opacity-100"
                         @click="copyName(v.name)">
@@ -591,6 +602,11 @@ onMounted(() => {
                 <div v-for="variable in displayedVariables" :key="variable.name" class="flex items-center bg-grey-lighter px-1 py-0.5 gap-1"
                     :class="{ 'opacity-0 transition-opacity duration-500': deletingVariables.has(variable.name) }">
                     <div class="font-title font-semibold text-xs text-orange-darker shrink-0">${{ variable.name }}</div>
+                    <!-- Read-only for the service (#434): it can still be changed here, but the
+                         tooltip says what that does -->
+                    <FontAwesomeIcon v-if="supportedByName.get(variable.name)?.readOnly === true"
+                        icon="fa-solid fa-lock" data-test="value-read-only"
+                        class="shrink-0 text-[10px] text-grey-dark" :title="readOnlyNote(testing)" />
                     <input type="text" class="font-title text-xs px-1 py-0.5 min-w-0 grow border border-grey-light rounded bg-white focus:outline-none focus:border-orange-dark" v-model="variable.value" @input="onVariableInput(variable)" @keyup.enter="submitVariable(variable)"></input>
                     <button type="button" class="w-5 h-5 flex items-center justify-center rounded"
                         :class="dirtyVariables.has(variable.name) ? 'text-orange-darker hover:text-orange-dark cursor-pointer' : 'text-grey-light cursor-not-allowed'"
