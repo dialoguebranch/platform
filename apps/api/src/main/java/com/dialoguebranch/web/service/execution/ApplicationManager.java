@@ -73,7 +73,8 @@ import java.util.function.Function;
  * class keeps track of the different active {@link UserService} instances that are needed to serve
  * individual users of the Dialogue Branch Web Service, as well as other application-wide objects.
  *
- * <p>Dialogue Branch projects are loaded into memory via {@link #loadProject(String, ScriptLoader, int)},
+ * <p>Dialogue Branch projects are loaded into memory via
+ * {@link #loadProject(String, ScriptLoader, int, List)},
  * which is called by {@link com.dialoguebranch.web.service.project.ProjectSeedService} on
  * application startup after all projects have been seeded in the database. The projects map is
  * keyed by project name (slug).</p>
@@ -135,7 +136,7 @@ public class ApplicationManager {
 
 	/**
 	 * Creates an instance of an {@link ApplicationManager}. Projects are not loaded here;
-	 * they are populated later via {@link #loadProject(String, ScriptLoader, int)} by the
+	 * they are populated later via {@link #loadProject(String, ScriptLoader, int, List)} by the
 	 * {@link com.dialoguebranch.web.service.project.ProjectSeedService} once the database is ready.
 	 *
 	 * @param dlbProperties  the application configuration properties.
