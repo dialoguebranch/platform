@@ -144,35 +144,27 @@ public class Translator {
 	private NodeBody translateBody(@Nullable String speaker, @Nullable String addressee,
 			NodeBody body) {
 		NodeBody.Builder builder = new NodeBody.Builder();
-		// "current" accumulates the text/input segments that make up the run currently being
-		// matched against a translation; "interposed" buffers any other command segment (e.g.
-		// "<<set>>") found in between, which doesn't itself get translated but must still appear
-		// in the output — right after the run it interrupted resolves, same position it would
-		// end up in were this a splice into a flat list rather than a rebuild.
-		List<NodeBody.Segment> current = new ArrayList<>();
-		List<NodeBody.Segment> interposed = new ArrayList<>();
+		// "run" holds every segment of the run currently being collected, in source order: the
+		// text and <<input>> segments that make up its translatable text, and any other command
+		// (e.g. "<<set>>") found among them, which doesn't split the text (see
+		// TranslatableExtractor) and isn't translated itself. An <<if>> or <<random>> ends the run.
+		List<NodeBody.Segment> run = new ArrayList<>();
 		for (NodeBody.Segment segment : body.getSegments()) {
-			if (segment instanceof NodeBody.TextSegment) {
-				current.add(segment);
+			if (segment instanceof NodeBody.CommandSegment cmdSegment
+					&& cmdSegment.getCommand() instanceof IfCommand ifCmd) {
+				flushRun(speaker, addressee, run, builder);
+				builder.addSegment(new NodeBody.CommandSegment(
+						translateIfCommand(speaker, addressee, ifCmd)));
+			} else if (segment instanceof NodeBody.CommandSegment cmdSegment
+					&& cmdSegment.getCommand() instanceof RandomCommand rndCmd) {
+				flushRun(speaker, addressee, run, builder);
+				builder.addSegment(new NodeBody.CommandSegment(
+						translateRandomCommand(speaker, addressee, rndCmd)));
 			} else {
-				NodeBody.CommandSegment cmdSegment = (NodeBody.CommandSegment) segment;
-				Command cmd = cmdSegment.getCommand();
-				if (cmd instanceof IfCommand ifCmd) {
-					flushRun(speaker, addressee, current, interposed, builder);
-					builder.addSegment(new NodeBody.CommandSegment(
-							translateIfCommand(speaker, addressee, ifCmd)));
-				} else if (cmd instanceof RandomCommand rndCmd) {
-					flushRun(speaker, addressee, current, interposed, builder);
-					builder.addSegment(new NodeBody.CommandSegment(
-							translateRandomCommand(speaker, addressee, rndCmd)));
-				} else if (cmd instanceof InputCommand) {
-					current.add(segment);
-				} else {
-					interposed.add(segment);
-				}
+				run.add(segment);
 			}
 		}
-		flushRun(speaker, addressee, current, interposed, builder);
+		flushRun(speaker, addressee, run, builder);
 		for (Reply reply : body.getReplies()) {
 			builder.addReply(translateReply(addressee, speaker, reply));
 		}
@@ -217,24 +209,55 @@ public class Translator {
 	}
 
 	/**
-	 * Resolves {@code current} (if it has any translatable content — see
-	 * {@link TranslatableExtractor#hasContent}) against the translation map and appends the
-	 * result to {@code builder}, followed by whatever was buffered in {@code interposed}. Both
-	 * lists are cleared afterward, ready for the next run.
+	 * Resolves the text of {@code run} (if it has any translatable content, see
+	 * {@link TranslatableExtractor#hasContent}) against the translation map and appends the result
+	 * to {@code builder}, together with the run's other commands. Clears {@code run} afterwards,
+	 * ready for the next one.
+	 *
+	 * <p>Without a translation, the run is appended exactly as it was. With one, a command that
+	 * came before the run's text keeps its place before the translation, so a {@code <<set>>}
+	 * still runs before the text that shows its variable (#437). A command after or inside the
+	 * text follows the translation, since a translation can't say where inside its own text a
+	 * command belongs.</p>
 	 */
 	private void flushRun(@Nullable String speaker, @Nullable String addressee,
-			List<NodeBody.Segment> current, List<NodeBody.Segment> interposed,
-			NodeBody.Builder builder) {
-		List<NodeBody.Segment> resolved = TranslatableExtractor.hasContent(current)
-				? resolveTranslation(speaker, addressee, current) : current;
-		for (NodeBody.Segment segment : resolved) {
-			builder.addSegment(segment);
+			List<NodeBody.Segment> run, NodeBody.Builder builder) {
+		List<NodeBody.Segment> text = new ArrayList<>();
+		for (NodeBody.Segment segment : run) {
+			if (isText(segment)) text.add(segment);
 		}
-		for (NodeBody.Segment segment : interposed) {
-			builder.addSegment(segment);
+		List<NodeBody.Segment> resolved = TranslatableExtractor.hasContent(text)
+				? resolveTranslation(speaker, addressee, text) : text;
+		if (resolved == text) {
+			for (NodeBody.Segment segment : run) {
+				builder.addSegment(segment);
+			}
+		} else {
+			int firstContent = 0;
+			while (!TranslatableExtractor.hasContent(List.of(run.get(firstContent))))
+				firstContent++;
+			for (NodeBody.Segment segment : run.subList(0, firstContent)) {
+				if (!isText(segment)) builder.addSegment(segment);
+			}
+			for (NodeBody.Segment segment : resolved) {
+				builder.addSegment(segment);
+			}
+			for (NodeBody.Segment segment : run.subList(firstContent, run.size())) {
+				if (!isText(segment)) builder.addSegment(segment);
+			}
 		}
-		current.clear();
-		interposed.clear();
+		run.clear();
+	}
+
+	/**
+	 * Returns whether {@code segment} is part of a run's translatable text: a text segment or an
+	 * {@code <<input>>} command, as opposed to a command like {@code <<set>>} that isn't
+	 * translated.
+	 */
+	private static boolean isText(NodeBody.Segment segment) {
+		return segment instanceof NodeBody.TextSegment
+				|| (segment instanceof NodeBody.CommandSegment cmdSegment
+						&& cmdSegment.getCommand() instanceof InputCommand);
 	}
 
 	/**

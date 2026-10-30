@@ -160,6 +160,12 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Core: a translated node no longer shows a variable before a `<<set>>` that comes before it in
+  the source ([#437](https://github.com/dialoguebranch/platform/issues/437)). Translating moved
+  every `<<set>>` and `<<action>>` behind the translated text, so the text showed the variable's
+  old value. A command before the text now keeps its place, and text with no translation keeps
+  its source order exactly. A command in the middle of a translated sentence still follows it,
+  since a translation can't say where inside its own text the command belongs.
 - Web service: a slow or unreachable External Variable Service no longer breaks or stalls a
   dialogue ([#219](https://github.com/dialoguebranch/platform/issues/219)). Every call to it now
   has a connect and a read timeout, new settings `dlb.external-variable-service.connect-timeout`
