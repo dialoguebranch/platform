@@ -1,11 +1,12 @@
 <script setup>
-import { ref, watch, inject, nextTick, useTemplateRef } from 'vue';
+import { ref, computed, watch, inject, nextTick, useTemplateRef } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useAuthoringClient } from '@/composables/client.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError } from '@/composables/error-toast.js';
 import { tagsToMap, mapToTags, USER_SPEAKER } from '@/authoring/DlbHeaderTags.js';
 import { COLOR_PALETTE, colorForId } from '@/composables/node-colors.js';
+import { projectSpeakers } from '@/composables/project-speakers.js';
 import TextInput from '../widgets/TextInput.vue';
 import PushButton from '../widgets/PushButton.vue';
 import ContextMenu from '../widgets/ContextMenu.vue';
@@ -30,6 +31,22 @@ const colorId = ref('0');
 const body = ref('');
 const saving = ref(false);
 const error = ref('');
+
+// The End node's speaker is ignored, so it's the one node that may go without one.
+const isEndNode = computed(() => title.value.trim().toLowerCase() === 'end');
+
+// When the project defines speakers (#396), the speaker is chosen from them; a node whose speaker
+// isn't one of them keeps it, marked as such, so nothing is lost. Without project speakers, the
+// speaker stays free text.
+const speakerOptions = computed(() => {
+    if (projectSpeakers.value.length === 0) return null;
+    const options = projectSpeakers.value.map((s) => ({ value: s.name, label: s.name }));
+    const current = speaker.value;
+    if (current && !projectSpeakers.value.some((s) => s.name === current)) {
+        options.push({ value: current, label: `${current} (not a project speaker)` });
+    }
+    return options;
+});
 
 // Re-populate the form whenever a different node is opened (or this one is reloaded after a
 // rename elsewhere touched it) — the panel always reflects props.node, not local-only state.
@@ -64,6 +81,11 @@ function onSave() {
     }
     if (!NODE_NAME_REGEX.test(newTitle)) {
         error.value = 'Title may only contain letters, digits, underscores, and hyphens.';
+        return;
+    }
+    if (!isEndNode.value && speaker.value.trim() === '') {
+        // A node without a speaker makes the project fail to test or publish (#396).
+        error.value = 'Choose a speaker for this node.';
         return;
     }
     if (speaker.value.trim() === USER_SPEAKER) {
@@ -316,7 +338,16 @@ defineExpose({
                         </div>
                         <div class="flex-1 min-w-0">
                             <label class="block font-title font-bold text-sm text-orange-darker mb-1">Speaker</label>
-                            <TextInput class="w-full" v-model="speaker" data-test="node-speaker" placeholder="Speaker name..." />
+                            <select
+                                v-if="speakerOptions"
+                                v-model="speaker"
+                                data-test="node-speaker-select"
+                                class="w-full font-title bg-white p-3 rounded-md border-[2px] border-solid border-gray-300 text-sm min-w-0 focus:outline-none focus:border-orange-dark"
+                            >
+                                <option v-if="!speaker" value="" disabled>Choose a speaker...</option>
+                                <option v-for="o in speakerOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+                            </select>
+                            <TextInput v-else class="w-full" v-model="speaker" data-test="node-speaker" placeholder="Speaker name..." />
                         </div>
                     </div>
 

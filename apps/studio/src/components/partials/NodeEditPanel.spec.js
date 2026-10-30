@@ -26,7 +26,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import { ref } from 'vue';
 
@@ -163,5 +163,61 @@ describe('NodeEditPanel insert menu', () => {
         await userInput.trigger('click');
         await flushPromises();
         expect(wrapper.findAll('[role="menuitem"]').map((b) => b.text())).toContain('Multiple choice');
+    });
+});
+
+const { setProjectSpeakers } = await import('@/composables/project-speakers.js');
+
+describe('NodeEditPanel project speakers (#396)', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        authoring.updateDraftNode.mockImplementation(async (slug, dialogue, title, tags, body) =>
+            ({ title, tags, body }));
+        setProjectSpeakers([
+            { name: 'Robin', gender: 'female', default: true },
+            { name: 'Martin McOwl', gender: 'male', default: false },
+        ]);
+    });
+
+    afterEach(() => setProjectSpeakers([]));
+
+    const options = (wrapper) => wrapper.findAll('[data-test="node-speaker-select"] option')
+        .map((o) => o.text());
+
+    it('chooses the speaker from the project\'s speakers', async () => {
+        const wrapper = mountPanel();
+        expect(wrapper.find('[data-test="node-speaker"]').exists()).toBe(false);
+        expect(options(wrapper)).toEqual(['Robin', 'Martin McOwl']);
+
+        await wrapper.find('[data-test="node-speaker-select"]').setValue('Martin McOwl');
+        await save(wrapper);
+        expect(savedTags().find((tag) => tag.key === 'speaker').value).toBe('Martin McOwl');
+    });
+
+    it('keeps a speaker that isn\'t one of the project\'s, marked as such', () => {
+        const wrapper = mountPanel({ ...NODE, tags: NODE.tags.map((t) =>
+            t.key === 'speaker' ? { key: 'speaker', value: 'Martin McOlw' } : t) });
+        expect(options(wrapper)).toContain('Martin McOlw (not a project speaker)');
+        expect(wrapper.find('[data-test="node-speaker-select"]').element.value).toBe('Martin McOlw');
+    });
+
+    it('stays free text when the project has no speakers', () => {
+        setProjectSpeakers([]);
+        const wrapper = mountPanel();
+        expect(wrapper.find('[data-test="node-speaker"]').exists()).toBe(true);
+        expect(wrapper.find('[data-test="node-speaker-select"]').exists()).toBe(false);
+    });
+
+    it('doesn\'t save a node without a speaker', async () => {
+        const wrapper = mountPanel({ ...NODE, tags: NODE.tags.filter((t) => t.key !== 'speaker') });
+        await save(wrapper);
+        expect(authoring.updateDraftNode).not.toHaveBeenCalled();
+        expect(wrapper.text()).toContain('Choose a speaker');
+    });
+
+    it('saves the End node without a speaker', async () => {
+        const wrapper = mountPanel({ title: 'End', tags: [{ key: 'title', value: 'End' }], body: '' });
+        await save(wrapper);
+        expect(authoring.updateDraftNode).toHaveBeenCalled();
     });
 });
