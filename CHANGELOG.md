@@ -7,6 +7,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-30
+
 ### Added
 
 - Studio and web service: Studio shows whether the configured External Variable Service is running
