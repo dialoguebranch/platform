@@ -70,6 +70,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Controller for the /variables/... end-points of the Dialogue Branch Web Service.
@@ -667,14 +668,22 @@ public class VariablesController {
 
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy - HH:mm:ss Z");
 
-		if(value == null) {
-			logger.info("Received request to remove Dialogue Branch Variable '{}' at eventTime" +
-					" '{}' in time zone '{}'", name, eventTime.format(formatter), timeZone);
-			userService.getVariableStore(projectSlug).removeByName(name,true,
-					eventTime, VariableUpdatedSource.WEB_SERVICE);
-		} else {
-			userService.getVariableStore(projectSlug).setValue(name, value, true, eventTime,
-					VariableUpdatedSource.WEB_SERVICE);
+		// Not in the middle of another request of this user in this project (#216)
+		ReentrantLock lock = userService.lockFor(projectSlug);
+		lock.lock();
+		try {
+			if(value == null) {
+				logger.info("Received request to remove Dialogue Branch Variable '{}' at " +
+						"eventTime '{}' in time zone '{}'", name, eventTime.format(formatter),
+						timeZone);
+				userService.getVariableStore(projectSlug).removeByName(name,true,
+						eventTime, VariableUpdatedSource.WEB_SERVICE);
+			} else {
+				userService.getVariableStore(projectSlug).setValue(name, value, true, eventTime,
+						VariableUpdatedSource.WEB_SERVICE);
+			}
+		} finally {
+			lock.unlock();
 		}
 		return null;
 	}
@@ -787,14 +796,22 @@ public class VariablesController {
 		// A delegated request never changes the user's own time zone (#331).
 		if (!delegated) userService.getDialogueBranchUser().setTimeZone(timeZoneId);
 
-		VariableStore variableStore = userService.getVariableStore(projectSlug);
-		for(Map.Entry<String, Object> entry : variables.entrySet()) {
-			variableStore.setValue(
-					entry.getKey(),
-					entry.getValue(),
-					true,
-					DateTimeUtils.nowMs(userService.getDialogueBranchUser().getTimeZone()),
-					VariableUpdatedSource.WEB_SERVICE);
+		// All of them together, not in the middle of another request of this user in this
+		// project (#216)
+		ReentrantLock lock = userService.lockFor(projectSlug);
+		lock.lock();
+		try {
+			VariableStore variableStore = userService.getVariableStore(projectSlug);
+			for(Map.Entry<String, Object> entry : variables.entrySet()) {
+				variableStore.setValue(
+						entry.getKey(),
+						entry.getValue(),
+						true,
+						DateTimeUtils.nowMs(userService.getDialogueBranchUser().getTimeZone()),
+						VariableUpdatedSource.WEB_SERVICE);
+			}
+		} finally {
+			lock.unlock();
 		}
 		return null;
 	}

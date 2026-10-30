@@ -453,6 +453,7 @@ public class DraftDialogueService {
 	 * @param body     the raw body content.
 	 * @return the newly created {@link DBDraftNode}.
 	 */
+	@Transactional
 	public DBDraftNode createNode(DBDraftDialogue dialogue, String title, String header,
 								  String body) {
 		Instant now = Instant.now();
@@ -479,6 +480,7 @@ public class DraftDialogueService {
 	 * @param body     the new raw body content.
 	 * @return the updated {@link DBDraftNode}.
 	 */
+	@Transactional
 	public DBDraftNode updateNode(DBDraftDialogue dialogue, DBDraftNode node, String header,
 								  String body) {
 		node.setHeader(header);
@@ -496,6 +498,7 @@ public class DraftDialogueService {
 	 *                 #updateNode(DBDraftDialogue, DBDraftNode, String, String)} for why).
 	 * @param node     the node to delete.
 	 */
+	@Transactional
 	public void deleteNode(DBDraftDialogue dialogue, DBDraftNode node) {
 		nodeRepository.delete(node);
 		markChanged(dialogue);
@@ -1204,6 +1207,7 @@ public class DraftDialogueService {
 	 * @param content  the raw JSON translation content.
 	 * @return the created or updated {@link DBDraftTranslation}.
 	 */
+	@Transactional
 	public DBDraftTranslation createOrUpdateTranslation(DBDraftDialogue dialogue,
 			DBDraftTranslationLanguage language, String content) {
 		Instant now = Instant.now();
@@ -1231,6 +1235,7 @@ public class DraftDialogueService {
 	 *                    DBDraftNode, String, String)} for why).
 	 * @param translation the translation to delete.
 	 */
+	@Transactional
 	public void deleteTranslation(DBDraftDialogue dialogue, DBDraftTranslation translation) {
 		translationRepository.delete(translation);
 		markChanged(dialogue);

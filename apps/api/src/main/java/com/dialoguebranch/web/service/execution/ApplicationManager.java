@@ -63,7 +63,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The Dialogue Branch Web Service maintains one instance of an {@link ApplicationManager}. This
@@ -109,15 +109,21 @@ public class ApplicationManager {
 	private final ExternalVariableServiceClient externalVariableServiceClient;
 
 	/**
-	 * Active {@link UserService}s, keyed implicitly by {@code User.id} (see {@link
-	 * #getActiveUserService(String)}). A {@link CopyOnWriteArrayList} because, unlike {@link
-	 * #projects}/{@link #projectVersions} (written only from the rare publish/seed path), this list
-	 * is now mutated concurrently by both request-handling threads (add on creation, remove on
-	 * logout) and the scheduled {@link UserServiceExpirationService} eviction sweep — reads
-	 * (every request resolving an existing {@link UserService}) vastly outnumber writes, which is
-	 * exactly the access pattern {@link CopyOnWriteArrayList} is for.
+	 * Active {@link UserService}s, keyed by the user's {@code (issuer, subject)}. Request-handling
+	 * threads read and add to it, and the scheduled {@link UserServiceExpirationService} sweep
+	 * removes from it, concurrently. A user has at most one {@link UserService}: creating one
+	 * happens in {@link #createActiveUserService}, which checks again under a lock (#214), since a
+	 * second {@link UserService} would also bring its own per-project locks (see {@link
+	 * UserService#lockFor}).
 	 */
-	private final List<UserService> activeUserServices = new CopyOnWriteArrayList<>();
+	private final Map<UserKey, UserService> activeUserServices = new ConcurrentHashMap<>();
+
+	/** The part of a {@link DialogueBranchUserId} that identifies a user. */
+	private record UserKey(String issuer, String subject) {
+		static UserKey of(DialogueBranchUserId userId) {
+			return new UserKey(userId.issuer(), userId.subject());
+		}
+	}
 	private final UserServiceFactory userServiceFactory;
 
 	// -------------------------------------------------------- //
@@ -235,14 +241,9 @@ public class ApplicationManager {
 	 * @return a {@link UserService} object, or {@code null} if none exists.
 	 */
 	public UserService getActiveUserService(DialogueBranchUserId userId) {
-		for (UserService userService : activeUserServices) {
-			if (userService.getUserId().issuer().equals(userId.issuer())
-					&& userService.getUserId().subject().equals(userId.subject())) {
-				userService.recordActivity();
-				return userService;
-			}
-		}
-		return null;
+		UserService userService = activeUserServices.get(UserKey.of(userId));
+		if (userService != null) userService.recordActivity();
+		return userService;
 	}
 
 	/**
@@ -257,6 +258,8 @@ public class ApplicationManager {
 	/**
 	 * Creates a new {@link UserService} object for a new user with the given {@code userId} in the
 	 * given {@code timeZone}. If successfully created, keeps a record of this active user service.
+	 * Two requests for a user who isn't active yet may both get here: the check under this lock
+	 * makes the second one get the first one's {@link UserService} instead of a second one (#214).
 	 *
 	 * @param userId   the {@code (issuer, subject)} identity of the user for which to create a
 	 *                 {@link UserService}.
@@ -265,15 +268,17 @@ public class ApplicationManager {
 	 * @throws IOException       in case of an error loading the known variables for the User.
 	 * @throws DatabaseException in case of an error loading the known variables for the User.
 	 */
-	private UserService createActiveUserService(DialogueBranchUserId userId, ZoneId timeZone)
-			throws IOException, DatabaseException {
+	private synchronized UserService createActiveUserService(DialogueBranchUserId userId,
+			ZoneId timeZone) throws IOException, DatabaseException {
+		UserService existing = getActiveUserService(userId);
+		if (existing != null) return existing;
 		UserService newUserService;
 		if (timeZone == null) {
 			newUserService = userServiceFactory.createUserService(userId);
 		} else {
 			newUserService = userServiceFactory.createUserService(userId, timeZone);
 		}
-		activeUserServices.add(newUserService);
+		activeUserServices.put(UserKey.of(userId), newUserService);
 		logger.info("Created a new UserService for user '{}' (total active users: {}).",
 				userId.subject(), activeUserServices.size());
 		return newUserService;
@@ -288,7 +293,7 @@ public class ApplicationManager {
 	 * {@code false} if it was not present on the list of active {@link UserService}s.
 	 */
 	public boolean removeUserService(UserService userService) {
-		return activeUserServices.remove(userService);
+		return activeUserServices.remove(UserKey.of(userService.getUserId()), userService);
 	}
 
 	/**
@@ -298,9 +303,7 @@ public class ApplicationManager {
 	 * @param userId the {@code (issuer, subject)} identity of the user.
 	 */
 	public void removeUserService(DialogueBranchUserId userId) {
-		activeUserServices.removeIf(userService ->
-				userService.getUserId().issuer().equals(userId.issuer())
-						&& userService.getUserId().subject().equals(userId.subject()));
+		activeUserServices.remove(UserKey.of(userId));
 	}
 
 	/**
@@ -316,7 +319,8 @@ public class ApplicationManager {
 	public int removeIdleUserServices(long idleTimeoutMillis) {
 		long cutoff = System.currentTimeMillis() - idleTimeoutMillis;
 		int sizeBefore = activeUserServices.size();
-		activeUserServices.removeIf(userService -> userService.getLastActivityTime() < cutoff);
+		activeUserServices.values().removeIf(
+				userService -> userService.getLastActivityTime() < cutoff);
 		return sizeBefore - activeUserServices.size();
 	}
 
@@ -517,7 +521,7 @@ public class ApplicationManager {
 		projectVersions.remove(projectSlug);
 		projectSourceLanguages.remove(projectSlug);
 		projectLanguages.remove(projectSlug);
-		for (UserService userService : activeUserServices) {
+		for (UserService userService : activeUserServices.values()) {
 			userService.evictVariableStore(projectSlug);
 		}
 		logger.info("Unloaded Dialogue Branch project '{}'.", projectSlug);

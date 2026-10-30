@@ -7,6 +7,24 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Fixed
+
+- Web service: requests of the same user that arrive at the same time, such as a double tap, a
+  retry racing the original or two open tabs, no longer overwrite each other
+  ([#284](https://github.com/dialoguebranch/platform/issues/284),
+  [#216](https://github.com/dialoguebranch/platform/issues/216)). Two steps of one dialogue could
+  each save over the other, losing one, and a dialogue step that changes a variable, such as
+  `<<set $count = $count + 1>>`, could lose a change. Starting, progressing, continuing, going back
+  in and cancelling a dialogue, and setting variables, now run one at a time per user and project;
+  other users and reading aren't held up.
+- Web service: the first requests of a new user arriving at the same time could fail with a `500`
+  error and leave the user with two diverging in-memory sessions
+  ([#214](https://github.com/dialoguebranch/platform/issues/214)); a user now always gets one.
+- Web service: creating, changing or deleting a draft node or translation saved its content and
+  then marked the dialogue as changed in two separate steps, so a failure between them left the
+  dialogue's *Draft* status wrong ([#217](https://github.com/dialoguebranch/platform/issues/217));
+  both now happen together or not at all.
+
 ## [0.8.0] - 2026-10-30
 
 ### Added
