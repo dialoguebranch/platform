@@ -34,6 +34,7 @@ import com.dialoguebranch.execution.Variable;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.VariableUpdatedSource;
 import com.dialoguebranch.json.JsonMapper;
+import com.dialoguebranch.model.common.VariableNames;
 import com.dialoguebranch.model.execute.protocol.DialogueMessage;
 import com.dialoguebranch.model.execute.protocol.DialogueMessageFactory;
 import com.dialoguebranch.model.execute.protocol.NullableResponse;
@@ -377,7 +378,7 @@ public class TestSessionController {
 				(protocolVersion, user, delegated) -> {
 					logger.info("POST /v{}/test-session/set-variable?name={} [user: {}]",
 							version, name, user);
-					if (!name.matches("[A-Za-z]\\w*")) {
+					if (!VariableNames.isValid(name)) {
 						throw BadRequestException.withInvalidInput(List.of(
 								new HttpFieldError("name", "Invalid variable name: " + name)));
 					}

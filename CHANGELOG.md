@@ -42,6 +42,15 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `dlb-core-java`'s public API) and which are internal to Studio. From here on, only a change to a
   stable surface is labelled **Breaking:**; a change to an internal one is labelled
   **Internal API:**. Release notes up to 0.7.0 are unchanged.
+- **Breaking:** Language: variable names may contain dots, so `$user.settings.brightness` is one
+  variable ([#432](https://github.com/dialoguebranch/platform/issues/432)). A dot belongs to the
+  name only when a letter or underscore follows it, so `$readingTime.` at the end of a sentence is
+  still a variable followed by a full stop. The rule is the same in text, replies, quoted strings
+  and `<<set>>`/`<<if>>` expressions. As a side effect, `$m.key` in an expression no longer reads
+  a field of a map held in `$m` (an undocumented behaviour of the expression engine) but the
+  variable `m.key`. The Web Service's variable end-points accept the same names (and now also a
+  leading underscore, as scripts always did). In `dlb-core-java`, the rule is
+  `com.dialoguebranch.model.common.VariableNames`.
 - **Breaking:** Web service: the Web Service authenticates to the External Variable Service with
   an OAuth2 access token instead of a static API key
   ([#428](https://github.com/dialoguebranch/platform/issues/428)). It gets the token from Keycloak

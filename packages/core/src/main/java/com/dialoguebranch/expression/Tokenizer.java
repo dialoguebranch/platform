@@ -35,6 +35,7 @@ package com.dialoguebranch.expression;
 import com.dialoguebranch.exception.LineNumberParseException;
 import com.dialoguebranch.expression.Token.Type;
 import com.dialoguebranch.io.LineColumnNumberReader;
+import com.dialoguebranch.model.common.VariableNames;
 import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
@@ -43,9 +44,6 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 /**
  * A tokenizer can read tokens from text input. It is used by the {@link
  * ExpressionParser ExpressionParser}. A token is an atomic element of an
@@ -394,32 +392,42 @@ public class Tokenizer {
 	 */
 	private Token readDollarVariableToken() throws LineNumberParseException,
 			IOException {
-		Pattern regex = Pattern.compile("\\$[_a-zA-Z][_a-zA-Z0-9]*");
 		while (true) {
-			Object restoreState = reader.getRestoreState(1);
+			// Room for two characters: a dot is only part of the name if a letter or underscore
+			// follows it (see VariableNames).
+			Object restoreState = reader.getRestoreState(2);
 			try {
-				Matcher m = regex.matcher(buffer);
-				boolean currentOk = m.matches();
+				boolean nameStarted = buffer.length() > 1;
 				int next = reader.read();
 				if (next == -1) {
-					if (!currentOk) {
+					if (!nameStarted) {
 						throw createParseException("Invalid token: " + buffer,
 								currTokenLineNum, currTokenColNum);
 					}
 					return completeDollarVariableToken();
 				}
 				char c = (char)next;
-				m = regex.matcher(buffer.toString() + c);
-				boolean newOk = m.matches();
-				if (newOk) {
+				if (!nameStarted) {
+					if (!VariableNames.isStart(c)) {
+						throw createParseException("Invalid token: " + buffer,
+								currTokenLineNum, currTokenColNum);
+					}
 					buffer.append(c);
-				} else if (currentOk) {
-					reader.restoreState(restoreState);
-					return completeDollarVariableToken();
-				} else {
-					throw createParseException("Invalid token: " + buffer,
-							currTokenLineNum, currTokenColNum);
+					continue;
 				}
+				if (VariableNames.isPart(c)) {
+					buffer.append(c);
+					continue;
+				}
+				if (c == '.') {
+					int afterDot = reader.read();
+					if (afterDot != -1 && VariableNames.isStart((char)afterDot)) {
+						buffer.append(c).append((char)afterDot);
+						continue;
+					}
+				}
+				reader.restoreState(restoreState);
+				return completeDollarVariableToken();
 			} finally {
 				reader.clearRestoreState(restoreState);
 			}

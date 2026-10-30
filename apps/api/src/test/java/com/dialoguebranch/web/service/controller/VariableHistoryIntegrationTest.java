@@ -380,6 +380,25 @@ class VariableHistoryIntegrationTest {
 	void invalidVariableNameIsABadRequest() throws Exception {
 		mockMvc.perform(history(newSubject()).param("variableName", "1nvalid"))
 				.andExpect(status().isBadRequest());
+		mockMvc.perform(history(newSubject()).param("variableName", "user."))
+				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void aDottedNameIsOneVariable() throws Exception {
+		String subject = newSubject();
+		setSingle(subject, "user.settings.screenHalf", "left");
+
+		mockMvc.perform(as(get("/v1/variables/get").param("projectSlug", PROJECT)
+						.param("variableNames", "user.settings.screenHalf")
+						.param("timeZone", "Europe/Lisbon"), subject, "participant"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].name").value("user.settings.screenHalf"))
+				.andExpect(jsonPath("$[0].value").value("left"));
+		mockMvc.perform(history(subject).param("variableName", "user.settings.screenHalf"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$", hasSize(1)))
+				.andExpect(jsonPath("$[0].value").value("left"));
 	}
 
 	@Test

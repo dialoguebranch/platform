@@ -29,6 +29,7 @@
 package com.dialoguebranch.execution.parser;
 
 import com.dialoguebranch.exception.LineNumberParseException;
+import com.dialoguebranch.model.common.VariableNames;
 import com.dialoguebranch.model.execute.VariableString;
 
 import java.util.ArrayList;
@@ -207,20 +208,8 @@ public class BodyTokenizer {
 	}
 
 	private String readVariableName(String line, int start, int[] end) {
-		for (int i = start; i < line.length(); i++) {
-			char c = line.charAt(i);
-			if (i == start && (c < 'A' || c > 'Z') &&
-					(c < 'a' || c > 'z') && c != '_') {
-				end[0] = i;
-				return "";
-			} else if (i > start && (c < 'A' || c > 'Z') &&
-					(c < 'a' || c > 'z') && (c < '0' || c > '9') && c != '_') {
-				end[0] = i;
-				return line.substring(start, i);
-			}
-		}
-		end[0] = line.length();
-		return line.substring(start);
+		end[0] = VariableNames.end(line, start);
+		return line.substring(start, end[0]);
 	}
 
 	private int readQuotedString(List<BodyToken> tokens, String line, int lineNum, int start)

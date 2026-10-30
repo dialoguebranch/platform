@@ -211,14 +211,24 @@ Hello, how are you?
 
 ### Basic Statements with Variables
 
-You can use variables within your **Statements**. Variable names must match `[A-Za-z_][A-Za-z0-9_]*` — i.e. they start with a `$`-sign, followed by a letter or underscore, then any number of letters, digits or underscores.
-
-In short: variables names start with a `$`, then a letter or underscore, then letters, numbers or underscores, for example:
+You can use variables within your **Statements**. A variable starts with a `$`-sign, followed by its name. A name starts with a letter or underscore, followed by any number of letters, digits or underscores, for example:
 
 * `$variableName`
 * `$variable_name`
 * `$_privateVar`
 * `$var123`
+
+A name may also consist of several parts separated by dots, such as `$user.settings.brightness` or `$steps.today`. It is still one variable: the dots are part of its name, and variables are not nested. A dot only belongs to the name when a letter or underscore follows it, so a full stop after a variable at the end of a sentence just works:
+
+```text
+Your last reading was taken at $readingTime.
+```
+
+Here the variable is `$readingTime`, followed by a full stop. In the same way, `$value.5` is the variable `$value` followed by `.5`. A name never ends in a dot and never contains two dots in a row. This rule is the same everywhere a variable appears: in **Statements**, **Replies**, quoted strings and the expressions of `<<set>>` and `<<if>>`.
+
+::: tip Naming variables
+Once a project has many variables, give them structured names. Let the first part name the domain or owner of the variable, such as `user.` for a user's settings, `steps.` for step counts, or `onboarding.` for progress through an onboarding, and write each part in camelCase: `$user.settings.screenHalf`, `$steps.today`, `$onboarding.firstUseDone`. Names starting with `dlb.` are reserved for variables with a meaning defined by Dialogue Branch itself.
+:::
 
 These variables can be used within **Statements** to inject their values into a sentence, like so:
 
@@ -228,7 +238,7 @@ Hello $userFirstName, how are you?
 
 ### Basic Statements with Special Characters
 
-What if you actually want to include a $ character in your text? If it's not followed by A-Z a-z, you can just type $. But otherwise you can escape it with a backslash: \$. And to include a backslash? Just escape it with another backslash: \\. In fact, you can escape any character with \ and it will not be treated as a special character.
+What if you actually want to include a $ character in your text? If it's not followed by a letter or underscore, you can just type $. But otherwise you can escape it with a backslash: \$. And to include a backslash? Just escape it with another backslash: \\. In fact, you can escape any character with \ and it will not be treated as a special character.
 
 ### Basic Statements with Markup
 
