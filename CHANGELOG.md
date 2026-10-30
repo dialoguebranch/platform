@@ -20,6 +20,19 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   publishing snapshots them, export and import carry them, and discarding all draft changes
   restores them. A new database migration (`V12`) adds the tables. **Internal API:**
   `POST /project/update-draft` takes `speakers`, the project's complete new list of speakers.
+- Studio: the project's speakers in *Configure Project* and the node editor
+  ([#395](https://github.com/dialoguebranch/platform/issues/395),
+  [#396](https://github.com/dialoguebranch/platform/issues/396)). A new *Speakers* tab adds and
+  removes speakers, sets their gender and the default speaker, saved with the rest of the project's
+  draft configuration. When a project has speakers, the node editor picks a node's speaker from
+  them (keeping, and marking, one that isn't), a new node gets the default speaker, and a node other
+  than `End` can't be saved without a speaker. **Internal API:**
+  `DialogueBranchAuthoringClient.updateProjectDraft` takes `speakers`.
+
+### Fixed
+
+- Studio: saving *Configure Project* no longer replaces the project's name in the header with its
+  slug.
 
 ## [0.8.1] - 2026-10-30
 

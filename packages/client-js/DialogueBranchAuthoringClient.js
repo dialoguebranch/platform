@@ -161,8 +161,8 @@ export class DialogueBranchAuthoringClient extends BaseClient {
     }
 
     /**
-     * Applies a whole "Save Draft" batch — display name/description plus translation-language
-     * add/remove/rename — in one atomic request: either all of it lands, or (if the server finds
+     * Applies a whole "Save Draft" batch — display name/description, translation-language
+     * add/remove/rename and the speakers — in one atomic request: either all of it lands, or (if the server finds
      * a problem with any part of the batch) none of it does.
      *
      * @param {string} projectSlug The project's slug.
@@ -174,15 +174,17 @@ export class DialogueBranchAuthoringClient extends BaseClient {
      * New translation languages to add.
      * @param {{id: string, translationLanguageName: string, translationLanguageCode: string}[]} [draft.updateLanguages]
      * Existing translation languages to rename.
+     * @param {{name: string, gender?: string, default?: boolean}[]} [draft.speakers] The project's
+     * complete new list of speakers, in order; omit it to leave them unchanged.
      * @returns {Promise<Object>} The updated project.
      */
-    updateProjectDraft(projectSlug, { displayName, description, removeLanguageIds, addLanguages, updateLanguages }) {
+    updateProjectDraft(projectSlug, { displayName, description, removeLanguageIds, addLanguages, updateLanguages, speakers }) {
         const url = this._baseUrl + "/project/update-draft?projectSlug=" + encodeURIComponent(projectSlug);
 
         return this._fetch(url, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ displayName, description, removeLanguageIds, addLanguages, updateLanguages }),
+            body: JSON.stringify({ displayName, description, removeLanguageIds, addLanguages, updateLanguages, speakers }),
         }).then((response) => this._handleResponse(response));
     }
 

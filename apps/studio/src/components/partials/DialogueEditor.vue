@@ -9,6 +9,7 @@ import { showError, dismissError } from '@/composables/error-toast.js';
 import { tagsToMap, mapToTags, getPosition, setPosition } from '@/authoring/DlbHeaderTags.js';
 import { extractReplyLinks } from '@/authoring/DlbReplyLinks.js';
 import { colorForId } from '@/composables/node-colors.js';
+import { projectSpeakers, speakerForNewNode } from '@/composables/project-speakers.js';
 import { useLatestRequest } from '@/composables/latest-request.js';
 import NodeEditPanel from './NodeEditPanel.vue';
 import PreambleBar from './PreambleBar.vue';
@@ -284,7 +285,11 @@ function addNode(position) {
         x = (index % GRID_COLUMNS) * GRID_SPACING_X;
         y = Math.floor(index / GRID_COLUMNS) * GRID_SPACING_Y;
     }
-    const tags = mapToTags(setPosition(new Map([['title', title]]), x, y));
+    // A new node gets the project's default speaker, or else its first one (#396).
+    const header = new Map([['title', title]]);
+    const speaker = speakerForNewNode(projectSpeakers.value);
+    if (speaker) header.set('speaker', speaker);
+    const tags = mapToTags(setPosition(header, x, y));
 
     creatingNode.value = true;
     dismissError();

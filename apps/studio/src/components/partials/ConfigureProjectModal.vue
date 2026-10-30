@@ -6,6 +6,7 @@ import { logEvent } from '../../composables/debug-log.js';
 import { describeError } from '../../composables/error-message.js';
 import TextInput from '../widgets/TextInput.vue';
 import PushButton from '../widgets/PushButton.vue';
+import { SPEAKER_GENDERS, checkNewSpeakerName, speakersDiffer } from '../../composables/project-speakers.js';
 
 const props = defineProps({
     projectSlug: { type: String, required: true },
@@ -24,7 +25,7 @@ const loading = ref(true);
 const saving = ref(false);
 const error = ref('');
 
-const activeTab = ref('general'); // 'general' | 'languages'
+const activeTab = ref('general'); // 'general' | 'languages' | 'speakers'
 
 const displayName = ref('');
 const description = ref('');
@@ -84,13 +85,26 @@ const displayedLanguages = computed(() => {
 // ones staged for removal) — used for the tab count and the duplicate-code check.
 const activeLanguages = computed(() => displayedLanguages.value.filter((t) => !t.pendingRemoval));
 
+// The project's speakers (#395): staged here like everything else, and sent as the complete new
+// list on Save. Renaming an existing speaker changes its nodes and translations too, so it is
+// its own, project-wide action (#398), not an edit in this list.
+const speakers = ref([]); // [{ name, gender, default }], in their order
+const originalSpeakers = ref([]);
+const newSpeakerName = ref('');
+const newSpeakerGender = ref('undefined');
+const addSpeakerError = ref('');
+const speakerError = ref(''); // the server's reason a save refused the speakers
+
+const speakersChanged = computed(() => speakersDiffer(speakers.value, originalSpeakers.value));
+
 // Whether there's anything Save would actually do — the button is disabled otherwise.
 const hasUnsavedChanges = computed(() =>
     displayName.value !== originalDisplayName.value
     || description.value !== originalDescription.value
     || removedLanguageIds.value.size > 0
     || newLanguages.value.length > 0
-    || updatedLanguages.value.size > 0);
+    || updatedLanguages.value.size > 0
+    || speakersChanged.value);
 
 const newTranslationName = ref('');
 const newTranslationCode = ref('');
@@ -114,6 +128,10 @@ function load() {
     newLanguages.value = [];
     updatedLanguages.value = new Map();
     languageErrors.value = new Map();
+    newSpeakerName.value = '';
+    newSpeakerGender.value = 'undefined';
+    addSpeakerError.value = '';
+    speakerError.value = '';
     client.getProject(props.projectSlug)
         .then((project) => {
             displayName.value = project.draftDisplayName ?? project.latestVersion?.displayName ?? '';
@@ -127,6 +145,10 @@ function load() {
             // session — kept visible, tagged, and undoable rather than silently dropped, since
             // they're only actually gone once the project is published.
             existingLanguages.value = [...(project.draftTranslationLanguages ?? [])];
+            speakers.value = (project.draftSpeakers ?? []).map((s) => ({
+                name: s.name, gender: s.gender ?? 'undefined', default: !!s.default,
+            }));
+            originalSpeakers.value = speakers.value.map((s) => ({ ...s }));
         })
         .catch(() => { error.value = 'Failed to load project data.'; })
         .finally(() => { loading.value = false; });
@@ -147,6 +169,7 @@ function onSave() {
     saving.value = true;
     error.value = '';
     languageErrors.value = new Map();
+    speakerError.value = '';
 
     const payload = {
         displayName: displayName.value,
@@ -162,6 +185,12 @@ function onSave() {
             translationLanguageCode: staged.code,
         })),
     };
+    // Only when they changed: leaving them out leaves the project's speakers as they are.
+    if (speakersChanged.value) {
+        payload.speakers = speakers.value.map((s) => ({
+            name: s.name, gender: s.gender, default: s.default,
+        }));
+    }
 
     client.updateProjectDraft(props.projectSlug, payload)
         .then((updated) => {
@@ -171,6 +200,7 @@ function onSave() {
             updatedLanguages.value = new Map();
             originalDisplayName.value = displayName.value;
             originalDescription.value = description.value;
+            originalSpeakers.value = speakers.value.map((s) => ({ ...s }));
             emit('saved', { slug: updated.slug, displayName: updated.draftDisplayName });
         })
         .catch((err) => { applySaveError(err); })
@@ -190,9 +220,14 @@ function applySaveError(err) {
 
     const rowErrors = new Map();
     const generalMessages = [];
+    const speakerMessages = [];
     for (const fieldError of fieldErrors) {
         const field = fieldError.field ?? '';
         const message = fieldError.message ?? 'Invalid value.';
+        if (field === 'speakers') {
+            speakerMessages.push(message);
+            continue;
+        }
         const updateMatch = field.match(/^updateLanguages\[(.+)]$/);
         const addMatch = field.match(/^addLanguages\[(.+)]$/);
         if (updateMatch) {
@@ -210,10 +245,44 @@ function applySaveError(err) {
     }
 
     languageErrors.value = rowErrors;
-    error.value = generalMessages.length > 0
-        ? generalMessages.join(' ')
-        : 'Some translation language changes could not be saved — see below.';
-    activeTab.value = 'languages';
+    speakerError.value = speakerMessages.join(' ');
+    if (generalMessages.length > 0) {
+        error.value = generalMessages.join(' ');
+    } else if (rowErrors.size > 0) {
+        error.value = 'Some translation language changes could not be saved — see below.';
+    } else {
+        error.value = 'The speakers could not be saved — see below.';
+    }
+    activeTab.value = rowErrors.size > 0 || speakerMessages.length === 0 ? 'languages' : 'speakers';
+}
+
+function onAddSpeaker() {
+    const name = newSpeakerName.value.trim();
+    const problem = checkNewSpeakerName(name, speakers.value);
+    addSpeakerError.value = problem ?? '';
+    if (problem) return;
+    speakers.value.push({ name, gender: newSpeakerGender.value, default: false });
+    newSpeakerName.value = '';
+    newSpeakerGender.value = 'undefined';
+    speakerError.value = '';
+}
+
+function onRemoveSpeaker(index) {
+    speakers.value.splice(index, 1);
+    speakerError.value = '';
+}
+
+// At most one default: choosing a speaker makes it the default; choosing the default again
+// leaves the project without one.
+function onToggleDefaultSpeaker(index) {
+    const makeDefault = !speakers.value[index].default;
+    speakers.value.forEach((s, i) => { s.default = makeDefault && i === index; });
+    speakerError.value = '';
+}
+
+function onSpeakerGender(index, gender) {
+    speakers.value[index].gender = gender;
+    speakerError.value = '';
 }
 
 function clearLanguageError(id) {
@@ -382,6 +451,19 @@ function confirmRemoveTranslationLanguage() {
                             Languages
                             <span class="text-xs font-normal text-grey-dark">({{ activeLanguages.length }})</span>
                         </button>
+                        <button
+                            type="button"
+                            data-test="tab-speakers"
+                            class="flex items-center gap-2 px-4 py-2 font-title text-sm rounded-t border shrink-0 cursor-pointer"
+                            :class="activeTab === 'speakers'
+                                ? 'bg-white border-grey-light border-b-2 border-b-white text-orange-darker font-semibold relative z-[100] -mb-px'
+                                : 'bg-grey-lighter border-grey-light border-b-0 text-grey-dark hover:bg-white'"
+                            @click="activeTab = 'speakers'"
+                        >
+                            <FontAwesomeIcon icon="fa-solid fa-users" class="text-xs" />
+                            Speakers
+                            <span class="text-xs font-normal text-grey-dark">({{ speakers.length }})</span>
+                        </button>
                     </div>
 
                     <!-- Content -->
@@ -449,6 +531,94 @@ function confirmRemoveTranslationLanguage() {
                             </div>
                         </template>
 
+                        <!-- Speakers tab (#395) -->
+                        <template v-else-if="activeTab === 'speakers'">
+                            <p class="text-xs text-grey-dark font-title">
+                                The speakers a node can have. A new node gets the default speaker.
+                                A speaker's gender chooses between translations in languages where a
+                                text changes with it. Removing a speaker doesn't change the nodes that
+                                use it.
+                            </p>
+                            <div v-if="speakerError" data-test="speaker-error" class="text-xs text-red-dark font-title">
+                                <FontAwesomeIcon icon="fa-solid fa-circle-exclamation" class="mr-1" />{{ speakerError }}
+                            </div>
+                            <div v-if="speakers.length === 0" class="text-sm text-grey-dark italic">
+                                No speakers defined. Nodes can then have any speaker.
+                            </div>
+                            <table v-else class="w-full text-xs font-title border border-grey-light rounded-lg overflow-hidden">
+                                <thead class="bg-grey-lighter text-orange-darker font-semibold">
+                                    <tr>
+                                        <th class="text-left px-3 py-2">Speaker</th>
+                                        <th class="text-left px-3 py-2">Gender</th>
+                                        <th class="px-3 py-2">Default</th>
+                                        <th class="px-2 py-2"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="(s, i) in speakers" :key="s.name" data-test="speaker-row"
+                                        class="border-t border-grey-lighter hover:bg-grey-lighter">
+                                        <td class="px-3 py-2 text-orange-darker">{{ s.name }}</td>
+                                        <td class="px-3 py-2">
+                                            <select
+                                                :value="s.gender"
+                                                data-test="speaker-gender"
+                                                class="px-2 py-1 border border-grey-light rounded text-xs font-title bg-white focus:outline-none focus:border-orange-dark"
+                                                @change="onSpeakerGender(i, $event.target.value)"
+                                            >
+                                                <option v-for="g in SPEAKER_GENDERS" :key="g.value" :value="g.value">{{ g.label }}</option>
+                                            </select>
+                                        </td>
+                                        <td class="px-3 py-2 text-center">
+                                            <button
+                                                type="button"
+                                                data-test="speaker-default"
+                                                class="cursor-pointer"
+                                                :class="s.default ? 'text-orange-darker' : 'text-grey-light hover:text-grey-dark'"
+                                                :title="s.default ? 'The default speaker for new nodes; click to have no default' : 'Make this the default speaker for new nodes'"
+                                                @click="onToggleDefaultSpeaker(i)"
+                                            >
+                                                <FontAwesomeIcon :icon="s.default ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle'" />
+                                            </button>
+                                        </td>
+                                        <td class="px-2 py-2 text-right">
+                                            <button
+                                                type="button"
+                                                data-test="speaker-remove"
+                                                class="text-red-dark hover:text-red-darker cursor-pointer"
+                                                title="Remove speaker"
+                                                @click="onRemoveSpeaker(i)"
+                                            >
+                                                <FontAwesomeIcon icon="fa-solid fa-trash" />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <!-- Add a speaker -->
+                            <div class="border border-dashed border-orange-medium rounded-lg px-3 py-3 flex flex-col gap-2">
+                                <span class="font-title font-semibold text-xs text-orange-darker">Add Speaker</span>
+                                <div class="grid grid-cols-[1fr_auto] gap-2">
+                                    <div>
+                                        <label class="text-xs text-grey-dark mb-0.5 block">Name</label>
+                                        <TextInput class="w-full" v-model="newSpeakerName" data-test="new-speaker-name" placeholder="e.g. Martin McOwl" />
+                                    </div>
+                                    <div>
+                                        <label class="text-xs text-grey-dark mb-0.5 block">Gender</label>
+                                        <select
+                                            v-model="newSpeakerGender"
+                                            data-test="new-speaker-gender"
+                                            class="h-[46px] px-2 border-[2px] border-gray-300 rounded-md text-sm font-title bg-white focus:outline-none focus:border-orange-dark"
+                                        >
+                                            <option v-for="g in SPEAKER_GENDERS" :key="g.value" :value="g.value">{{ g.label }}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div v-if="addSpeakerError" data-test="add-speaker-error" class="text-xs text-red-dark font-title">{{ addSpeakerError }}</div>
+                                <div>
+                                    <PushButton text="Add Speaker" data-test="add-speaker" @click="onAddSpeaker" />
+                                </div>
+                            </div>
+                        </template>
                         <!-- Languages tab -->
                         <template v-else>
                             <!-- Source language (read-only — fixed at project creation) -->

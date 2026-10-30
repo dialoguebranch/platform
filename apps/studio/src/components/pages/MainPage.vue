@@ -3,6 +3,7 @@ import { inject, onMounted, onUnmounted, ref, computed, useTemplateRef } from 'v
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useClient, useAuthoringClient, setDelegateUser, getBrowserTimeZone } from '../../composables/client.js';
 import { statusLabel, STATUS_REFRESH_INTERVAL } from '../../composables/external-variable-service-status.js';
+import { setProjectSpeakers, speakersDiffer } from '../../composables/project-speakers.js';
 import { useStateManagement } from '../../composables/state-management.js';
 import DialogueBrowser from '../partials/DialogueBrowser.vue';
 import ConfigureProjectModal from '../partials/ConfigureProjectModal.vue';
@@ -185,26 +186,35 @@ function onConfigureProjectClick() {
 
 function onProjectConfigured(updated) {
     showConfigureProject.value = false;
-    state.value.selectedProject = { ...state.value.selectedProject, slug: updated.slug, displayName: updated.latestVersion?.displayName ?? updated.draftDisplayName ?? updated.slug };
-    // The modal only reports the fields it itself changed — re-fetch to also pick up any
-    // translation-language additions/removals when recomputing the unpublished-changes state.
+    state.value.selectedProject = { ...state.value.selectedProject, slug: updated.slug };
+    // The modal only reports the slug and draft name — re-fetch for the name to show (the
+    // published one, as on mount) and to recompute the unpublished-changes state.
     authoringClient.getProject(updated.slug)
-        .then((project) => refreshProjectMetadataChanged(project))
+        .then((project) => {
+            state.value.selectedProject = {
+                ...state.value.selectedProject,
+                displayName: project.latestVersion?.displayName ?? project.draftDisplayName ?? project.slug,
+            };
+            refreshProjectMetadataChanged(project);
+        })
         .catch(() => { /* leave the previous unpublished-changes state as-is */ });
     // Configure Project may have added/removed a translation language — refresh the "Test
     // dialogues in:" selector so it reflects the latest list without needing a page reload.
     dialogueWorkspace.value?.loadAvailableLanguages();
 }
 
-// Whether the currently selected project's draft metadata (display name, description, or
-// translation-language registry) differs from what's currently published — seeded on mount (see
-// onMounted above) and refreshed after every Configure Project save.
+// Whether the currently selected project's draft metadata (display name, description,
+// translation-language registry or speakers) differs from what's currently published — seeded on
+// mount (see onMounted above) and refreshed after every Configure Project save. The same moments
+// load the project's draft speakers for the node editor (#396).
 const projectMetadataChanged = ref(false);
 
 function refreshProjectMetadataChanged(project) {
+    setProjectSpeakers(project.draftSpeakers);
     projectMetadataChanged.value = project.draftDisplayName !== (project.latestVersion?.displayName ?? null)
         || project.draftDescription !== (project.latestVersion?.description ?? null)
-        || (project.draftTranslationLanguages ?? []).some((l) => l.isNew || l.isDeleted);
+        || (project.draftTranslationLanguages ?? []).some((l) => l.isNew || l.isDeleted)
+        || speakersDiffer(project.draftSpeakers, project.latestVersion?.speakers);
 }
 
 // Whether the currently selected project has any dialogue that's new, changed, or pending
