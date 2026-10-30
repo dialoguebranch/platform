@@ -561,9 +561,12 @@ public class VariablesController {
 	 * implementation ignores it and always returns the same list &mdash; a real, multi-project
 	 * External Variable Service may support different variables per project.</p>
 	 *
-	 * <p>In this dummy implementation, the reported list is exactly the three variables
+	 * <p>In this dummy implementation, the reported list is the three variables
 	 * {@code retrieveUpdates} always knows how to compute: {@code currentDate}, {@code
-	 * currentTime}, and {@code dayPart}.</p>
+	 * currentTime}, and {@code dayPart}, each with the hints {@code type: string} and
+	 * {@code readOnly: true}, and for {@code dayPart} its allowed {@code values}; followed by four
+	 * {@code example.*} variables that show each hint once, and which this service has no value
+	 * of its own for.</p>
 	 *
 	 * @param request the {@link HttpServletRequest} that generated the request.
 	 * @param response the {@link HttpServletResponse} that generated the request.
@@ -578,9 +581,11 @@ public class VariablesController {
 			"<br/><br/>The reported list is static and project-independent capability information " +
 			"(\"can this service compute this variable at all\"), not a per-user value check " +
 			"(that is what 'retrieve-updates' answers)." +
-			"<br/><br/>In this dummy implementation, the reported list is always the same three " +
+			"<br/><br/>In this dummy implementation, the reported list is always the three " +
 			"variables that 'retrieve-updates' knows how to compute: 'currentDate', " +
-			"'currentTime', and 'dayPart'.")
+			"'currentTime', and 'dayPart', each declared as a read-only string, with 'dayPart' " +
+			"listing its allowed values; followed by four 'example.*' variables that show each " +
+			"hint once, and which this service has no value of its own for.")
 	@ApiResponses(value = {
 		@ApiResponse(responseCode = "200",
 			description = "Successful operation",
@@ -610,14 +615,31 @@ public class VariablesController {
 			throw new BadRequestException("Missing 'projectSlug' in request.");
 		}
 
+		// The first three are computed by this service, so a dialogue can't change them
+		// (readOnly). The example.* variables show each hint once; this service has no value of
+		// its own for them, so their values are whatever dialogues set.
 		return List.of(
 				new SupportedVariablePayload("currentDate",
-						"Today's date (yyyy-MM-dd) in the user's time zone"),
+						"Today's date (yyyy-MM-dd) in the user's time zone",
+						"string", null, true),
 				new SupportedVariablePayload("currentTime",
-						"The current time (HH:mm:ss) in the user's time zone"),
+						"The current time (HH:mm:ss) in the user's time zone",
+						"string", null, true),
 				new SupportedVariablePayload("dayPart",
 						"One of 'morning', 'afternoon', 'evening', or 'night', based on the " +
-								"current hour in the user's time zone"));
+								"current hour in the user's time zone",
+						"string", List.<Object>of("morning", "afternoon", "evening", "night"), true),
+				new SupportedVariablePayload("example.number",
+						"An example of a number that dialogues may change",
+						"number", null, false),
+				new SupportedVariablePayload("example.flag",
+						"An example of a boolean that dialogues may change",
+						"boolean", null, false),
+				new SupportedVariablePayload("example.choice",
+						"An example of a string limited to a fixed set of values",
+						"string", List.<Object>of("a", "b", "c"), false),
+				new SupportedVariablePayload("example.noHints",
+						"An example of a variable declared without any hints"));
 	}
 
 }

@@ -3,6 +3,7 @@ import { Statement } from './Statement.js';
 import { BasicReply } from './BasicReply.js';
 import { AutoForwardReply } from './AutoForwardReply.js';
 import { ServerInfo } from './ServerInfo.js';
+import { SupportedVariable } from './SupportedVariable.js';
 import { User } from './User.js';
 import { OngoingDialogue } from './OngoingDialogue.js';
 import { Variable } from './Variable.js';
@@ -117,5 +118,27 @@ describe('VariableHistoryEntry.fromJSON', () => {
             expect(entry.value).toBe(value);
             expect(entry.isRemoval).toBe(false);
         }
+    });
+});
+
+describe('SupportedVariable.fromJSON', () => {
+    it('carries the name, description and the hints the service gave', () => {
+        const variable = SupportedVariable.fromJSON({
+            name: 'user.settings.screenHalf', description: 'Which half of the screen to use',
+            type: 'string', values: ['off', 'left', 'right'], readOnly: false,
+        });
+        expect(variable.name).toBe('user.settings.screenHalf');
+        expect(variable.description).toBe('Which half of the screen to use');
+        expect(variable.type).toBe('string');
+        expect(variable.values).toEqual(['off', 'left', 'right']);
+        expect(variable.readOnly).toBe(false);
+    });
+
+    it('leaves a hint the service didn\'t give as null, never a default', () => {
+        const variable = SupportedVariable.fromJSON({ name: 'mood' });
+        expect(variable.description).toBeNull();
+        expect(variable.type).toBeNull();
+        expect(variable.values).toBeNull();
+        expect(variable.readOnly).toBeNull();
     });
 });

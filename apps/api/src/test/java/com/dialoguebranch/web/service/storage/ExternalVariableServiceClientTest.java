@@ -33,8 +33,10 @@ import com.dialoguebranch.execution.Variable;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.VariableUpdatedSource;
 import com.dialoguebranch.web.service.DlbProperties;
+import com.dialoguebranch.web.service.controller.schema.SupportedVariableInfo;
 import com.dialoguebranch.web.service.exception.ErrorCode;
 import com.dialoguebranch.web.service.exception.ServiceUnavailableException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -109,6 +111,28 @@ class ExternalVariableServiceClientTest {
 				exception.getError().getCode());
 		assertEquals(HttpStatus.SERVICE_UNAVAILABLE,
 				ServiceUnavailableException.class.getAnnotation(ResponseStatus.class).value());
+	}
+
+	@Test
+	void supportedVariablesCarryTheServicesHintsAndOnlyThose() throws Exception {
+		service = FakeExternalVariableService.answering(200, """
+				[{"name": "steps.today", "description": "Steps so far today", "type": "number",
+				  "readOnly": true, "unit": "steps"},
+				 {"name": "user.settings.screenHalf", "type": "string",
+				  "values": ["off", "left", "right"], "readOnly": false},
+				 {"name": "mood"}]
+				""", Duration.ZERO);
+		ExternalVariableServiceClient client = clientFor(service, Duration.ofSeconds(1));
+
+		List<SupportedVariableInfo> supported = client.getSupportedVariables("p");
+
+		assertEquals(new SupportedVariableInfo("steps.today", "Steps so far today", "number",
+				null, true), supported.get(0));
+		assertEquals(new SupportedVariableInfo("user.settings.screenHalf", null, "string",
+				List.of("off", "left", "right"), false), supported.get(1));
+		assertEquals(new SupportedVariableInfo("mood", null, null, null, null), supported.get(2));
+		// A hint the service left out stays absent on the way to Studio.
+		assertEquals("{\"name\":\"mood\"}", new ObjectMapper().writeValueAsString(supported.get(2)));
 	}
 
 	@Test

@@ -57,6 +57,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -93,6 +94,28 @@ class TokenCheckTest {
 	void aValidTokenWithTheRoleIsAccepted() throws Exception {
 		mockMvc.perform(supported(token(KEY, ISSUER, AUDIENCE, List.of("evs-access"), 300)))
 				.andExpect(status().isOk());
+	}
+
+	@Test
+	void theSupportedVariablesCarryTheirHints() throws Exception {
+		// Not about the token check, but this class already sets up a valid token (#433).
+		mockMvc.perform(supported(token(KEY, ISSUER, AUDIENCE, List.of("evs-access"), 300)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].name").value("currentDate"))
+				.andExpect(jsonPath("$[0].type").value("string"))
+				.andExpect(jsonPath("$[0].readOnly").value(true))
+				.andExpect(jsonPath("$[0].values").doesNotExist())
+				.andExpect(jsonPath("$[2].name").value("dayPart"))
+				.andExpect(jsonPath("$[2].values[3]").value("night"))
+				.andExpect(jsonPath("$[3].name").value("example.number"))
+				.andExpect(jsonPath("$[3].type").value("number"))
+				.andExpect(jsonPath("$[3].readOnly").value(false))
+				.andExpect(jsonPath("$[4].type").value("boolean"))
+				.andExpect(jsonPath("$[5].values[0]").value("a"))
+				.andExpect(jsonPath("$[6].name").value("example.noHints"))
+				.andExpect(jsonPath("$[6].type").doesNotExist())
+				.andExpect(jsonPath("$[6].values").doesNotExist())
+				.andExpect(jsonPath("$[6].readOnly").doesNotExist());
 	}
 
 	@Test

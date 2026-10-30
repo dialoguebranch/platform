@@ -9,6 +9,15 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Web service, client-js and mock-variable-service: an External Variable Service can give each
+  variable it reports in `GET /variables/supported` the optional hints `type` (`number`, `string`
+  or `boolean`), `values` (the allowed values) and `readOnly`
+  ([#433](https://github.com/dialoguebranch/platform/issues/433)). `GET /variables/list-supported`
+  passes them on as sent, and client-js's `listSupportedVariables` now returns `SupportedVariable`
+  objects (also exported from `@dialoguebranch/client-js/protocol`) carrying them. The hints are
+  for authors only and aren't enforced. `mock-variable-service` declares its three variables as
+  read-only strings, with `dayPart`'s allowed values, and adds four `example.*` variables that
+  show each hint once.
 - Studio: a search field on the project page, filtering projects by name, slug or description.
 - Studio, web service and client-js: simulate a user, to investigate a problem they have without
   changing any of their data ([#411](https://github.com/dialoguebranch/platform/issues/411)).
