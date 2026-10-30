@@ -57,7 +57,8 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Controller for the /variables/ -end-points of the Dialogue Branch External Variable Service
@@ -75,6 +76,10 @@ public class VariablesController {
 
 	/** The logger used for logging (debug) info to log files. */
 	private static final Logger logger = LoggerFactory.getLogger(VariablesController.class);
+
+	/** The example variables this service reports as supported, to show each hint once. */
+	private static final Set<String> EXAMPLE_VARIABLES = Set.of("example.number",
+			"example.flag", "example.choice", "example.noHints");
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
@@ -103,9 +108,11 @@ public class VariablesController {
 	 * <p>You must pass along the current timezone of the user (client) so that certain time
 	 * sensitive variables may be correctly set according to the timezone of the user</p>
 	 *
-	 * <p>In this dummy implementation, for every variable that you include in the request list
-	 * there is a 50% chance that it will be returned in the response list with the same value as
-	 * provided in the request.</p>
+	 * <p>In this dummy implementation, only the variables this service reports as supported get a
+	 * value (see {@code /variables/supported}): {@code currentDate}, {@code currentTime} and
+	 * {@code dayPart} from the current time in the user's time zone, and the {@code example.*}
+	 * variables a random value of their declared type. Any other variable in the request is not
+	 * this service's to answer for, and is never returned.</p>
 	 *
 	 * <p>The response carries each updated variable's name and value only: the Web Service
 	 * records when it received an update as the variable's updated time.</p>
@@ -132,11 +139,12 @@ public class VariablesController {
 			"<br/><br/>You must pass along the current timezone of the user (client) so that " +
 			"certain time sensitive variables may be correctly set according to the timezone of " +
 			"the user." +
-			"<br/><br/>In this dummy implementation, three specific variables will always be " +
-			"updated: 'currentDate', 'currentTime', and 'dayPart' (one of 'morning', 'afternoon', " +
-				"'evening', or 'night', based on the current hour). Furthermore, for every other variable " +
-			"that is included in the request list there is a 50% chance that it will be returned " +
-			"in the response list, with the same value as provided in the request." +
+			"<br/><br/>In this dummy implementation, only the variables this service reports as " +
+			"supported (see '/variables/supported') get a value: 'currentDate', 'currentTime' " +
+			"and 'dayPart' (one of 'morning', 'afternoon', 'evening', or 'night', based on the " +
+			"current hour) from the current time in the user's time zone, and the 'example.*' " +
+			"variables a random value of their declared type. Any other variable in the request " +
+			"is never returned." +
 			"<br/><br/>The response carries each updated variable's name and value only (a null " +
 			"value removes the variable): the Web Service records when it received an update as " +
 			"the variable's updated time.")
@@ -208,14 +216,14 @@ public class VariablesController {
 	 *
 	 * <p>In this dummy implementation, the method does the following:</p>
 	 *
-	 * <p>First of all, if an update is requested for a variable with name 'currentDate',
-	 * 'currentTime', and/or 'dayPart', those variables will be updated to reflect the current
-	 * date, time, and part of the day (one of 'morning', 'afternoon', 'evening', or 'night') in
-	 * the user's provided time zone.</p>
+	 * <p>If an update is requested for a variable with name 'currentDate', 'currentTime', and/or
+	 * 'dayPart', those variables will be updated to reflect the current date, time, and part of
+	 * the day (one of 'morning', 'afternoon', 'evening', or 'night') in the user's provided time
+	 * zone. Each {@code example.*} variable gets a random value of its declared type (see
+	 * {@link #randomExampleValue(String)}).</p>
 	 *
-	 * <p>For every other Dialogue Branch Variable for which an update is requested, there is a 50%
-	 * chance that this variable will be included in the result set, without changing its
-	 * value.</p>
+	 * <p>A service only answers for the variables it reports as supported, so every other
+	 * variable in the request is left out of the result.</p>
 	 *
 	 * @param subject the {@code String} identifier of the user who's variable updates are requested.
 	 * @param timeZone the time zone of the user as one of {@code TimeZone.getAvailableIDs()}
@@ -233,8 +241,6 @@ public class VariablesController {
 		ZoneId timeZoneId = ControllerFunctions.parseTimeZone(timeZone);
 
 		List<DLBVariableUpdatePayload> result = new ArrayList<>();
-
-		Random random = new Random();
 
 		for (DLBVariablePayload parameterToUpdate : parameters) {
 
@@ -294,17 +300,36 @@ public class VariablesController {
 				result.add(newParam);
 			}
 
-			// With 50% chance, return the variable as if it has been updated
-			else if(random.nextBoolean()) {
-				DLBVariableUpdatePayload newParam = new DLBVariableUpdatePayload(
-						parameterToUpdate.getName(),
-						parameterToUpdate.getValue());
-				result.add(newParam);
+			// The example.* variables get a random value of their declared type
+			else if(EXAMPLE_VARIABLES.contains(parameterToUpdate.getName())) {
+				result.add(new DLBVariableUpdatePayload(parameterToUpdate.getName(),
+						randomExampleValue(parameterToUpdate.getName())));
 			}
+
+			// Any other variable isn't one this service supports, so it never answers for it
 
 		}
 
 		return result;
+	}
+
+	/**
+	 * Returns a random value for one of the {@code example.*} variables, of the type its entry in
+	 * {@code /variables/supported} declares: a number from 0 to 99 for {@code example.number}, a
+	 * boolean for {@code example.flag}, one of its allowed values for {@code example.choice}, and
+	 * a short string for {@code example.noHints}.
+	 *
+	 * @param name the name of one of the {@code example.*} variables.
+	 * @return a random value for it.
+	 */
+	private Object randomExampleValue(String name) {
+		ThreadLocalRandom random = ThreadLocalRandom.current();
+		return switch (name) {
+			case "example.number" -> random.nextInt(100);
+			case "example.flag" -> random.nextBoolean();
+			case "example.choice" -> List.of("a", "b", "c").get(random.nextInt(3));
+			default -> "example-" + random.nextInt(1000);
+		};
 	}
 
 	/**
@@ -565,8 +590,8 @@ public class VariablesController {
 	 * {@code retrieveUpdates} always knows how to compute: {@code currentDate}, {@code
 	 * currentTime}, and {@code dayPart}, each with the hints {@code type: string} and
 	 * {@code readOnly: true}, and for {@code dayPart} its allowed {@code values}; followed by four
-	 * {@code example.*} variables that show each hint once, and which this service has no value
-	 * of its own for.</p>
+	 * {@code example.*} variables that show each hint once, which {@code retrieve-updates} gives
+	 * a random value of their declared type.</p>
 	 *
 	 * @param request the {@link HttpServletRequest} that generated the request.
 	 * @param response the {@link HttpServletResponse} that generated the request.
@@ -585,7 +610,7 @@ public class VariablesController {
 			"variables that 'retrieve-updates' knows how to compute: 'currentDate', " +
 			"'currentTime', and 'dayPart', each declared as a read-only string, with 'dayPart' " +
 			"listing its allowed values; followed by four 'example.*' variables that show each " +
-			"hint once, and which this service has no value of its own for.")
+			"hint once, which 'retrieve-updates' gives a random value of their declared type.")
 	@ApiResponses(value = {
 		@ApiResponse(responseCode = "200",
 			description = "Successful operation",
@@ -616,8 +641,8 @@ public class VariablesController {
 		}
 
 		// The first three are computed by this service, so a dialogue can't change them
-		// (readOnly). The example.* variables show each hint once; this service has no value of
-		// its own for them, so their values are whatever dialogues set.
+		// (readOnly). The example.* variables show each hint once; retrieve-updates gives them a
+		// random value of their declared type.
 		return List.of(
 				new SupportedVariablePayload("currentDate",
 						"Today's date (yyyy-MM-dd) in the user's time zone",

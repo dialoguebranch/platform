@@ -17,7 +17,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   objects (also exported from `@dialoguebranch/client-js/protocol`) carrying them. The hints are
   for authors only and aren't enforced. `mock-variable-service` declares its three variables as
   read-only strings, with `dayPart`'s allowed values, and adds four `example.*` variables that
-  show each hint once.
+  show each hint once and get a random value of their declared type. It now only answers
+  `retrieve-updates` for the variables it reports as supported: it no longer returns other
+  variables half of the time with their value unchanged.
 - Studio: a search field on the project page, filtering projects by name, slug or description.
 - Studio, web service and client-js: simulate a user, to investigate a problem they have without
   changing any of their data ([#411](https://github.com/dialoguebranch/platform/issues/411)).

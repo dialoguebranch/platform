@@ -43,6 +43,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -56,7 +57,13 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.oneOf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -116,6 +123,29 @@ class TokenCheckTest {
 				.andExpect(jsonPath("$[6].type").doesNotExist())
 				.andExpect(jsonPath("$[6].values").doesNotExist())
 				.andExpect(jsonPath("$[6].readOnly").doesNotExist());
+	}
+
+	@Test
+	void onlySupportedVariablesGetAValue() throws Exception {
+		// Not about the token check, but this class already sets up a valid token.
+		mockMvc.perform(post("/v1/variables/retrieve-updates")
+						.param("subject", "s").param("timeZone", "Europe/Amsterdam")
+						.header("Authorization", "Bearer "
+								+ token(KEY, ISSUER, AUDIENCE, List.of("evs-access"), 300))
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								[{"name": "currentDate"}, {"name": "example.number"},
+								 {"name": "example.flag"}, {"name": "example.choice"},
+								 {"name": "example.noHints"}, {"name": "notSupported", "value": "x"}]
+								"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$", hasSize(5)))
+				.andExpect(jsonPath("$[*].name", not(hasItem("notSupported"))))
+				.andExpect(jsonPath("$[1].name").value("example.number"))
+				.andExpect(jsonPath("$[1].value").isNumber())
+				.andExpect(jsonPath("$[2].value").isBoolean())
+				.andExpect(jsonPath("$[3].value", is(oneOf("a", "b", "c"))))
+				.andExpect(jsonPath("$[4].value").isString());
 	}
 
 	@Test
