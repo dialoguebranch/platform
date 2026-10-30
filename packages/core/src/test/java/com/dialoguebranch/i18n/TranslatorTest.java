@@ -32,12 +32,15 @@ import com.dialoguebranch.execution.parser.DialogueBranchParser;
 import com.dialoguebranch.execution.parser.ParserResult;
 import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.Node;
+import com.dialoguebranch.model.execute.NodeBody;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -119,5 +122,57 @@ public class TranslatorTest {
 				TranslationContext.Gender.MALE, Map.of()));
 		assertTrue(body(dialogue, "Start"), body(dialogue, "Start").startsWith("Hallo (f)."));
 		assertTrue(body(dialogue, "Anna"), body(dialogue, "Anna").startsWith("Hello."));
+	}
+
+	// -------------------- commands among the text (#437) -------------------- //
+
+	/** Parses a one-node script spoken by Robot, translates it with {@code json} and returns it. */
+	private static Node translatedStart(String body, String json) throws IOException {
+		ParserResult parsed;
+		try (DialogueBranchParser parser = new DialogueBranchParser("main",
+				new StringReader("title: Start\nspeaker: Robot\n---\n" + body + "===\n"))) {
+			parsed = parser.readDialogue();
+		}
+		assertEquals(List.of(), parsed.getParseErrors());
+		TranslationParserResult translations = TranslationParser.parse(new StringReader(json));
+		assertEquals(List.of(), translations.getParseErrors());
+		return new Translator(new TranslationContext(), translations.getTranslations())
+				.translate(parsed.getDialogue()).getNodeById("Start");
+	}
+
+	/** Runs a node with {@code $theme} set to "light" and returns what it says. */
+	private static String say(Node node) throws Exception {
+		Map<String,Object> variables = new HashMap<>(Map.of("theme", "light"));
+		return ((NodeBody) node.getBody()).execute(variables, true).getSegments().stream()
+				.map(Object::toString).collect(Collectors.joining()).trim();
+	}
+
+	@Test
+	public void aSetBeforeTheTextStillRunsBeforeItsTranslation() throws Exception {
+		Node node = translatedStart("<<set $theme = \"dark\">>\n\nYour theme is $theme.\n",
+				"{\"Robot\": {\"Your theme is $theme.\": \"Uw thema is $theme.\"}}");
+		assertEquals("Uw thema is dark.", say(node));
+	}
+
+	@Test
+	public void aSetAfterTheTextStaysAfterItsTranslation() throws Exception {
+		Node node = translatedStart("Your theme is $theme.\n<<set $theme = \"dark\">>\n",
+				"{\"Robot\": {\"Your theme is $theme.\": \"Uw thema is $theme.\"}}");
+		assertEquals("Uw thema is light.", say(node));
+	}
+
+	@Test
+	public void aSetInsideTheTextFollowsItsTranslation() throws Exception {
+		// A translation can't say where inside its own text the command belongs.
+		Node node = translatedStart("It was $theme, <<set $theme = \"dark\">>now $theme.\n",
+				"{\"Robot\": {\"It was $theme, now $theme.\": \"Het was $theme, nu $theme.\"}}");
+		assertEquals("Het was light, nu light.", say(node));
+	}
+
+	@Test
+	public void anUntranslatedRunKeepsItsSourceOrder() throws Exception {
+		String body = "It was $theme, <<set $theme = \"dark\">>now $theme.\n";
+		Node node = translatedStart(body, "{\"Robot\": {\"Something else.\": \"Iets anders.\"}}");
+		assertEquals("It was light, now dark.", say(node));
 	}
 }
