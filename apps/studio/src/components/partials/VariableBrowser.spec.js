@@ -911,3 +911,39 @@ describe('VariableBrowser — supported-variable hints (#434)', () => {
         expect(locks[0].attributes('title')).toContain('at the next dialogue start');
     });
 });
+
+describe('VariableBrowser — an unreachable External Variable Service (#430)', () => {
+    async function openUsed() {
+        const wrapper = mountBrowser();
+        await flushPromises();
+        await openMode(wrapper, 'Used');
+        return wrapper;
+    }
+
+    it('says so in Used when the service is configured but can\'t be reached (503)', async () => {
+        authoring.listSupportedVariables.mockRejectedValue(
+            Object.assign(new Error('Service Unavailable'), { status: 503 }));
+        const wrapper = await openUsed();
+        expect(wrapper.get('[data-test="supported-unreachable"]').text())
+            .toContain('can\'t be reached');
+    });
+
+    it('stays silent when no service is configured (501)', async () => {
+        authoring.listSupportedVariables.mockRejectedValue(
+            Object.assign(new Error('Not Implemented'), { status: 501 }));
+        const wrapper = await openUsed();
+        expect(wrapper.find('[data-test="supported-unreachable"]').exists()).toBe(false);
+    });
+
+    it('drops the notice once the service answers again', async () => {
+        authoring.listSupportedVariables.mockRejectedValueOnce(
+            Object.assign(new Error('Service Unavailable'), { status: 503 }));
+        const wrapper = await openUsed();
+        expect(wrapper.find('[data-test="supported-unreachable"]').exists()).toBe(true);
+
+        await wrapper.findAll('button').find((b) => b.attributes('title') === 'Refresh variables')
+            .trigger('click');
+        await flushPromises();
+        expect(wrapper.find('[data-test="supported-unreachable"]').exists()).toBe(false);
+    });
+});

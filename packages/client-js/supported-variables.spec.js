@@ -51,3 +51,18 @@ describe('DialogueBranchAuthoringClient.listSupportedVariables', () => {
         expect(supported[1].readOnly).toBeNull();
     });
 });
+
+describe('DialogueBranchAuthoringClient.getExternalVariableServiceStatus', () => {
+    it('asks the Web Service whether the External Variable Service is running', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(
+            { state: 'UNREACHABLE', checkedAt: 1793300000000 }),
+            { status: 200, headers: { 'content-type': 'application/json' } }));
+        vi.stubGlobal('fetch', fetchMock);
+
+        const status = await new DialogueBranchAuthoringClient({ baseUrl: '/api/v1' })
+            .getExternalVariableServiceStatus();
+
+        expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/info/external-variable-service');
+        expect(status).toEqual({ state: 'UNREACHABLE', checkedAt: 1793300000000 });
+    });
+});

@@ -1,7 +1,8 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import { useAuthoringClient } from '../../composables/client.js';
+import { useAuthoringClient, getBrowserTimeZone } from '../../composables/client.js';
+import { formatTimestamp } from '../../composables/variable-history.js';
 
 const emit = defineEmits(['close']);
 
@@ -19,6 +20,13 @@ const observedAddress = computed(() => {
     if (!i || !i.serverName) return null;
     return `${i.scheme}://${i.serverName}:${i.serverPort}`;
 });
+
+// The External Variable Service (#430): where it is, and how the Web Service's own calls to it
+// went since it started. Times in the Studio user's time zone.
+const evs = computed(() => technicalInfo.value?.externalVariableService ?? null);
+function evsTime(epochMillis) {
+    return formatTimestamp(epochMillis, getBrowserTimeZone()) ?? 'none yet';
+}
 
 onMounted(() => {
     client.getTechnicalInfo()
@@ -78,6 +86,17 @@ onMounted(() => {
                         <div class="flex flex-col gap-0.5 py-2">
                             <dt class="text-grey-dark font-title text-xs uppercase tracking-wide">Keycloak</dt>
                             <dd class="font-mono text-orange-darker break-all">{{ technicalInfo.keycloakBaseUrl }} <span class="text-grey-dark">(realm: {{ technicalInfo.keycloakRealm }})</span></dd>
+                        </div>
+                        <div v-if="evs" class="flex flex-col gap-0.5 py-2" data-test="technical-evs">
+                            <dt class="text-grey-dark font-title text-xs uppercase tracking-wide">External Variable Service</dt>
+                            <dd v-if="!evs.enabled" class="font-mono text-grey-dark">Not configured</dd>
+                            <dd v-else class="font-mono text-orange-darker flex flex-col gap-0.5">
+                                <span class="break-all">{{ evs.url }}</span>
+                                <span class="text-xs"><span class="text-grey-dark">Last successful call:</span> {{ evsTime(evs.lastSuccess) }}</span>
+                                <span class="text-xs"><span class="text-grey-dark">Last failed call:</span> {{ evsTime(evs.lastFailure) }}</span>
+                                <span v-if="evs.lastError" class="text-xs break-all"><span class="text-grey-dark">Last error:</span> {{ evs.lastError }}</span>
+                                <span class="text-xs"><span class="text-grey-dark">Failed calls in a row:</span> {{ evs.failuresInARow }}</span>
+                            </dd>
                         </div>
                         <div class="flex items-center justify-between py-2">
                             <dt class="text-grey-dark font-title text-xs uppercase tracking-wide">Active User Services</dt>

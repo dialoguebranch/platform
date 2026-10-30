@@ -55,6 +55,25 @@ class RbacIntegrationTest {
 	}
 
 	@Test
+	void technicalInfoReportsTheExternalVariableService() throws Exception {
+		// The test profile configures none (#430).
+		mockMvc.perform(withRoles(get("/v1/info/technical"), "admin"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.externalVariableService.enabled").value(false))
+				.andExpect(jsonPath("$.externalVariableService.failuresInARow").value(0));
+	}
+
+	@Test
+	void theExternalVariableServiceStatusIsForEditors() throws Exception {
+		mockMvc.perform(withRoles(get("/v1/info/external-variable-service"), "editor"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.state").value("NOT_CONFIGURED"));
+		mockMvc.perform(withRoles(get("/v1/info/external-variable-service"), "participant"))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.code").value("INSUFFICIENT_PRIVILEGES"));
+	}
+
+	@Test
 	void technicalInfoIsForbiddenForAnEditor() throws Exception {
 		mockMvc.perform(withRoles(get("/v1/info/technical"), "editor"))
 				.andExpect(status().isForbidden())

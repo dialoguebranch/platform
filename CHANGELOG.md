@@ -9,6 +9,15 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Studio and web service: Studio shows whether the configured External Variable Service is running
+  ([#430](https://github.com/dialoguebranch/platform/issues/430)). The status bar says "External
+  Variable Service: connected" or "not reachable" (nothing when none is configured), and admins
+  find its URL, last successful and failed calls, last error and failed calls in a row in
+  *Technical Information*. The Variable Browser's *Used* list also says when the service can't be
+  reached. **Internal API:** a new `GET /info/external-variable-service` (editors and admins)
+  checks the service with one `GET /variables/supported` call, at most every 30 seconds; any answer
+  but a `401` or `403` counts as running. `/info/technical` gains `externalVariableService`, and
+  client-js gains `getExternalVariableServiceStatus`.
 - Studio: the Variable Browser shows the hints an External Variable Service gives for its
   supported variables ([#434](https://github.com/dialoguebranch/platform/issues/434)). In *Used*,
   a variable shows its type and a lock when it is read-only, with its description and allowed
