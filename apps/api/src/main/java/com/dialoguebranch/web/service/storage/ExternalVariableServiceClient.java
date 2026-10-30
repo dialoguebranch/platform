@@ -31,6 +31,7 @@ package com.dialoguebranch.web.service.storage;
 import com.dialoguebranch.execution.Variable;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.VariableUpdatedSource;
+import com.dialoguebranch.model.common.ReservedVariables;
 import com.dialoguebranch.web.service.DateTimeUtils;
 import com.dialoguebranch.web.service.DlbProperties;
 import com.dialoguebranch.web.service.controller.schema.SupportedVariableInfo;
@@ -384,7 +385,11 @@ public class ExternalVariableServiceClient {
 		ZonedDateTime received = DateTimeUtils.nowMs(store.getUser().getTimeZone());
 		for (Variable variable : updates) {
 			logger.info(variable.toString());
-			if (variable.getValue() != null) {
+			String problem = ReservedVariables.check(variable.getName(), variable.getValue());
+			if (problem != null) {
+				// A refused value is skipped, not the whole update (#400).
+				logger.warn("Skipped a value from the External Variable Service: {}", problem);
+			} else if (variable.getValue() != null) {
 				store.setValue(variable.getName(), variable.getValue(), true, received,
 						VariableUpdatedSource.EXTERNAL);
 			} else {

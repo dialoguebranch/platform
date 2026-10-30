@@ -43,6 +43,28 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   takes `previousName` to rename that speaker; the new `GET /project/find-speaker-references`
   counts what a rename changes; `DialogueBranchAuthoringClient.findSpeakerReferences`.
 
+- Core and web service: translations use the speakers' genders
+  ([#399](https://github.com/dialoguebranch/platform/issues/399)). A `male` or `female` speaker of
+  the project selects its `male_speaker`/`female_speaker` translations, in live playback and in
+  tests; an `undefined` gender (now also the default) selects a gender-neutral translation where
+  there is one, else the speaker's first. Core: `TranslationContext.Gender.UNDEFINED`,
+  `TranslationContext.forSpeakers`.
+- Core and web service: the end user's gender, the reserved variable `$dlb.userGender` (`male`,
+  `female`, `undefined` or empty), selects `male_addressee`/`female_addressee` translations, the
+  new `male_user`/`female_user` ones (the user wherever they are in the text, also when only talked
+  about), and those of the user's own replies ([#400](https://github.com/dialoguebranch/platform/issues/400)).
+  It is read at every step, in live playback and in tests; a dialogue whose translations depend on
+  it is translated for each gender when first needed. Core:
+  `ExecutableProject.getDialogueForUserGender`, `ActiveDialogue.setUserGenderTranslations`.
+- **Breaking:** variable names starting with `dlb.` are reserved for variables with a predefined
+  meaning ([#400](https://github.com/dialoguebranch/platform/issues/400)). Setting one that isn't
+  defined, or a defined one to a value it doesn't allow, is refused: a `<<set>>` with a fixed
+  value, or an input command storing into one, is a parse error; `POST /variables/set-single`,
+  `POST /variables/set`, a reply's input and the test variables answer `400`; a value from the
+  External Variable Service is skipped and logged. Rename any variable of your own that starts
+  with `dlb.`. Core: `ReservedVariables`; `VariableStore` throws `IllegalArgumentException` for a
+  refused value.
+
 ### Fixed
 
 - Studio: saving *Configure Project* no longer replaces the project's name in the header with its

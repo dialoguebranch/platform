@@ -42,7 +42,17 @@ It is a JSON object of **speaker groups**. Each key is the name of a speaker, ex
 
 A translation only applies to text of its own speaker: the same text spoken by two speakers can have two different translations, and a text whose speaker has no entry for it stays in the source language. An entry outside a speaker group is an error.
 
-Inside a speaker group, a nested group can narrow a translation down by gender, for languages where a text changes with the gender of the speaker or of the one addressed. Its key is one or more of `male_speaker`, `female_speaker`, `male_addressee` and `female_addressee`, separated by spaces, and groups can be nested further. Among the entries of a speaker, the first one whose contexts fit the genders in the conversation is used; an entry without gender contexts always fits.
+Inside a speaker group, a nested group can narrow a translation down by gender, for languages where a text changes with the gender of the speaker or of the one addressed. Its key is one or more of `male_speaker`, `female_speaker`, `male_addressee`, `female_addressee`, `male_user` and `female_user`, separated by spaces, and groups can be nested further. Among the entries of a speaker, the first one whose contexts fit the genders in the conversation is used; an entry without gender contexts always fits.
+
+Translation treats each node as an exchange between two parties, its speaker and the end user, because a script doesn't say to whom a text is addressed:
+
+* `*_speaker` is the one saying the text: the node's speaker for its statements, the user for the user's replies (in the `_user` group).
+* `*_addressee` is the other party: the user for a node's statements, the node's speaker for the user's replies.
+* `*_user` is the end user wherever they are in the text, also when they are only talked about, for example when an agent tells another agent "You look much better than $userName."
+
+A speaker's gender is the one in the project's [Speakers](#speakers); the end user's is the variable `$dlb.userGender`, read at every step. Only the user's gender varies while a dialogue runs; an agent's gender is fixed, so a text about a particular agent can simply be translated for that agent's gender. When a gender is `undefined` (or the speaker isn't one of the project's speakers, or `$dlb.userGender` is empty), only entries without a context for that role fit, so a gender-neutral translation is used where there is one; without one, the speaker's first entry is.
+
+Where the source text itself changes with the user's gender ("Look at him go!"), branch on `$dlb.userGender` in the script instead; each branch is translated on its own.
 
 ```json
 {

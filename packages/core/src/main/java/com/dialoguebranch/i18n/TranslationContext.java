@@ -28,7 +28,11 @@
 
 package com.dialoguebranch.i18n;
 
+import com.dialoguebranch.model.common.Speaker;
+import org.jspecify.annotations.Nullable;
+
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -54,11 +58,30 @@ public class TranslationContext {
 		/** Masculine gender. */
 		MALE,
 		/** Feminine gender. */
-		FEMALE
+		FEMALE,
+		/**
+		 * Neither, or not known: only translations without a gender context for that role fit,
+		 * so a gender-neutral translation is used where there is one.
+		 */
+		UNDEFINED;
+
+		/**
+		 * Returns the gender a value of {@code $dlb.userGender} stands for (#400):
+		 * {@code "male"} or {@code "female"}, and anything else (empty, {@code "undefined"})
+		 * {@link #UNDEFINED}.
+		 *
+		 * @param value the variable's value.
+		 * @return the gender.
+		 */
+		public static Gender ofUserGender(@Nullable Object value) {
+			if ("male".equals(value)) return MALE;
+			if ("female".equals(value)) return FEMALE;
+			return UNDEFINED;
+		}
 	}
 
-	private Gender defaultAgentGender = Gender.MALE;
-	private Gender userGender = Gender.MALE;
+	private Gender defaultAgentGender = Gender.UNDEFINED;
+	private Gender userGender = Gender.UNDEFINED;
 	private Map<String, Gender> agentGenders = new LinkedHashMap<>();
 
 
@@ -81,6 +104,25 @@ public class TranslationContext {
 	public TranslationContext(Gender userGender, Map<String, Gender> agentGenders) {
 		this.userGender = userGender;
 		this.agentGenders = agentGenders;
+	}
+
+	/**
+	 * Creates a {@link TranslationContext} with the genders of a project's speakers (#399): a
+	 * {@code male} or {@code female} speaker selects the matching translations; any other speaker,
+	 * and the user, are {@link Gender#UNDEFINED}.
+	 *
+	 * @param speakers the project's speakers.
+	 * @return the translation context.
+	 */
+	public static TranslationContext forSpeakers(List<Speaker> speakers) {
+		Map<String, Gender> genders = new LinkedHashMap<>();
+		for (Speaker speaker : speakers) {
+			if (speaker.gender() == Speaker.Gender.MALE)
+				genders.put(speaker.name(), Gender.MALE);
+			else if (speaker.gender() == Speaker.Gender.FEMALE)
+				genders.put(speaker.name(), Gender.FEMALE);
+		}
+		return new TranslationContext(Gender.UNDEFINED, genders);
 	}
 
 	// ----------------------------------------------------------- //
@@ -106,8 +148,8 @@ public class TranslationContext {
 	}
 
 	/**
-	 * Returns the set {@link Gender} of the user, or {@link Gender#MALE} if none is specifically
-	 * set.
+	 * Returns the set {@link Gender} of the user, or {@link Gender#UNDEFINED} if none is
+	 * specifically set.
  	 * @return the {@link Gender} of the user.
 	 */
 	public Gender getUserGender() {

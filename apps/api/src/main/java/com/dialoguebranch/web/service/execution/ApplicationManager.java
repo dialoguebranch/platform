@@ -35,6 +35,7 @@ import com.dialoguebranch.execution.parser.ProjectParserResult;
 import com.dialoguebranch.execution.parser.ScriptLoader;
 import com.dialoguebranch.i18n.TranslationContext;
 import com.dialoguebranch.model.common.DialogueBranchProject;
+import com.dialoguebranch.model.common.Speaker;
 import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.ExecutableProject;
 import com.dialoguebranch.model.execute.ResourcePointer;
@@ -50,6 +51,7 @@ import com.dialoguebranch.web.service.repository.DBUserRepository;
 import com.dialoguebranch.web.service.storage.ExternalVariableServiceClient;
 import com.dialoguebranch.web.service.storage.VariableHistoryStorageHandler;
 import com.dialoguebranch.web.service.storage.VariableStoreDatabaseStorageHandler;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,6 +66,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 /**
  * The Dialogue Branch Web Service maintains one instance of an {@link ApplicationManager}. This
@@ -476,6 +479,22 @@ public class ApplicationManager {
 	}
 
 	/**
+	 * Returns the given dialogue of a loaded project as translated for each gender of the end user
+	 * (#400), for {@link com.dialoguebranch.execution.ActiveDialogue#setUserGenderTranslations}.
+	 *
+	 * @param projectSlug the project's slug.
+	 * @param dialogueDescription the dialogue (name and language).
+	 * @return the translations by the end user's gender, or {@code null} if the project isn't
+	 *         loaded.
+	 */
+	public @Nullable Function<TranslationContext.Gender, Dialogue> getUserGenderTranslations(
+			String projectSlug, ResourcePointer dialogueDescription) {
+		if (!(projects.get(projectSlug) instanceof ExecutableProject execProject))
+			return null;
+		return (gender) -> execProject.getDialogueForUserGender(dialogueDescription, gender);
+	}
+
+	/**
 	 * Returns the {@link Dialogue} identified by the given {@code dialogueDescription} and
 	 * {@code translationContext}, searching only within the named project.
 	 *
@@ -541,11 +560,14 @@ public class ApplicationManager {
 	 * @param scriptLoader  the {@link ScriptLoader} that provides script and translation content.
 	 * @param versionNumber the published version number being loaded, recorded so that logged
 	 *                      dialogues can be pinned to the version they were started against.
+	 * @param speakers      the published version's speakers, whose genders select
+	 *                      gender-specific translations (#399).
 	 */
-	public void loadProject(String projectSlug, ScriptLoader scriptLoader, int versionNumber) {
+	public void loadProject(String projectSlug, ScriptLoader scriptLoader, int versionNumber,
+			List<Speaker> speakers) {
 		logger.info("Loading Dialogue Branch project '{}' into memory.", projectSlug);
 
-		ProjectParser projectParser = new ProjectParser(scriptLoader);
+		ProjectParser projectParser = new ProjectParser(scriptLoader, speakers);
 		ProjectParserResult result;
 		try {
 			result = projectParser.parse();

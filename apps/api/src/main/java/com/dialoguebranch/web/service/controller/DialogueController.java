@@ -405,6 +405,7 @@ public class DialogueController {
 						"Request body is not a JSON object: " + ex.getMessage());
 			}
 		}
+		ControllerFunctions.requireAllowedVariables(variables);
 		try {
 			UserService userService
 					= application.getApplicationManager().getActiveUserService(userId);

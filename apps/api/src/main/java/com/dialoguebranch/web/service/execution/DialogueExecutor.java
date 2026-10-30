@@ -100,6 +100,9 @@ public class DialogueExecutor {
 
 		ActiveDialogue dialogue = new ActiveDialogue(dialogueDescription,
 				dialogueDefinition, userService.getVariableStore(projectSlug));
+		// The end user's gender, $dlb.userGender, selects the translation at every step (#400).
+		dialogue.setUserGenderTranslations(userService.getApplicationManager()
+				.getUserGenderTranslations(projectSlug, dialogueDescription));
 
 		// Collects all the Dialogue Branch Variables needed to execute this file and update from an
 		// external variable service (if enabled).

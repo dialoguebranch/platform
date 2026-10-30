@@ -34,6 +34,7 @@ import com.dialoguebranch.execution.parser.NodeState;
 import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.expression.Expression;
 import com.dialoguebranch.expression.types.AssignExpression;
+import com.dialoguebranch.model.common.ReservedVariables;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.Reply;
 import com.dialoguebranch.model.execute.ResolvedNodeBody;
@@ -140,7 +141,33 @@ public class SetCommand extends ExpressionCommand {
 		}
 		AssignExpression assignExpr = (AssignExpression)parsed.expression;
 		checkNoAssignment(cmdStartToken, assignExpr.getValueOperand());
+		checkReserved(cmdStartToken, assignExpr);
 		return new SetCommand(assignExpr);
+	}
+
+	/**
+	 * Refuses setting an undefined reserved {@code $dlb.} variable, or a defined one to a literal
+	 * value it doesn't allow (#400). A computed value is checked when it is set.
+	 */
+	private static void checkReserved(BodyToken cmdStartToken, AssignExpression assignExpr)
+			throws LineNumberParseException {
+		String name = assignExpr.getVariableName();
+		if (!ReservedVariables.isReserved(name))
+			return;
+		String problem = ReservedVariables.checkName(name);
+		Expression value = assignExpr.getValueOperand();
+		if (problem == null && value.getVariableNames().isEmpty()) {
+			// A constant value: known now, so checked now.
+			try {
+				problem = ReservedVariables.check(name, value.evaluate(null).getValue());
+			} catch (EvaluationException e) {
+				problem = null; // fails when it runs anyway
+			}
+		}
+		if (problem != null) {
+			throw new LineNumberParseException(problem,
+					cmdStartToken.getLineNumber(), cmdStartToken.getColNumber());
+		}
 	}
 
 	private static void checkNoAssignment(BodyToken cmdStartToken,

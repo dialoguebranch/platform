@@ -37,6 +37,7 @@ import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.expression.Expression;
 import com.dialoguebranch.expression.Token;
 import com.dialoguebranch.expression.Value;
+import com.dialoguebranch.model.common.ReservedVariables;
 import org.jspecify.annotations.Nullable;
 
 import java.util.*;
@@ -117,6 +118,10 @@ public class AssignExpression extends BinaryExpression {
 	public Value evaluate(@Nullable Map<String,Object> variables)
 			throws EvaluationException {
 		Value result = getOperand2().evaluate(variables);
+		// A reserved $dlb. variable only takes its allowed values (#400).
+		String problem = ReservedVariables.check(variableName, result.getValue());
+		if (problem != null)
+			throw new EvaluationException(problem);
 		if (variables != null)
 			variables.put(variableName, result.getValue());
 		return result;

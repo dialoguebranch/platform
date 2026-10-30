@@ -70,6 +70,8 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -655,6 +657,9 @@ public class VariablesController {
 					"Invalid variable name: " + name));
 			throw BadRequestException.withInvalidInput(errors);
 		}
+		Map<String, Object> single = new HashMap<>();
+		single.put(name, value);
+		ControllerFunctions.requireAllowedVariables(single);
 
 		// Get or create a UserService for the user in the given time zone
 		ZoneId timeZoneId = ControllerFunctions.parseTimeZone(timeZone);
@@ -788,6 +793,7 @@ public class VariablesController {
 					"Invalid variable names: " + String.join(", ", invalidNames));
 			throw new BadRequestException(error);
 		}
+		ControllerFunctions.requireAllowedVariables(variables);
 
 		// Get or create a UserService for the user in the given time zone
 		ZoneId timeZoneId = ControllerFunctions.parseTimeZone(timeZone);

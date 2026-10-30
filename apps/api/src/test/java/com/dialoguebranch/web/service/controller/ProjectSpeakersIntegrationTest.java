@@ -372,4 +372,92 @@ class ProjectSpeakersIntegrationTest {
 				.andExpect(jsonPath("$.fieldErrors[0].field").value("speakers"));
 		assertTrue(nodeSpeakers(slug, "main").contains("\"value\":\"Anna\""));
 	}
+
+	// -------------------- Gender-specific translations (#399) -------------------- //
+
+	private String startTest(String slug, String content) throws Exception {
+		return mockMvc.perform(asAdmin(post("/v1/test-session/start").param("projectSlug", slug)
+						.param("dialogueName", "main").param("language", "nl")
+						.param("timeZone", "UTC").param("content", content)))
+				.andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString();
+	}
+
+	@Test
+	void aSpeakersGenderSelectsItsTranslationInDraftAndPublishedTests() throws Exception {
+		String slug = projectWithAnna();
+		mockMvc.perform(asAdmin(post("/v1/authoring/update-translation").param("projectSlug", slug)
+						.param("dialogueName", "main").param("language", "nl")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{"content": "{\\"Anna\\": {\\"male_speaker\\": {\\"Hello.\\": \\"Hallo (m).\\"}, \\"female_speaker\\": {\\"Hello.\\": \\"Hallo (f).\\"}, \\"Hello.\\": \\"Hallo.\\"}}"}""")))
+				.andExpect(status().isOk());
+
+		// Anna is female (SPEAKERS).
+		assertTrue(startTest(slug, "draft").contains("Hallo (f)."));
+		publish(slug);
+		assertTrue(startTest(slug, "published").contains("Hallo (f)."));
+
+		// Without a gender, the gender-neutral translation.
+		updateDraft(slug, "[{\"name\": \"Anna\"}, {\"name\": \"Narrator\"}]")
+				.andExpect(status().isOk());
+		String undefined = startTest(slug, "draft");
+		assertTrue(undefined.contains("Hallo.") && !undefined.contains("Hallo (")
+				, undefined);
+	}
+
+	// -------------------- The end user's gender, $dlb.userGender (#400) -------------------- //
+
+	private static final String USER_GENDERED = """
+			{"content": "{\\"Anna\\": {\\"female_addressee\\": {\\"Hello.\\": \\"Hallo, mevrouw.\\"}, \\"male_addressee\\": {\\"Hello.\\": \\"Hallo, meneer.\\"}, \\"Hello.\\": \\"Hallo.\\"}}"}""";
+
+	private void translateMain(String slug, String body) throws Exception {
+		mockMvc.perform(asAdmin(post("/v1/authoring/update-translation").param("projectSlug", slug)
+						.param("dialogueName", "main").param("language", "nl")
+						.contentType(MediaType.APPLICATION_JSON).content(body)))
+				.andExpect(status().isOk());
+	}
+
+	private ResultActions setSingle(String slug, String name, String value) throws Exception {
+		return mockMvc.perform(asAdmin(post("/v1/variables/set-single").param("projectSlug", slug)
+				.param("name", name).param("value", value).param("timeZone", "UTC")));
+	}
+
+	@Test
+	void theUsersGenderSelectsTheTranslationInTestsAndLivePlayback() throws Exception {
+		String slug = projectWithAnna();
+		translateMain(slug, USER_GENDERED);
+
+		String undefined = startTest(slug, "draft");
+		assertTrue(undefined.contains("Hallo.") && !undefined.contains("Hallo, "), undefined);
+
+		mockMvc.perform(asAdmin(post("/v1/test-session/set-variable").param("projectSlug", slug)
+						.param("name", "dlb.userGender").param("value", "female")
+						.param("timeZone", "UTC")))
+				.andExpect(status().is2xxSuccessful());
+		assertTrue(startTest(slug, "draft").contains("Hallo, mevrouw."));
+
+		publish(slug);
+		setSingle(slug, "dlb.userGender", "male").andExpect(status().is2xxSuccessful());
+		String live = mockMvc.perform(asAdmin(post("/v1/dialogue/start").param("projectSlug", slug)
+						.param("dialogueName", "main").param("language", "nl")
+						.param("timeZone", "UTC")))
+				.andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString();
+		assertTrue(live.contains("Hallo, meneer."), live);
+	}
+
+	@Test
+	void reservedVariablesOnlyTakeTheirAllowedValues() throws Exception {
+		String slug = projectWithAnna();
+		setSingle(slug, "dlb.userGender", "f")
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.fieldErrors[0].field").value("dlb.userGender"));
+		setSingle(slug, "dlb.somethingElse", "1").andExpect(status().isBadRequest());
+		mockMvc.perform(asAdmin(post("/v1/test-session/set-variable").param("projectSlug", slug)
+						.param("name", "dlb.userGender").param("value", "x")
+						.param("timeZone", "UTC")))
+				.andExpect(status().isBadRequest());
+		setSingle(slug, "dlb.userGender", "female").andExpect(status().is2xxSuccessful());
+	}
 }
