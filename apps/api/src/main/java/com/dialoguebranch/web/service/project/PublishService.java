@@ -39,11 +39,13 @@ import com.dialoguebranch.web.service.repository.DBPublishedDialogueRepository;
 import com.dialoguebranch.web.service.repository.DBPublishedTranslationLanguageRepository;
 import com.dialoguebranch.web.service.repository.DBPublishedTranslationRepository;
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
+import com.dialoguebranch.web.service.storage.model.DBDraftSpeaker;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslation;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslationLanguage;
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import com.dialoguebranch.web.service.storage.model.DBProjectVersion;
 import com.dialoguebranch.web.service.storage.model.DBPublishedDialogue;
+import com.dialoguebranch.web.service.storage.model.DBPublishedSpeaker;
 import com.dialoguebranch.web.service.storage.model.DBPublishedTranslation;
 import com.dialoguebranch.web.service.storage.model.DBPublishedTranslationLanguage;
 import com.dialoguebranch.web.service.storage.model.DBUser;
@@ -260,6 +262,13 @@ public class PublishService {
 		version.setPublishedBy(publishedBy);
 		version.setDisplayName(project.getDraftDisplayName());
 		version.setDescription(project.getDraftDescription());
+		// Snapshot the draft speakers (#394), in their order
+		for (DBDraftSpeaker draftSpeaker : project.getDraftSpeakers()) {
+			DBPublishedSpeaker speaker = new DBPublishedSpeaker();
+			speaker.setVersion(version);
+			speaker.copyFrom(draftSpeaker.toSpeaker(), draftSpeaker.getPosition());
+			version.getSpeakers().add(speaker);
+		}
 		version = versionRepository.save(version);
 
 		// Snapshot the draft translation-language registry onto this new version. Must run before

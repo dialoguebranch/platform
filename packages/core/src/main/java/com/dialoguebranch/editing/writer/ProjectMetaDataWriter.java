@@ -29,6 +29,7 @@
 package com.dialoguebranch.editing.writer;
 
 import com.dialoguebranch.model.common.ProjectMetaData;
+import com.dialoguebranch.model.common.Speaker;
 import com.dialoguebranch.model.execute.Language;
 import com.dialoguebranch.model.execute.LanguageMap;
 import org.w3c.dom.Document;
@@ -37,6 +38,7 @@ import org.w3c.dom.Element;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Objects;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -84,6 +86,8 @@ public class ProjectMetaDataWriter {
 		appendLanguageMap(document, root, Objects.requireNonNull(
 				projectMetaData.getLanguageMap(),
 				"Cannot write project metadata without a language map"));
+		if (!projectMetaData.getSpeakers().isEmpty())
+			appendSpeakers(document, root, projectMetaData.getSpeakers());
 
 		writeDocument(document, out);
 	}
@@ -106,6 +110,25 @@ public class ProjectMetaDataWriter {
 		for (Language language : languageMap.getTranslationLanguages()) {
 			languageMapElement.appendChild(
 					languageElement(document, "translation-language", language));
+		}
+	}
+
+	/**
+	 * Appends a {@code speakers} element with a {@code speaker} child per speaker (#393). The
+	 * gender and default are only written when they say something: {@code undefined} and
+	 * {@code false} are the defaults.
+	 */
+	private static void appendSpeakers(Document document, Element parent, List<Speaker> speakers) {
+		Element speakersElement = document.createElement("speakers");
+		parent.appendChild(speakersElement);
+		for (Speaker speaker : speakers) {
+			Element element = document.createElement("speaker");
+			element.setAttribute("name", speaker.name());
+			if (speaker.gender() != Speaker.Gender.UNDEFINED)
+				element.setAttribute("gender", speaker.gender().value());
+			if (speaker.isDefault())
+				element.setAttribute("default", "true");
+			speakersElement.appendChild(element);
 		}
 	}
 

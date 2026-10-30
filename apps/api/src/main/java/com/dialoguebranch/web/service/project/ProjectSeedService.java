@@ -303,6 +303,9 @@ public class ProjectSeedService {
 					e.getMessage(), e);
 		}
 
+		// -- Step 4b: Store the speakers (#394), as drafts like the languages --
+		draftProjectService.setDraftSpeakers(project, metaData.getSpeakers());
+
 		// -- Step 5: List the source files --
 		List<ResourcePointer> files = scriptLoader.listDialogueBranchFiles();
 

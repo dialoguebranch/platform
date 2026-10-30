@@ -397,7 +397,8 @@ public class ProjectController {
 									"Project not found: " + projectSlug));
 					return draftProjectService.updateDraft(project, payload.getDisplayName(),
 							payload.getDescription(), payload.getRemoveLanguageIds(),
-							payload.getAddLanguages(), payload.getUpdateLanguages());
+							payload.getAddLanguages(), payload.getUpdateLanguages(),
+							payload.getSpeakers());
 				},
 				version, response, "", Permission.PROJECT_UPDATE);
 	}

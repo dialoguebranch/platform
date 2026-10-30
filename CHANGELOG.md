@@ -7,6 +7,20 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Added
+
+- Core and web service: a project can define its speakers, each with a name, a gender (`male`,
+  `female` or `undefined`) and whether it is the default for new nodes
+  ([#393](https://github.com/dialoguebranch/platform/issues/393),
+  [#394](https://github.com/dialoguebranch/platform/issues/394)). They are an optional `<speakers>`
+  section in `dlb-project.xml`, which core reads and writes (`ProjectMetaData.getSpeakers()`,
+  `Speaker`), refusing an empty, duplicate or reserved (`_user`) name, an unknown gender or more
+  than one default. The web service keeps them as a draft and per published version, like
+  translation languages: `get-project` returns `draftSpeakers` and `latestVersion.speakers`,
+  publishing snapshots them, export and import carry them, and discarding all draft changes
+  restores them. A new database migration (`V12`) adds the tables. **Internal API:**
+  `POST /project/update-draft` takes `speakers`, the project's complete new list of speakers.
+
 ## [0.8.1] - 2026-10-30
 
 ### Fixed

@@ -31,6 +31,7 @@ package com.dialoguebranch.execution.parser;
 import com.dialoguebranch.exception.ParseException;
 import com.dialoguebranch.model.common.FileStorageSource;
 import com.dialoguebranch.model.common.ProjectMetaData;
+import com.dialoguebranch.model.common.Speaker;
 import com.dialoguebranch.model.execute.Language;
 import com.dialoguebranch.model.execute.LanguageMap;
 import org.jspecify.annotations.Nullable;
@@ -121,7 +122,7 @@ public class ProjectMetaDataParser {
 
 	/**
 	 * Reads the {@code dlb-project} root element and its {@code description} / {@code language-map}
-	 * children.
+	 * / {@code speakers} children.
 	 */
 	private static ProjectMetaData readProject(XMLStreamReader reader)
 			throws XMLStreamException, ParseException {
@@ -146,6 +147,7 @@ public class ProjectMetaDataParser {
 
 		String description = "";
 		@Nullable LanguageMap languageMap = null;
+		List<Speaker> speakers = List.of();
 		while (reader.hasNext()) {
 			int event = reader.next();
 			if (event == XMLStreamConstants.END_ELEMENT)
@@ -158,6 +160,7 @@ public class ProjectMetaDataParser {
 					languageMap = readLanguageMap(reader);
 					validateLanguageMap(languageMap);
 				}
+				case "speakers" -> speakers = readSpeakers(reader);
 				default -> throw new ParseException("Unexpected element while parsing Dialogue " +
 						"Branch project metadata: '" + reader.getLocalName() + "'");
 			}
@@ -169,6 +172,12 @@ public class ProjectMetaDataParser {
 			result.setSlug(slug);
 		if (languageMap != null)
 			result.setLanguageMap(languageMap);
+		try {
+			result.setSpeakers(speakers);
+		} catch (IllegalArgumentException ex) {
+			throw new ParseException("Invalid speakers in the Dialogue Branch project metadata: "
+					+ ex.getMessage());
+		}
 		return result;
 	}
 
@@ -203,6 +212,54 @@ public class ProjectMetaDataParser {
 		result.setCode(reader.getAttributeValue(null, "code"));
 		result.setName(reader.getAttributeValue(null, "name"));
 		skipElement(reader);
+		return result;
+	}
+
+	/**
+	 * Reads a {@code speakers} element (the reader is positioned on its start tag) and its
+	 * {@code speaker} children (#393): a required {@code name}, an optional {@code gender}
+	 * ({@code male}, {@code female} or {@code undefined}, the default) and an optional
+	 * {@code default} ({@code true} or {@code false}, the default). Whether the speakers together
+	 * follow the rules is checked afterwards, by {@link Speaker#validate}.
+	 */
+	private static List<Speaker> readSpeakers(XMLStreamReader reader)
+			throws XMLStreamException, ParseException {
+		List<Speaker> result = new ArrayList<>();
+		while (reader.hasNext()) {
+			int event = reader.next();
+			if (event == XMLStreamConstants.END_ELEMENT)
+				break;
+			if (event != XMLStreamConstants.START_ELEMENT)
+				continue;
+			if (!reader.getLocalName().equals("speaker")) {
+				throw new ParseException("Unexpected element in the Dialogue Branch project "
+						+ "metadata's speakers: '" + reader.getLocalName() + "'");
+			}
+			String name = reader.getAttributeValue(null, "name");
+			if (name == null) {
+				throw new ParseException("Missing attribute 'name' on a speaker in the Dialogue "
+						+ "Branch project metadata.");
+			}
+			String genderValue = reader.getAttributeValue(null, "gender");
+			Speaker.Gender gender = Speaker.Gender.UNDEFINED;
+			if (genderValue != null) {
+				gender = Speaker.Gender.fromValue(genderValue);
+				if (gender == null) {
+					throw new ParseException("Unknown gender '" + genderValue + "' for the "
+							+ "speaker '" + name + "' in the Dialogue Branch project metadata: "
+							+ "expected 'male', 'female' or 'undefined'.");
+				}
+			}
+			String defaultValue = reader.getAttributeValue(null, "default");
+			if (defaultValue != null && !defaultValue.equals("true")
+					&& !defaultValue.equals("false")) {
+				throw new ParseException("Invalid value '" + defaultValue + "' of 'default' for "
+						+ "the speaker '" + name + "' in the Dialogue Branch project metadata: "
+						+ "expected 'true' or 'false'.");
+			}
+			result.add(new Speaker(name, gender, "true".equals(defaultValue)));
+			skipElement(reader);
+		}
 		return result;
 	}
 

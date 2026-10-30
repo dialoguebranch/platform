@@ -43,6 +43,7 @@ import com.dialoguebranch.web.service.storage.model.DBDraftTranslationLanguage;
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import com.dialoguebranch.web.service.storage.model.DBProjectVersion;
 import com.dialoguebranch.web.service.storage.model.DBPublishedDialogue;
+import com.dialoguebranch.web.service.storage.model.DBPublishedSpeaker;
 import com.dialoguebranch.web.service.storage.model.DBPublishedTranslation;
 import com.dialoguebranch.web.service.storage.model.DBPublishedTranslationLanguage;
 import org.springframework.stereotype.Service;
@@ -50,6 +51,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -72,6 +74,7 @@ public class DraftDiscardService {
 	private final DBDraftTranslationLanguageRepository draftLanguageRepository;
 	private final DBPublishedTranslationLanguageRepository publishedLanguageRepository;
 	private final DBProjectRepository projectRepository;
+	private final DraftProjectService draftProjectService;
 
 	/**
 	 * Creates the service.
@@ -82,19 +85,21 @@ public class DraftDiscardService {
 	 * @param draftLanguageRepository        the draft translation languages.
 	 * @param publishedLanguageRepository    the published translation languages.
 	 * @param projectRepository              the projects.
+	 * @param draftProjectService            the service storing a project's draft metadata.
 	 */
 	public DraftDiscardService(DraftDialogueService draftDialogueService,
 			DBPublishedDialogueRepository publishedDialogueRepository,
 			DBPublishedTranslationRepository publishedTranslationRepository,
 			DBDraftTranslationLanguageRepository draftLanguageRepository,
 			DBPublishedTranslationLanguageRepository publishedLanguageRepository,
-			DBProjectRepository projectRepository) {
+			DBProjectRepository projectRepository, DraftProjectService draftProjectService) {
 		this.draftDialogueService = draftDialogueService;
 		this.publishedDialogueRepository = publishedDialogueRepository;
 		this.publishedTranslationRepository = publishedTranslationRepository;
 		this.draftLanguageRepository = draftLanguageRepository;
 		this.publishedLanguageRepository = publishedLanguageRepository;
 		this.projectRepository = projectRepository;
+		this.draftProjectService = draftProjectService;
 	}
 
 	/**
@@ -171,6 +176,10 @@ public class DraftDiscardService {
 		project.setDraftDescription(latest.getDescription());
 		project.setUpdatedAt(Instant.now());
 		projectRepository.save(project);
+		// The published speakers (#394), in their order
+		draftProjectService.setDraftSpeakers(project, latest.getSpeakers().stream()
+				.sorted(Comparator.comparingInt(DBPublishedSpeaker::getPosition))
+				.map(DBPublishedSpeaker::toSpeaker).toList());
 
 		// Dialogues that were never published go first, freeing the names they may have taken.
 		int removed = 0;

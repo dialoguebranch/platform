@@ -41,6 +41,7 @@ import com.dialoguebranch.web.service.repository.DBPublishedTranslationRepositor
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import com.dialoguebranch.web.service.storage.model.DBProjectVersion;
 import com.dialoguebranch.web.service.storage.model.DBPublishedDialogue;
+import com.dialoguebranch.web.service.storage.model.DBPublishedSpeaker;
 import com.dialoguebranch.web.service.storage.model.DBPublishedTranslation;
 import com.dialoguebranch.web.service.storage.model.DBPublishedTranslationLanguage;
 import org.springframework.stereotype.Service;
@@ -50,6 +51,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -130,6 +132,9 @@ public class ProjectExportService {
 					language.getTranslationLanguageCode()));
 		}
 		metaData.setLanguageMap(languageMap);
+		metaData.setSpeakers(version.getSpeakers().stream()
+				.sorted(Comparator.comparingInt(DBPublishedSpeaker::getPosition))
+				.map(DBPublishedSpeaker::toSpeaker).toList());
 
 		// Fetch dialogues and translations in two batched queries rather than lazily per-dialogue
 		// (version.getPublishedDialogues() followed by dialogue.getTranslations() in a loop would

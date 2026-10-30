@@ -35,6 +35,7 @@ import org.hibernate.annotations.FetchMode;
 
 import java.time.Instant;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
 
@@ -101,6 +102,15 @@ public class DBProjectVersion {
 	@OneToMany(mappedBy = "version", fetch = FetchType.EAGER)
 	@Fetch(FetchMode.JOIN)
 	private Set<DBPublishedTranslationLanguage> publishedTranslationLanguages = new HashSet<>();
+
+	// The version's speakers (#394), in the order they were defined. EAGER for the same reason as
+	// publishedTranslationLanguages; SUBSELECT rather than another JOIN, so they don't multiply
+	// with the languages joined above.
+	@OneToMany(mappedBy = "version", fetch = FetchType.EAGER, cascade = CascadeType.ALL,
+			orphanRemoval = true)
+	@Fetch(FetchMode.SUBSELECT)
+	@OrderBy("position")
+	private Set<DBPublishedSpeaker> speakers = new LinkedHashSet<>();
 
 	/**
 	 * Creates an empty instance of {@link DBProjectVersion}.
@@ -260,6 +270,16 @@ public class DBProjectVersion {
 	 */
 	public Set<DBPublishedTranslationLanguage> getPublishedTranslationLanguages() {
 		return publishedTranslationLanguages;
+	}
+
+	/**
+	 * Returns the speakers of this version (#394), in the order they were defined: a snapshot of
+	 * the project's draft speakers when it was published.
+	 *
+	 * @return the speakers.
+	 */
+	public Set<DBPublishedSpeaker> getSpeakers() {
+		return speakers;
 	}
 
 	/**
