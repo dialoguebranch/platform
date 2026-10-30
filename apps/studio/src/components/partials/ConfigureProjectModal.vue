@@ -86,10 +86,19 @@ const displayedLanguages = computed(() => {
 const activeLanguages = computed(() => displayedLanguages.value.filter((t) => !t.pendingRemoval));
 
 // The project's speakers (#395): staged here like everything else, and sent as the complete new
-// list on Save. Renaming an existing speaker changes its nodes and translations too, so it is
-// its own, project-wide action (#398), not an edit in this list.
-const speakers = ref([]); // [{ name, gender, default }], in their order
+// list on Save. A rename (#398) is staged too: a speaker keeps the name it was loaded with as
+// `previousName`, and saving renames it in the project's nodes and translations as well, after
+// confirming what that changes.
+let nextSpeakerKey = 0;
+const speakers = ref([]); // [{ key, name, previousName?, gender, default }], in their order
 const originalSpeakers = ref([]);
+const renamingIndex = ref(-1);
+const renameValue = ref('');
+const renameError = ref('');
+const renameConfirmation = ref(null); // [{ from, to, nodes, dialogues, translations }] to confirm
+const stagedRenames = computed(() => speakers.value
+    .filter((s) => s.previousName && s.previousName !== s.name)
+    .map((s) => ({ from: s.previousName, to: s.name })));
 const newSpeakerName = ref('');
 const newSpeakerGender = ref('undefined');
 const addSpeakerError = ref('');
@@ -146,7 +155,8 @@ function load() {
             // they're only actually gone once the project is published.
             existingLanguages.value = [...(project.draftTranslationLanguages ?? [])];
             speakers.value = (project.draftSpeakers ?? []).map((s) => ({
-                name: s.name, gender: s.gender ?? 'undefined', default: !!s.default,
+                key: nextSpeakerKey++, name: s.name, previousName: s.name,
+                gender: s.gender ?? 'undefined', default: !!s.default,
             }));
             originalSpeakers.value = speakers.value.map((s) => ({ ...s }));
         })
@@ -166,6 +176,11 @@ function closeModal() {
 // atomic request: either all of it lands, or (if the server finds any problem with the batch)
 // none of it does, and the offending rows are highlighted via languageErrors below.
 function onSave() {
+    if (stagedRenames.value.length > 0 && !renameConfirmation.value) {
+        confirmRenames();
+        return;
+    }
+    renameConfirmation.value = null;
     saving.value = true;
     error.value = '';
     languageErrors.value = new Map();
@@ -189,8 +204,10 @@ function onSave() {
     if (speakersChanged.value) {
         payload.speakers = speakers.value.map((s) => ({
             name: s.name, gender: s.gender, default: s.default,
+            ...(s.previousName && s.previousName !== s.name ? { previousName: s.previousName } : {}),
         }));
     }
+    const renamedSpeakers = stagedRenames.value.length > 0;
 
     client.updateProjectDraft(props.projectSlug, payload)
         .then((updated) => {
@@ -200,8 +217,9 @@ function onSave() {
             updatedLanguages.value = new Map();
             originalDisplayName.value = displayName.value;
             originalDescription.value = description.value;
+            speakers.value.forEach((s) => { s.previousName = s.name; });
             originalSpeakers.value = speakers.value.map((s) => ({ ...s }));
-            emit('saved', { slug: updated.slug, displayName: updated.draftDisplayName });
+            emit('saved', { slug: updated.slug, displayName: updated.draftDisplayName, renamedSpeakers });
         })
         .catch((err) => { applySaveError(err); })
         .finally(() => { saving.value = false; });
@@ -254,6 +272,50 @@ function applySaveError(err) {
         error.value = 'The speakers could not be saved — see below.';
     }
     activeTab.value = rowErrors.size > 0 || speakerMessages.length === 0 ? 'languages' : 'speakers';
+}
+
+// Before a save that renames speakers, shows what each rename changes in the project's nodes and
+// translations, and waits for the user to confirm (see onSave).
+function confirmRenames() {
+    saving.value = true;
+    error.value = '';
+    Promise.all(stagedRenames.value.map((rename) =>
+        client.findSpeakerReferences(props.projectSlug, rename.from)
+            .then((counts) => ({ ...rename, ...counts }))))
+        .then((renames) => { renameConfirmation.value = renames; })
+        .catch(() => { error.value = 'Could not check what renaming the speakers changes. Please try again.'; })
+        .finally(() => { saving.value = false; });
+}
+
+function describeRename(rename) {
+    const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+    return `Renaming "${rename.from}" to "${rename.to}" changes ${plural(rename.nodes, 'node')} `
+        + `in ${plural(rename.dialogues, 'dialogue')}, and ${plural(rename.translations, 'translation')}.`;
+}
+
+// Any change after asking for confirmation makes the counts stale: ask again on Save.
+watch(speakers, () => { renameConfirmation.value = null; }, { deep: true });
+
+function onStartRename(index) {
+    renamingIndex.value = index;
+    renameValue.value = speakers.value[index].name;
+    renameError.value = '';
+}
+
+function onApplyRename() {
+    const index = renamingIndex.value;
+    const name = renameValue.value.trim();
+    if (name !== speakers.value[index].name) {
+        const others = speakers.value.filter((_, i) => i !== index);
+        const problem = checkNewSpeakerName(name, others);
+        if (problem) {
+            renameError.value = problem;
+            return;
+        }
+        speakers.value[index].name = name;
+        speakerError.value = '';
+    }
+    renamingIndex.value = -1;
 }
 
 function onAddSpeaker() {
@@ -536,7 +598,8 @@ function confirmRemoveTranslationLanguage() {
                             <p class="text-xs text-grey-dark font-title">
                                 The speakers a node can have. A new node gets the default speaker.
                                 A speaker's gender chooses between translations in languages where a
-                                text changes with it. Removing a speaker doesn't change the nodes that
+                                text changes with it. Renaming a speaker renames it in the project's
+                                nodes and translations too. Removing a speaker doesn't change the nodes that
                                 use it.
                             </p>
                             <div v-if="speakerError" data-test="speaker-error" class="text-xs text-red-dark font-title">
@@ -555,9 +618,27 @@ function confirmRemoveTranslationLanguage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr v-for="(s, i) in speakers" :key="s.name" data-test="speaker-row"
+                                    <tr v-for="(s, i) in speakers" :key="s.key" data-test="speaker-row"
                                         class="border-t border-grey-lighter hover:bg-grey-lighter">
-                                        <td class="px-3 py-2 text-orange-darker">{{ s.name }}</td>
+                                        <td v-if="renamingIndex === i" class="px-3 py-2">
+                                            <form class="flex items-center gap-1" @submit.prevent="onApplyRename">
+                                                <TextInput class="w-full" v-model="renameValue" data-test="speaker-rename-input" />
+                                                <button type="submit" data-test="speaker-rename-apply" class="text-orange-darker cursor-pointer" title="Rename">
+                                                    <FontAwesomeIcon icon="fa-solid fa-check" />
+                                                </button>
+                                                <button type="button" data-test="speaker-rename-cancel" class="text-grey-dark cursor-pointer" title="Cancel" @click="renamingIndex = -1">
+                                                    <FontAwesomeIcon icon="fa-solid fa-xmark" />
+                                                </button>
+                                            </form>
+                                            <div v-if="renameError" data-test="speaker-rename-error" class="mt-1 text-xs text-red-dark font-title">{{ renameError }}</div>
+                                        </td>
+                                        <td v-else class="px-3 py-2 text-orange-darker">
+                                            <span>{{ s.name }}</span>
+                                            <span v-if="s.previousName && s.previousName !== s.name" data-test="speaker-was" class="ml-1 text-xs text-grey-dark">(was {{ s.previousName }})</span>
+                                            <button type="button" data-test="speaker-rename" class="ml-2 text-grey-dark hover:text-orange-darker cursor-pointer" title="Rename speaker…" @click="onStartRename(i)">
+                                                <FontAwesomeIcon icon="fa-solid fa-pen" class="text-xs" />
+                                            </button>
+                                        </td>
                                         <td class="px-3 py-2">
                                             <select
                                                 :value="s.gender"
@@ -729,8 +810,25 @@ function confirmRemoveTranslationLanguage() {
                     </div>
                 </template>
 
+                <!-- Confirming speaker renames (#398): they change nodes and translations too -->
+                <div v-if="renameConfirmation" data-test="speaker-rename-confirmation" class="px-5 py-3 border-t border-orange-medium/50 bg-orange-light/20 text-sm font-title shrink-0">
+                    <ul class="mb-3 flex flex-col gap-1 text-orange-darker">
+                        <li v-for="rename in renameConfirmation" :key="rename.from">
+                            <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" class="mr-1" />{{ describeRename(rename) }}
+                        </li>
+                    </ul>
+                    <div class="flex items-center justify-end gap-3">
+                        <button
+                            class="px-4 py-2 rounded font-title text-sm text-grey-dark border border-grey-light bg-white hover:bg-grey-light cursor-pointer"
+                            data-test="speaker-rename-back"
+                            @click="renameConfirmation = null"
+                        >Back</button>
+                        <PushButton text="Rename and Save" variant="green" :loading="saving" data-test="speaker-rename-confirm" @click="onSave" />
+                    </div>
+                </div>
+
                 <!-- Footer -->
-                <div v-if="!loading" class="flex items-center justify-end gap-3 px-5 py-4 border-t border-grey-light bg-grey-lighter rounded-b-xl shrink-0">
+                <div v-else-if="!loading" class="flex items-center justify-end gap-3 px-5 py-4 border-t border-grey-light bg-grey-lighter rounded-b-xl shrink-0">
                     <button
                         class="px-4 py-2 rounded font-title text-sm text-grey-dark border border-grey-light hover:bg-grey-light disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                         :class="{ 'cursor-pointer': !saving }"

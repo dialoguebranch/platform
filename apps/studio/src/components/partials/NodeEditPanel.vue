@@ -6,7 +6,7 @@ import { describeError } from '@/composables/error-message.js';
 import { showError } from '@/composables/error-toast.js';
 import { tagsToMap, mapToTags, USER_SPEAKER } from '@/authoring/DlbHeaderTags.js';
 import { COLOR_PALETTE, colorForId } from '@/composables/node-colors.js';
-import { projectSpeakers } from '@/composables/project-speakers.js';
+import { isUndefinedSpeaker, projectSpeakers } from '@/composables/project-speakers.js';
 import TextInput from '../widgets/TextInput.vue';
 import PushButton from '../widgets/PushButton.vue';
 import ContextMenu from '../widgets/ContextMenu.vue';
@@ -348,6 +348,10 @@ defineExpose({
                                 <option v-for="o in speakerOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
                             </select>
                             <TextInput v-else class="w-full" v-model="speaker" data-test="node-speaker" placeholder="Speaker name..." />
+                            <p v-if="speakerOptions && isUndefinedSpeaker(speaker, projectSpeakers)" class="mt-1 flex items-start gap-1.5 text-xs text-orange-darker" data-test="node-undefined-speaker-warning">
+                                <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" class="mt-0.5 shrink-0" />
+                                "{{ speaker }}" isn't one of the project's speakers. Choose one of them, or add it in Configure Project.
+                            </p>
                         </div>
                     </div>
 

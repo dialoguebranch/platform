@@ -705,4 +705,40 @@ public class ProjectController {
 				version, response, "", Permission.PROJECT_MANAGE_LANGUAGES);
 	}
 
+	/**
+	 * Returns how much of a project's draft uses a speaker: the nodes whose speaker it is, the
+	 * dialogues they are in, and the translations with a group for it — informational only, used
+	 * to confirm a rename (#398) before it's saved with {@code /update-draft}.
+	 *
+	 * @param request the HTTP request (to retrieve authentication headers).
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param projectSlug the unique slug of the project.
+	 * @param speaker the speaker's name.
+	 * @return the counts.
+	 * @throws HttpException if the project does not exist, or the user is not authorized.
+	 */
+	@Operation(summary = "Count the draft nodes, dialogues and translations that use a speaker.")
+	@Parameter(name = "version", hidden = true)
+	@GetMapping("/find-speaker-references")
+	public DraftDialogueService.SpeakerReferences findSpeakerReferences(
+			HttpServletRequest request,
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "projectSlug") String projectSlug,
+			@RequestParam(value = "speaker") String speaker
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("GET /v{}/project/find-speaker-references [user: {}]", version,
+							user);
+					DBProject project = projectService.findBySlug(projectSlug)
+							.orElseThrow(() -> new NotFoundException(
+									"Project not found: " + projectSlug));
+					return draftDialogueService.findSpeakerReferences(project, speaker);
+				},
+				version, response, "", Permission.PROJECT_UPDATE);
+	}
+
 }

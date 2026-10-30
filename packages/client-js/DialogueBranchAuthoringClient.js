@@ -174,8 +174,9 @@ export class DialogueBranchAuthoringClient extends BaseClient {
      * New translation languages to add.
      * @param {{id: string, translationLanguageName: string, translationLanguageCode: string}[]} [draft.updateLanguages]
      * Existing translation languages to rename.
-     * @param {{name: string, gender?: string, default?: boolean}[]} [draft.speakers] The project's
-     * complete new list of speakers, in order; omit it to leave them unchanged.
+     * @param {{name: string, previousName?: string, gender?: string, default?: boolean}[]} [draft.speakers]
+     * The project's complete new list of speakers, in order; omit it to leave them unchanged. A
+     * `previousName` renames that speaker, in the project's nodes and translations too.
      * @returns {Promise<Object>} The updated project.
      */
     updateProjectDraft(projectSlug, { displayName, description, removeLanguageIds, addLanguages, updateLanguages, speakers }) {
@@ -371,6 +372,26 @@ export class DialogueBranchAuthoringClient extends BaseClient {
     findLanguageReferences(projectSlug, translationLanguageId) {
         const url = this._baseUrl + "/project/find-language-references?projectSlug=" + encodeURIComponent(projectSlug)
             + "&translationLanguageId=" + encodeURIComponent(translationLanguageId);
+
+        return this._fetch(url, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+        }).then((response) => this._handleResponse(response));
+    }
+
+    /**
+     * Counts how much of the project's draft uses a speaker — use to confirm a rename before
+     * saving it with {@link updateProjectDraft} (a speaker entry with a `previousName`).
+     *
+     * @param {string} projectSlug The project's slug.
+     * @param {string} speaker The speaker's name.
+     * @returns {Promise<{nodes: number, dialogues: number, translations: number}>} The draft
+     * nodes whose speaker it is, the dialogues they are in, and the translations with a group
+     * for it.
+     */
+    findSpeakerReferences(projectSlug, speaker) {
+        const url = this._baseUrl + "/project/find-speaker-references?projectSlug=" + encodeURIComponent(projectSlug)
+            + "&speaker=" + encodeURIComponent(speaker);
 
         return this._fetch(url, {
             method: "GET",

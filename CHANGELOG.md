@@ -29,6 +29,20 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   than `End` can't be saved without a speaker. **Internal API:**
   `DialogueBranchAuthoringClient.updateProjectDraft` takes `speakers`.
 
+- Core, web service and Studio: a warning for a node whose speaker isn't one of the project's
+  speakers ([#397](https://github.com/dialoguebranch/platform/issues/397)). Core's `ProjectParser`
+  reports it with its other warnings when the project defines speakers (a new constructor takes
+  them for a loader without a `dlb-project.xml`); it never stops a project from parsing,
+  publishing or running. `POST /publish/verify` now also returns the `warnings` per dialogue,
+  which it dropped before, such as orphaned nodes. Studio's publish wizard lists them, and the
+  graph editor and node editor mark a node with an undefined speaker.
+- Web service and Studio: renaming a speaker renames it in the project's nodes and translations
+  too ([#398](https://github.com/dialoguebranch/platform/issues/398)). In *Configure Project*, a
+  rename is saved with the rest of the project's draft, after confirming how many nodes, dialogues
+  and translations it changes. **Internal API:** a `speakers` entry of `POST /project/update-draft`
+  takes `previousName` to rename that speaker; the new `GET /project/find-speaker-references`
+  counts what a rename changes; `DialogueBranchAuthoringClient.findSpeakerReferences`.
+
 ### Fixed
 
 - Studio: saving *Configure Project* no longer replaces the project's name in the header with its

@@ -9,7 +9,7 @@ import { showError, dismissError } from '@/composables/error-toast.js';
 import { tagsToMap, mapToTags, getPosition, setPosition } from '@/authoring/DlbHeaderTags.js';
 import { extractReplyLinks } from '@/authoring/DlbReplyLinks.js';
 import { colorForId } from '@/composables/node-colors.js';
-import { projectSpeakers, speakerForNewNode } from '@/composables/project-speakers.js';
+import { isUndefinedSpeaker, projectSpeakers, speakerForNewNode } from '@/composables/project-speakers.js';
 import { useLatestRequest } from '@/composables/latest-request.js';
 import NodeEditPanel from './NodeEditPanel.vue';
 import PreambleBar from './PreambleBar.vue';
@@ -403,7 +403,17 @@ defineExpose({
                         </span>
                     </div>
                     <div v-if="data.speaker || data.externalLinks" class="px-3 py-2 text-xs font-title">
-                        <div v-if="data.speaker" class="text-grey-dark truncate">{{ data.speaker }}</div>
+                        <div v-if="data.speaker" class="flex items-center gap-1 text-grey-dark min-w-0">
+                            <span class="truncate">{{ data.speaker }}</span>
+                            <span
+                                v-if="isUndefinedSpeaker(data.speaker, projectSpeakers)"
+                                class="shrink-0 text-orange-dark cursor-help"
+                                :title="`&quot;${data.speaker}&quot; isn't one of the project's speakers. Add it in Configure Project, or choose another speaker.`"
+                                data-test="node-undefined-speaker"
+                            >
+                                <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" class="text-[11px]" />
+                            </span>
+                        </div>
                         <div v-if="data.externalLinks" class="mt-1 inline-flex items-center gap-1 text-[10px] text-orange-dark" :title="`${data.externalLinks} link(s) to other dialogues`">
                             <FontAwesomeIcon icon="fa-solid fa-arrow-up-right-from-square" />
                             {{ data.externalLinks }} external

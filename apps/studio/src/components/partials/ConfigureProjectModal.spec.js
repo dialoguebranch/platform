@@ -35,6 +35,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 const authoring = {
     getProject: vi.fn(),
     updateProjectDraft: vi.fn(),
+    findSpeakerReferences: vi.fn(),
 };
 
 vi.mock('@/composables/client.js', () => ({
@@ -143,5 +144,63 @@ describe('ConfigureProjectModal speakers (#395)', () => {
         await flushPromises();
         expect(wrapper.get('[data-test="speaker-error"]').text()).toContain('more than once');
         expect(wrapper.find('[data-test="speaker-row"]').exists()).toBe(true);
+    });
+});
+
+describe('ConfigureProjectModal speaker renames (#398)', () => {
+    async function rename(wrapper, index, name) {
+        await rows(wrapper)[index].get('[data-test="speaker-rename"]').trigger('click');
+        await wrapper.get('[data-test="speaker-rename-input"]').setValue(name);
+        await wrapper.get('[data-test="speaker-rename-input"]').element.closest('form')
+            .dispatchEvent(new Event('submit'));
+        await flushPromises();
+    }
+
+    it('stages a rename, confirms what it changes, and sends previousName', async () => {
+        authoring.findSpeakerReferences.mockResolvedValue({ nodes: 4, dialogues: 2, translations: 3 });
+        const wrapper = await openSpeakers();
+        await rename(wrapper, 1, 'Annie');
+        expect(rows(wrapper)[1].get('[data-test="speaker-was"]').text()).toContain('was Anna');
+
+        await saveButton(wrapper).trigger('click');
+        await flushPromises();
+        expect(authoring.updateProjectDraft).not.toHaveBeenCalled();
+        expect(authoring.findSpeakerReferences).toHaveBeenCalledWith('p', 'Anna');
+        expect(wrapper.get('[data-test="speaker-rename-confirmation"]').text())
+            .toContain('Renaming "Anna" to "Annie" changes 4 nodes in 2 dialogues, and 3 translations.');
+
+        await wrapper.get('[data-test="speaker-rename-confirm"]').trigger('click');
+        await flushPromises();
+        expect(sentPayload().speakers[1]).toEqual(
+            { name: 'Annie', previousName: 'Anna', gender: 'female', default: false });
+        expect(sentPayload().speakers[0]).not.toHaveProperty('previousName');
+        expect(wrapper.emitted('saved').at(-1)[0].renamedSpeakers).toBe(true);
+    });
+
+    it('goes back without saving', async () => {
+        authoring.findSpeakerReferences.mockResolvedValue({ nodes: 1, dialogues: 1, translations: 0 });
+        const wrapper = await openSpeakers();
+        await rename(wrapper, 0, 'Martin');
+        await saveButton(wrapper).trigger('click');
+        await flushPromises();
+        await wrapper.get('[data-test="speaker-rename-back"]').trigger('click');
+
+        expect(wrapper.find('[data-test="speaker-rename-confirmation"]').exists()).toBe(false);
+        expect(authoring.updateProjectDraft).not.toHaveBeenCalled();
+    });
+
+    it('refuses a name another speaker has', async () => {
+        const wrapper = await openSpeakers();
+        await rename(wrapper, 0, 'Anna');
+        expect(wrapper.get('[data-test="speaker-rename-error"]').text()).toContain('already');
+        expect(rows(wrapper)[0].find('[data-test="speaker-was"]').exists()).toBe(false);
+    });
+
+    it('renaming back to the original name is no rename', async () => {
+        const wrapper = await openSpeakers();
+        await rename(wrapper, 1, 'Annie');
+        await rename(wrapper, 1, 'Anna');
+        expect(rows(wrapper)[1].find('[data-test="speaker-was"]').exists()).toBe(false);
+        expect(saveButton(wrapper).attributes('disabled')).toBeDefined();
     });
 });

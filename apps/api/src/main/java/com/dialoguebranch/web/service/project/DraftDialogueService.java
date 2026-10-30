@@ -1360,4 +1360,120 @@ public class DraftDialogueService {
 		}
 		return DialogueBranchScriptSplitter.join(new Script(dialogue.getPreamble(), rawNodes));
 	}
+
+	// ------------------------------------------------------------------ //
+	// -------------------- Speaker References (#398) -------------------- //
+	// ------------------------------------------------------------------ //
+
+	/**
+	 * How much of a project's draft uses a speaker: its nodes (and the dialogues they are in) and
+	 * its translations.
+	 *
+	 * @param nodes        the draft nodes whose {@code speaker} tag is the speaker.
+	 * @param dialogues    the draft dialogues those nodes are in.
+	 * @param translations the draft translations, in any language, with a group for the speaker.
+	 */
+	public record SpeakerReferences(int nodes, int dialogues, int translations) { }
+
+	/**
+	 * Counts what renaming the given speaker would change in the project's draft, across all of
+	 * its dialogues (those pending deletion too, so restoring one stays consistent).
+	 *
+	 * @param project the project.
+	 * @param speaker the speaker's name.
+	 * @return the counts.
+	 */
+	public SpeakerReferences findSpeakerReferences(DBProject project, String speaker) {
+		return walkSpeakers(project, Map.of(speaker, speaker), false);
+	}
+
+	/**
+	 * Renames speakers in the project's draft: the {@code speaker} tag of every draft node, and
+	 * the speaker group of every draft translation in every language, marking the dialogues that
+	 * change as changed. All renames apply at once, so swapping two names works. The project's own
+	 * list of speakers is the caller's (see {@link DraftProjectService#updateDraft}).
+	 *
+	 * @param project the project, managed in the current transaction.
+	 * @param renames the new name for each old name.
+	 * @return what changed.
+	 */
+	@Transactional
+	public SpeakerReferences renameSpeakers(DBProject project, Map<String, String> renames) {
+		return walkSpeakers(project, renames, true);
+	}
+
+	private SpeakerReferences walkSpeakers(DBProject project, Map<String, String> renames,
+			boolean apply) {
+		int nodes = 0;
+		int dialogues = 0;
+		int translations = 0;
+		for (DBDraftDialogue dialogue : listDialogues(project)) {
+			int nodesBefore = nodes;
+			for (DBDraftNode node : listNodes(dialogue)) {
+				String speaker = DialogueBranchHeader.get(node.getHeader(), "speaker");
+				if (speaker == null || !renames.containsKey(speaker)) continue;
+				nodes++;
+				if (apply) {
+					updateNode(dialogue, node, DialogueBranchHeader.set(node.getHeader(),
+							"speaker", renames.get(speaker)), node.getBody());
+				}
+			}
+			if (nodes > nodesBefore) dialogues++;
+			for (DBDraftTranslation translation : listTranslations(dialogue)) {
+				String renamed = renameSpeakerGroups(translation.getContent(), renames);
+				if (renamed == null) continue;
+				translations++;
+				if (apply) {
+					translation.setContent(renamed);
+					translation.setUpdatedAt(Instant.now());
+					translationRepository.save(translation);
+					markChanged(dialogue);
+				}
+			}
+		}
+		return new SpeakerReferences(nodes, dialogues, translations);
+	}
+
+	/**
+	 * Renames the speaker groups of a translation file's content, keeping their order. Two groups
+	 * that end up with the same name are merged, the first one's entries winning.
+	 *
+	 * @param content the translation file's content.
+	 * @param renames the new name for each old name.
+	 * @return the new content, or {@code null} when no group is renamed (or the content isn't a
+	 *         JSON object).
+	 */
+	static String renameSpeakerGroups(String content, Map<String, String> renames) {
+		JsonNode root;
+		try {
+			root = TRANSLATION_JSON.readTree(content);
+		} catch (JsonProcessingException e) {
+			return null;
+		}
+		if (root == null || !root.isObject()) return null;
+		boolean renamed = false;
+		ObjectNode result = TRANSLATION_JSON.createObjectNode();
+		for (Map.Entry<String, JsonNode> group : root.properties()) {
+			String name = group.getKey();
+			if (renames.containsKey(name)) {
+				renamed = true;
+				name = renames.get(name);
+			}
+			JsonNode existing = result.get(name);
+			if (existing instanceof ObjectNode existingGroup && group.getValue().isObject()) {
+				for (Map.Entry<String, JsonNode> entry : group.getValue().properties()) {
+					if (!existingGroup.has(entry.getKey()))
+						existingGroup.set(entry.getKey(), entry.getValue());
+				}
+			} else if (existing == null) {
+				result.set(name, group.getValue());
+			}
+		}
+		if (!renamed) return null;
+		try {
+			return TRANSLATION_JSON.writerWithDefaultPrettyPrinter().writeValueAsString(result);
+		} catch (JsonProcessingException e) {
+			throw new IllegalStateException(e);
+		}
+	}
 }

@@ -32,6 +32,7 @@ import com.dialoguebranch.exception.ParseException;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;
 import com.dialoguebranch.execution.parser.ScriptLoader;
+import com.dialoguebranch.model.common.Speaker;
 import com.dialoguebranch.web.service.execution.DatabasePublishedScriptLoader;
 import com.dialoguebranch.web.service.repository.DBProjectRepository;
 import com.dialoguebranch.web.service.repository.DBProjectVersionRepository;
@@ -54,6 +55,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -161,8 +163,9 @@ public class PublishService {
 				.filter(draft -> !draft.getIsDeleted())
 				.toList();
 		ProjectParserResult result = validateDrafts(project, drafts).result();
-		if (result.getParseErrors().isEmpty()) return VerifyResult.valid();
-		return VerifyResult.invalid(toErrorMessages(result.getParseErrors()));
+		Map<String, List<String>> warnings = result.getWarnings();
+		if (result.getParseErrors().isEmpty()) return VerifyResult.valid(warnings);
+		return VerifyResult.invalid(toErrorMessages(result.getParseErrors()), warnings);
 	}
 
 	// ----------------------------------------------------------- //
@@ -438,7 +441,12 @@ public class PublishService {
 				? project.getSourceLanguageCode() : "";
 		ScriptLoader scriptLoader = new DatabasePublishedScriptLoader(
 				sourceLanguage, scriptsByName, translationsByLanguage(translationsByDialogue));
-		ProjectParserResult result = new ProjectParser(scriptLoader).parse();
+		// The loader reads from the database, not a dlb-project.xml, so the parser gets the draft's
+		// speakers from here, to warn about nodes whose speaker isn't one of them (#397).
+		List<Speaker> speakers = project.getDraftSpeakers().stream()
+				.sorted(Comparator.comparingInt(DBDraftSpeaker::getPosition))
+				.map(DBDraftSpeaker::toSpeaker).toList();
+		ProjectParserResult result = new ProjectParser(scriptLoader, speakers).parse();
 		return new DraftValidation(scriptsByName, translationsByDialogue, result);
 	}
 
@@ -488,36 +496,43 @@ public class PublishService {
 	// -------------------------------------------------------- //
 
 	/**
-	 * Represents the outcome of validating a project's draft without publishing it, containing
-	 * either nothing (on success) or a map of dialogue name to error messages (on failure).
+	 * Represents the outcome of validating a project's draft without publishing it: the errors per
+	 * dialogue (none when it is valid), and the warnings per dialogue, which never make it invalid
+	 * (such as orphaned nodes or nodes whose speaker isn't one of the project's, #397).
 	 */
 	public static class VerifyResult {
 
 		private final boolean valid;
 		private final Map<String, List<String>> errors;
+		private final Map<String, List<String>> warnings;
 
-		private VerifyResult(boolean valid, Map<String, List<String>> errors) {
+		private VerifyResult(boolean valid, Map<String, List<String>> errors,
+				Map<String, List<String>> warnings) {
 			this.valid = valid;
 			this.errors = errors;
+			this.warnings = warnings;
 		}
 
 		/**
 		 * Creates a {@link VerifyResult} indicating the project's draft is valid.
 		 *
+		 * @param warnings a map of dialogue name to the list of warnings for that dialogue.
 		 * @return a valid result.
 		 */
-		public static VerifyResult valid() {
-			return new VerifyResult(true, null);
+		public static VerifyResult valid(Map<String, List<String>> warnings) {
+			return new VerifyResult(true, null, warnings);
 		}
 
 		/**
 		 * Creates a {@link VerifyResult} indicating the project's draft has validation errors.
 		 *
 		 * @param errors a map of dialogue name to the list of error messages for that dialogue.
+		 * @param warnings a map of dialogue name to the list of warnings for that dialogue.
 		 * @return an invalid result.
 		 */
-		public static VerifyResult invalid(Map<String, List<String>> errors) {
-			return new VerifyResult(false, errors);
+		public static VerifyResult invalid(Map<String, List<String>> errors,
+				Map<String, List<String>> warnings) {
+			return new VerifyResult(false, errors, warnings);
 		}
 
 		/**
@@ -536,6 +551,16 @@ public class PublishService {
 		 */
 		public Map<String, List<String>> getErrors() {
 			return errors;
+		}
+
+		/**
+		 * Returns the warnings, which don't stop the draft from being published; empty when
+		 * there are none.
+		 *
+		 * @return a map of dialogue name to warnings.
+		 */
+		public Map<String, List<String>> getWarnings() {
+			return warnings;
 		}
 	}
 

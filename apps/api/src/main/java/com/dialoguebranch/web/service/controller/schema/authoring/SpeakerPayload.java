@@ -42,6 +42,11 @@ public class SpeakerPayload {
 			example = "Martin McOwl")
 	private String name;
 
+	@Schema(description = "The speaker's current name when this entry renames it: the speaker "
+			+ "is renamed in the project's nodes and translations too (#398). Leave it out "
+			+ "otherwise.", example = "Martin")
+	private String previousName;
+
 	@Schema(description = "male, female or undefined (the default)", example = "male")
 	private String gender;
 
@@ -70,6 +75,10 @@ public class SpeakerPayload {
 	 * @return the name.
 	 */
 	public String getName() { return name; }
+
+	public String getPreviousName() { return previousName; }
+
+	public void setPreviousName(String previousName) { this.previousName = previousName; }
 
 	/**
 	 * Sets the speaker's name.
