@@ -56,6 +56,7 @@ import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * A {@link UserService} is a service class that handles all communication with the Dialogue Branch
@@ -76,6 +77,9 @@ public class UserService {
 	/** Variable stores held by this service, one per project slug — variables are project-scoped (#86). */
 	private final Map<String, VariableStore> variableStoresByProject = new ConcurrentHashMap<>();
 
+	/** One lock per project slug, see {@link #lockFor(String)}. */
+	private final Map<String, ReentrantLock> locksByProject = new ConcurrentHashMap<>();
+
 	private final VariableStoreDatabaseStorageHandler storageHandler;
 
 	/** Records every change to this user's variable stores to the variable history (#259). */
@@ -89,7 +93,7 @@ public class UserService {
 
 	/**
 	 * Epoch millis of the last time this {@link UserService} was resolved for an active request
-	 * (see {@link ApplicationManager#getActiveUserService(String)}). Used by {@link
+	 * (see {@link ApplicationManager#getActiveUserService(DialogueBranchUserId)}). Used by {@link
 	 * UserServiceExpirationService} to evict {@link UserService}s that have been idle for longer
 	 * than the configured timeout. {@code volatile} since it's written by request-handling threads
 	 * and read by the scheduled eviction thread.
@@ -205,6 +209,40 @@ public class UserService {
 	}
 
 	/**
+	 * Returns the lock that serialises this user's requests that change their state in the given
+	 * project (#216, #284): starting, progressing, continuing, going back in or cancelling a
+	 * dialogue, and setting variables. A caller holds it for the whole request, from reading the
+	 * logged dialogue to saving it, so two such requests of the same user in the same project,
+	 * like a double tap or a retry racing the original, run one after the other instead of
+	 * overwriting each other's changes. {@link VariableStore} makes each single operation safe;
+	 * this lock makes a sequence of them, such as a {@code <<set $count = $count + 1>>}, safe.
+	 *
+	 * <p>Only the same user's requests in the same project wait for each other, so no one else is
+	 * slowed down; reading doesn't take the lock. It is reentrant, since a request that holds it
+	 * may call another locking method, such as the External Variable Service's updates at a
+	 * dialogue start.</p>
+	 *
+	 * @param projectSlug the slug of the project.
+	 * @return the lock for {@code (this user, projectSlug)}.
+	 */
+	public ReentrantLock lockFor(String projectSlug) {
+		return locksByProject.computeIfAbsent(projectSlug, slug -> new ReentrantLock());
+	}
+
+	/**
+	 * Returns the slug of the project a logged dialogue of this user belongs to, so a request that
+	 * only has the logged dialogue's id knows which {@link #lockFor(String) lock} to take.
+	 *
+	 * @param loggedDialogueId the id of the logged dialogue.
+	 * @return the project's slug, or {@code null} if there is no such logged dialogue.
+	 * @throws DatabaseException if the logged dialogue can't be read.
+	 */
+	public String getProjectOfLoggedDialogue(String loggedDialogueId) throws DatabaseException {
+		ServerLoggedDialogue loggedDialogue = loggedDialogueStore.findLoggedDialogue(loggedDialogueId);
+		return loggedDialogue == null ? null : loggedDialogue.getProjectName();
+	}
+
+	/**
 	 * Forgets this user's cached {@link VariableStore} for the given project, if loaded, so it is
 	 * read from storage again on next access. Used when the project is deleted (#316).
 	 *
@@ -267,7 +305,7 @@ public class UserService {
 
 	/**
 	 * Records that this {@link UserService} was just used to handle a request, resetting its idle
-	 * timer. Called by {@link ApplicationManager#getActiveUserService(String)} on every successful
+	 * timer. Called by {@link ApplicationManager#getActiveUserService(DialogueBranchUserId)} on every successful
 	 * lookup, so any endpoint that resolves an existing {@link UserService} counts as activity.
 	 */
 	void recordActivity() {

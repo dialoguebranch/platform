@@ -76,6 +76,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Controller for the /dialogue/... end-points of the Dialogue Branch Web Service.
@@ -242,6 +243,21 @@ public class DialogueController {
 		// A delegated request never changes the user's own time zone (#331).
 		if (!delegated) userService.getDialogueBranchUser().setTimeZone(timeZoneId);
 
+		// One request at a time per user and project (#216, #284)
+		ReentrantLock lock = userService.lockFor(projectSlug);
+		lock.lock();
+		try {
+			return startDialogueLocked(userService, userId, projectSlug, dialogueName, language,
+					sessionId, startNodeId);
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	private DialogueMessage startDialogueLocked(UserService userService,
+			DialogueBranchUserId userId, String projectSlug, String dialogueName, String language,
+			String sessionId, String startNodeId)
+			throws HttpException, IOException, DatabaseException {
 		// If no sessionId was provided, generate a unique one now
 		if(sessionId == null || sessionId.isEmpty()) {
 			do {
@@ -398,24 +414,32 @@ public class DialogueController {
 					"call to the 'start' or 'continue' end-points.");
 			}
 
-			ZonedDateTime eventTime = DateTimeUtils.nowMs(userService.getDialogueBranchUser()
-					.getTimeZone());
+			// One request at a time per user and project (#216, #284): reading the logged
+			// dialogue, the step and saving it can't interleave with another request's.
+			ReentrantLock lock = lockForLoggedDialogue(userService, loggedDialogueId);
+			lock.lock();
+			try {
+				ZonedDateTime eventTime = DateTimeUtils.nowMs(userService.getDialogueBranchUser()
+						.getTimeZone());
 
-			DialogueState state = userService.getDialogueState(loggedDialogueId,
-					loggedInteractionIndex);
+				DialogueState state = userService.getDialogueState(loggedDialogueId,
+						loggedInteractionIndex);
 
-			// If variable data has been received in the progress call, update the values in the
-			// Dialogue Branch Variable Store (scoped to this session's project — #86).
-			if (!variables.isEmpty()) {
-				String projectSlug = ((ServerLoggedDialogue) state.getLoggedDialogue())
-						.getProjectName();
-				userService.storeReplyInput(projectSlug, variables, eventTime);
+				// If variable data has been received in the progress call, update the values in
+				// the Dialogue Branch Variable Store (scoped to this session's project — #86).
+				if (!variables.isEmpty()) {
+					String projectSlug = ((ServerLoggedDialogue) state.getLoggedDialogue())
+							.getProjectName();
+					userService.storeReplyInput(projectSlug, variables, eventTime);
+				}
+				ExecuteNodeResult nextNode = userService.progressDialogueSession(state, replyId);
+				if (nextNode == null)
+					return new NullableResponse<>(null);
+				DialogueMessage reply = DialogueMessageFactory.generateDialogueMessage(nextNode);
+				return new NullableResponse<>(reply);
+			} finally {
+				lock.unlock();
 			}
-			ExecuteNodeResult nextNode = userService.progressDialogueSession(state, replyId);
-			if (nextNode == null)
-				return new NullableResponse<>(null);
-			DialogueMessage reply = DialogueMessageFactory.generateDialogueMessage(nextNode);
-			return new NullableResponse<>(reply);
 		} catch (ExecutionException e) {
 			throw ControllerFunctions.createHttpException(e);
 		}
@@ -534,6 +558,19 @@ public class DialogueController {
 		// A delegated request never changes the user's own time zone (#331).
 		if (!delegated) userService.getDialogueBranchUser().setTimeZone(timeZoneId);
 
+		// One request at a time per user and project (#216, #284)
+		ReentrantLock lock = userService.lockFor(projectSlug);
+		lock.lock();
+		try {
+			return continueDialogueLocked(userService, projectSlug, dialogueName);
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	private NullableResponse<DialogueMessage> continueDialogueLocked(UserService userService,
+			String projectSlug, String dialogueName)
+			throws HttpException, DatabaseException, IOException {
 		// Determine the event timestamp
 		ZonedDateTime continueDialogueEventTime =
 				DateTimeUtils.nowMs(userService.getDialogueBranchUser().getTimeZone());
@@ -661,7 +698,14 @@ public class DialogueController {
 					"call to the 'start' or 'continue' end-points.");
 		}
 
-		userService.cancelDialogueSession(loggedDialogueId);
+		// One request at a time per user and project (#216, #284)
+		ReentrantLock lock = lockForLoggedDialogue(userService, loggedDialogueId);
+		lock.lock();
+		try {
+			userService.cancelDialogueSession(loggedDialogueId);
+		} finally {
+			lock.unlock();
+		}
 		return null;
 	}
 
@@ -783,15 +827,22 @@ public class DialogueController {
 					"start with a call to the 'start' or 'continue' end-points.");
 			}
 
-			// Determine the event time stamp
-			ZonedDateTime backDialogueEventTime =
-					DateTimeUtils.nowMs(userService.getDialogueBranchUser().getTimeZone());
+			// One request at a time per user and project (#216, #284)
+			ReentrantLock lock = lockForLoggedDialogue(userService, loggedDialogueId);
+			lock.lock();
+			try {
+				// Determine the event time stamp
+				ZonedDateTime backDialogueEventTime =
+						DateTimeUtils.nowMs(userService.getDialogueBranchUser().getTimeZone());
 
-			DialogueState state = userService.getDialogueState(loggedDialogueId,
-					loggedInteractionIndex);
-			ExecuteNodeResult prevNode = userService.revertDialogueSession(state,
-					backDialogueEventTime);
-			return DialogueMessageFactory.generateDialogueMessage(prevNode);
+				DialogueState state = userService.getDialogueState(loggedDialogueId,
+						loggedInteractionIndex);
+				ExecuteNodeResult prevNode = userService.revertDialogueSession(state,
+						backDialogueEventTime);
+				return DialogueMessageFactory.generateDialogueMessage(prevNode);
+			} finally {
+				lock.unlock();
+			}
 		} catch (ExecutionException e) {
 			throw ControllerFunctions.createHttpException(e);
 		}
@@ -989,6 +1040,17 @@ public class DialogueController {
 			}
 		}
 		return new DialogueListPayload(scriptNames.toArray(new String[0]));
+	}
+
+	/**
+	 * Returns the {@link UserService#lockFor(String) lock} of the project a logged dialogue belongs
+	 * to. An unknown logged dialogue gets a lock of its own, so the request still goes on to fail
+	 * with "not found" the usual way.
+	 */
+	private static ReentrantLock lockForLoggedDialogue(UserService userService,
+			String loggedDialogueId) throws DatabaseException {
+		String projectSlug = userService.getProjectOfLoggedDialogue(loggedDialogueId);
+		return userService.lockFor(projectSlug != null ? projectSlug : "");
 	}
 
 }
