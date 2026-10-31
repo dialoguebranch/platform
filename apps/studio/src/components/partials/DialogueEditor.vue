@@ -238,21 +238,32 @@ function onNodesInitialized() {
 // ---- Position persistence (drag-end, not per-frame — same pattern as ResizablePanels.vue's
 // saveLeftPanelWidth/saveRightPanelWidth on stopDragResize) ----
 
-function onNodeDragStop({ node }) {
-    const rawNode = rawNodesByTitle.value.get(node.id);
-    if (!rawNode) return;
-    const tags = setPosition(tagsToMap(rawNode.tags), node.position.x, node.position.y);
+// Saves the new position of every node that was dragged: with several nodes selected, they all
+// move together, and Vue Flow reports them all in `nodes` (#196). They're saved one after another,
+// so updates to the same dialogue never race each other on the server; a failure stops the rest,
+// since the error is shown and a reload shows what was saved.
+async function onNodeDragStop({ node, nodes }) {
+    const moved = nodes?.length ? nodes : [node];
+    const slug = state.value.selectedProject?.slug;
     dismissError();
-    client.updateDraftNode(state.value.selectedProject?.slug, props.dialogueName, node.id,
-        mapToTags(tags), rawNode.body)
-        .then((updated) => {
-            rawNodesByTitle.value.set(node.id, updated);
-            emit('nodeChanged', node.id);
-            emit('dialogueSaved');
-        })
-        .catch((error) => {
-            showError(describeError(error));
-        });
+    let saved = false;
+    try {
+        for (const movedNode of moved) {
+            const rawNode = rawNodesByTitle.value.get(movedNode.id);
+            if (!rawNode) continue;
+            const tags = setPosition(tagsToMap(rawNode.tags),
+                movedNode.position.x, movedNode.position.y);
+            const updated = await client.updateDraftNode(slug, props.dialogueName, movedNode.id,
+                mapToTags(tags), rawNode.body);
+            rawNodesByTitle.value.set(movedNode.id, updated);
+            emit('nodeChanged', movedNode.id);
+            saved = true;
+        }
+    } catch (error) {
+        showError(describeError(error));
+    } finally {
+        if (saved) emit('dialogueSaved');
+    }
 }
 
 // ---- Node creation ----
