@@ -177,8 +177,7 @@ public class FeatureCoverageTest {
 		required.put("escaped dollar", "\\$");
 		required.put("escaped backslash", "\\\\");
 		required.put("passthrough markup", "<b>");
-		required.put("colorId (canonical spelling)", "colorId:");
-		required.put("colorID (legacy spelling)", "colorID:");
+		required.put("nodeColor", "nodeColor: #");
 		// set / expressions
 		required.put("set command", "<<set ");
 		required.put("self-referential increment", "= $count + 1");

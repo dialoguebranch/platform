@@ -56,15 +56,6 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   It is read at every step, in live playback and in tests; a dialogue whose translations depend on
   it is translated for each gender when first needed. Core:
   `ExecutableProject.getDialogueForUserGender`, `ActiveDialogue.setUserGenderTranslations`.
-- **Breaking:** variable names starting with `dlb.` are reserved for variables with a predefined
-  meaning ([#400](https://github.com/dialoguebranch/platform/issues/400)). Setting one that isn't
-  defined, or a defined one to a value it doesn't allow, is refused: a `<<set>>` with a fixed
-  value, or an input command storing into one, is a parse error; `POST /variables/set-single`,
-  `POST /variables/set`, a reply's input and the test variables answer `400`; a value from the
-  External Variable Service is skipped and logged. Rename any variable of your own that starts
-  with `dlb.`. Core: `ReservedVariables`; `VariableStore` throws `IllegalArgumentException` for a
-  refused value.
-
 - Studio: gender-specific translations
   ([#453](https://github.com/dialoguebranch/platform/issues/453),
   [#454](https://github.com/dialoguebranch/platform/issues/454),
@@ -73,6 +64,26 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   removes a gender variant in every language, shows each speaker's gender, and marks a variant
   that can never be used. *Test in [language] as [any user / a female user / a male user]* sets
   `$dlb.userGender` in the test values.
+
+### Changed
+
+- **Breaking:** variable names starting with `dlb.` are reserved for variables with a predefined
+  meaning ([#400](https://github.com/dialoguebranch/platform/issues/400)). Setting one that isn't
+  defined, or a defined one to a value it doesn't allow, is refused: a `<<set>>` with a fixed
+  value, or an input command storing into one, is a parse error; `POST /variables/set-single`,
+  `POST /variables/set`, a reply's input and the test variables answer `400`; a value from the
+  External Variable Service is skipped and logged. Rename any variable of your own that starts
+  with `dlb.`. Core: `ReservedVariables`; `VariableStore` throws `IllegalArgumentException` for a
+  refused value.
+- **Breaking:** the reserved node header tag `colorId` (and its legacy spelling `colorID`), a
+  palette index, is replaced by `nodeColor`, a colour written as `#rrggbb`
+  ([#203](https://github.com/dialoguebranch/platform/issues/203)). Studio's node editor offers the
+  same ten presets plus any custom colour. Existing content isn't converted: an old `colorId` tag
+  is kept as an ordinary custom tag, and the node shows the default colour until it is given one.
+  Dialogues run as before (the tag never affected execution). To keep the old colours in `.dlb`
+  files, replace `colorId: N` (or `colorID: N`) with `nodeColor:` and the Nth of `#c2410c`,
+  `#0d9488`, `#7c3aed`, `#0369a1`, `#be123c`, `#65a30d`, `#a16207`, `#4f46e5`, `#0891b2`,
+  `#be185d` (counting from 0).
 
 ### Fixed
 

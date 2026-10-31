@@ -1,7 +1,7 @@
 title: Start
 tags: 
 speaker: Winthrop
-colorID: 0
+nodeColor: #c2410c
 position: 113,363
 ---
 <<if $WinthropIntroduced == true>>
@@ -20,7 +20,7 @@ position: 113,363
 title: Outraged
 tags: 
 speaker: Winthrop
-colorID: 5
+nodeColor: #65a30d
 position: 494,112
 ---
 Ever the humorless brat ye always were! It's but for the reputation of your father that I give ye endless chances to redeem yer manner. I will tolerate ye here today, but bother me not.
@@ -30,7 +30,7 @@ Ever the humorless brat ye always were! It's but for the reputation of your fath
 title: Kidding
 tags: 
 speaker: Winthrop
-colorID: 0
+nodeColor: #c2410c
 position: 491,363
 ---
 Haw! Just having a bit o' fun with ye, my friend. Them monks may be walking about with poles in their nethers, but you know you are always welcome here in my sight. Gorion did well by you, he did. So, is there anything I can do for ya? Some drinks, a room to sleep, or anything to buy?
@@ -41,7 +41,7 @@ Haw! Just having a bit o' fun with ye, my friend. Them monks may be walking abou
 title: Nothing
 tags: 
 speaker: Winthrop
-colorID: 5
+nodeColor: #65a30d
 position: 804,229
 ---
 Well, it was good speaking with you.
@@ -51,7 +51,7 @@ Well, it was good speaking with you.
 title: NoFee
 tags: 
 speaker: Winthrop
-colorID: 0
+nodeColor: #c2410c
 position: 492,628
 ---
 A charming child ye always were, but I fear ye lack the sense of humor your father and I shared. You must know that you are welcome here always. Stay as you will as long as ye like. So, is there anything I can do for ya? Some drinks, a room to sleep, or anything to buy?
@@ -62,7 +62,7 @@ A charming child ye always were, but I fear ye lack the sense of humor your fath
 title: End
 tags: 
 speaker: 
-colorID: 0
+nodeColor: #c2410c
 position: 808,528
 ---
 

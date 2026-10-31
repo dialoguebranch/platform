@@ -1,7 +1,7 @@
 title: Start
 tags:
 speaker: Martin McOwl
-colorID: 2
+nodeColor: #7c3aed
 position: 758,-148
 ---
 This is the Default Dialogue Branch Test project. Each lesson below demonstrates one part of the language. The showcases are longer, real-feeling conversations.
@@ -22,7 +22,7 @@ This is the Default Dialogue Branch Test project. Each lesson below demonstrates
 title: End
 tags:
 speaker:
-colorID: 5
+nodeColor: #65a30d
 position: 752,255
 ---
 

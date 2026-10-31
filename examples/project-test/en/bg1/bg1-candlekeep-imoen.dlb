@@ -1,7 +1,7 @@
 title: Start
 tags: 
 speaker: Imoen
-colorID: 0
+nodeColor: #c2410c
 position: 109,311
 ---
 <<if $ImoenIntroduced == true >>
@@ -18,7 +18,7 @@ I'm surprised that stuffy ol' Gorion let you away from your studies and chores. 
 title: LeaveMeBe
 tags: 
 speaker: Imoen
-colorID: 3
+nodeColor: #0369a1
 position: 114,593
 ---
 If that's the way you want it, then fine. Get lost, you smelly ol' gully napper!
@@ -28,7 +28,7 @@ If that's the way you want it, then fine. Get lost, you smelly ol' gully napper!
 title: Hurry
 tags: 
 speaker: Imoen
-colorID: 2
+nodeColor: #7c3aed
 position: -87,38
 ---
 Little one? I'm not much younger than you, though you sure got tall fast. Relatively, anyway. A journey, eh? I never get to travel. Wish I could go with ya. Yep, I reall wish I could. Yes, sir. Really do.
@@ -40,7 +40,7 @@ Little one? I'm not much younger than you, though you sure got tall fast. Relati
 title: RudeToImoen
 tags: 
 speaker: Imoen
-colorID: 5
+nodeColor: #65a30d
 position: 316,-269
 ---
 Well, that was certainly rude, you rumduke. Fine, I'll stay here and mind my own beeswax. You better get going... don't want to keep Mr. G waiting.
@@ -50,7 +50,7 @@ Well, that was certainly rude, you rumduke. Fine, I'll stay here and mind my own
 title: CantTell
 tags: 
 speaker: Imoen
-colorID: 2
+nodeColor: #7c3aed
 position: 290,36
 ---
 If you say so. You sure picked up a lot from old Gorion. He never tells it straight neither. Good luck on your trip... er... I mean, good luck with whatever you are doing.
@@ -61,7 +61,7 @@ If you say so. You sure picked up a lot from old Gorion. He never tells it strai
 title: NotAllowed
 tags: 
 speaker: Imoen
-colorID: 5
+nodeColor: #65a30d
 position: 82,-264
 ---
 Oh, I know. Old stick-in-the-mud that he is, all worried about nothing, I'm sure. Better go now, 'cause you've got a long ways to travel... Not... not that I would know, especially since I didn't peek at old Mr. G's private letters. No, sire. Better go now, bye-bye.
@@ -71,7 +71,7 @@ Oh, I know. Old stick-in-the-mud that he is, all worried about nothing, I'm sure
 title: GoWithUs
 tags: 
 speaker: Imoen
-colorID: 5
+nodeColor: #65a30d
 position: -149,-264
 ---
 Oh, don't be silly, Gorion would never even let you finish the sentence. Especially after what that letter of his said... er... did I say that? No, of course I didn't. Never saw no letter. Nope. I'll just get back to work now. You had better go. Gorion is waiting.

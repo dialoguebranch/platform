@@ -34,13 +34,9 @@ The two required key-value pairs are:
 
 You are free to define other key-value pairs that might serve as meta-data in your application. The following tags are reserved; the first two are used by the visual editor in Dialogue Branch Studio (see [Dialogue Branch Web Services](/web-services/)):
 
-* `colorId` — a number specifying a colour used by the node-graph editor to visually group or distinguish nodes.
+* `nodeColor` — the node's colour in the node-graph editor, to visually group or distinguish nodes, written as `#rrggbb` (for example `#0369a1`). It has no effect on how a dialogue runs. A missing or malformed value shows the editor's default colour.
 * `position` — a pair of `x,y` coordinates (comma-separated integers) used to position the node on the editor's canvas. Malformed values silently default to `0,0`.
 * `comment` — a one-line note about the node, for authors (for example what it is for, or what still needs doing). It has no effect on how a dialogue runs, isn't shown to the people taking part in it, and isn't translated. Like any header value it may contain anything, including `//` and URLs.
-
-::: info Note
-The reserved tag is spelled `colorId` (lowercase `d`). Some older example content in this repository still uses the legacy spelling `colorID` — the parser accepts either (any header key you write is stored as-is), but only `colorId` is recognised by the visual editor.
-:::
 
 You may also see an empty `tags:` line in existing `.dlb` files. This key is not currently interpreted by the parser or the editor; it is reserved for future use.
 
@@ -50,7 +46,7 @@ Below is an example of what this looks like in a .dlb file:
 title: Start
 speaker: Robin
 comment: Asks how the user slept; the answer decides the branch.
-colorId: 3
+nodeColor: #0369a1
 position: -416,112
 ```
 
@@ -79,7 +75,7 @@ A `.dlb` file consists of a list of concatenated Nodes separated by `===` marker
 title: Start
 speaker: Robin
 position: -416,112
-colorId: 3
+nodeColor: #0369a1
 ---
 Hello, my name is Robin!
 
@@ -89,7 +85,7 @@ Hello, my name is Robin!
 title: NodeRobin2
 speaker: Robin
 position: -216,112
-colorId: 4
+nodeColor: #be123c
 ---
 Nice to meet you too, how are you doing?
 
@@ -161,7 +157,7 @@ Every Dialogue Branch script must include a Node with title "*Start*". Applicati
 title: Start
 speaker: Robin
 position: -416,112
-colorId: 3
+nodeColor: #0369a1
 ---
 Hello, my name is Robin!
 

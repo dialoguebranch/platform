@@ -87,8 +87,9 @@ public class DialogueBranchConstants {
 
 	/** The list of Strings defining the names of header tags that bear a special meaning within
 	 * Dialogue Branch. {@code comment} is a one-line note about the node, for authors only: it has
-	 * no effect on how a dialogue runs (#347). */
+	 * no effect on how a dialogue runs (#347). {@code nodeColor} is the node's colour in editors, as
+	 * {@code #rrggbb}; it too has no effect on how a dialogue runs (#203). */
 	public static final String[] DLB_RESERVED_HEADER_TAGS
-			= {"title","speaker","position","colorId","comment"};
+			= {"title","speaker","position","nodeColor","comment"};
 
 }

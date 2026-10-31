@@ -1,7 +1,7 @@
 title: Start
 tags: 
 speaker: Martin McOwl
-colorID: 2
+nodeColor: #7c3aed
 position: -630,120
 ---
 In this example we will look at conditionals in Dialogue Branch.
@@ -11,7 +11,7 @@ In this example we will look at conditionals in Dialogue Branch.
 title: Conditionals
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: -336,119
 ---
 So let's first set some variables that we can use to play with.
@@ -24,7 +24,7 @@ So let's first set some variables that we can use to play with.
 title: Conditionals2
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: -46,117
 ---
 <<if $variableThatIsTrue == true>>
@@ -38,7 +38,7 @@ position: -46,117
 title: Conditionals3
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 240,116
 ---
 <<if $variableThatIsTrue >>
@@ -51,7 +51,7 @@ position: 240,116
 title: ElseIf
 tags:
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 240,320
 ---
 <<set $count = 2>>
@@ -69,7 +69,7 @@ position: 240,320
 title: Comparisons
 tags:
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 240,520
 ---
 <<if $count != 1>>
@@ -93,7 +93,7 @@ position: 240,520
 title: BooleanOps
 tags:
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 240,720
 ---
 <<if $variableThatIsTrue && $count == 2>>
@@ -108,7 +108,7 @@ position: 240,720
 title: Unset
 tags:
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 240,920
 ---
 <<if $neverAssigned>>
@@ -126,7 +126,7 @@ position: 240,920
 title: End
 tags: 
 speaker: 
-colorID: 5
+nodeColor: #65a30d
 position: -224,458
 ---
 
@@ -134,7 +134,7 @@ position: -224,458
 title: Conditionals4
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 561,118
 ---
 You can make any part of the
@@ -159,7 +159,7 @@ dialogue conditional. As long as
 title: Conditionals5
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 870,114
 ---
 <<if $variableThatIsTrue >>
@@ -178,7 +178,7 @@ position: 870,114
 title: Conditionals6
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 1186,114
 ---
 Let me set some other variables to show some other things.
@@ -191,7 +191,7 @@ Let me set some other variables to show some other things.
 title: Conditionals7
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 1499,107
 ---
 <<if $thisIsAString == "Some string." >>
@@ -205,7 +205,7 @@ position: 1499,107
 title: Conditionals8
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 1803,110
 ---
 And that's all we have to say about conditionals for today.

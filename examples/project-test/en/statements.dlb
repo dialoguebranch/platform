@@ -2,7 +2,7 @@ title: Start
 comment: the entry node of this lesson
 tags:
 speaker: Martin McOwl
-colorId: 2
+nodeColor: #7c3aed
 position: 0,0
 ---
 <<set $playerName = "Robin">>
@@ -15,7 +15,7 @@ This lesson is about statements. A variable is injected into text with a $-sign,
 title: Escaping
 tags:
 speaker: Martin McOwl
-colorId: 0
+nodeColor: #c2410c
 position: 320,0
 ---
 To print a literal dollar sign you escape it: \$5. A literal backslash is written \\. Any character can be escaped this way, so a link keeps both its slashes: https:\//www.dialoguebranch.com
@@ -25,8 +25,8 @@ To print a literal dollar sign you escape it: \$5. A literal backslash is writte
 title: Markup
 tags:
 speaker: Martin McOwl
-colorID: 0
-note: this node keeps the legacy colorID spelling and a custom tag on purpose
+nodeColor: #c2410c
+note: this node has a custom tag on purpose
 position: 640,0
 ---
 Dialogue Branch does not interpret markup. Tags such as <b>bold</b> are passed straight through to your client, untouched.
@@ -36,7 +36,7 @@ Dialogue Branch does not interpret markup. Tags such as <b>bold</b> are passed s
 title: End
 tags:
 speaker:
-colorId: 5
+nodeColor: #65a30d
 position: 320,220
 ---
 

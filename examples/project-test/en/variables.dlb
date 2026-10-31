@@ -1,7 +1,7 @@
 title: Start
 tags: 
 speaker: Martin McOwl
-colorID: 2
+nodeColor: #7c3aed
 position: 584,92
 ---
 <<set $subjectToday = "variables" >>
@@ -13,7 +13,7 @@ In this example we look at $subjectToday.
 title: Variables1
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 874,88
 ---
 <<set $variableOne = "One" >>
@@ -27,7 +27,7 @@ In this node we have set some variables: $variableOne, $variable2, and $variable
 title: Variables2
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 1167,90
 ---
 <<set $aNumber = 42 >>
@@ -39,7 +39,7 @@ These variables contained string values, so they can be injected in statements (
 title: Arithmetic
 tags:
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 1167,300
 ---
 <<set $first = "Ada">>
@@ -53,7 +53,7 @@ Expressions can combine variables. Here $full became "$full".
 title: Increment
 tags:
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 1167,510
 ---
 <<set $count = 0>>
@@ -67,7 +67,7 @@ A variable can refer to itself, so $count is now $count.
 title: Coercion
 tags:
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 1167,720
 ---
 <<set $leftToRight = 1 + 2 + "3">>
@@ -80,7 +80,7 @@ Mixing numbers and strings coerces to a string, evaluated left to right: 1 + 2 +
 title: Variables3
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 1472,84
 ---
 Variables must start with a $-sign and then any small or capital letter ([a-z] or [A-Z]) or an underscore. Besides that you can use any combination of letters, numbers and underscores to define your variable name, and dots to split it into parts.
@@ -90,7 +90,7 @@ Variables must start with a $-sign and then any small or capital letter ([a-z] o
 title: DottedNames
 tags:
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 1472,300
 ---
 <<set $user.settings.theme = "dark">>
@@ -107,7 +107,7 @@ Dotted names work in conditions too.
 title: DottedNames2
 tags:
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 1768,300
 ---
 Your theme is now $user.settings.theme.
@@ -117,7 +117,7 @@ Your theme is now $user.settings.theme.
 title: Variables4
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 1768,79
 ---
 Variables can be set at various places in the dialogue. For example, attached to replies:
@@ -129,7 +129,7 @@ Variables can be set at various places in the dialogue. For example, attached to
 title: Variables5
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 2069,76
 ---
 So, your variable now has the value "$replyVariable" (without the quotes). 
@@ -139,7 +139,7 @@ So, your variable now has the value "$replyVariable" (without the quotes).
 title: Variables6
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 2366,73
 ---
 All variables that you set in the dialogue can be used directly. But not all variables need to be set from the dialogue itself.
@@ -149,7 +149,7 @@ All variables that you set in the dialogue can be used directly. But not all var
 title: Variables7
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 2672,70
 ---
 The Dialogue Branch software libraries support the concept of a "variable store", a simple list of variables that can be used to store the state of your application.
@@ -159,7 +159,7 @@ The Dialogue Branch software libraries support the concept of a "variable store"
 title: Variables8
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 2971,72
 ---
 For example, many of your dialogues might use a variable called "userName" that is set after account creation. So you can say things like "Hey $userName!".
@@ -169,7 +169,7 @@ For example, many of your dialogues might use a variable called "userName" that 
 title: Variables9
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 3306,70
 ---
 Without attaching a variable store that contains a value for this variable "$userName", we will not see a value, but the Dialogue Branch script is still valid.
@@ -179,7 +179,7 @@ Without attaching a variable store that contains a value for this variable "$use
 title: Variables10
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 3628,67
 ---
 Well, that's all we have to say about variables!
@@ -189,7 +189,7 @@ Well, that's all we have to say about variables!
 title: End
 tags: 
 speaker: 
-colorID: 5
+nodeColor: #65a30d
 position: 2533,489
 ---
 

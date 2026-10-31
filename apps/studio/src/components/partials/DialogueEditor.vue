@@ -8,7 +8,7 @@ import { describeError } from '@/composables/error-message.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
 import { tagsToMap, mapToTags, getPosition, setPosition } from '@/authoring/DlbHeaderTags.js';
 import { extractReplyLinks } from '@/authoring/DlbReplyLinks.js';
-import { colorForId } from '@/composables/node-colors.js';
+import { colorForNode } from '@/composables/node-colors.js';
 import { isUndefinedSpeaker, projectSpeakers, speakerForNewNode } from '@/composables/project-speakers.js';
 import { useLatestRequest } from '@/composables/latest-request.js';
 import NodeEditPanel from './NodeEditPanel.vue';
@@ -56,12 +56,12 @@ function isReservedNodeTitle(title, reservedId) {
     return title?.toLowerCase() === reservedId;
 }
 
-// Start/End get a fixed accent regardless of their colorId tag — see the theme.css comment on
+// Start/End get a fixed accent regardless of their nodeColor tag — see the theme.css comment on
 // --color-node-start/--color-node-end for why.
 function nodeHeaderColor(data) {
     if (data.isStart) return 'var(--color-node-start)';
     if (data.isEnd) return 'var(--color-node-end)';
-    return colorForId(data.colorId);
+    return colorForNode(data.nodeColor);
 }
 
 // ---- Floating edges: connect each edge to the point on the node's rectangle nearest the other
@@ -167,7 +167,7 @@ function buildGraph(nodes) {
             title: node.title,
             speaker: tags.get('speaker') ?? '',
             comment: tags.get('comment') ?? '',
-            colorId: tags.get('colorId') ?? '0',
+            nodeColor: tags.get('nodeColor') ?? null,
             externalLinks: externalLinkCounts.get(node.title) ?? 0,
             isStart: isReservedNodeTitle(node.title, RESERVED_NODE_START_ID),
             isEnd: isReservedNodeTitle(node.title, RESERVED_NODE_END_ID),
