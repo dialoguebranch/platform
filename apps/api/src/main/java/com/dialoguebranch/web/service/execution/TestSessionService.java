@@ -40,6 +40,7 @@ import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;
 import com.dialoguebranch.execution.parser.ScriptLoader;
 import com.dialoguebranch.expression.EvaluationException;
+import com.dialoguebranch.model.common.ReservedVariables;
 import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.ExecutableProject;
@@ -61,6 +62,7 @@ import com.dialoguebranch.web.service.project.DraftDialogueService;
 import com.dialoguebranch.web.service.storage.ExternalVariableServiceClient;
 import com.dialoguebranch.web.service.storage.VariableStoreDatabaseStorageHandler;
 import com.dialoguebranch.web.service.storage.model.DBDraftDialogue;
+import com.dialoguebranch.web.service.storage.model.DBDraftSpeaker;
 import com.dialoguebranch.web.service.storage.model.DBDraftTranslation;
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import org.slf4j.Logger;
@@ -73,6 +75,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -245,6 +248,8 @@ public class TestSessionService {
 		ZonedDateTime now = DateTimeUtils.nowMs(copy.getUser().getTimeZone());
 		copy.getModifiableMap(false, now).clear();
 		for (Variable variable : seed) {
+			// A stored value from before the dlb. names were reserved stays out of the copy (#400).
+			if (ReservedVariables.check(variable.getName(), variable.getValue()) != null) continue;
 			copy.setValue(variable.getName(), variable.getValue(), false,
 					storedTime(variable, now), variable.getUpdatedSource());
 		}
@@ -361,7 +366,10 @@ public class TestSessionService {
 
 		ProjectParserResult parserResult;
 		try {
-			parserResult = new ProjectParser(scriptLoader).parse();
+			// The draft's speakers, whose genders select gender-specific translations (#399).
+			parserResult = new ProjectParser(scriptLoader, project.getDraftSpeakers().stream()
+					.sorted(Comparator.comparingInt(DBDraftSpeaker::getPosition))
+					.map(DBDraftSpeaker::toSpeaker).toList()).parse();
 		} catch (IOException e) {
 			throw new BadRequestException(
 					"Failed to read draft dialogue content: " + e.getMessage());
@@ -442,6 +450,9 @@ public class TestSessionService {
 		readFromExternalService(copyKey, copy, resolved.definition());
 		ActiveDialogue activeDialogue = new ActiveDialogue(resolved.pointer(), resolved.definition(),
 				copy);
+		// The end user's gender, $dlb.userGender, selects the translation at every step (#400).
+		activeDialogue.setUserGenderTranslations((gender) ->
+				executableProject.getDialogueForUserGender(resolved.pointer(), gender));
 
 		Node startNode;
 		try {
@@ -605,6 +616,8 @@ public class TestSessionService {
 					resolved.definition());
 			ActiveDialogue newActiveDialogue = new ActiveDialogue(resolved.pointer(),
 					resolved.definition(), activeDialogue.getVariableStore());
+			newActiveDialogue.setUserGenderTranslations((gender) -> session.getExecutableProject()
+					.getDialogueForUserGender(resolved.pointer(), gender));
 
 			Node startNode;
 			try {

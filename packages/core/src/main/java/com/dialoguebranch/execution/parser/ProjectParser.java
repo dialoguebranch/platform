@@ -142,6 +142,7 @@ public class ProjectParser {
 		}
 
 		project.setTranslations(dlgTranslations);
+		project.setSpeakers(projectSpeakers());
 
 		if (scriptLoader instanceof ProjectScriptLoader projectScriptLoader)
 			project.setMetaData(projectScriptLoader.getProjectMetaData());
@@ -203,6 +204,9 @@ public class ProjectParser {
 				dialogues, (file, error) -> getParseErrors(readResult, file).add(error));
 
 		ExternalNodePointerValidator.validate(allParsedDialogues, dialoguesByName,
+				(file, error) -> getParseErrors(readResult, file).add(error));
+
+		ReservedVariableValidator.validate(allParsedDialogues,
 				(file, error) -> getParseErrors(readResult, file).add(error));
 
 		OrphanedNodeValidator.detect(allParsedDialogues, dialoguesByName,
@@ -289,8 +293,9 @@ public class ProjectParser {
 						"No source dialogue found for translation: " + fileDescription));
 				continue;
 			}
+			// The speakers' genders select gender-specific translations (#399).
 			Translator translator = new Translator(
-					new TranslationContext(), translations.get(fileDescription));
+					TranslationContext.forSpeakers(projectSpeakers()), translations.get(fileDescription));
 			Dialogue translated = translator.translate(source);
 			translatedDialogues.put(fileDescription, translated);
 		}

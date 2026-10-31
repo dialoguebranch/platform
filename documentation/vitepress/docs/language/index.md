@@ -230,6 +230,14 @@ Here the variable is `$score`, followed by a full stop. In the same way, `$value
 Once a project has many variables, give them structured names. Let the first part name the domain or owner of the variable, and write each part in camelCase, for example `$user.firstName` or `$settings.theme`. Names starting with `dlb.` are reserved for variables with a meaning defined by Dialogue Branch itself.
 :::
 
+::: warning Reserved names
+Names starting with `dlb.` are reserved for variables with a predefined meaning. A script, a client or an External Variable Service can only set the ones that are defined, and only to the values they allow:
+
+* `$dlb.userGender` — the end user's gender: `"male"`, `"female"`, `"undefined"` or empty (the same as `"undefined"`). A script can branch on it where a text changes with the user's gender, and translations into languages where a text changes with it use it too (see [Translation Files](/language/dlb-project#translation-files)). It is read at every step, so a dialogue that asks for it can use it right away.
+
+Setting any other `$dlb.` variable, or one of these to a value it doesn't allow, is refused: in a script with a fixed value, as a parse error; otherwise when it is set.
+:::
+
 These variables can be used within **Statements** to inject their values into a sentence, like so:
 
 ```text

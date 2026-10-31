@@ -72,6 +72,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -249,6 +250,7 @@ public class TestSessionController {
 						}
 					}
 
+					ControllerFunctions.requireAllowedVariables(variables);
 					TestSession session = testSessionService.getSession(testSessionId, user);
 					ZonedDateTime eventTime =
 							DateTimeUtils.nowMs(ControllerFunctions.parseTimeZone(timeZone));
@@ -382,6 +384,9 @@ public class TestSessionController {
 						throw BadRequestException.withInvalidInput(List.of(
 								new HttpFieldError("name", "Invalid variable name: " + name)));
 					}
+					Map<String, Object> single = new HashMap<>();
+					single.put(name, value);
+					ControllerFunctions.requireAllowedVariables(single);
 					ZoneId timeZoneId = ControllerFunctions.parseTimeZone(timeZone);
 					VariableStore copy = testSessionService.getCopy(tester(), user, delegated,
 							findProject(projectSlug), timeZoneId);

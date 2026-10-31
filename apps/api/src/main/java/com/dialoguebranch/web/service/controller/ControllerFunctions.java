@@ -29,6 +29,7 @@
 package com.dialoguebranch.web.service.controller;
 
 import com.dialoguebranch.exception.ExecutionException;
+import com.dialoguebranch.model.common.ReservedVariables;
 import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.exception.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -41,6 +42,7 @@ import java.time.zone.ZoneRulesException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -103,6 +105,23 @@ public class ControllerFunctions {
 			return result;
 		}
 
+	}
+
+	/**
+	 * Refuses values that a reserved {@code $dlb.} variable doesn't allow, or an undefined
+	 * reserved variable (#400), before anything is stored.
+	 *
+	 * @param variables the variables to set, by name.
+	 * @throws BadRequestException with a field error per refused variable.
+	 */
+	public static void requireAllowedVariables(Map<String, ?> variables)
+			throws BadRequestException {
+		List<HttpFieldError> errors = new ArrayList<>();
+		for (Map.Entry<String, ?> entry : variables.entrySet()) {
+			String problem = ReservedVariables.check(entry.getKey(), entry.getValue());
+			if (problem != null) errors.add(new HttpFieldError(entry.getKey(), problem));
+		}
+		if (!errors.isEmpty()) throw BadRequestException.withInvalidInput(errors);
 	}
 
 	/**

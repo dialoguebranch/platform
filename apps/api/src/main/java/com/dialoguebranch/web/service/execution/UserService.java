@@ -690,6 +690,8 @@ public class UserService {
 		}
 		ActiveDialogue activeDialogue = new ActiveDialogue(
 				dialogueDescription, dialogueDefinition, getVariableStore(projectSlug));
+		activeDialogue.setUserGenderTranslations(
+				applicationManager.getUserGenderTranslations(projectSlug, dialogueDescription));
 		activeDialogue.setCurrentNode(node);
 		return new DialogueState(dialogueDescription, dialogueDefinition,
 				loggedDialogue, loggedInteractionIndex, activeDialogue);

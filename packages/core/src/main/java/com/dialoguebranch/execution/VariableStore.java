@@ -28,6 +28,7 @@
 
 package com.dialoguebranch.execution;
 
+import com.dialoguebranch.model.common.ReservedVariables;
 import org.jspecify.annotations.Nullable;
 
 import java.time.ZonedDateTime;
@@ -246,6 +247,7 @@ public class VariableStore {
 	 */
 	public void setValue(String name, @Nullable Object value, boolean notifyObservers,
 						 ZonedDateTime eventTime, VariableUpdatedSource source) {
+		requireAllowed(name, value);
 		Variable variable = new Variable(name, value, eventTime, source);
 		synchronized (variables) {
 			variables.put(name, variable);
@@ -257,6 +259,19 @@ public class VariableStore {
 		if (notifyObservers) {
 			notifyOnChange(new VariableStoreChange.Put(variable, eventTime, source));
 		}
+	}
+
+	/**
+	 * Refuses a value for an undefined reserved {@code $dlb.} variable, or one a defined reserved
+	 * variable doesn't allow (#400). Values loaded into the constructor aren't checked, so stored
+	 * data from before the namespace was reserved still loads.
+	 *
+	 * @throws IllegalArgumentException with the reason, if it can't be set.
+	 */
+	private static void requireAllowed(String name, @Nullable Object value) {
+		String problem = ReservedVariables.check(name, value);
+		if (problem != null)
+			throw new IllegalArgumentException(problem);
 	}
 
 	/**
@@ -336,6 +351,8 @@ public class VariableStore {
 					   ZonedDateTime eventTime, VariableUpdatedSource source) {
 		List<Variable> VariablesToAdd = new ArrayList<>();
 
+		for (Map.Entry<? extends String, ?> entry : variablesToAdd.entrySet())
+			requireAllowed(entry.getKey(), entry.getValue());
 		for (Map.Entry<? extends String, ?> entry : variablesToAdd.entrySet()) {
 			String name = entry.getKey();
 			Object value = entry.getValue();

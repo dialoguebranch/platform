@@ -30,7 +30,9 @@ package com.dialoguebranch.execution;
 
 import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.expression.EvaluationException;
+import com.dialoguebranch.i18n.TranslationContext;
 import com.dialoguebranch.model.common.DialogueBranchConstants;
+import com.dialoguebranch.model.common.ReservedVariables;
 import com.dialoguebranch.model.execute.*;
 import com.dialoguebranch.model.execute.command.Command;
 import com.dialoguebranch.model.execute.command.InputCommand;
@@ -44,6 +46,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 
 /**
  * An {@link ActiveDialogue} is a wrapper around a {@link Dialogue}, which contains a static
@@ -75,7 +78,13 @@ public class ActiveDialogue {
 	private final ResourcePointer dialogueFileDescription;
 
 	/** The static dialogue definition containing all nodes and their content. */
-	private final Dialogue dialogueDefinition;
+	private Dialogue dialogueDefinition;
+
+	/**
+	 * The dialogue as translated for each gender of the end user (#400), or {@code null} when
+	 * the translation doesn't change with it (see {@link #setUserGenderTranslations}).
+	 */
+	private @Nullable Function<TranslationContext.Gender, Dialogue> userGenderTranslations;
 
 	/** The node currently being presented to the user, or {@code null} if not yet started. */
 	private @Nullable Node currentNode;
@@ -109,6 +118,29 @@ public class ActiveDialogue {
 	// ----------------------------------------------------------- //
 	// -------------------- Getters & Setters -------------------- //
 	// ----------------------------------------------------------- //
+
+	/**
+	 * Lets this dialogue follow the end user's gender (#400): before every step, the value of
+	 * {@code $dlb.userGender} in the variable store selects the dialogue definition used for it,
+	 * given by {@code translations}. Each must be the same dialogue (same nodes), translated for
+	 * that gender.
+	 *
+	 * @param translations the dialogue for each gender of the end user.
+	 */
+	public void setUserGenderTranslations(
+			@Nullable Function<TranslationContext.Gender, Dialogue> translations) {
+		this.userGenderTranslations = translations;
+	}
+
+	/** Switches to the definition for the end user's current gender, if this dialogue follows it. */
+	private void followUserGender() {
+		if (userGenderTranslations == null)
+			return;
+		Dialogue definition = userGenderTranslations.apply(TranslationContext.Gender.ofUserGender(
+				variableStore.getValue(ReservedVariables.USER_GENDER)));
+		if (definition != null)
+			dialogueDefinition = definition;
+	}
 
 	/**
 	 * Returns the {@link ResourcePointer} of the dialogue file corresponding to this
@@ -204,6 +236,7 @@ public class ActiveDialogue {
 	 */
 	public Node startDialogue(@Nullable String startNodeId, ZonedDateTime eventTime)
 			throws ExecutionException, EvaluationException {
+		followUserGender();
 		Node nextNode;
 		if (startNodeId == null) {
 			nextNode = dialogueDefinition.getStartNode();
@@ -270,6 +303,7 @@ public class ActiveDialogue {
 	 */
 	public @Nullable Node progressDialogue(InternalNodePointer nodePointer, ZonedDateTime eventTime)
 			throws EvaluationException {
+		followUserGender();
 		Node nextNode = null;
 		if (!nodePointer.getTargetNodeId().equalsIgnoreCase(DialogueBranchConstants.DLB_NODE_END_ID))
 			nextNode = dialogueDefinition.getNodeById(nodePointer.getTargetNodeId());

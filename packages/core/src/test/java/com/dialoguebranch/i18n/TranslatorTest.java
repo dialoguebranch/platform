@@ -30,6 +30,7 @@ package com.dialoguebranch.i18n;
 
 import com.dialoguebranch.execution.parser.DialogueBranchParser;
 import com.dialoguebranch.execution.parser.ParserResult;
+import com.dialoguebranch.model.common.Speaker;
 import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.Node;
 import com.dialoguebranch.model.execute.NodeBody;
@@ -122,6 +123,45 @@ public class TranslatorTest {
 				TranslationContext.Gender.MALE, Map.of()));
 		assertTrue(body(dialogue, "Start"), body(dialogue, "Start").startsWith("Hallo (f)."));
 		assertTrue(body(dialogue, "Anna"), body(dialogue, "Anna").startsWith("Hello."));
+	}
+
+	// -------------------- speaker genders (#399) -------------------- //
+
+	/** Martin McOwl's "Hello." in three variants: male speaker, female speaker and neutral. */
+	private static final String GENDERED = "{\"Martin McOwl\": {" +
+			"\"male_speaker\": {\"Hello.\": \"Hallo (m).\"}," +
+			"\"female_speaker\": {\"Hello.\": \"Hallo (f).\"}," +
+			"\"Hello.\": \"Hallo.\"}}";
+
+	private static TranslationContext speakers(Speaker.Gender gender) {
+		return TranslationContext.forSpeakers(List.of(new Speaker("Martin McOwl", gender, false)));
+	}
+
+	@Test
+	public void aSpeakersGenderSelectsItsTranslation() throws IOException {
+		assertTrue(body(translate(GENDERED, speakers(Speaker.Gender.MALE)), "Start")
+				.startsWith("Hallo (m)."));
+		assertTrue(body(translate(GENDERED, speakers(Speaker.Gender.FEMALE)), "Start")
+				.startsWith("Hallo (f)."));
+	}
+
+	@Test
+	public void anUndefinedGenderSelectsTheNeutralTranslation() throws IOException {
+		assertTrue(body(translate(GENDERED, speakers(Speaker.Gender.UNDEFINED)), "Start")
+				.startsWith("Hallo."));
+		// Not a project speaker at all, and the default context: undefined too.
+		assertTrue(body(translate(GENDERED, TranslationContext.forSpeakers(List.of())), "Start")
+				.startsWith("Hallo."));
+		assertTrue(body(translate(GENDERED), "Start").startsWith("Hallo."));
+	}
+
+	@Test
+	public void anUndefinedGenderWithoutANeutralTranslationUsesTheSpeakersFirst() throws IOException {
+		String json = "{\"Martin McOwl\": {" +
+				"\"female_speaker\": {\"Hello.\": \"Hallo (f).\"}," +
+				"\"male_speaker\": {\"Hello.\": \"Hallo (m).\"}}}";
+		assertTrue(body(translate(json, speakers(Speaker.Gender.UNDEFINED)), "Start")
+				.startsWith("Hallo (f)."));
 	}
 
 	// -------------------- commands among the text (#437) -------------------- //

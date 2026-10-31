@@ -347,29 +347,31 @@ public class Translator {
 			TranslationContext.Gender speakerGender,
 			TranslationContext.Gender addresseeGender) {
 		List<ContextTranslation> result = new ArrayList<>();
-		if (speakerGender == null)
-			speakerGender = TranslationContext.Gender.MALE;
-		if (addresseeGender == null)
-			addresseeGender = TranslationContext.Gender.MALE;
 		for (ContextTranslation term : terms) {
-			if (speakerGender == TranslationContext.Gender.MALE &&
-					term.context().contains("female_speaker")) {
-				continue;
-			}
-			if (addresseeGender == TranslationContext.Gender.MALE &&
-					term.context().contains("female_addressee")) {
-				continue;
-			}
-			if (speakerGender == TranslationContext.Gender.FEMALE &&
-					term.context().contains("male_speaker")) {
-				continue;
-			}
-			if (addresseeGender == TranslationContext.Gender.FEMALE &&
-					term.context().contains("male_addressee")) {
-				continue;
-			}
-			result.add(term);
+			// "user" is the end user wherever they are in the sentence, also when only talked
+			// about (#400): the one gender that varies at run time.
+			if (fits(term, "speaker", speakerGender) && fits(term, "addressee", addresseeGender)
+					&& fits(term, "user", context.getUserGender()))
+				result.add(term);
 		}
 		return result;
 	}
+
+	/**
+	 * Returns whether a translation's gender contexts for one role ({@code speaker},
+	 * {@code addressee} or {@code user}) fit that role's gender: a male or female role excludes a context of the
+	 * other gender, and an {@link TranslationContext.Gender#UNDEFINED undefined} one excludes any
+	 * gender context for the role.
+	 */
+	private static boolean fits(ContextTranslation term, String role,
+			TranslationContext.Gender gender) {
+		boolean male = term.context().contains("male_" + role);
+		boolean female = term.context().contains("female_" + role);
+		return switch (gender) {
+			case MALE -> !female;
+			case FEMALE -> !male;
+			case UNDEFINED -> !male && !female;
+		};
+	}
+
 }

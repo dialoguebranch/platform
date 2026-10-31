@@ -32,8 +32,10 @@ import com.dialoguebranch.i18n.ContextTranslation;
 import com.dialoguebranch.i18n.Translatable;
 import com.dialoguebranch.i18n.TranslationContext;
 import com.dialoguebranch.i18n.Translator;
+import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.common.DialogueBranchProject;
 import com.dialoguebranch.model.common.ProjectMetaData;
+import com.dialoguebranch.model.common.Speaker;
 import org.jspecify.annotations.Nullable;
 
 import java.util.*;
@@ -48,6 +50,9 @@ import java.util.*;
  */
 public class ExecutableProject implements DialogueBranchProject {
 	private @Nullable ProjectMetaData metaData;
+	private List<Speaker> speakers = List.of();
+	private final Map<ResourcePointer, Map<TranslationContext.Gender, Dialogue>> userGenderDialogues =
+			new HashMap<>();
 	private Map<ResourcePointer, Dialogue> dialogues = new LinkedHashMap<>();
 	private Map<ResourcePointer, Dialogue> sourceDialogues = new LinkedHashMap<>();
 	private Map<ResourcePointer,
@@ -224,6 +229,62 @@ public class ExecutableProject implements DialogueBranchProject {
 	@Override
 	public List<ResourcePointer> getResourcePointers() {
 		return new ArrayList<>(dialogues.keySet());
+	}
+
+	/**
+	 * Sets the project's speakers, whose genders the translations use (#399). Set by
+	 * {@link com.dialoguebranch.execution.parser.ProjectParser}.
+	 *
+	 * @param speakers the project's speakers.
+	 */
+	public void setSpeakers(List<Speaker> speakers) {
+		this.speakers = List.copyOf(speakers);
+	}
+
+	/**
+	 * Returns the dialogue for the given description as translated for an end user of the given
+	 * gender (#400). Only a translation that uses the user's gender (a {@code male_addressee},
+	 * {@code female_addressee}, {@code male_user} or {@code female_user} context, or a gender
+	 * context in the {@code _user} group) differs
+	 * per gender; every other dialogue, and an undefined gender, is the one in
+	 * {@link #getDialogues()}. A translation for a male or female user is made the first time
+	 * it is asked for, and kept.
+	 *
+	 * @param dialogueDescription the dialogue description (name and language).
+	 * @param userGender the end user's gender.
+	 * @return the dialogue, or {@code null} if there is none for the description.
+	 */
+	public synchronized @Nullable Dialogue getDialogueForUserGender(
+			ResourcePointer dialogueDescription, TranslationContext.Gender userGender) {
+		Dialogue dialogue = dialogues.get(dialogueDescription);
+		Map<Translatable, List<ContextTranslation>> dialogueTranslations =
+				translations.get(dialogueDescription);
+		if (dialogue == null || userGender == TranslationContext.Gender.UNDEFINED
+				|| dialogueTranslations == null || !usesUserGender(dialogueTranslations))
+			return dialogue;
+		Dialogue source = findSourceDialogue(dialogueDescription.getDialogueName());
+		if (source == null)
+			return dialogue;
+		return userGenderDialogues
+				.computeIfAbsent(dialogueDescription, (d) -> new EnumMap<>(TranslationContext.Gender.class))
+				.computeIfAbsent(userGender, (gender) -> new Translator(new TranslationContext(gender,
+						TranslationContext.forSpeakers(speakers).getAgentGenders()),
+						dialogueTranslations).translate(source));
+	}
+
+	private static boolean usesUserGender(Map<Translatable, List<ContextTranslation>> translations) {
+		for (List<ContextTranslation> list : translations.values()) {
+			for (ContextTranslation translation : list) {
+				Set<String> context = translation.context();
+				if (context.contains("male_addressee") || context.contains("female_addressee")
+						|| context.contains("male_user") || context.contains("female_user"))
+					return true;
+				if (DialogueBranchConstants.DLB_USER_SPEAKER.equals(translation.speaker())
+						&& (context.contains("male_speaker") || context.contains("female_speaker")))
+					return true;
+			}
+		}
+		return false;
 	}
 
 	private @Nullable Dialogue findSourceDialogue(String dialogueName) {

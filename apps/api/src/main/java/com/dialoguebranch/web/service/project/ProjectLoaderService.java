@@ -36,6 +36,7 @@ import com.dialoguebranch.web.service.repository.DBPublishedTranslationRepositor
 import com.dialoguebranch.web.service.storage.model.DBProject;
 import com.dialoguebranch.web.service.storage.model.DBProjectVersion;
 import com.dialoguebranch.web.service.storage.model.DBPublishedDialogue;
+import com.dialoguebranch.web.service.storage.model.DBPublishedSpeaker;
 import com.dialoguebranch.web.service.storage.model.DBPublishedTranslation;
 import com.dialoguebranch.web.service.storage.model.DBPublishedTranslationLanguage;
 import org.slf4j.Logger;
@@ -198,7 +199,8 @@ public class ProjectLoaderService {
 				sourceLanguage, translationLanguages, scriptContents, translationContents);
 
 		application.getApplicationManager().loadProject(projectSlug, scriptLoader,
-				latestVersion.getVersionNumber());
+				latestVersion.getVersionNumber(), latestVersion.getSpeakers().stream()
+						.map(DBPublishedSpeaker::toSpeaker).toList());
 	}
 
 }
