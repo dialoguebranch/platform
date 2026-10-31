@@ -65,6 +65,15 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   with `dlb.`. Core: `ReservedVariables`; `VariableStore` throws `IllegalArgumentException` for a
   refused value.
 
+- Studio: gender-specific translations
+  ([#453](https://github.com/dialoguebranch/platform/issues/453),
+  [#454](https://github.com/dialoguebranch/platform/issues/454),
+  [#455](https://github.com/dialoguebranch/platform/issues/455)). The Translation Editor adds a
+  *Female user* and a *Male user* translation to a text (stored as `female_user`/`male_user`),
+  removes a gender variant in every language, shows each speaker's gender, and marks a variant
+  that can never be used. *Test in [language] as [any user / a female user / a male user]* sets
+  `$dlb.userGender` in the test values.
+
 ### Fixed
 
 - Studio: saving *Configure Project* no longer replaces the project's name in the header with its

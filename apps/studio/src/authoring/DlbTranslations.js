@@ -183,3 +183,71 @@ export function findContextVariants(content, speaker, term) {
             && normalizeText(entry.text) === normalized)
         .map((entry) => entry.contexts);
 }
+
+/**
+ * The gender variants a translator adds to a text (#453): one for a female and one for a male end
+ * user. They are the only variants ever needed, since only the user's gender varies while a
+ * dialogue runs; every agent's gender is fixed by the project's speakers.
+ */
+export const USER_GENDER_VARIANTS = [['female_user'], ['male_user']];
+
+/**
+ * The user's gender a variant of a speaker's text stands for, or null if it isn't a plain
+ * user-gender variant. `female_user`/`male_user` always are; in an agent's group,
+ * `female_addressee`/`male_addressee` are too, since an agent's statement is translated as
+ * addressed to the user; in the user's own group (`_user`), `female_speaker`/`male_speaker` are.
+ *
+ * @param {string} speaker the speaker group.
+ * @param {string[]} contexts the variant's context keys.
+ * @returns {'female'|'male'|null}
+ */
+export function userGenderOf(speaker, contexts) {
+    if (contexts.length !== 1) return null;
+    const match = /^(female|male)_(user|addressee|speaker)$/.exec(contexts[0]);
+    if (!match) return null;
+    const [, gender, role] = match;
+    if (role === 'user'
+            || (role === 'addressee' && speaker !== '_user')
+            || (role === 'speaker' && speaker === '_user')) return gender;
+    return null;
+}
+
+/**
+ * A readable label for a gender variant of a speaker's text: "Female user" or "Male user" for a
+ * user-gender variant (see {@link userGenderOf}), and the context keys themselves for any other.
+ *
+ * @param {string} speaker the speaker group.
+ * @param {string[]} contexts the variant's context keys.
+ * @returns {string}
+ */
+export function contextLabel(speaker, contexts) {
+    const gender = userGenderOf(speaker, contexts);
+    if (gender) return gender === 'female' ? 'Female user' : 'Male user';
+    return contexts.join(', ');
+}
+
+/**
+ * Why a gender variant of a speaker's text can never be used (#455), or null if it can. A
+ * `male_speaker` or `female_speaker` variant of an agent only applies when that is the agent's
+ * gender, which is fixed by the project's speakers; an agent without a gender (or not one of the
+ * speakers) is undefined, which no gendered variant fits. The user's own replies (`_user`) are
+ * left alone: the user's gender varies.
+ *
+ * @param {string} speaker the speaker group.
+ * @param {string[]} contexts the variant's context keys.
+ * @param {Array<{name: string, gender?: string}>} speakers the project's speakers.
+ * @returns {string|null}
+ */
+export function unusableVariantReason(speaker, contexts, speakers) {
+    if (speaker === '_user') return null;
+    const defined = speakers.find((s) => s.name === speaker);
+    const gender = defined?.gender ?? 'undefined';
+    for (const key of contexts) {
+        const match = /^(male|female)_speaker$/.exec(key);
+        if (!match || match[1] === gender) continue;
+        if (!defined) return `${speaker} isn't one of the project's speakers, so has no gender: this variant is never used.`;
+        if (gender === 'undefined') return `${speaker} has no gender in the project's speakers, so this variant is never used.`;
+        return `${speaker} is ${gender}, so this variant is never used.`;
+    }
+    return null;
+}

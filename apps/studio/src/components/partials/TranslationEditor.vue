@@ -7,7 +7,9 @@ import { showError, dismissError } from '@/composables/error-toast.js';
 import { useLatestRequest } from '@/composables/latest-request.js';
 import {
     findStaleEntries, withoutEntries, findStoredText, withTranslation, findContextVariants,
+    USER_GENDER_VARIANTS, contextLabel, userGenderOf, unusableVariantReason,
 } from '@/authoring/DlbTranslations.js';
+import { projectSpeakers } from '@/composables/project-speakers.js';
 import StaleTranslationsModal from './StaleTranslationsModal.vue';
 
 // Pure content component — no header of its own, same as DialogueEditor. It's only ever embedded
@@ -87,6 +89,70 @@ function contextVariants(speaker, term) {
         }
     }
     return [...seen.values()];
+}
+
+// ---- Gender variants (#453, #455) ----
+// A translator adds a female-user and a male-user variant to a text; until one of them has a
+// translation, the pair is only kept here (an empty translation isn't stored).
+const addedVariants = ref(new Set()); // "speaker term" keys
+
+function variantKey(speaker, term) {
+    return `${speaker}\u0000${term}`;
+}
+
+// The sub-rows of a term: its stored variants, plus the user variants just added — unless the
+// term already has a variant for that gender of the user under another key (userGenderOf).
+function variantRows(speaker, term) {
+    const rows = contextVariants(speaker, term);
+    if (addedVariants.value.has(variantKey(speaker, term))) {
+        for (const contexts of USER_GENDER_VARIANTS) {
+            const gender = userGenderOf(speaker, contexts);
+            if (!rows.some((row) => userGenderOf(speaker, row) === gender)) rows.push(contexts);
+        }
+    }
+    return rows;
+}
+
+function hasUserVariants(speaker, term) {
+    const genders = variantRows(speaker, term).map((row) => userGenderOf(speaker, row));
+    return genders.includes('female') && genders.includes('male');
+}
+
+function onAddUserVariants(speaker, term) {
+    addedVariants.value = new Set([...addedVariants.value, variantKey(speaker, term)]);
+}
+
+// The speaker's gender from the project's speakers, shown next to its name (#453).
+const GENDER_SIGNS = { female: '♀', male: '♂' };
+function speakerGender(speaker) {
+    return projectSpeakers.value.find((s) => s.name === speaker)?.gender ?? null;
+}
+
+function unusableReason(speaker, contexts) {
+    return unusableVariantReason(speaker, contexts, projectSpeakers.value);
+}
+
+// Removes a variant of a text in every language that has it, saving each changed language.
+function onRemoveVariant(speaker, term, contexts) {
+    const projectSlug = state.value.selectedProject?.slug;
+    const changed = {};
+    for (const language of translationLanguages.value) {
+        const languageContent = content.value[language.code] ?? {};
+        const storedText = findStoredText(languageContent, speaker, contexts, term);
+        if (storedText === null) continue;
+        changed[language.code] = withoutEntries(languageContent,
+            [{ speaker, contexts, text: storedText }]);
+    }
+    const added = new Set(addedVariants.value);
+    added.delete(variantKey(speaker, term));
+    addedVariants.value = added;
+    if (Object.keys(changed).length === 0) return;
+    dismissError();
+    Promise.all(Object.entries(changed).map(([code, next]) =>
+        client.updateDraftTranslation(projectSlug, props.dialogueName, code, JSON.stringify(next))
+            .then(() => { content.value = { ...content.value, [code]: next }; })))
+        .then(() => emit('dialogueSaved'))
+        .catch((error) => showError(describeError(error)));
 }
 
 function onCellInput(speaker, term, language, event, contexts = []) {
@@ -183,6 +249,7 @@ function loadTranslations() {
     translationLanguages.value = [];
     content.value = {};
     dirtyCells.value = new Set();
+    addedVariants.value = new Set();
     loadError.value = null;
     if (!props.dialogueName) return;
 
@@ -338,15 +405,37 @@ defineExpose({
             </div>
             <div class="flex flex-col gap-4 p-2">
                 <div v-for="group in groups" :key="group.speaker" class="flex flex-col gap-1">
-                    <div class="font-title font-black text-xs uppercase tracking-wide text-orange-darker">{{ group.speaker }}</div>
+                    <div class="font-title font-black text-xs uppercase tracking-wide text-orange-darker" data-test="speaker-group">
+                        {{ group.speaker }}
+                        <span v-if="GENDER_SIGNS[speakerGender(group.speaker)]" class="ml-0.5 normal-case cursor-help"
+                            :title="`${group.speaker} is ${speakerGender(group.speaker)} (from the project's speakers)`"
+                            data-test="speaker-gender">{{ GENDER_SIGNS[speakerGender(group.speaker)] }}</span>
+                    </div>
                     <div v-for="term in group.terms" :key="term" class="flex flex-col gap-1 bg-grey-lighter rounded p-2">
-                        <div v-for="contexts in [[], ...contextVariants(group.speaker, term)]" :key="contexts.join(' ')"
+                        <div v-for="contexts in [[], ...variantRows(group.speaker, term)]" :key="contexts.join(' ')"
                             class="grid gap-2 items-start"
                             :data-test="contexts.length ? 'context-row' : 'term-row'"
                             :style="{ gridTemplateColumns: `minmax(160px, 1fr) repeat(${visibleColumns.length}, minmax(160px, 1fr))` }">
-                            <div v-if="contexts.length === 0" class="font-title text-xs text-grey-dark self-center pt-1.5">{{ term }}</div>
-                            <div v-else class="font-title text-[11px] text-orange-darker self-center pl-3" title="A gender-specific translation of the text above">
-                                ↳ {{ contexts.join(', ') }}
+                            <div v-if="contexts.length === 0" class="flex items-start gap-1.5 font-title text-xs text-grey-dark self-center pt-1.5">
+                                <span class="grow">{{ term }}</span>
+                                <button v-if="!hasUserVariants(group.speaker, term)" type="button"
+                                    class="shrink-0 text-grey-dark hover:text-orange-darker cursor-pointer"
+                                    title="Female user / male user: add a translation for each, for languages where this text changes with the user's gender"
+                                    data-test="add-user-variants"
+                                    @click="onAddUserVariants(group.speaker, term)">
+                                    <FontAwesomeIcon icon="fa-solid fa-venus-mars" />
+                                </button>
+                            </div>
+                            <div v-else class="flex items-center gap-1.5 font-title text-[11px] text-orange-darker self-center pl-3"
+                                :title="userGenderOf(group.speaker, contexts) ? `Used when the user's gender ($dlb.userGender) is ${userGenderOf(group.speaker, contexts)}; otherwise the translation above is. Stored as ${contexts.join(', ')}.` : 'A gender-specific translation of the text above'">
+                                <span>↳ {{ contextLabel(group.speaker, contexts) }}</span>
+                                <FontAwesomeIcon v-if="unusableReason(group.speaker, contexts)" icon="fa-solid fa-triangle-exclamation"
+                                    class="text-orange-dark cursor-help" :title="unusableReason(group.speaker, contexts)" data-test="unusable-variant" />
+                                <button type="button" class="ml-auto text-grey-dark hover:text-red-dark cursor-pointer"
+                                    title="Remove this variant, in every language" data-test="remove-variant"
+                                    @click="onRemoveVariant(group.speaker, term, contexts)">
+                                    <FontAwesomeIcon icon="fa-solid fa-xmark" />
+                                </button>
                             </div>
                             <div v-for="lang in visibleColumns" :key="lang.code" class="flex items-center gap-1">
                                 <input
