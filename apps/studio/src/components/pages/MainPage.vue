@@ -459,6 +459,8 @@ function onOpenDialogue(dialogueName) {
 
 function onNewDialogueStep() {
     variableBrowser.value?.loadVariables();
+    // A dialogue can set $dlb.userGender itself, for example from the user's answer (#454).
+    dialogueWorkspace.value?.loadTestUserGender();
 }
 
 function onDialogueSaved() {
@@ -467,6 +469,8 @@ function onDialogueSaved() {
 
 function onChangeVariable() {
     dialogueWorkspace.value.reloadStep();
+    // The test values may include $dlb.userGender, which the workspace's "Test as" shows (#454).
+    dialogueWorkspace.value.loadTestUserGender();
 }
 
 function onActivateTab(tabId) {
@@ -753,7 +757,7 @@ function onResizePanels() {
                 />
             </template>
             <template #main>
-                <DialogueWorkspace ref="dialogue-workspace" class="grow" @newDialogueStep="onNewDialogueStep" @dialogueSaved="onDialogueSaved" />
+                <DialogueWorkspace ref="dialogue-workspace" class="grow" @newDialogueStep="onNewDialogueStep" @dialogueSaved="onDialogueSaved" @testVariablesChanged="variableBrowser?.loadVariables()" />
             </template>
             <template #right>
                 <VariableBrowser ref="variable-browser" class="grow" @changeVariable="onChangeVariable" @collapse="panels?.collapsePanel('right')" />

@@ -25,7 +25,7 @@
  * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import { ref } from 'vue';
 
@@ -216,7 +216,8 @@ describe('TranslationEditor cells', () => {
         const wrapper = await mountEditor();
         const contextRows = wrapper.findAll('[data-test="context-row"]');
         expect(contextRows).toHaveLength(1);
-        expect(contextRows[0].text()).toContain('female_addressee');
+        // For an agent, an addressee variant is the user's gender, so it reads as one.
+        expect(contextRows[0].text()).toContain('Female user');
         expect(contextRows[0].find('input').element.value).toBe('Hallo, meid.');
         expect(rowFor(wrapper, 'Hello.').find('input').element.value).toBe('Hallo.');
     });
@@ -233,3 +234,78 @@ describe('TranslationEditor cells', () => {
         });
     });
 });
+
+const { setProjectSpeakers } = await import('@/composables/project-speakers.js');
+
+describe('TranslationEditor gender variants (#453, #455)', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        setUp({ nl: { 'Martin McOwl': { 'Hello.': 'Hallo.' } } });
+        authoring.listTranslatableTerms.mockResolvedValue([{ speaker: 'Martin McOwl', term: 'Hello.' }]);
+        setProjectSpeakers([{ name: 'Martin McOwl', gender: 'male', default: true }]);
+    });
+
+    afterEach(() => setProjectSpeakers([]));
+
+    it('shows the speaker\'s gender from the project\'s speakers', async () => {
+        const wrapper = await mountEditor();
+        expect(wrapper.get('[data-test="speaker-gender"]').text()).toBe('♂');
+        expect(wrapper.get('[data-test="speaker-gender"]').attributes('title'))
+            .toBe("Martin McOwl is male (from the project's speakers)");
+        expect(wrapper.get('[data-test="add-user-variants"]').attributes('title'))
+            .toMatch(/^Female user \/ male user/);
+    });
+
+    it('adds a female and a male user variant, and saves one under its context', async () => {
+        const wrapper = await mountEditor();
+        await wrapper.get('[data-test="add-user-variants"]').trigger('click');
+        const rows = wrapper.findAll('[data-test="context-row"]');
+        expect(rows.map((row) => row.text())).toEqual([
+            expect.stringContaining('Female user'), expect.stringContaining('Male user')]);
+        expect(wrapper.find('[data-test="add-user-variants"]').exists()).toBe(false);
+
+        const input = rows[0].find('input');
+        await input.setValue('Hallo, mevrouw.');
+        await input.trigger('blur');
+        await flushPromises();
+        expect(savedContent()['Martin McOwl']).toEqual({
+            'Hello.': 'Hallo.',
+            female_user: { 'Hello.': 'Hallo, mevrouw.' },
+        });
+    });
+
+    it('treats an addressee variant as the user variant it is for an agent', async () => {
+        setUp({ nl: { 'Martin McOwl': { 'Hello.': 'Hallo.',
+            female_addressee: { 'Hello.': 'Hallo, mevrouw.' },
+            male_addressee: { 'Hello.': 'Hallo, meneer.' } } } });
+        authoring.listTranslatableTerms.mockResolvedValue([{ speaker: 'Martin McOwl', term: 'Hello.' }]);
+        const wrapper = await mountEditor();
+        expect(wrapper.findAll('[data-test="context-row"]').map((row) => row.text()))
+            .toEqual([expect.stringContaining('Female user'), expect.stringContaining('Male user')]);
+        expect(wrapper.find('[data-test="add-user-variants"]').exists()).toBe(false);
+    });
+
+    it('removes a variant in every language', async () => {
+        setUp({
+            nl: { 'Martin McOwl': { 'Hello.': 'Hallo.', female_user: { 'Hello.': 'Hallo, mevrouw.' } } },
+            pt: { 'Martin McOwl': { female_user: { 'Hello.': 'Olá, senhora.' } } },
+        });
+        const wrapper = await mountEditor();
+        await wrapper.get('[data-test="remove-variant"]').trigger('click');
+        await flushPromises();
+
+        const saved = Object.fromEntries(authoring.updateDraftTranslation.mock.calls
+            .map((call) => [call[2], JSON.parse(call[3])]));
+        expect(saved.nl).toEqual({ 'Martin McOwl': { 'Hello.': 'Hallo.' } });
+        expect(saved.pt).toEqual({});
+        expect(wrapper.find('[data-test="context-row"]').exists()).toBe(false);
+    });
+
+    it('flags a variant the speaker\'s gender never fits', async () => {
+        setUp({ nl: { 'Martin McOwl': { 'Hello.': 'Hallo.', female_speaker: { 'Hello.': 'Hallo!' } } } });
+        const wrapper = await mountEditor();
+        expect(wrapper.get('[data-test="unusable-variant"]').attributes('title'))
+            .toContain('Martin McOwl is male');
+    });
+});
+

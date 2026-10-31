@@ -16,10 +16,12 @@ import MainPagePanelHeader from '../widgets/MainPagePanelHeader.vue';
 import MainPagePanelContainer from '../widgets/MainPagePanelContainer.vue';
 import ToolbarButton from '../widgets/ToolbarButton.vue';
 import ModeSelector from '../widgets/ModeSelector.vue';
+import TestUserGenderSelect from './TestUserGenderSelect.vue';
 
 const emit = defineEmits([
     'newDialogueStep',
     'dialogueSaved',
+    'testVariablesChanged',
 ]);
 
 const modes = [
@@ -143,6 +145,13 @@ function loadAvailableLanguages() {
             availableLanguages.value = [{ code: 'en', name: 'English' }];
             selectedLanguage.value = 'en';
         });
+}
+
+// "Test as" a female, male or undefined user (#454), shown in Authoring Mode when there are
+// translations to test.
+const testUserGenderSelect = useTemplateRef('test-user-gender');
+function loadTestUserGender() {
+    testUserGenderSelect.value?.load();
 }
 
 // ---- Tab state ----
@@ -699,6 +708,7 @@ function openDialogue(name) {
 }
 
 defineExpose({
+    loadTestUserGender,
     tabs,
     loadDialogue,
     loadDraftDialogue,
@@ -934,6 +944,9 @@ function onSelectReply(dialogueStep, reply, inputValues) {
                 >
                     <option v-for="lang in availableLanguages" :key="lang.code" :value="lang.code">{{ lang.name }}</option>
                 </select>
+            </template>
+            <template v-if="state.mode === DLB_APP_MODE_DRAFT && availableLanguages.length > 1">
+                <TestUserGenderSelect ref="test-user-gender" @changed="emit('testVariablesChanged')" />
             </template>
             <div class="ml-auto flex items-center gap-1.5">
                 <template v-if="selectedMode !== 'edit' && selectedMode !== 'translate'">

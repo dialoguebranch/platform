@@ -24,7 +24,7 @@ import {
     faFolderMinus, faFolderOpen, faHeading, faLanguage, faLock, faMagnifyingGlass, faParagraph, faPen,
     faPlay, faPlus, faRightFromBracket, faRocket, faRotateLeft, faRotateRight, faSatelliteDish,
     faServer, faSliders, faTrash, faTriangleExclamation, faUser, faUserGear, faUserLock,
-    faUserXmark, faUsers, faWandMagicSparkles, faXmark,
+    faUserXmark, faUsers, faVenusMars, faWandMagicSparkles, faXmark,
 } from '@fortawesome/free-solid-svg-icons';
 import { faComment, faComments, faCopy } from '@fortawesome/free-regular-svg-icons';
 
@@ -37,7 +37,7 @@ library.add(
     faFolderMinus, faFolderOpen, faHeading, faLanguage, faLock, faMagnifyingGlass, faParagraph, faPen,
     faPlay, faPlus, faRightFromBracket, faRocket, faRotateLeft, faRotateRight, faSatelliteDish,
     faServer, faSliders, faTrash, faTriangleExclamation, faUser, faUserGear, faUserLock,
-    faUserXmark, faUsers, faWandMagicSparkles, faXmark,
+    faUserXmark, faUsers, faVenusMars, faWandMagicSparkles, faXmark,
     faComment, faComments, faCopy,
 );
 

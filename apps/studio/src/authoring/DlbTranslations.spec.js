@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     normalizeText, listEntries, findStaleEntries, withoutEntries, findStoredText, withTranslation,
-    findContextVariants,
+    findContextVariants, contextLabel, userGenderOf, unusableVariantReason,
 } from './DlbTranslations.js';
 
 const CONTENT = {
@@ -141,5 +141,43 @@ describe('findContextVariants', () => {
             ['female_addressee'],
             ['female_speaker', 'male_addressee'],
         ]);
+    });
+});
+
+describe('gender variants (#453, #455)', () => {
+    it('labels the user variants readably, and other contexts as they are', () => {
+        expect(contextLabel('Anna', ['female_user'])).toBe('Female user');
+        expect(contextLabel('Anna', ['male_addressee'])).toBe('Male user');
+        expect(contextLabel('_user', ['female_speaker'])).toBe('Female user');
+        expect(contextLabel('Anna', ['female_speaker'])).toBe('female_speaker');
+        expect(contextLabel('Anna', ['female_speaker', 'male_addressee']))
+            .toBe('female_speaker, male_addressee');
+    });
+
+    it('knows which variants stand for the user\'s gender', () => {
+        expect(userGenderOf('Anna', ['male_user'])).toBe('male');
+        expect(userGenderOf('Anna', ['female_addressee'])).toBe('female');
+        expect(userGenderOf('_user', ['female_addressee'])).toBeNull(); // the agent addressed
+        expect(userGenderOf('_user', ['male_speaker'])).toBe('male');
+        expect(userGenderOf('Anna', ['male_speaker'])).toBeNull(); // the agent speaking
+    });
+
+    const speakers = [
+        { name: 'Anna', gender: 'female' },
+        { name: 'Robin', gender: 'undefined' },
+    ];
+
+    it('flags a speaker variant that the speaker\'s fixed gender never fits', () => {
+        expect(unusableVariantReason('Anna', ['male_speaker'], speakers)).toContain('Anna is female');
+        expect(unusableVariantReason('Robin', ['female_speaker'], speakers)).toContain('no gender');
+        expect(unusableVariantReason('Ghost', ['male_speaker'], speakers))
+            .toContain("isn't one of the project's speakers");
+    });
+
+    it('leaves variants that can apply alone', () => {
+        expect(unusableVariantReason('Anna', ['female_speaker'], speakers)).toBeNull();
+        expect(unusableVariantReason('Anna', ['male_user'], speakers)).toBeNull();
+        expect(unusableVariantReason('Anna', ['female_addressee'], speakers)).toBeNull();
+        expect(unusableVariantReason('_user', ['male_speaker'], speakers)).toBeNull();
     });
 });
