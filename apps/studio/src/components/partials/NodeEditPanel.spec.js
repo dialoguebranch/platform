@@ -113,7 +113,8 @@ describe('NodeEditPanel comment', () => {
         await wrapper.find('[data-test="node-comment"]').setValue('  Asks how the user slept  ');
         await save(wrapper);
         const tags = savedTags();
-        expect(tags.map((tag) => tag.key)).toEqual(['title', 'speaker', 'comment', 'position', 'colorId']);
+        // No colour chosen, so no nodeColor tag is written (#203).
+        expect(tags.map((tag) => tag.key)).toEqual(['title', 'speaker', 'comment', 'position']);
         expect(tags.find((tag) => tag.key === 'comment').value).toBe('Asks how the user slept');
     });
 
@@ -227,3 +228,38 @@ describe('NodeEditPanel project speakers (#396)', () => {
         expect(authoring.updateDraftNode).toHaveBeenCalled();
     });
 });
+
+describe('NodeEditPanel colour (#203)', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        authoring.updateDraftNode.mockImplementation(async (slug, dialogue, title, tags, body) =>
+            ({ title, tags, body }));
+    });
+
+    const colorTag = () => savedTags().find((tag) => tag.key === 'nodeColor')?.value;
+
+    it('saves a preset as nodeColor', async () => {
+        const wrapper = mountPanel();
+        await wrapper.findAll('[data-test="node-color-preset"]')[3].trigger('click');
+        await save(wrapper);
+        expect(colorTag()).toBe('#0369a1');
+    });
+
+    it('saves a custom colour as lowercase #rrggbb', async () => {
+        const wrapper = mountPanel();
+        const input = wrapper.get('[data-test="node-color-custom"]');
+        input.element.value = '#ABCDEF';
+        await input.trigger('input');
+        await save(wrapper);
+        expect(colorTag()).toBe('#abcdef');
+    });
+
+    it('keeps the node\'s colour, and leaves an old colorId tag alone', async () => {
+        const wrapper = mountPanel({ ...NODE, tags: [...NODE.tags,
+            { key: 'nodeColor', value: '#123456' }, { key: 'colorId', value: '3' }] });
+        await save(wrapper);
+        expect(colorTag()).toBe('#123456');
+        expect(savedTags().find((tag) => tag.key === 'colorId')?.value).toBe('3');
+    });
+});
+

@@ -100,8 +100,8 @@ public class DialogueBranchHeaderTest {
 		String header = "title: Start\nnot a tag\nposition: 0,0\nspeaker: Robin";
 		assertEquals("title: Start\nnot a tag\nposition: 10,20\nspeaker: Robin",
 				DialogueBranchHeader.set(header, "position", "10,20"));
-		assertEquals("title: Start\nnot a tag\nposition: 0,0\nspeaker: Robin\ncolorId: 3",
-				DialogueBranchHeader.set(header, "colorId", "3"));
+		assertEquals("title: Start\nnot a tag\nposition: 0,0\nspeaker: Robin\nnodeColor: #0369a1",
+				DialogueBranchHeader.set(header, "nodeColor", "#0369a1"));
 		assertEquals("title: New", DialogueBranchHeader.set("", "title", " New "));
 	}
 

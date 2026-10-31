@@ -1,7 +1,7 @@
 title: Start
 tags:
 speaker: Martin McOwl
-colorId: 2
+nodeColor: #7c3aed
 position: 0,0
 ---
 This lesson is about the "random" statement, which varies a node's output from one run to the next.
@@ -19,7 +19,7 @@ Hello again!
 title: Weights
 tags:
 speaker: Martin McOwl
-colorId: 0
+nodeColor: #c2410c
 position: 320,0
 ---
 Each clause can carry a weight. This one is picked about twice as often as the others.
@@ -37,7 +37,7 @@ This clause uses the default weight of 1.
 title: Nested
 tags:
 speaker: Martin McOwl
-colorId: 0
+nodeColor: #c2410c
 position: 640,0
 ---
 A clause may contain other statements. One of the two branches below sets a variable and shows a conditional line.
@@ -57,7 +57,7 @@ Today I am feeling $mood.
 title: End
 tags:
 speaker:
-colorId: 5
+nodeColor: #65a30d
 position: 320,220
 ---
 

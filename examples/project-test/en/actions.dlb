@@ -1,7 +1,7 @@
 title: Start
 tags:
 speaker: Martin McOwl
-colorId: 2
+nodeColor: #7c3aed
 position: 0,0
 ---
 This lesson is about the "action" statement, which couples a client-side event to a line of dialogue. Every action has a type and a value.
@@ -11,7 +11,7 @@ This lesson is about the "action" statement, which couples a client-side event t
 title: Link
 tags:
 speaker: Martin McOwl
-colorId: 0
+nodeColor: #c2410c
 position: 320,0
 ---
 An action of type "link" points at a URL.
@@ -23,7 +23,7 @@ An action of type "link" points at a URL.
 title: Media
 tags:
 speaker: Martin McOwl
-colorId: 0
+nodeColor: #c2410c
 position: 640,0
 ---
 The "image" and "video" types point at a resource.
@@ -36,7 +36,7 @@ The "image" and "video" types point at a resource.
 title: Generic
 tags:
 speaker: Martin McOwl
-colorId: 0
+nodeColor: #c2410c
 position: 960,0
 ---
 A "generic" action carries whatever your client wants to handle, plus any extra parameters.
@@ -48,7 +48,7 @@ A "generic" action carries whatever your client wants to handle, plus any extra 
 title: Reply
 tags:
 speaker: Martin McOwl
-colorId: 0
+nodeColor: #c2410c
 position: 1280,0
 ---
 Yes. An action can also hang off a reply, and a link action can carry display text.
@@ -59,7 +59,7 @@ Yes. An action can also hang off a reply, and a link action can carry display te
 title: End
 tags:
 speaker:
-colorId: 5
+nodeColor: #65a30d
 position: 800,220
 ---
 

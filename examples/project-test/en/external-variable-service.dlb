@@ -1,7 +1,7 @@
 title: Start
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 437,412
 ---
 This is a test script that allows you to test the use of the "Dialogue Branch External Variable Service Dummy" application.
@@ -12,7 +12,7 @@ This is a test script that allows you to test the use of the "Dialogue Branch Ex
 title: ExplainVarService
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 277,103
 ---
 In Dialogue Branch, there are many ways you can cleverly use variables to make dialogues more personalized or interactive.
@@ -22,7 +22,7 @@ In Dialogue Branch, there are many ways you can cleverly use variables to make d
 title: Explain2
 tags: 
 speaker: Martin McOwl
-colorID: 2
+nodeColor: #7c3aed
 position: 276,-163
 ---
 <<set $varServiceExplained = "This is a variable" >>
@@ -34,7 +34,7 @@ Variables may be defined within the dialogue script, like we set the 'varService
 title: Explain3
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 280,-408
 ---
 But sometimes you need to collect data from an 'external' source, like a weather API, or your own user database.
@@ -44,7 +44,7 @@ But sometimes you need to collect data from an 'external' source, like a weather
 title: Explain4
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 277,-659
 ---
 That is what the 'Dialogue Branch External Variable Service' is for. It allows you to connect the Web Service to an external source of variable data, which you can build yourself to provide whatever data you like.
@@ -54,7 +54,7 @@ That is what the 'Dialogue Branch External Variable Service' is for. It allows y
 title: Explain5
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 278,-926
 ---
 Does that make a sense?
@@ -65,7 +65,7 @@ Does that make a sense?
 title: Test
 tags: 
 speaker: Martin McOwl
-colorID: 0
+nodeColor: #c2410c
 position: 548,105
 ---
 Okay, the following information should be provided by the Dummy implementation of the External Variable Service. The current date is $currentDate, and the current time is $currentTime.
@@ -79,7 +79,7 @@ It is $dayPart. The service also keeps some example variables for you, which dia
 title: End
 tags:
 speaker:
-colorID: 5
+nodeColor: #65a30d
 position: 548,400
 ---
 

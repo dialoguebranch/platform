@@ -1,7 +1,7 @@
 title: Start
 tags: 
 speaker: Caravan Master Odema
-colorID: 1
+nodeColor: #0d9488
 position: 56,227
 ---
 <em>The caravan master finishes addressing the group, his bushy red mustache and sagging jowls quivering as if for emphasis.</em>
@@ -11,7 +11,7 @@ position: 56,227
 title: Intro2
 tags: 
 speaker: Caravan Master Odema
-colorID: 0
+nodeColor: #c2410c
 position: 335,227
 ---
 "Everybody stays close to the wagons, got it? Stay outta the woods, and Beasts take you if you were planning a stroll through those ruins up there." <em>He nods toward a looming black mass on the hillside.</em>
@@ -21,7 +21,7 @@ position: 335,227
 title: Intro3
 tags: 
 speaker: Caravan Master Odema
-colorID: 0
+nodeColor: #c2410c
 position: 612,224
 ---
 "Whole area's crawling with hut-dwelling types who'd be happy to stick an axe in you for trespassing. So mind that you don't track mud on their sacred blazing rocks."
@@ -31,7 +31,7 @@ position: 612,224
 title: Intro4
 tags: 
 speaker: Caravan Master Odema
-colorID: 0
+nodeColor: #c2410c
 position: 899,223
 ---
 "Tonight everybody stays put and in the morning we'll get the path cleared. Gilded Vale's less than a day out. Understood?"
@@ -43,7 +43,7 @@ position: 899,223
 title: Intro5
 tags: 
 speaker: Caravan Master Odema
-colorID: 0
+nodeColor: #c2410c
 position: 1174,221
 ---
 "Touch of the Rumbling Rot, could be. There's a stinging beetle 'round here, carries it. You'll be fine once it passes your innards. 'Less you don't drink water, course, which case you'll be dead in a day."
@@ -53,7 +53,7 @@ position: 1174,221
 title: Intro6
 tags: 
 speaker: Caravan Master Odema
-colorID: 0
+nodeColor: #c2410c
 position: 1470,216
 ---
 "There's a berry grows in these parts, small and pink. Called a springberry. 'Bout the size of a fingernail. Give you cramps if you eat it, but the frontiersmen make a tea from it, calms the insides. Should get you through the night. You might check around, see if you can find some. Meanwhile I'll see if we can scare you up some water."
@@ -63,7 +63,7 @@ position: 1470,216
 title: Intro7
 tags: 
 speaker: Caravan Master Odema
-colorID: 0
+nodeColor: #c2410c
 position: 1771,211
 ---
 <em>Odema looks over his shoulder at his assistant, a lanky, intense man named Sparfel, who carries an old sun-bleached bow.</em>
@@ -87,7 +87,7 @@ position: 1771,211
 title: WhereBerries
 tags: 
 speaker: Caravan Master Odema
-colorID: 0
+nodeColor: #c2410c
 position: 2102,48
 ---
 They grow on a bush that's common 'round here. Kinda funny looking. You'll know it when you see it. Doubt you'd have to go far off the road to find one.
@@ -108,7 +108,7 @@ They grow on a bush that's common 'round here. Kinda funny looking. You'll know 
 title: WhatRuins
 tags: 
 speaker: Caravan Master Odema
-colorID: 0
+nodeColor: #c2410c
 position: 2103,294
 ---
 Nothing you won't see on half the hills of Eir Glanfath. Money to be made selling their knickknacks in Defiance Bay, if you don't mind getting stuck with Glanfathan arrows now and again. They didn't build 'em but I'll be the Effigy if they don't watch 'em like a mother bear.
@@ -118,7 +118,7 @@ Nothing you won't see on half the hills of Eir Glanfath. Money to be made sellin
 title: WhatRuins2
 tags: 
 speaker: Caravan Master Odema
-colorID: 0
+nodeColor: #c2410c
 position: 2391,293
 ---
 <<set $replyUnlockedWhoRuins = true>>
@@ -142,7 +142,7 @@ Course all the ones 'round here been ransacked ten times over, got nothing left 
 title: WhoRuins
 tags: 
 speaker: Caravan Master Odema
-colorID: 0
+nodeColor: #c2410c
 position: 2392,551
 ---
 <em>Odema shrugs.</em> Got different names for 'em. Settlers call 'em Engwithans.
@@ -164,7 +164,7 @@ Nobody that liked them enough to stop them becoming ruins, tell you that much.
 title: Danger
 tags: 
 speaker: Caravan Master Odema
-colorID: 0
+nodeColor: #c2410c
 position: 2131,839
 ---
 Not if you hurry about your business.
@@ -174,7 +174,7 @@ Not if you hurry about your business.
 title: Danger2
 tags: 
 speaker: Caravan Master Odema
-colorID: 0
+nodeColor: #c2410c
 position: 2397,833
 ---
 <<set $replyUnlockedWhatWeather = true>>
@@ -196,7 +196,7 @@ position: 2397,833
 title: WhatWeather
 tags: 
 speaker: Caravan Master Odema
-colorID: 0
+nodeColor: #c2410c
 position: 2142,1092
 ---
 This time of year? Rain mostly... and wind. But there's a different kind of wind out here, time to time. Locals call it a bîawac. Born outta the ether - the spirit's path. Never seen it myself, never care to.
@@ -216,7 +216,7 @@ This time of year? Rain mostly... and wind. But there's a different kind of wind
 title: HugeRocks
 tags: 
 speaker: Caravan Master Odema
-colorID: 0
+nodeColor: #c2410c
 position: 2140,1373
 ---
 <em>Odema frowns.</em> They don't got adra where you come from?
@@ -228,7 +228,7 @@ Well, it just grows up outta the ground like this. Goes deep, like tree roots. S
 title: HugeRocks2
 tags: 
 speaker: Caravan Master Odema
-colorID: 0
+nodeColor: #c2410c
 position: 2403,1370
 ---
 It's more like a shell than a proper rock. Easier to work, if you're a mason.
@@ -240,7 +240,7 @@ Got all kinds of strange properties. Seems to have some kind of life of its own.
 title: HugeRocks3
 tags: 
 speaker: Caravan Master Odema
-colorID: 0
+nodeColor: #c2410c
 position: 2671,1370
 ---
 The soul butchers in Defiance Bay use it for different things. I've heard tell it can hold a man's soul, but I don't care to see it. Got enough to worry about without seeing something like that.
@@ -260,7 +260,7 @@ The soul butchers in Defiance Bay use it for different things. I've heard tell i
 title: Leave
 tags: 
 speaker: Caravan Master Odema
-colorID: 0
+nodeColor: #c2410c
 position: 1776,-361
 ---
 Hold on. Take someone with you. I know you're not some helpless tenderfoot - not like most of this lot. But you drop dead I don't wanna be looking for the body. Got a schedule to keep.
@@ -272,7 +272,7 @@ Hold on. Take someone with you. I know you're not some helpless tenderfoot - not
 title: Leave2
 tags: 
 speaker: Caravan Master Odema
-colorID: 0
+nodeColor: #c2410c
 position: 2072,-365
 ---
 Calisca. Calisca!
@@ -284,7 +284,7 @@ Calisca. Calisca!
 title: Leave3
 tags: 
 speaker: Caravan Master Odema
-colorID: 0
+nodeColor: #c2410c
 position: 2359,-368
 ---
 He needs to find some springberries. Whatch that he doesn't drop dead.
@@ -294,7 +294,7 @@ He needs to find some springberries. Whatch that he doesn't drop dead.
 title: Leave4
 tags: 
 speaker: Calisca
-colorID: 0
+nodeColor: #c2410c
 position: 2653,-373
 ---
 No promises.
@@ -304,7 +304,7 @@ No promises.
 title: Leave5
 tags: 
 speaker: Caravan Master Odema
-colorID: 0
+nodeColor: #c2410c
 position: 2964,-371
 ---
 What kind of a guide says something like that?
@@ -314,7 +314,7 @@ What kind of a guide says something like that?
 title: Leave6
 tags: 
 speaker: Calisca
-colorID: 0
+nodeColor: #c2410c
 position: 3282,-366
 ---
 Kind you can afford.
@@ -324,7 +324,7 @@ Kind you can afford.
 title: Leave7
 tags: 
 speaker: Caravan Master Odema
-colorID: 0
+nodeColor: #c2410c
 position: 3596,-370
 ---
 <em>Odema chuckles and shakes his head. He looks at you.</em> Don't listen to her. You're in good hands.
@@ -336,7 +336,7 @@ position: 3596,-370
 title: Leave8
 tags: 
 speaker: Caravan Master Odema
-colorID: 0
+nodeColor: #c2410c
 position: 3886,-370
 ---
 <em>Odema's small grin recedes beneath his mustache, and he is stern once more.</em>

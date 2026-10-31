@@ -28,10 +28,9 @@
 
 /**
  * Reserved node-header tags with a special meaning, matching
- * {@code DialogueBranchConstants.DLB_RESERVED_HEADER_TAGS} in packages/core (note: "colorId", not
- * "colorID").
+ * {@code DialogueBranchConstants.DLB_RESERVED_HEADER_TAGS} in packages/core.
  */
-export const RESERVED_HEADER_TAGS = ['title', 'speaker', 'position', 'colorId', 'comment'];
+export const RESERVED_HEADER_TAGS = ['title', 'speaker', 'position', 'nodeColor', 'comment'];
 
 /**
  * The speaker name of the user in translation files, reserved so no node can have it as its

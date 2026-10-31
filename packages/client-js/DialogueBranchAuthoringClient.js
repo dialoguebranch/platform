@@ -895,7 +895,7 @@ export class DialogueBranchAuthoringClient extends BaseClient {
      * Lists a draft dialogue's nodes: the editable content, not a parsed/executable form. Each
      * node is `{ id, title, tags, body, createdAt, updatedAt }`, where `tags` is its header as an
      * ordered list of `{ key, value }` pairs (the reserved tags `title`/`speaker`/`position`/
-     * `colorId`/`comment`, plus any custom ones), and `body` its raw `.dlb` body text.
+     * `nodeColor`/`comment`, plus any custom ones), and `body` its raw `.dlb` body text.
      *
      * @param {string} projectSlug The project's slug.
      * @param {string} dialogueName The dialogue's name.

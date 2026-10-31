@@ -5,7 +5,7 @@ import { useAuthoringClient } from '@/composables/client.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError } from '@/composables/error-toast.js';
 import { tagsToMap, mapToTags, USER_SPEAKER } from '@/authoring/DlbHeaderTags.js';
-import { COLOR_PALETTE, colorForId } from '@/composables/node-colors.js';
+import { COLOR_PALETTE, DEFAULT_NODE_COLOR, normalizeNodeColor } from '@/composables/node-colors.js';
 import { isUndefinedSpeaker, projectSpeakers } from '@/composables/project-speakers.js';
 import TextInput from '../widgets/TextInput.vue';
 import PushButton from '../widgets/PushButton.vue';
@@ -27,7 +27,10 @@ const client = useAuthoringClient();
 const title = ref('');
 const speaker = ref('');
 const comment = ref('');
-const colorId = ref('0');
+const nodeColor = ref(null); // #rrggbb, or null for none (drawn in the default colour)
+// A colour that isn't one of the presets, shown in the custom swatch.
+const customColor = computed(() =>
+    (nodeColor.value && !COLOR_PALETTE.includes(nodeColor.value) ? nodeColor.value : null));
 const body = ref('');
 const saving = ref(false);
 const error = ref('');
@@ -63,7 +66,7 @@ function loadFromNode() {
     title.value = props.node.title;
     speaker.value = tags.get('speaker') ?? '';
     comment.value = tags.get('comment') ?? '';
-    colorId.value = tags.get('colorId') ?? '0';
+    nodeColor.value = normalizeNodeColor(tags.get('nodeColor'));
     body.value = props.node.body ?? '';
     error.value = '';
 }
@@ -122,7 +125,8 @@ function saveContent(baseTags, nodeTitle, wasRenamed) {
     // two fields this panel edits, keeping every other tag untouched.
     const tags = tagsToMap(baseTags);
     tags.set('speaker', speaker.value);
-    tags.set('colorId', String(colorId.value));
+    if (nodeColor.value) tags.set('nodeColor', nodeColor.value);
+    else tags.delete('nodeColor');
     // An emptied comment removes the tag rather than leaving an empty one behind.
     const trimmedComment = comment.value.trim();
     if (trimmedComment) tags.set('comment', trimmedComment);
@@ -366,15 +370,32 @@ defineExpose({
                         <label class="block font-title font-bold text-sm text-orange-darker mb-1">Color</label>
                         <div class="flex items-center gap-1.5">
                             <button
-                                v-for="(color, index) in COLOR_PALETTE"
-                                :key="index"
+                                v-for="color in COLOR_PALETTE"
+                                :key="color"
                                 type="button"
-                                :title="`colorId: ${index}`"
+                                :title="color"
+                                data-test="node-color-preset"
                                 class="w-6 h-6 rounded-full cursor-pointer transition-transform"
-                                :class="String(colorId) === String(index) ? 'ring-2 ring-offset-2 ring-orange-darker scale-110' : ''"
+                                :class="(nodeColor ?? DEFAULT_NODE_COLOR) === color ? 'ring-2 ring-offset-2 ring-orange-darker scale-110' : ''"
                                 :style="{ backgroundColor: color }"
-                                @click="colorId = String(index)"
+                                @click="nodeColor = color"
                             ></button>
+                            <!-- Any other colour, with the browser's own picker (#203) -->
+                            <label
+                                class="relative w-6 h-6 rounded-full cursor-pointer transition-transform border-2 border-dashed border-grey-dark flex items-center justify-center"
+                                :class="customColor ? 'ring-2 ring-offset-2 ring-orange-darker scale-110' : ''"
+                                :style="customColor ? { backgroundColor: customColor, borderStyle: 'solid', borderColor: customColor } : {}"
+                                :title="customColor ? `Custom colour ${customColor}; click to change` : 'Custom colour…'"
+                            >
+                                <FontAwesomeIcon v-if="!customColor" icon="fa-solid fa-plus" class="text-[10px] text-grey-dark" />
+                                <input
+                                    type="color"
+                                    data-test="node-color-custom"
+                                    class="absolute inset-0 opacity-0 cursor-pointer"
+                                    :value="nodeColor ?? DEFAULT_NODE_COLOR"
+                                    @input="nodeColor = normalizeNodeColor($event.target.value)"
+                                />
+                            </label>
                         </div>
                     </div>
 
