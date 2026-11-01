@@ -87,6 +87,10 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Studio: moving several selected nodes together in the graph editor saves every node's new
+  position, not only the one that was dragged
+  ([#196](https://github.com/dialoguebranch/platform/issues/196)); the others went back to where
+  they were the next time the dialogue was opened.
 - Studio: saving *Configure Project* no longer replaces the project's name in the header with its
   slug.
 
