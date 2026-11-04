@@ -30,12 +30,12 @@ package com.dialoguebranch.web.service.controller;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.AbstractMockHttpServletRequestBuilder;
 
 import java.util.List;
 import java.util.Map;
@@ -70,7 +70,7 @@ class SupervisorRoleIntegrationTest {
 		return "supervised-" + UUID.randomUUID();
 	}
 
-	private static MockHttpServletRequestBuilder as(MockHttpServletRequestBuilder builder,
+	private static <T extends AbstractMockHttpServletRequestBuilder<T>> T as(T builder,
 			String subject, String... roles) {
 		Consumer<Jwt.Builder> claims = jwt -> jwt
 				.subject(subject)

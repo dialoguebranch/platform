@@ -135,7 +135,7 @@ The test `sourceSets` for core includes `../../examples` as a resource directory
 
 ### API service (`apps/api`)
 
-A Spring Boot 3 application deployed as a WAR. Key structural classes:
+A Spring Boot 4 application deployed as a WAR. Key structural classes:
 
 - **`Application`** — Spring Boot entry point
 - **`DlbProperties`** — Binds all `dlb.*` config from `application.yml` / environment variables
@@ -174,7 +174,7 @@ The `is_new`/`is_changed`/`is_deleted` columns backing this live on the `draft_d
 
 ### BFF service (`apps/bff`)
 
-A small Spring Boot 3 application, deployed as a plain executable JAR (not a WAR), that sits between Dialogue Branch Studio and `apps/api` so the browser never holds an OAuth2 token — the token lives server-side, in this service's HTTP session, and the browser only ever sees a `JSESSIONID` cookie. Key classes:
+A small Spring Boot 4 application, deployed as a plain executable JAR (not a WAR), that sits between Dialogue Branch Studio and `apps/api` so the browser never holds an OAuth2 token — the token lives server-side, in this service's HTTP session, and the browser only ever sees a `JSESSIONID` cookie. Key classes:
 
 - **`SecurityConfig`** — Builds the `keycloak` `ClientRegistration` by hand (so `end_session_endpoint` can be supplied directly, since this service deliberately skips OIDC discovery) and wires the security filter chain: session-cookie login against Keycloak with PKCE, the standard SPA CSRF cookie recipe, a plain `401` (instead of a redirect) for unauthenticated `/api/**`/`/whoami` fetch/XHR calls, and RP-initiated logout.
 - **`ProxyConfig`** — Provides the `OAuth2AuthorizedClientManager` (fetches and transparently refreshes the session's access token) and the `RestClient` used to call `apps/api`.

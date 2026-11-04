@@ -15,6 +15,9 @@
 # Production deployments must override all credentials via environment variables.
 
 spring:
+  http:
+    converters:
+      preferred-json-mapper: jackson2
   config:
     import:
       - optional:classpath:deployment.properties

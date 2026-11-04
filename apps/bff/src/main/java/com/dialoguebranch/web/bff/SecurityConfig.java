@@ -61,7 +61,7 @@ import org.springframework.security.web.csrf.CsrfTokenRequestHandler;
 import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 import org.springframework.security.web.savedrequest.RequestCache;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
@@ -71,7 +71,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -277,7 +276,7 @@ public class SecurityConfig {
 	private RequestCache noXhrRequestCache() {
 		HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
 		RequestMatcher xhrPaths = new OrRequestMatcher(
-				new AntPathRequestMatcher("/api/**"), new AntPathRequestMatcher("/whoami"));
+				PathPatternRequestMatcher.pathPattern("/api/**"), PathPatternRequestMatcher.pathPattern("/whoami"));
 		requestCache.setRequestMatcher(new NegatedRequestMatcher(xhrPaths));
 		return requestCache;
 	}
@@ -286,13 +285,11 @@ public class SecurityConfig {
 		AuthenticationEntryPoint jsonEntryPoint = (request, response, authException) ->
 				response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
 
-		LinkedHashMap<RequestMatcher, AuthenticationEntryPoint> entryPoints = new LinkedHashMap<>();
-		entryPoints.put(new AntPathRequestMatcher("/api/**"), jsonEntryPoint);
-		entryPoints.put(new AntPathRequestMatcher("/whoami"), jsonEntryPoint);
-
-		DelegatingAuthenticationEntryPoint delegate = new DelegatingAuthenticationEntryPoint(entryPoints);
-		delegate.setDefaultEntryPoint(new LoginUrlAuthenticationEntryPoint("/oauth2/authorization/keycloak"));
-		return delegate;
+		return DelegatingAuthenticationEntryPoint.builder()
+				.addEntryPointFor(jsonEntryPoint, PathPatternRequestMatcher.pathPattern("/api/**"))
+				.addEntryPointFor(jsonEntryPoint, PathPatternRequestMatcher.pathPattern("/whoami"))
+				.defaultEntryPoint(new LoginUrlAuthenticationEntryPoint("/oauth2/authorization/keycloak"))
+				.build();
 	}
 
 	/**

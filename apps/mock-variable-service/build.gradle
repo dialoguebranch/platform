@@ -1,7 +1,7 @@
 plugins {
 	id 'java'
-	id "org.springframework.boot" version "3.5.4"
-	id 'com.diffplug.spotless' version '8.10.1'
+	id "org.springframework.boot" version "4.1.2"
+	id 'com.diffplug.spotless' version '8.11.0'
 }
 
 group = 'com.dialoguebranch'
@@ -50,28 +50,30 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 dependencies {
-	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:3.5.4'
+	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:4.1.2'
 
 	// Checks the Keycloak access token on every variables call (#428)
-	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server:3.5.4'
+	implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-resource-server:4.1.2'
 
 	// https://mvnrepository.com/artifact/javax.xml.bind/jaxb-api
 	implementation 'javax.xml.bind:jaxb-api:2.4.0-b180830.0359'
 
 	// https://mvnrepository.com/artifact/org.springframework/spring-context-support
-	implementation 'org.springframework:spring-context-support:6.2.9'
+	implementation 'org.springframework:spring-context-support:7.0.10'
 
 	// https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-web
-	implementation 'org.springframework.boot:spring-boot-starter-web:3.5.4'
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc:4.1.2'
 
 	// https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-starter-webmvc-ui
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0'
 
 	// Strange, but this solves Factory method 'clientHttpRequestFactoryBuilder' threw exception with message: org/apache/hc/client5/http/ssl/TlsSocketStrategy
-	implementation 'org.apache.httpcomponents.client5:httpclient5:5.4.1'
+	implementation 'org.apache.httpcomponents.client5:httpclient5:5.6.5'
 
-	testImplementation 'org.springframework.boot:spring-boot-starter-test:3.5.4'
-	testImplementation 'org.springframework.security:spring-security-test:6.5.2'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test:4.1.2'
+	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test:4.1.2'
+	testImplementation 'org.springframework.boot:spring-boot-starter-security-test:4.1.2'
+	testImplementation 'org.springframework.security:spring-security-test:7.1.2'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
 }

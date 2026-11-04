@@ -30,15 +30,15 @@ package com.dialoguebranch.web.service.controller;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.AbstractMockHttpServletRequestBuilder;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -79,7 +79,7 @@ class ProjectSpeakersIntegrationTest {
 	@Autowired
 	MockMvc mockMvc;
 
-	private static <T extends MockHttpServletRequestBuilder> T asAdmin(T builder) {
+	private static <T extends AbstractMockHttpServletRequestBuilder<T>> T asAdmin(T builder) {
 		Consumer<Jwt.Builder> claims = jwt -> jwt
 				.subject("speakers-admin")
 				.claim("iss", ISSUER)

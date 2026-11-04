@@ -32,13 +32,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.RequestBuilder;
+import org.springframework.test.web.servlet.request.AbstractMockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.nio.charset.StandardCharsets;
@@ -80,7 +82,7 @@ class DiscardDialogueChangesIntegrationTest {
 	@Autowired
 	MockMvc mockMvc;
 
-	private static <T extends MockHttpServletRequestBuilder> T as(T builder, String role) {
+	private static <T extends AbstractMockHttpServletRequestBuilder<T>> T as(T builder, String role) {
 		Consumer<Jwt.Builder> claims = jwt -> jwt
 				.subject("discard-" + role)
 				.claim("iss", ISSUER)
@@ -153,7 +155,7 @@ class DiscardDialogueChangesIntegrationTest {
 				.andExpect(status().isOk());
 	}
 
-	private JsonNode readJson(MockHttpServletRequestBuilder request) throws Exception {
+	private JsonNode readJson(RequestBuilder request) throws Exception {
 		return JSON.readTree(mockMvc.perform(request).andExpect(status().isOk())
 				.andReturn().getResponse().getContentAsString());
 	}

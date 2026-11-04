@@ -41,13 +41,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.AbstractMockHttpServletRequestBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -88,7 +88,7 @@ class ConcurrentRequestsIntegrationTest {
 	@Autowired DraftDialogueService draftDialogueService;
 	@Autowired PublishService publishService;
 
-	private static MockHttpServletRequestBuilder as(MockHttpServletRequestBuilder builder,
+	private static <T extends AbstractMockHttpServletRequestBuilder<T>> T as(T builder,
 			String subject) {
 		Consumer<Jwt.Builder> claims = jwt -> jwt
 				.subject(subject)

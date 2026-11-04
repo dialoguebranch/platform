@@ -39,11 +39,12 @@ import com.dialoguebranch.web.service.storage.model.DBProject;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.AbstractMockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.util.List;
@@ -90,7 +91,7 @@ class DialogueStartLanguageTest {
 	@Autowired
 	PublishService publishService;
 
-	private static MockHttpServletRequestBuilder asParticipant(MockHttpServletRequestBuilder builder,
+	private static <T extends AbstractMockHttpServletRequestBuilder<T>> T asParticipant(T builder,
 			String subject) {
 		Consumer<Jwt.Builder> claims = jwt -> jwt
 				.subject(subject)

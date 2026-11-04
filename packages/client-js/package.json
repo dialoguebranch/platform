@@ -43,6 +43,6 @@
     "sync-version": "node -e \"import('../../global.json', {with:{type:'json'}}).then(g => { const fs = require('fs'); const p = JSON.parse(fs.readFileSync('./package.json')); p.version = g.default.version; fs.writeFileSync('./package.json', JSON.stringify(p, null, 2) + '\\n'); })\""
   },
   "devDependencies": {
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12"
   }
 }
