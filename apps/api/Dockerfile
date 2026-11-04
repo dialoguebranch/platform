@@ -1,3 +1,6 @@
+# check=skip=SecretsUsedInArgOrEnv
+# The check flags the AUTH in DLB_AUTH_*, none of which are secrets.
+
 # Standalone Dialogue Branch Web Service Docker image.
 #
 # Build context must be the platform/ root of the monorepo:
