@@ -7,6 +7,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-11-04
+
 ### Security
 
 - Web service, BFF and mock variable service: upgraded to Spring Boot 4.1, which fixes critical
