@@ -42,6 +42,9 @@ RUN npm install && npm run build
 # -------------------- Stage 2: Runtime -------------------- #
 # ---------------------------------------------------------- #
 
-FROM httpd:2.4 AS final-stage
+FROM nginx:1.30-alpine AS final-stage
 
-COPY --from=builder /build/apps/studio/dist /usr/local/apache2/htdocs
+# The base image lags behind Alpine's security fixes.
+RUN apk upgrade --no-cache
+
+COPY --from=builder /build/apps/studio/dist /usr/share/nginx/html

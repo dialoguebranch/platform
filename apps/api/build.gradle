@@ -1,7 +1,7 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '3.5.4'
-	id 'com.diffplug.spotless' version '8.10.1'
+	id 'org.springframework.boot' version '4.1.2'
+	id 'com.diffplug.spotless' version '8.11.0'
 }
 
 group = 'com.dialoguebranch'
@@ -50,9 +50,9 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 dependencies {
-	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:3.5.4'
+	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor:4.1.2'
 
-	implementation 'org.apache.httpcomponents.client5:httpclient5:5.5'
+	implementation 'org.apache.httpcomponents.client5:httpclient5:5.6.5'
 
 	// Enabling this dependency will include the required dlb-core-java from local source.
 	// The location of this project is defined in ../settings.gradle and assumes that it
@@ -66,27 +66,32 @@ dependencies {
 	implementation 'javax.xml.bind:jaxb-api:2.4.0-b180830.0359'
 
 	// https://mvnrepository.com/artifact/org.springframework/spring-context-support
-	implementation 'org.springframework:spring-context-support:6.2.9'
+	implementation 'org.springframework:spring-context-support:7.0.10'
 
 	// https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-web
-	implementation 'org.springframework.boot:spring-boot-starter-web:3.5.4'
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc:4.1.2'
 
 	// https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-starter-webmvc-ui
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0'
 
-	implementation 'org.flywaydb:flyway-core:11.8.2'
-	implementation 'org.flywaydb:flyway-mysql:11.8.2'
-	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server:3.5.4'
+	implementation 'org.springframework.boot:spring-boot-starter-flyway:4.1.2'
+	implementation 'org.flywaydb:flyway-mysql:12.4.0'
+	implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-resource-server:4.1.2'
 	// Client-credentials tokens for the calls to the External Variable Service (#428)
-	implementation 'org.springframework.security:spring-security-oauth2-client:6.5.2'
-	implementation 'org.springframework.boot:spring-boot-starter-actuator:3.5.4'
+	implementation 'org.springframework.security:spring-security-oauth2-client:7.1.2'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator:4.1.2'
+	implementation 'org.springframework.boot:spring-boot-starter-restclient:4.1.2'
+	// dlb-core-java serializes with Jackson 2, Spring Boot defaults to Jackson 3
+	implementation 'org.springframework.boot:spring-boot-jackson2:4.1.2'
 
-	implementation 'org.mariadb.jdbc:mariadb-java-client:3.5.4'
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa:3.5.4'
+	implementation 'org.mariadb.jdbc:mariadb-java-client:3.5.11'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa:4.1.2'
 
-	testImplementation 'org.springframework.boot:spring-boot-starter-test:3.5.4'
-	testImplementation 'org.springframework.security:spring-security-test:6.5.2'
-	testRuntimeOnly 'com.h2database:h2:2.3.232'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test:4.1.2'
+	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test:4.1.2'
+	testImplementation 'org.springframework.boot:spring-boot-starter-security-test:4.1.2'
+	testImplementation 'org.springframework.security:spring-security-test:7.1.2'
+	testRuntimeOnly 'com.h2database:h2:2.4.240'
 
 }
 

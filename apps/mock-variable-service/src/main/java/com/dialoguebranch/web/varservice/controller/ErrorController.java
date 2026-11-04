@@ -64,7 +64,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Hidden
 @RestController
-public class ErrorController implements org.springframework.boot.web.servlet.error.ErrorController {
+public class ErrorController implements org.springframework.boot.webmvc.error.ErrorController {
 
 	private static final Logger logger = LoggerFactory.getLogger(ErrorController.class);
 

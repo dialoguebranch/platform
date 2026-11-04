@@ -1,7 +1,7 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '3.5.4'
-	id 'com.diffplug.spotless' version '8.10.1'
+	id 'org.springframework.boot' version '4.1.2'
+	id 'com.diffplug.spotless' version '8.11.0'
 }
 
 group = 'com.dialoguebranch'
@@ -46,27 +46,29 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-web:3.5.4'
-	implementation 'org.springframework.boot:spring-boot-starter-security:3.5.4'
-	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client:3.5.4'
-	implementation 'org.springframework.boot:spring-boot-starter-actuator:3.5.4'
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc:4.1.2'
+	implementation 'org.springframework.boot:spring-boot-starter-security:4.1.2'
+	implementation 'org.springframework.boot:spring-boot-starter-security-oauth2-client:4.1.2'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator:4.1.2'
 
 	// Used to parse (not re-validate — the access token already came from our own trusted
 	// session) the resource_access claim out of the session's access token for /whoami. Already
 	// a transitive dependency of spring-security-oauth2-client, declared explicitly since we
 	// call it directly.
-	implementation 'com.nimbusds:nimbus-jose-jwt:9.37.3'
+	implementation 'com.nimbusds:nimbus-jose-jwt:10.10'
 
 	// Persists sessions (and the OAuth2 tokens Spring Security stores in them) to MariaDB instead
 	// of this JVM's heap — see SecurityConfig's own Javadoc for why that matters. Spring Session
 	// wires itself in as a drop-in HttpSession replacement; nothing else in this service's code
 	// needs to change.
-	implementation 'org.springframework.boot:spring-boot-starter-jdbc:3.5.4'
-	implementation 'org.springframework.session:spring-session-jdbc:3.5.4'
-	implementation 'org.mariadb.jdbc:mariadb-java-client:3.5.4'
+	implementation 'org.springframework.boot:spring-boot-starter-jdbc:4.1.2'
+	implementation 'org.springframework.boot:spring-boot-starter-session-jdbc:4.1.2'
+	implementation 'org.mariadb.jdbc:mariadb-java-client:3.5.11'
 
-	testImplementation 'org.springframework.boot:spring-boot-starter-test:3.5.4'
-	testImplementation 'org.springframework.security:spring-security-test:6.5.2'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test:4.1.2'
+	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test:4.1.2'
+	testImplementation 'org.springframework.boot:spring-boot-starter-security-test:4.1.2'
+	testImplementation 'org.springframework.security:spring-security-test:7.1.2'
 
 	// Stubs the downstream Dialogue Branch Web Service on a real local socket for
 	// ApiProxyControllerTest, so header/status/body relay is exercised over actual HTTP.
@@ -74,7 +76,7 @@ dependencies {
 
 	// In-memory datasource for the context-load test — the real deployment persists sessions to
 	// MariaDB, which isn't available during a plain unit-test run.
-	testRuntimeOnly 'com.h2database:h2:2.3.232'
+	testRuntimeOnly 'com.h2database:h2:2.4.240'
 }
 
 test {

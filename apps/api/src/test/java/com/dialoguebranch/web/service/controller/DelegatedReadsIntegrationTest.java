@@ -34,12 +34,12 @@ import com.dialoguebranch.web.service.execution.UserService;
 import com.dialoguebranch.web.service.repository.DBUserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.AbstractMockHttpServletRequestBuilder;
 
 import java.time.ZoneId;
 import java.util.List;
@@ -86,7 +86,7 @@ class DelegatedReadsIntegrationTest {
 		return "delegated-" + UUID.randomUUID();
 	}
 
-	private static MockHttpServletRequestBuilder as(MockHttpServletRequestBuilder builder,
+	private static <T extends AbstractMockHttpServletRequestBuilder<T>> T as(T builder,
 			String subject, String... roles) {
 		Consumer<Jwt.Builder> claims = jwt -> jwt
 				.subject(subject)

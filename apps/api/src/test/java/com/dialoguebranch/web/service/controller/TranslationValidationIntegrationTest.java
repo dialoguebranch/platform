@@ -30,12 +30,13 @@ package com.dialoguebranch.web.service.controller;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.AbstractMockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.util.List;
@@ -65,7 +66,7 @@ class TranslationValidationIntegrationTest {
 	@Autowired
 	MockMvc mockMvc;
 
-	private static MockHttpServletRequestBuilder as(MockHttpServletRequestBuilder builder,
+	private static <T extends AbstractMockHttpServletRequestBuilder<T>> T as(T builder,
 			String role) {
 		Consumer<Jwt.Builder> claims = jwt -> jwt
 				.subject("translation-" + role)

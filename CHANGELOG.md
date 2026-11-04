@@ -7,6 +7,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Security
+
+- Web service, BFF and mock variable service: upgraded to Spring Boot 4.1, which fixes critical
+  vulnerabilities in Tomcat, Spring MVC and Spring Security.
+- Studio: updated `dompurify`, `vue` and `vite`, and the Docker image now serves the build with
+  nginx on Alpine instead of Apache httpd on Debian.
+
 ## [0.9.0] - 2026-11-04
 
 ### Added

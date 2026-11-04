@@ -3,8 +3,8 @@ package com.dialoguebranch.web.bff;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -15,7 +15,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -59,7 +59,7 @@ class BffSecurityFilterChainTest {
 	void unauthenticatedTopLevelNavigationRedirectsToTheAuthorizationEndpoint() throws Exception {
 		mockMvc.perform(get("/some/app/page").header("Accept", "text/html"))
 				.andExpect(status().is3xxRedirection())
-				.andExpect(redirectedUrlPattern("**/oauth2/authorization/keycloak"));
+				.andExpect(redirectedUrl("/oauth2/authorization/keycloak"));
 	}
 
 	// --- the /api/v1/info/all carve-out (the forwarded call itself is covered by
