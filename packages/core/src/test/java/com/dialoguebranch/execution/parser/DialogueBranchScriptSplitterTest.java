@@ -115,10 +115,10 @@ public class DialogueBranchScriptSplitterTest {
 
 	@Test
 	public void removesBlankLinesFromHeaderButKeepsComments() {
-		String script = "\n\n  \ntitle: Start\n\n// a comment\nspeaker: Lizz\n \n---\nHello.\n";
+		String script = "\n\n  \ntitle: Start\n\n// a comment\nspeaker: Martin McOwl\n \n---\nHello.\n";
 		List<RawNode> nodes = DialogueBranchScriptSplitter.split(script).nodes();
 		assertEquals(1, nodes.size());
-		assertEquals("title: Start\n// a comment\nspeaker: Lizz", nodes.get(0).header());
+		assertEquals("title: Start\n// a comment\nspeaker: Martin McOwl", nodes.get(0).header());
 		assertEquals(4, nodes.get(0).startLine());
 	}
 
@@ -248,8 +248,8 @@ public class DialogueBranchScriptSplitterTest {
 
 	@Test
 	public void agreesWithTheParserOnNodeTitles() throws IOException {
-		String script = SCRIPT.replace("title: Start", "title: Start\nspeaker: Lizz")
-				.replace("title: Second", "title: Second\nspeaker: Lizz");
+		String script = SCRIPT.replace("title: Start", "title: Start\nspeaker: Martin McOwl")
+				.replace("title: Second", "title: Second\nspeaker: Martin McOwl");
 		String[] variants = {
 				script,
 				script.replace("\n", "\r\n"),
