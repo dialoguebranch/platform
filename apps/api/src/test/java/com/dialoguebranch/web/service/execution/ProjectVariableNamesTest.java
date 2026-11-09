@@ -79,6 +79,21 @@ class ProjectVariableNamesTest {
 	}
 
 	@Test
+	void namesTheDialoguesThatReadAndWriteEachVariableOnce() {
+		List<ProjectVariableInfo> vars = application.getApplicationManager()
+				.getProjectVariables("default-test");
+
+		ProjectVariableInfo written = find(vars, "variableOne");
+		assertNotNull(written);
+		assertEquals(List.of("variables"), written.writtenBy());
+
+		ProjectVariableInfo userName = find(vars, "userName");
+		assertNotNull(userName);
+		assertEquals(List.of("variables"), userName.readBy());
+		assertEquals(userName.written(), !userName.writtenBy().isEmpty());
+	}
+
+	@Test
 	void returnsEmptyListForAnUnknownProject() {
 		assertTrue(application.getApplicationManager()
 				.getProjectVariables("no-such-project").isEmpty());
