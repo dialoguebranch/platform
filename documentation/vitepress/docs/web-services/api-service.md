@@ -79,6 +79,10 @@ A few things to keep in mind when reading the history:
 
 Reading history requires the `VARIABLE_READ_OWN_HISTORY` permission, which every role has. Reading another user's history through `delegateUser` additionally requires the `USER_DELEGATE_READ` permission, held by the `supervisor` and `admin` roles.
 
+To find out which Variables a project's dialogues use at all, independent of any user's values:
+
+* `/variables/list-project` — takes a required `projectSlug`, and returns every Variable that the project's published dialogues read or write, sorted by name. Each entry has the Variable's `name`, whether any dialogue reads it (`read`) or writes it (`written`, the target of a `<<set>>` or an input field), and the names of those dialogues in `readBy` and `writtenBy`, sorted, each dialogue listed once whatever its translations. Unpublished draft changes are not included. Requires the `editor` or `admin` role.
+
 Another way of making sure that Dialogue Branch has up-to-date values for Variables, is by using an [External Variable Service](/web-services/external-variable-service). If your configured External Variable Service implements the optional [supported-variables end-point](/web-services/external-variable-service#reporting-supported-variables), you can query which variable names it knows how to compute for a project — useful for confirming a dialogue references the name an EVS actually supports, rather than a typo or mismatch:
 
 * `/variables/list-supported` — takes a required `projectSlug`, and returns the configured External Variable Service's reported list of supported variables for that project, with any `description`, `type`, `values` and `readOnly` hints it gave (each call is proxied to the EVS live, never cached). Requires the `editor` or `admin` role.
