@@ -150,7 +150,7 @@ class ScriptImportIntegrationTest {
 		String slug = newProject();
 		mockMvc.perform(importInto(slug, "", file("main.dlb", VALID))).andExpect(status().isOk());
 
-		String replacement = "title: Start\nspeaker: Lizz\n---\nReplaced.\n===\n";
+		String replacement = "title: Start\nspeaker: Martin McOwl\n---\nReplaced.\n===\n";
 		mockMvc.perform(importInto(slug, "", file("main.dlb", replacement)))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.errors['main.dlb'][0]", containsString("already exists")));
