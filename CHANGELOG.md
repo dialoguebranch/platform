@@ -11,8 +11,14 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 - Web service: `GET /variables/list-project` also names the dialogues that read and write each
   variable, in two new fields `readBy` and `writtenBy`, so a client can show the variables of one
-  dialogue. **Internal API:** the new fields are added to each entry, the existing ones are
-  unchanged. `DialogueBranchAuthoringClient.listProjectVariables` returns them too.
+  dialogue. The new fields are added to each entry, the existing ones are unchanged.
+  `DialogueBranchAuthoringClient.listProjectVariables` returns them too.
+
+### Changed
+
+- Web service: `GET /variables/list-project` is now a stable end-point, covered by the
+  compatibility policy, and documented with the other variable end-points. A service that needs
+  to know which dialogues set which variables can now build on it.
 
 ## [0.9.1] - 2026-11-04
 

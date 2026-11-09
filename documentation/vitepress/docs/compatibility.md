@@ -39,8 +39,8 @@ All end-points are under `/v1`, for example `/v1/dialogue/start`. *Stable* end-p
 | End-point | Status |
 |---|---|
 | `/dialogue/start`, `progress`, `continue`, `cancel`, `back`, `get-ongoing`, `list-dialogues` | Stable |
-| `/variables/get`, `history`, `set`, `set-single` | Stable |
-| `/variables/list-project`, `list-supported` | Internal (Studio's variable discovery) |
+| `/variables/get`, `history`, `set`, `set-single`, `list-project` | Stable |
+| `/variables/list-supported` | Internal (Studio's variable discovery) |
 | `/log/get-session`, `verify-id` | Stable |
 | `/info/all` | Stable |
 | `/info/technical` | Internal (admin diagnostics) |
