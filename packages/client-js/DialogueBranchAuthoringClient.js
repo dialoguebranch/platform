@@ -1147,8 +1147,9 @@ export class DialogueBranchAuthoringClient extends BaseClient {
      * per-user values.
      *
      * @param {string} projectSlug The project's slug.
-     * @returns {Promise<{name: string, read: boolean, written: boolean}[]>} The referenced
-     * variable names.
+     * @returns {Promise<{name: string, read: boolean, written: boolean, readBy: string[],
+     * writtenBy: string[]}[]>} The referenced variable names, with the names of the dialogues
+     * that read and write each one.
      */
     listProjectVariables(projectSlug) {
         const url = this._baseUrl + "/variables/list-project?projectSlug="

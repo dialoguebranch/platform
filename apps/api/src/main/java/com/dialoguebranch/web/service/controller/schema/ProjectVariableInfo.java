@@ -28,14 +28,20 @@
 
 package com.dialoguebranch.web.service.controller.schema;
 
+import java.util.List;
+
 /**
  * One entry in the {@code /variables/list-project} response: a variable name referenced somewhere
  * in a project's dialogues, and whether it is read (used in a statement, {@code if}, expression,
- * …) and/or written (the target of a {@code set} or an {@code input}) anywhere in the project.
+ * …) and/or written (the target of a {@code set} or an {@code input}) anywhere in the project,
+ * and by which dialogues.
  *
- * @param name    the variable name (without the {@code $} sigil).
- * @param read    whether any dialogue reads this variable.
- * @param written whether any dialogue writes this variable.
+ * @param name      the variable name (without the {@code $} sigil).
+ * @param read      whether any dialogue reads this variable.
+ * @param written   whether any dialogue writes this variable.
+ * @param readBy    the names of the dialogues that read this variable, sorted.
+ * @param writtenBy the names of the dialogues that write this variable, sorted.
  */
-public record ProjectVariableInfo(String name, boolean read, boolean written) {
+public record ProjectVariableInfo(String name, boolean read, boolean written,
+		List<String> readBy, List<String> writtenBy) {
 }

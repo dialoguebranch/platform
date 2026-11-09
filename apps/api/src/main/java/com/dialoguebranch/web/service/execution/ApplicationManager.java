@@ -65,6 +65,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
@@ -348,9 +349,9 @@ public class ApplicationManager {
 	/**
 	 * Returns every Dialogue Branch variable referenced anywhere in the named project's loaded
 	 * (published) dialogues, sorted by name, each flagged as read and/or written across the
-	 * project. This is the set of variables the project's content uses, independent of whether any
-	 * user has a value for them. Returns an empty list if no project with that slug is loaded, or
-	 * it has no executable dialogues.
+	 * project, with the names of the dialogues that read and write it. This is the set of variables
+	 * the project's content uses, independent of whether any user has a value for them. Returns an
+	 * empty list if no project with that slug is loaded, or it has no executable dialogues.
 	 *
 	 * @param projectSlug the project folder name / slug.
 	 * @return the project's referenced variables, sorted by name.
@@ -359,17 +360,27 @@ public class ApplicationManager {
 		DialogueBranchProject project = projects.get(projectSlug);
 		if (!(project instanceof ExecutableProject executableProject))
 			return new ArrayList<>();
-		// value: [read, written]
-		Map<String, boolean[]> byName = new TreeMap<>();
-		for (Dialogue dialogue : executableProject.getDialogues().values()) {
+		// A dialogue appears once per language, so the sets keep each dialogue name once.
+		Map<String, Set<String>> readBy = new TreeMap<>();
+		Map<String, Set<String>> writtenBy = new TreeMap<>();
+		for (Map.Entry<ResourcePointer, Dialogue> entry :
+				executableProject.getDialogues().entrySet()) {
+			String dialogueName = entry.getKey().getDialogueName();
+			Dialogue dialogue = entry.getValue();
 			for (String name : dialogue.getVariablesNeeded())
-				byName.computeIfAbsent(name, k -> new boolean[2])[0] = true;
+				readBy.computeIfAbsent(name, k -> new TreeSet<>()).add(dialogueName);
 			for (String name : dialogue.getVariablesWritten())
-				byName.computeIfAbsent(name, k -> new boolean[2])[1] = true;
+				writtenBy.computeIfAbsent(name, k -> new TreeSet<>()).add(dialogueName);
 		}
+		Set<String> names = new TreeSet<>(readBy.keySet());
+		names.addAll(writtenBy.keySet());
 		List<ProjectVariableInfo> result = new ArrayList<>();
-		byName.forEach((name, flags) ->
-				result.add(new ProjectVariableInfo(name, flags[0], flags[1])));
+		for (String name : names) {
+			List<String> readers = List.copyOf(readBy.getOrDefault(name, Set.of()));
+			List<String> writers = List.copyOf(writtenBy.getOrDefault(name, Set.of()));
+			result.add(new ProjectVariableInfo(name, !readers.isEmpty(), !writers.isEmpty(),
+					readers, writers));
+		}
 		return result;
 	}
 

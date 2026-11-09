@@ -384,8 +384,9 @@ public class VariablesController {
 	@Operation(
 		summary = "List every variable used anywhere in a project's dialogues.",
 		description = "Returns every Dialogue Branch variable read or written by any dialogue in " +
-			"the given project, sorted by name and flagged read/written, regardless of whether a " +
-			"value is stored for it. Accessible for users with the 'editor' or 'admin' role.")
+			"the given project, sorted by name, flagged read/written and with the names of the " +
+			"dialogues that read and write it, regardless of whether a value is stored for it. " +
+			"Accessible for users with the 'editor' or 'admin' role.")
 	@RequestMapping(value="/list-project", method=RequestMethod.GET)
 	public List<ProjectVariableInfo> listProjectVariables(
 		HttpServletRequest request,

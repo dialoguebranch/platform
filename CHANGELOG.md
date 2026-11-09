@@ -7,6 +7,13 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Added
+
+- Web service: `GET /variables/list-project` also names the dialogues that read and write each
+  variable, in two new fields `readBy` and `writtenBy`, so a client can show the variables of one
+  dialogue. **Internal API:** the new fields are added to each entry, the existing ones are
+  unchanged. `DialogueBranchAuthoringClient.listProjectVariables` returns them too.
+
 ## [0.9.1] - 2026-11-04
 
 ### Security
