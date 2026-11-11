@@ -14,10 +14,15 @@ import { withBase } from 'vitepress'
       </a>
       <label for="dlb-hamburger">☰</label>
       <input type="checkbox" id="dlb-hamburger">
+      <!-- The spaces between the items are deliberate: on the website, the line breaks between its
+           inline-block <li>s render as small gaps, which Vue's compiler would otherwise strip. -->
       <ul>
         <li><a class="dlb-navbar-link" href="/" target="_self">Home</a></li>
+        {{ ' ' }}
         <li><a class="dlb-navbar-link" :href="withBase('/')" aria-current="page">Documentation</a></li>
+        {{ ' ' }}
         <li><a class="dlb-navbar-link" href="/about/" target="_self">About</a></li>
+        {{ ' ' }}
         <li><a class="dlb-navbar-link" href="/news/" target="_self">News &amp; Updates</a></li>
       </ul>
     </div>
@@ -25,8 +30,22 @@ import { withBase } from 'vitepress'
 </template>
 
 <style scoped>
+/* Undo VitePress's base styles (line height, font smoothing, box sizing, text colour), which
+   the website doesn't have, so the navbar renders exactly as it does there. */
+.dlb-navbar,
+.dlb-navbar * {
+  box-sizing: content-box;
+  line-height: normal;
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
+  text-rendering: auto;
+  font-synthesis: weight style small-caps;
+}
+
 .dlb-navbar {
   font-family: 'Roboto Slab', 'Avenir Next W02', system-ui, -apple-system, 'Segoe UI', Roboto;
+  font-size: 16px;
+  color: #212121;
   background-color: #fafafa;
   position: fixed;
   left: 0;
@@ -49,7 +68,7 @@ import { withBase } from 'vitepress'
 .dlb-navbar-link {
   float: right;
   display: block;
-  font-size: 1.1em;
+  font-size: 1.2em;
   color: #000;
   background-color: #fafafa;
   text-align: center;
