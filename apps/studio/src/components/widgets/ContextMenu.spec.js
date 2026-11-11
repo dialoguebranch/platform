@@ -161,6 +161,19 @@ describe('ContextMenu', () => {
         expect(onKeyup).toHaveBeenCalledTimes(1);
     });
 
+    it('stops swallowing keyups even when the window is gone by then, as at test teardown', async () => {
+        vi.useFakeTimers();
+        try {
+            await mountMenu();
+            key(item('open'), 'Enter');
+            vi.stubGlobal('window', undefined);
+            expect(() => vi.runAllTimers()).not.toThrow();
+        } finally {
+            vi.unstubAllGlobals();
+            vi.useRealTimers();
+        }
+    });
+
     it('closes on Escape and gives the focus back', async () => {
         const trigger = document.createElement('button');
         document.body.appendChild(trigger);

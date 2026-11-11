@@ -51,11 +51,13 @@ function swallowActivationKeyup() {
         }
         cleanup();
     };
+    // Kept, since the global window may be gone by the time the timer fires, as at test teardown.
+    const target = window;
     const cleanup = () => {
-        window.removeEventListener('keyup', handler, true);
+        target.removeEventListener('keyup', handler, true);
         clearTimeout(timer);
     };
-    window.addEventListener('keyup', handler, true);
+    target.addEventListener('keyup', handler, true);
     const timer = setTimeout(cleanup, 1000);
 }
 
