@@ -345,8 +345,7 @@ public class VariablesController {
 		}
 		if (!rangeErrors.isEmpty())
 			throw BadRequestException.withInvalidInput(rangeErrors);
-		DBProject project = projectRepository.findBySlug(projectSlug)
-				.orElseThrow(() -> new NotFoundException("Project not found: " + projectSlug));
+		DBProject project = ControllerFunctions.requireProject(projectRepository, projectSlug);
 		int size = Math.max(1, Math.min(pageSize, MAX_HISTORY_PAGE_SIZE));
 		return historyStorageHandler.read(userId, project, name, fromMillis, toMillis,
 				Math.max(0, page), size);
@@ -475,10 +474,12 @@ public class VariablesController {
 	 * @throws IOException in case of an error in generating the UserService.
 	 * @throws DatabaseException in case of an error in generating the UserService.
 	 * @throws BadRequestException in case of a malformed or unknown {@code timeZone}.
+	 * @throws NotFoundException if no project with the given slug exists.
 	 */
 	private List<Variable> doGetVariables(DialogueBranchUserId userId, String projectSlug,
 			String variableNames, String timeZone)
-			throws IOException, DatabaseException, BadRequestException {
+			throws IOException, DatabaseException, BadRequestException, NotFoundException {
+		ControllerFunctions.requireProject(projectRepository, projectSlug);
 
 		// Get or create a UserService for the user in the given time zone
 		ZoneId timeZoneId = ControllerFunctions.parseTimeZone(timeZone);
@@ -516,8 +517,7 @@ public class VariablesController {
 	private List<Variable> doGetVariablesDelegated(DialogueBranchUserId userId, String projectSlug,
 			String variableNames) throws BadRequestException, NotFoundException, ParseException {
 		List<String> nameList = parseVariableNames(variableNames);
-		DBProject project = projectRepository.findBySlug(projectSlug)
-				.orElseThrow(() -> new NotFoundException("Project not found: " + projectSlug));
+		DBProject project = ControllerFunctions.requireProject(projectRepository, projectSlug);
 		Map<String, Variable> byName = new TreeMap<>();
 		for (Variable variable : storageHandler.readExisting(userId, project)
 				.orElseThrow(() -> ControllerFunctions.unknownDelegateUser(userId))) {
@@ -662,6 +662,8 @@ public class VariablesController {
 		single.put(name, value);
 		ControllerFunctions.requireAllowedVariables(single);
 
+		ControllerFunctions.requireProject(projectRepository, projectSlug);
+
 		// Get or create a UserService for the user in the given time zone
 		ZoneId timeZoneId = ControllerFunctions.parseTimeZone(timeZone);
 		UserService userService = application.getApplicationManager()
@@ -795,6 +797,8 @@ public class VariablesController {
 			throw new BadRequestException(error);
 		}
 		ControllerFunctions.requireAllowedVariables(variables);
+
+		ControllerFunctions.requireProject(projectRepository, projectSlug);
 
 		// Get or create a UserService for the user in the given time zone
 		ZoneId timeZoneId = ControllerFunctions.parseTimeZone(timeZone);
