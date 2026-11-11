@@ -2,6 +2,7 @@ import { h } from 'vue'
 import DefaultTheme from 'vitepress/theme'
 import type { Theme } from 'vitepress'
 import SiteNavbar from './components/SiteNavbar.vue'
+import SiteFooter from './components/SiteFooter.vue'
 import SiteTitle from './components/SiteTitle.vue'
 import './custom.css'
 
@@ -10,6 +11,7 @@ export default {
   Layout() {
     return h(DefaultTheme.Layout, null, {
       'layout-top': () => h(SiteNavbar),
+      'layout-bottom': () => h(SiteFooter),
       'nav-bar-title-after': () => h(SiteTitle)
     })
   }

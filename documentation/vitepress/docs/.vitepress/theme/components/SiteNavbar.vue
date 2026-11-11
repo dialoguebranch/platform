@@ -1,31 +1,51 @@
 <script setup lang="ts">
-// Mirrors the global `.dlb-navbar` embedded across www.dialoguebranch.com
-// (including the current Antora-based /docs/ site this project replaces),
-// so switching between Home / Documentation / About / News & Updates feels
-// like staying on one site rather than jumping into a separate app.
+// Mirrors the navbar of www.dialoguebranch.com, so switching between Home / Documentation /
+// About / News & Updates feels like staying on one site rather than jumping into a separate app.
+// The docs are hosted under the website's /docs/, so its pages are linked site-relative: they
+// then also work on a local or test copy of the website.
+import { withBase } from 'vitepress'
 </script>
 
 <template>
   <header class="dlb-site-header">
     <div class="dlb-navbar">
-      <a href="https://www.dialoguebranch.com/">
-        <img class="dlb-navbar-logo" src="https://www.dialoguebranch.com/img/dlb-square.png" alt="Dialogue Branch">
+      <a href="/" target="_self">
+        <img class="dlb-navbar-logo" :src="withBase('/dlb-square.png')" alt="Dialogue Branch">
       </a>
       <label for="dlb-hamburger">☰</label>
       <input type="checkbox" id="dlb-hamburger">
+      <!-- The spaces between the items are deliberate: on the website, the line breaks between its
+           inline-block <li>s render as small gaps, which Vue's compiler would otherwise strip. -->
       <ul>
-        <li><a class="dlb-navbar-link" href="https://www.dialoguebranch.com/">Home</a></li>
-        <li><a class="dlb-navbar-link" href="https://www.dialoguebranch.com/docs/" aria-current="page">Documentation</a></li>
-        <li><a class="dlb-navbar-link" href="https://www.dialoguebranch.com/about/">About</a></li>
-        <li><a class="dlb-navbar-link" href="https://www.dialoguebranch.com/news/">News &amp; Updates</a></li>
+        <li><a class="dlb-navbar-link" href="/" target="_self">Home</a></li>
+        {{ ' ' }}
+        <li><a class="dlb-navbar-link" :href="withBase('/')" aria-current="page">Documentation</a></li>
+        {{ ' ' }}
+        <li><a class="dlb-navbar-link" href="/about/" target="_self">About</a></li>
+        {{ ' ' }}
+        <li><a class="dlb-navbar-link" href="/news/" target="_self">News &amp; Updates</a></li>
       </ul>
     </div>
   </header>
 </template>
 
 <style scoped>
+/* Undo VitePress's base styles (line height, font smoothing, box sizing, text colour), which
+   the website doesn't have, so the navbar renders exactly as it does there. */
+.dlb-navbar,
+.dlb-navbar * {
+  box-sizing: content-box;
+  line-height: normal;
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
+  text-rendering: auto;
+  font-synthesis: weight style small-caps;
+}
+
 .dlb-navbar {
   font-family: 'Roboto Slab', 'Avenir Next W02', system-ui, -apple-system, 'Segoe UI', Roboto;
+  font-size: 16px;
+  color: #212121;
   background-color: #fafafa;
   position: fixed;
   left: 0;
@@ -48,7 +68,7 @@
 .dlb-navbar-link {
   float: right;
   display: block;
-  font-size: 1.1em;
+  font-size: 1.2em;
   color: #000;
   background-color: #fafafa;
   text-align: center;
