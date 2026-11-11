@@ -7,6 +7,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-11-11
+
 ### Added
 
 - Web service: `GET /variables/list-project` also names the dialogues that read and write each
