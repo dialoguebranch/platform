@@ -1,23 +1,24 @@
 <script setup lang="ts">
-// Mirrors the global `.dlb-navbar` embedded across www.dialoguebranch.com
-// (including the current Antora-based /docs/ site this project replaces),
-// so switching between Home / Documentation / About / News & Updates feels
-// like staying on one site rather than jumping into a separate app.
+// Mirrors the navbar of www.dialoguebranch.com, so switching between Home / Documentation /
+// About / News & Updates feels like staying on one site rather than jumping into a separate app.
+// The docs are hosted under the website's /docs/, so its pages are linked site-relative: they
+// then also work on a local or test copy of the website.
+import { withBase } from 'vitepress'
 </script>
 
 <template>
   <header class="dlb-site-header">
     <div class="dlb-navbar">
-      <a href="https://www.dialoguebranch.com/">
-        <img class="dlb-navbar-logo" src="https://www.dialoguebranch.com/img/dlb-square.png" alt="Dialogue Branch">
+      <a href="/" target="_self">
+        <img class="dlb-navbar-logo" :src="withBase('/dlb-square.png')" alt="Dialogue Branch">
       </a>
       <label for="dlb-hamburger">☰</label>
       <input type="checkbox" id="dlb-hamburger">
       <ul>
-        <li><a class="dlb-navbar-link" href="https://www.dialoguebranch.com/">Home</a></li>
-        <li><a class="dlb-navbar-link" href="https://www.dialoguebranch.com/docs/" aria-current="page">Documentation</a></li>
-        <li><a class="dlb-navbar-link" href="https://www.dialoguebranch.com/about/">About</a></li>
-        <li><a class="dlb-navbar-link" href="https://www.dialoguebranch.com/news/">News &amp; Updates</a></li>
+        <li><a class="dlb-navbar-link" href="/" target="_self">Home</a></li>
+        <li><a class="dlb-navbar-link" :href="withBase('/')" aria-current="page">Documentation</a></li>
+        <li><a class="dlb-navbar-link" href="/about/" target="_self">About</a></li>
+        <li><a class="dlb-navbar-link" href="/news/" target="_self">News &amp; Updates</a></li>
       </ul>
     </div>
   </header>

@@ -5,7 +5,9 @@ export default withMermaid(defineConfig({
   title: 'Dialogue Branch Documentation Hub',
   description: 'Documentation for the Dialogue Branch Platform: the language, the core Java library, the web services, and tutorials for getting started.',
   base: '/docs/',
-  cleanUrls: true,
+  // Plain `.html` URLs: the docs are hosted under www.dialoguebranch.com/docs/ on a static host
+  // that doesn't resolve extension-less ("clean") URLs, so those would 404 when opened directly.
+  cleanUrls: false,
   lastUpdated: true,
 
   head: [
@@ -85,11 +87,6 @@ export default withMermaid(defineConfig({
     editLink: {
       pattern: 'https://github.com/dialoguebranch/platform/edit/main/documentation/vitepress/docs/:path',
       text: 'Edit this page on GitHub'
-    },
-
-    footer: {
-      message: 'Released under the MIT License.',
-      copyright: 'Copyright © 2023-2026 Fruit Tree Labs'
     }
   }
 }))
