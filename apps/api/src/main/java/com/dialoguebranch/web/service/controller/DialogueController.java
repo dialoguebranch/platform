@@ -51,8 +51,10 @@ import com.dialoguebranch.web.service.controller.schema.OngoingDialoguePayload;
 import com.dialoguebranch.web.service.exception.BadRequestException;
 import com.dialoguebranch.web.service.exception.DatabaseException;
 import com.dialoguebranch.web.service.exception.HttpException;
+import com.dialoguebranch.web.service.exception.NotFoundException;
 import com.dialoguebranch.web.service.exception.UnauthorizedException;
 import com.dialoguebranch.web.service.execution.UserService;
+import com.dialoguebranch.web.service.repository.DBProjectRepository;
 import com.dialoguebranch.web.service.storage.ServerLoggedDialogue;
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.swagger.v3.oas.annotations.Operation;
@@ -94,6 +96,9 @@ public class DialogueController {
 
 	@Autowired
 	Application application;
+
+	@Autowired
+	DBProjectRepository projectRepository;
 
 	private static final Logger logger = LoggerFactory.getLogger(DialogueController.class);
 
@@ -942,10 +947,12 @@ public class DialogueController {
 	 * @throws DatabaseException in case of an error retrieving logged dialogues from the database.
 	 * @throws IOException in case of any network error.
 	 * @throws BadRequestException in case of a malformed or unknown {@code timeZone}
+	 * @throws NotFoundException if no project with the given slug exists.
 	 */
 	private NullableResponse<OngoingDialoguePayload> doGetOngoingDialogue(
 			DialogueBranchUserId userId, boolean delegated, String projectSlug, String timeZone)
-			throws DatabaseException, IOException, BadRequestException {
+			throws DatabaseException, IOException, BadRequestException, NotFoundException {
+		ControllerFunctions.requireProject(projectRepository, projectSlug);
 
 		// Get or create a UserService for the user in the given time zone
 		ZoneId timeZoneId = ControllerFunctions.parseTimeZone(timeZone);
@@ -1031,7 +1038,8 @@ public class DialogueController {
 				version, response, "", Permission.DIALOGUE_LIST);
 	}
 
-	private DialogueListPayload doListDialogues(String projectSlug) {
+	private DialogueListPayload doListDialogues(String projectSlug) throws NotFoundException {
+		ControllerFunctions.requireProject(projectRepository, projectSlug);
 		List<ResourcePointer> resources =
 				application.getApplicationManager().getAvailableDialoguesForProject(projectSlug);
 		List<String> scriptNames = new ArrayList<>();

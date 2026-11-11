@@ -32,6 +32,8 @@ import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.model.common.ReservedVariables;
 import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.exception.*;
+import com.dialoguebranch.web.service.repository.DBProjectRepository;
+import com.dialoguebranch.web.service.storage.model.DBProject;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.net.URLDecoder;
@@ -55,6 +57,21 @@ public class ControllerFunctions {
 
 	/** Utility class — not instantiated. */
 	private ControllerFunctions() { }
+
+	/**
+	 * Returns the project with the given slug, so a request for a project that doesn't exist is
+	 * answered with a {@code 404} instead of failing further on.
+	 *
+	 * @param projectRepository the repository to look the project up in.
+	 * @param projectSlug the slug of the project.
+	 * @return the project.
+	 * @throws NotFoundException if no project with the given slug exists.
+	 */
+	public static DBProject requireProject(DBProjectRepository projectRepository,
+			String projectSlug) throws NotFoundException {
+		return projectRepository.findBySlug(projectSlug)
+				.orElseThrow(() -> new NotFoundException("Project not found: " + projectSlug));
+	}
 
 	/**
 	 * Returns the {@code 404} for a delegated read naming a user this service doesn't know. A

@@ -20,6 +20,14 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   compatibility policy, and documented with the other variable end-points. A service that needs
   to know which dialogues set which variables can now build on it.
 
+### Fixed
+
+- Web service: `GET /variables/get`, `POST /variables/set`, `POST /variables/set-single`,
+  `GET /dialogue/list-dialogues` and `GET /dialogue/get-ongoing` answer a project that doesn't
+  exist with a 404 (`Project not found: <slug>`), like the other project end-points. The variable
+  end-points answered a 500, and the dialogue end-points an empty answer
+  ([#467](https://github.com/dialoguebranch/platform/issues/467)).
+
 ## [0.9.1] - 2026-11-04
 
 ### Security
