@@ -1,3 +1,7 @@
+---
+description: "Tutorial: explore the Dialogue Branch Web Service API by running a dialogue from start to end: authenticate, select replies, step back and continue."
+---
+
 # Tutorial: Dialogue Branch Web Service - Exploring the API
 
 The Dialogue Branch Web Service is a [JAVA Spring Boot Application](https://spring.io/projects/spring-boot) that can be deployed as a web service. It acts as a wrapper around the [Dialogue Branch Core Java Library](/core-java/), offering an API that allows you to create client-server dialogue applications.
