@@ -4,6 +4,7 @@ import type { Theme } from 'vitepress'
 import SiteNavbar from './components/SiteNavbar.vue'
 import SiteFooter from './components/SiteFooter.vue'
 import SiteTitle from './components/SiteTitle.vue'
+import { setUpAnalytics } from './analytics'
 import './custom.css'
 
 export default {
@@ -14,5 +15,8 @@ export default {
       'layout-bottom': () => h(SiteFooter),
       'nav-bar-title-after': () => h(SiteTitle)
     })
+  },
+  enhanceApp({ router }) {
+    setUpAnalytics(router)
   }
 } satisfies Theme
