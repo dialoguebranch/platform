@@ -27,7 +27,7 @@ const year = new Date().getFullYear()
             :src="withBase('/images/site/dlb-long-light.png')"
             width="276"
             height="40"
-            alt="DialogueBranch home"
+            alt="Dialogue Branch home"
           />
         </a>
         <p>
@@ -56,7 +56,7 @@ const year = new Date().getFullYear()
       <p>
         &copy; 2023&ndash;{{ year }} <a href="https://www.fruittreelabs.com/">Fruit Tree Labs</a>,
         developed in collaboration with <a href="https://connectedcare.nl/">ConnectedCare</a>.
-        DialogueBranch&trade; is a trademark of Fruit Tree Labs Creative Technology, LDA.
+        Dialogue Branch&trade; is a trademark of Fruit Tree Labs Creative Technology, LDA.
         Open-source contributions are &copy; their original authors.
       </p>
       <a class="dlb-footer-privacy" href="/privacy/" target="_self">Privacy</a>

@@ -14,7 +14,7 @@ import { withBase } from 'vitepress'
       :style="{ '--dlb-foliage': `url(${withBase('/images/site/foliage.svg')})` }"
     >
       <a class="dlb-navbar-brand" href="/" target="_self">
-        <img :src="withBase('/images/site/dlb-square-light.png')" alt="DialogueBranch home">
+        <img :src="withBase('/images/site/dlb-square-light.png')" alt="Dialogue Branch home">
       </a>
       <input type="checkbox" id="dlb-hamburger" class="dlb-navbar-toggle">
       <label for="dlb-hamburger" class="dlb-navbar-burger" aria-label="Menu"><span></span></label>
