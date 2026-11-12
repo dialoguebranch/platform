@@ -175,7 +175,7 @@ publishing {
 			from components.java
 			pom {
 				name = 'Dialogue Branch Core Java Library'
-				description = 'Dialogue Branch gives you creative freedom to write engaging interactive conversations...'
+				description = 'Core Java library of Dialogue Branch, an open-source toolkit for writing, testing and running branching dialogues: it parses .dlb scripts and runs them as live conversations.'
 				url = 'https://www.dialoguebranch.com'
 				packaging = 'jar'
 				inceptionYear = '2023'
@@ -206,9 +206,9 @@ publishing {
 					}
 				}
 				scm {
-					url = 'https://github.com/dialoguebranch/dlb-core-java/tree/main'
-					connection = 'scm:git:git://github.com/dialoguebranch/dlb-core-java.git'
-					developerConnection = 'scm:git:ssh://github.com:dialoguebranch/dlb-core-java.git'
+					url = 'https://github.com/dialoguebranch/platform/tree/main/packages/core'
+					connection = 'scm:git:git://github.com/dialoguebranch/platform.git'
+					developerConnection = 'scm:git:ssh://github.com:dialoguebranch/platform.git'
 				}
 			}
 		}
