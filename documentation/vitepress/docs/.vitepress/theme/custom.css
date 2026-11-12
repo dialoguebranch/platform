@@ -56,10 +56,12 @@
 :root {
   --vp-font-family-base: 'Roboto Slab', ui-sans-serif, system-ui, sans-serif;
 
-  /* Height of the global <SiteNavbar> injected via the "layout-top" slot
+  /* Room for the global <SiteNavbar> injected via the "layout-top" slot
      (theme/index.ts) — the default theme reads this to push its own nav,
-     sidebar and content down below it instead of rendering underneath. */
-  --vp-layout-top-height: 80px;
+     sidebar and content down below it instead of rendering underneath. The
+     bar is 80px, but its leaves hang 18px below it and cast a shadow, so the
+     docs' own bar starts below those rather than under them. */
+  --vp-layout-top-height: 104px;
 
   --vp-c-brand-1: rgb(153, 102, 0);   /* --color-orange-dark */
   --vp-c-brand-2: rgb(119, 81, 24);   /* --color-orange-darker */
@@ -92,5 +94,29 @@
 @media (max-width: 767px) {
   .VPNavBarTitle .title span {
     display: none;
+  }
+}
+
+/*
+ * A soft shadow under the docs' own menu bar (the one with the search box), echoing the website's
+ * navbar above it. On narrow screens that bar scrolls away and the "Menu / Return to top" bar is
+ * the one that stays at the top, so the shadow moves to that one instead.
+ */
+:root {
+  --dlb-docs-bar-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.dark {
+  --dlb-docs-bar-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.VPNav,
+.VPLocalNav {
+  box-shadow: var(--dlb-docs-bar-shadow);
+}
+
+@media (max-width: 959px) {
+  .VPNav {
+    box-shadow: none;
   }
 }
