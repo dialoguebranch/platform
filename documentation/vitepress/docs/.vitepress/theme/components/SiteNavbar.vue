@@ -40,6 +40,20 @@ import { withBase } from 'vitepress'
   font-synthesis: weight style small-caps;
 }
 
+/* The strip under the bar that the leaves hang into (the room --vp-layout-top-height leaves above
+   the docs' own menu bar, see custom.css) gets the page's background, so the page doesn't show
+   through it while scrolling. */
+.dlb-site-header::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 99;
+  height: var(--vp-layout-top-height);
+  background: var(--vp-c-bg);
+}
+
 .dlb-navbar {
   position: fixed;
   top: 0;
