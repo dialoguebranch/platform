@@ -2,27 +2,15 @@
 // Mirrors the navbar of www.dialoguebranch.com (its `navbar.html` and navbar styles), so switching
 // between Home / Documentation / About / News & Updates feels like staying on one site rather than
 // jumping into a separate app: a bar of dark foliage with a ragged row of leaves hanging under it,
-// which casts a shadow once the page is scrolled. The docs are hosted under the website's /docs/,
+// which casts a shadow. The docs are hosted under the website's /docs/,
 // so its pages are linked site-relative: they then also work on a local or test copy of the website.
-import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { withBase } from 'vitepress'
-
-const scrolled = ref(false)
-const updateScrolled = () => { scrolled.value = window.scrollY > 0 }
-
-onMounted(() => {
-  window.addEventListener('scroll', updateScrolled, { passive: true })
-  updateScrolled()
-})
-
-onBeforeUnmount(() => window.removeEventListener('scroll', updateScrolled))
 </script>
 
 <template>
   <header class="dlb-site-header">
     <nav
       class="dlb-navbar"
-      :class="{ 'dlb-scrolled': scrolled }"
       :style="{ '--dlb-foliage': `url(${withBase('/images/site/foliage.svg')})` }"
     >
       <a class="dlb-navbar-brand" href="/" target="_self">
@@ -68,7 +56,7 @@ onBeforeUnmount(() => window.removeEventListener('scroll', updateScrolled))
   font-size: 16px;
   color: #f7f3ec;
   background: var(--dlb-foliage) 0 0 / 320px 320px repeat, #134a15;
-  transition: filter 0.2s;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5));
 }
 
 /* A ragged row of leaves hanging under the bar: two rows of rounded bumps of different sizes,
@@ -94,11 +82,6 @@ onBeforeUnmount(() => window.removeEventListener('scroll', updateScrolled))
   mask-size: 44px 18px, 71px 18px;
   mask-position: 0 0, 23px 0;
   mask-repeat: repeat-x;
-}
-
-/* Once the page is scrolled, the bar and its leaves cast a soft shadow on what passes under them */
-.dlb-navbar.dlb-scrolled {
-  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.3));
 }
 
 .dlb-navbar-brand img {
