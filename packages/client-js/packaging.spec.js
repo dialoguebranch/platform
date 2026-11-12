@@ -50,13 +50,18 @@ describe('npm package contents', () => {
         expect(manifest.version).toBe(globalJson.version);
     });
 
-    it('points consumers back to the monorepo and issue tracker', () => {
+    it('points consumers to the website, the monorepo and the issue tracker', () => {
         expect(manifest.repository).toEqual({
             type: 'git',
             url: 'git+https://github.com/dialoguebranch/platform.git',
             directory: 'packages/client-js',
         });
-        expect(manifest.homepage).toBe('https://github.com/dialoguebranch/platform/tree/main/packages/client-js#readme');
+        expect(manifest.homepage).toBe('https://www.dialoguebranch.com/docs/web-services/third-party-clients.html');
         expect(manifest.bugs).toEqual({ url: 'https://github.com/dialoguebranch/platform/issues' });
+    });
+
+    it('has keywords for npm search', () => {
+        expect(manifest.keywords).toContain('dialogue-branch');
+        expect(manifest.keywords).toContain('branching-dialogue');
     });
 });
