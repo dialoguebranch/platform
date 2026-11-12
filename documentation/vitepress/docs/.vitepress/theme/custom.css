@@ -56,10 +56,12 @@
 :root {
   --vp-font-family-base: 'Roboto Slab', ui-sans-serif, system-ui, sans-serif;
 
-  /* Height of the global <SiteNavbar> injected via the "layout-top" slot
+  /* Room for the global <SiteNavbar> injected via the "layout-top" slot
      (theme/index.ts) — the default theme reads this to push its own nav,
-     sidebar and content down below it instead of rendering underneath. */
-  --vp-layout-top-height: 80px;
+     sidebar and content down below it instead of rendering underneath. The
+     bar is 80px, but its leaves hang 18px below it and cast a shadow, so the
+     docs' own bar starts below those rather than under them. */
+  --vp-layout-top-height: 104px;
 
   --vp-c-brand-1: rgb(153, 102, 0);   /* --color-orange-dark */
   --vp-c-brand-2: rgb(119, 81, 24);   /* --color-orange-darker */
