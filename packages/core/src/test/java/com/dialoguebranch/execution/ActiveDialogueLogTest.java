@@ -451,6 +451,12 @@ public class ActiveDialogueLogTest {
 		assertFalse(first.isCompleted());
 		assertEquals(2, first.getInteractionList().size());
 		assertEquals(1, dialogue.getLoggedInteractionIndex());
+		// The dialogue itself stays in "main" too, at its start step
+		assertEquals("main", dialogue.getDialogueFileDescription().getDialogueName());
+		assertEquals("main", dialogue.getDialogueDefinition().getDialogueName());
+		assertEquals("Start", dialogue.getCurrentNode().getTitle());
+		assertEquals("Start", dialogue.back(NOW).getTitle());
+		assertEquals("main", dialogue.getCurrentMessage().getDialogue());
 	}
 
 	@Test

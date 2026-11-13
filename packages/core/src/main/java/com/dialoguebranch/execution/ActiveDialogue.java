@@ -496,6 +496,11 @@ public class ActiveDialogue {
 				switchListener.onDialogueSwitch(dialogueFileDescription, target);
 			LoggedDialogue previousLog = loggedDialogue;
 			int previousLogIndex = loggedInteractionIndex;
+			ResourcePointer previousPointer = dialogueFileDescription;
+			Dialogue previousDefinition = dialogueDefinition;
+			@Nullable Function<TranslationContext.Gender, Dialogue> previousGenders =
+					userGenderTranslations;
+			Node previousNode = currentNode;
 			if (previousLog != null) {
 				loggedDialogue = Objects.requireNonNull(logFactory).create(previousLog, target,
 						eventTime);
@@ -508,7 +513,12 @@ public class ActiveDialogue {
 			try {
 				entered = startDialogue(externalPointer.getTargetNodeId(), eventTime);
 			} catch (ExecutionException | EvaluationException | RuntimeException e) {
-				// The reply stays in the log of the dialogue it was given in, not completed.
+				// The dialogue stays where it was, and the reply stays in the log of the dialogue
+				// it was given in, not completed.
+				dialogueFileDescription = previousPointer;
+				dialogueDefinition = previousDefinition;
+				userGenderTranslations = previousGenders;
+				currentNode = previousNode;
 				loggedDialogue = previousLog;
 				loggedInteractionIndex = previousLogIndex;
 				throw e;
