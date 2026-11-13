@@ -36,7 +36,6 @@ import com.dialoguebranch.execution.ActiveDialogue;
 import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.expression.EvaluationException;
-import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.common.ProjectMetaData;
 import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.ExecutableProject;
@@ -45,9 +44,6 @@ import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.NodeContent;
 import com.dialoguebranch.model.execute.Reply;
 import com.dialoguebranch.model.execute.ResourcePointer;
-import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
-import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
-import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import org.jspecify.annotations.Nullable;
 
 import java.io.File;
@@ -381,29 +377,30 @@ public class DialogueBranchCLI {
 	}
 
 	/**
-	 * Runs an interactive execution loop for the given {@link Dialogue}. Prints agent statements,
-	 * lists reply options, and advances the dialogue until it ends or jumps to another script.
+	 * Runs an interactive execution loop for the given dialogue. Prints agent statements, lists
+	 * reply options, and follows the selected replies, also into other dialogues of the project,
+	 * until the dialogue ends. The variables carry over from one dialogue to the next.
 	 *
 	 * @param scanner     the shared {@link Scanner} for reading user input.
-	 * @param project     the {@link ExecutableProject} used for cross-dialogue navigation.
+	 * @param project     the {@link ExecutableProject} the dialogue is part of.
 	 * @param pointer     the {@link ResourcePointer} identifying the dialogue to execute.
 	 */
 	private static void runDialogueLoop(Scanner scanner, ExecutableProject project,
 										ResourcePointer pointer) {
-		Dialogue dialogue = Objects.requireNonNull(project.getDialogues().get(pointer),
-				"A dialogue pointer from the project has no dialogue");
-		User user = new User("cli-user");
-		VariableStore variableStore = new VariableStore(user);
+		VariableStore variableStore = new VariableStore(new User("cli-user"));
 
-		ActiveDialogue activeDialogue = new ActiveDialogue(pointer, dialogue, variableStore);
-
-		System.out.println("\n============================================================");
-		System.out.println(" Executing: " + pointer.getDialogueName()
-				+ " [" + pointer.getLanguage() + "]");
-		System.out.println("============================================================\n");
-
+		ActiveDialogue activeDialogue;
 		Node currentNode;
 		try {
+			activeDialogue = new ActiveDialogue(project,
+					project.resolve(pointer.getDialogueName(), pointer.getLanguage()),
+					variableStore);
+			activeDialogue.setDialogueSwitchListener((from, to) -> {
+				System.out.println("\n[Jumping to dialogue: " + to.pointer().getDialogueName()
+						+ "]\n");
+				printDialogueHeader(to.pointer());
+			});
+			printDialogueHeader(activeDialogue.getDialogueFileDescription());
 			currentNode = activeDialogue.startDialogue(ZonedDateTime.now());
 		} catch (ExecutionException | EvaluationException e) {
 			System.err.println("Failed to start dialogue: " + e.getMessage() + "\n");
@@ -421,46 +418,36 @@ public class DialogueBranchCLI {
 				break;
 			}
 
+			int chosenReplyId = -1;
 			// Auto-forward if the only reply has no statement
 			if (replies.size() == 1 && replies.get(0).isAutoForward()) {
 				System.out.println("\n[Auto-forward]\n");
-				NodePointer np;
+				chosenReplyId = replies.get(0).getReplyId();
+			} else {
+				printReplyOptions(replies);
+				System.out.print("Your reply: ");
+				String replyInput = scanner.nextLine().trim();
 				try {
-					np = activeDialogue.processReplyAndGetNodePointer(
-							replies.get(0).getReplyId(), ZonedDateTime.now());
-				} catch (EvaluationException e) {
-					System.err.println("Evaluation error: " + e.getMessage() + "\n");
-					break;
+					int chosenIndex = Integer.parseInt(replyInput) - 1;
+					if (chosenIndex >= 0 && chosenIndex < replies.size())
+						chosenReplyId = replies.get(chosenIndex).getReplyId();
+				} catch (NumberFormatException ignored) { }
+
+				if (chosenReplyId == -1) {
+					System.out.println("Invalid choice. Please enter a number from the list.\n");
+					continue;
 				}
-				currentNode = advanceDialogue(activeDialogue, project, pointer, np, scanner);
-				continue;
 			}
 
-			printReplyOptions(replies);
-			System.out.print("Your reply: ");
-			String replyInput = scanner.nextLine().trim();
-
-			int chosenReplyId = -1;
 			try {
-				int chosenIndex = Integer.parseInt(replyInput) - 1;
-				if (chosenIndex >= 0 && chosenIndex < replies.size())
-					chosenReplyId = replies.get(chosenIndex).getReplyId();
-			} catch (NumberFormatException ignored) { }
-
-			if (chosenReplyId == -1) {
-				System.out.println("Invalid choice. Please enter a number from the list.\n");
-				continue;
-			}
-
-			NodePointer np;
-			try {
-				np = activeDialogue.processReplyAndGetNodePointer(chosenReplyId, ZonedDateTime.now());
+				currentNode = activeDialogue.selectReply(chosenReplyId, ZonedDateTime.now());
 			} catch (EvaluationException e) {
 				System.err.println("Evaluation error: " + e.getMessage() + "\n");
 				break;
+			} catch (ExecutionException e) {
+				System.err.println("Could not continue the dialogue: " + e.getMessage() + "\n");
+				break;
 			}
-
-			currentNode = advanceDialogue(activeDialogue, project, pointer, np, scanner);
 		}
 
 		System.out.println("============================================================");
@@ -469,49 +456,15 @@ public class DialogueBranchCLI {
 	}
 
 	/**
-	 * Advances the dialogue based on a {@link NodePointer}. Handles both internal (same script)
-	 * and external (different script) node pointers.
+	 * Prints the banner that says which dialogue runs, in which language.
 	 *
-	 * @param activeDialogue the currently active dialogue
-	 * @param project        the full executable project (for cross-dialogue lookup)
-	 * @param currentPointer the {@link ResourcePointer} of the current dialogue
-	 * @param np             the next node pointer
-	 * @param scanner        the shared scanner for reading user input
-	 * @return the next {@link Node} to present, or {@code null} if the dialogue has ended
+	 * @param pointer the dialogue.
 	 */
-	private static @Nullable Node advanceDialogue(ActiveDialogue activeDialogue, ExecutableProject project,
-										ResourcePointer currentPointer, NodePointer np,
-										Scanner scanner) {
-		if (np instanceof InternalNodePointer internalPointer) {
-			if (internalPointer.getTargetNodeId()
-					.equalsIgnoreCase(DialogueBranchConstants.DLB_NODE_END_ID)) {
-				return null;
-			}
-			try {
-				return activeDialogue.progressDialogue(internalPointer, ZonedDateTime.now());
-			} catch (EvaluationException e) {
-				System.err.println("Evaluation error while progressing dialogue: "
-						+ e.getMessage() + "\n");
-				return null;
-			}
-		}
-
-		if (np instanceof ExternalNodePointer externalPointer) {
-			String targetDialogueName = externalPointer.getAbsoluteTargetDialogue();
-			String targetLanguage = Objects.requireNonNull(currentPointer.getLanguage(),
-					"External node pointer has no language");
-			ResourcePointer target = findDialogue(project, targetLanguage, targetDialogueName);
-			if (target == null) {
-				System.err.println("Could not find external dialogue '" + targetDialogueName
-						+ "' (" + targetLanguage + ").\n");
-				return null;
-			}
-			System.out.println("\n[Jumping to dialogue: " + targetDialogueName + "]\n");
-			runDialogueLoop(scanner, project, target);
-			return null;
-		}
-
-		return null;
+	private static void printDialogueHeader(ResourcePointer pointer) {
+		System.out.println("\n============================================================");
+		System.out.println(" Executing: " + pointer.getDialogueName()
+				+ " [" + pointer.getLanguage() + "]");
+		System.out.println("============================================================\n");
 	}
 
 	/**

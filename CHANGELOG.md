@@ -43,6 +43,12 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `--execute` prints a warning and plays the source language
   ([#473](https://github.com/dialoguebranch/platform/issues/473)).
 
+### Fixed
+
+- Core: the command-line tool kept no variables when a reply led into another dialogue: a
+  variable set in one dialogue was empty in the next. It now plays them as one run, with the same
+  variables throughout ([#473](https://github.com/dialoguebranch/platform/issues/473)).
+
 ## [0.9.2] - 2026-11-11
 
 ### Added

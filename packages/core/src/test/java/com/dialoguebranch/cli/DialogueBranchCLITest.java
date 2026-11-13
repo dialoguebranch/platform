@@ -258,6 +258,23 @@ public class DialogueBranchCLITest {
 	}
 
 	@Test
+	public void theVariablesCarryOverIntoTheNextDialogue() throws Exception {
+		File xml = translatedProject();
+		Files.writeString(new File(tmp.getRoot(), "en/intro.dlb").toPath(),
+				"title: Start\nspeaker: Robot\n---\n<<set $name = \"Sam\">>Hello.\n"
+				+ "[[Onwards.|outro.Start]]\n===\n");
+		Files.writeString(new File(tmp.getRoot(), "en/outro.dlb").toPath(),
+				"title: Start\nspeaker: Robot\n---\nGoodbye, $name.\n===\n");
+		input("1");
+		int code = DialogueBranchCLI.runNonInteractive(new String[] {
+				xml.getAbsolutePath(), "--execute", "en", "intro"});
+		assertEquals(EXIT_OK, code);
+		assertTrue(stdout(), stdout().contains("[Jumping to dialogue: outro]"));
+		assertTrue(stdout(), stdout().contains("Agent: Goodbye, Sam."));
+		assertEquals(1, stdout().split("Dialogue finished\\.", -1).length - 1);
+	}
+
+	@Test
 	public void executeAnUnknownDialogueExitsWithAUsageError() throws Exception {
 		int code = DialogueBranchCLI.runNonInteractive(new String[] {
 				project("Hi.").getAbsolutePath(), "--execute", "en", "nope"});
