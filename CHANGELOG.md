@@ -15,8 +15,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   ([#490](https://github.com/dialoguebranch/platform/issues/490)).
 - Web service: **Internal API:** `POST /test-session/back` goes back a step in a test session, as
   `/dialogue/back` does in live playback. A test session keeps its conversation log in memory, so
-  its steps now carry a `loggedDialogueId` and `loggedInteractionIndex`
-  ([#490](https://github.com/dialoguebranch/platform/issues/490)).
+  its steps now carry a `loggedDialogueId` and `loggedInteractionIndex`; in client-js,
+  `DialogueBranchAuthoringClient.backTestSession` ([#490](https://github.com/dialoguebranch/platform/issues/490)).
 - Studio: each node's card in the graph editor shows the start of its text, without its replies
   and commands ([#200](https://github.com/dialoguebranch/platform/issues/200)).
 - Studio: Delete or Backspace in the graph editor deletes the selected nodes, or a right-click on a
