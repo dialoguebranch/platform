@@ -52,7 +52,6 @@ The fully parsed, immutable model used at runtime when executing dialogues.
 | `Language` / `LanguageSet` / `LanguageMap` | Language definitions and source-to-translation mappings as declared in `dlb-project.xml`. |
 | `FileDescriptor` | Identifies a dialogue by name and language code. |
 | `LoggedDialogue` / `LoggedInteraction` | Record types for persisting a user's dialogue session history. |
-| `DialogueState` | State tracking for a dialogue that is currently in progress. |
 | `command/` | `Command` subtypes: `SetCommand`, `IfCommand`, `RandomCommand`, `ActionCommand`, and the family of `InputCommand`s (`InputTextCommand`, `InputNumericCommand`, etc.). |
 | `nodepointer/` | `InternalNodePointer` (same script) and `ExternalNodePointer` (different script). |
 | `protocol/` | API-layer message types: `DialogueMessage`, `DialogueStatement`, `DialogueAction`, `ReplyMessage`. Used for serialising dialogue state to JSON for REST clients. |

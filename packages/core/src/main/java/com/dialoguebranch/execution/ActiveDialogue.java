@@ -119,8 +119,8 @@ public class ActiveDialogue {
 	private @Nullable Node currentNode;
 
 	/** The variable store used to read and write Dialogue Branch variables during execution. */
-	// Set in the constructor; setVariableStore() may re-point it (e.g. when a persisted
-	// DialogueState is re-attached to a fresh user session).
+	// Set in the constructor; setVariableStore() may re-point it (e.g. when a restored dialogue is
+	// attached to a fresh user session).
 	private VariableStore variableStore;
 
 	/** The log the conversation is recorded into, or {@code null} if none is kept (#483). */
@@ -267,9 +267,9 @@ public class ActiveDialogue {
 
 	/**
 	 * Re-points the {@link VariableStore} used by this {@link ActiveDialogue}. The store is
-	 * normally supplied to the constructor; this is for the case where a persisted
-	 * {@link com.dialoguebranch.model.execute.DialogueState} is re-attached to a fresh user
-	 * session and its variable store must be swapped for the live one.
+	 * normally supplied to the constructor; this is for the case where a dialogue
+	 * restored from a log ({@link #restore}) is attached to a fresh user session and its variable
+	 * store must be swapped for the live one.
 	 *
 	 * @param variableStore the {@link VariableStore} to use from now on.
 	 */

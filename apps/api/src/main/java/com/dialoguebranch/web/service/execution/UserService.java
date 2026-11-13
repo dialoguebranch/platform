@@ -362,54 +362,52 @@ public class UserService {
 	 * returned node contains any content that should be sent to the client. This content can be
 	 * text or client commands, with all variables resolved.</p>
 	 *
-	 * @param state the state from which the dialogue should progress
+	 * @param dialogue the ongoing dialogue, restored at the step the user replies to
 	 * @param replyId the reply ID
 	 * @return the next node or null
 	 * @throws DatabaseException if a database error occurs
 	 * @throws IOException if a communication error occurs
 	 * @throws ExecutionException if the request is invalid
 	 */
-	public ExecuteNodeResult progressDialogueSession(DialogueState state, int replyId)
+	public ExecuteNodeResult progressDialogueSession(ActiveDialogue dialogue, int replyId)
 			throws DatabaseException, IOException, ExecutionException {
-		ActiveDialogue dialogue = state.getActiveDialogue();
 		String dialogueName = dialogue.getDialogueFileDescription().getDialogueName();
 		String nodeName = dialogue.getCurrentNode().getTitle();
 		logger.info("User {} progresses dialogue with reply {}.{}.{}",
 				dialogueBranchUser.getId(), dialogueName, nodeName, replyId);
-		return dialogueExecutor.progressDialogue(state, replyId);
+		return dialogueExecutor.progressDialogue(dialogue, replyId);
 	}
 
 	/**
 	 * Reverts the given dialogue session to the previous agent node, re-executing it at the given
 	 * event time.
 	 *
-	 * @param state the current dialogue state from which to revert.
+	 * @param dialogue the ongoing dialogue, restored at the step to go back from.
 	 * @param eventTime the timestamp of the revert event in the user's time zone.
 	 * @return the {@link ExecuteNodeResult} for the previous agent node.
 	 * @throws ExecutionException if the previous state cannot be determined.
 	 */
-	public ExecuteNodeResult revertDialogueSession(DialogueState state, ZonedDateTime eventTime)
+	public ExecuteNodeResult revertDialogueSession(ActiveDialogue dialogue, ZonedDateTime eventTime)
 			throws ExecutionException {
-		ActiveDialogue dialogue = state.getActiveDialogue();
 		String dialogueName = dialogue.getDialogueDefinition().getDialogueName();
 		String nodeName = dialogue.getCurrentNode().getTitle();
 		logger.info("User {} goes back in dialogue from node {}.{}",
 				dialogueBranchUser.getId(), dialogueName, nodeName);
-		return dialogueExecutor.backDialogue(state, eventTime);
+		return dialogueExecutor.backDialogue(dialogue, eventTime);
 	}
 
 	/**
 	 * Continues the dialogue session from the given state by re-executing the current node at the
 	 * given event time, without progressing to a new node.
 	 *
-	 * @param state the current dialogue state to continue from.
+	 * @param dialogue the ongoing dialogue, restored at the step to continue from.
 	 * @param eventTime the timestamp of the continue event in the user's time zone.
 	 * @return the {@link ExecuteNodeResult} for the current node.
 	 * @throws ExecutionException if the node cannot be executed.
 	 */
-	public ExecuteNodeResult continueDialogueSession(DialogueState state, ZonedDateTime eventTime)
+	public ExecuteNodeResult continueDialogueSession(ActiveDialogue dialogue, ZonedDateTime eventTime)
 		throws ExecutionException {
-		return dialogueExecutor.executeCurrentNode(state,eventTime);
+		return dialogueExecutor.executeCurrentNode(dialogue, eventTime);
 	}
 
 	/**
@@ -521,17 +519,19 @@ public class UserService {
 	// ----- Methods (Retrieval)
 
 	/**
-	 * Reconstructs the {@link DialogueState} for the logged dialogue identified by the given
-	 * {@code loggedDialogueId} at the interaction index {@code loggedInteractionIndex}.
+	 * Restores the ongoing {@link ActiveDialogue} of the logged dialogue identified by the given
+	 * {@code loggedDialogueId}, at the interaction index {@code loggedInteractionIndex}: the log
+	 * is read from storage, and the dialogue is rebuilt from it (#483).
 	 *
-	 * @param loggedDialogueId the identifier of the logged dialogue to reconstruct.
-	 * @param loggedInteractionIndex the index of the interaction at which to restore the state.
-	 * @return the reconstructed {@link DialogueState}.
-	 * @throws ExecutionException if the dialogue or node cannot be found.
+	 * @param loggedDialogueId the identifier of the logged dialogue to restore.
+	 * @param loggedInteractionIndex the index of the interaction at which to restore it.
+	 * @return the restored dialogue, which goes on recording into the log it was restored from.
+	 * @throws ExecutionException if the dialogue or node cannot be found, or the dialogue was
+	 *                            cancelled or has completed.
 	 * @throws DatabaseException if a database error occurs reading the log.
 	 * @throws IOException if an I/O error occurs reading the log.
 	 */
-	public DialogueState getDialogueState(String loggedDialogueId,
+	public ActiveDialogue restoreDialogue(String loggedDialogueId,
 			int loggedInteractionIndex) throws ExecutionException, DatabaseException,
 			IOException {
 		ServerLoggedDialogue loggedDialogue =
@@ -548,45 +548,24 @@ public class UserService {
 			throw new ExecutionException(ExecutionException.Type.DIALOGUE_COMPLETED,
 					"Dialogue '" + loggedDialogueId + "' has already completed and cannot be progressed.");
 		}
-		return getDialogueState(loggedDialogue, loggedInteractionIndex);
+		return restoreDialogue(loggedDialogue, loggedInteractionIndex);
 	}
 
 	/**
-	 * Reconstructs the {@link DialogueState} from the given {@link ServerLoggedDialogue} at the
-	 * specified interaction index.
+	 * Restores the {@link ActiveDialogue} of the given {@link ServerLoggedDialogue} at the
+	 * interaction with the given index (#483). It doesn't check whether the log is still open.
 	 *
-	 * @param loggedDialogue the logged dialogue from which to reconstruct the state.
-	 * @param loggedInteractionIndex the index of the interaction at which to restore the state.
-	 * @return the reconstructed {@link DialogueState}.
-	 * @throws ExecutionException if the dialogue, node, or interaction cannot be found.
+	 * @param loggedDialogue the log to restore the dialogue from.
+	 * @param loggedInteractionIndex the index of the interaction at which to restore it.
+	 * @return the restored dialogue, which goes on recording into {@code loggedDialogue}.
+	 * @throws ExecutionException if the dialogue, the interaction or its node cannot be found.
 	 */
-	public DialogueState getDialogueState(ServerLoggedDialogue loggedDialogue,
-										  int loggedInteractionIndex) throws ExecutionException {
-		String dialogueName = loggedDialogue.getDialogueName();
+	public ActiveDialogue restoreDialogue(ServerLoggedDialogue loggedDialogue,
+			int loggedInteractionIndex) throws ExecutionException {
 		String projectSlug = loggedDialogue.getProjectName();
-		DialogueResolver resolver = applicationManager.getDialogueResolver(projectSlug);
-		ResolvedDialogue resolved = resolver.resolve(dialogueName, loggedDialogue.getLanguage());
-		Dialogue dialogueDefinition = resolved.dialogue();
-		List<LoggedInteraction> interactions =
-				loggedDialogue.getInteractionList();
-		if (loggedInteractionIndex < 0 || loggedInteractionIndex >= interactions.size()) {
-			throw new ExecutionException(ExecutionException.Type.INTERACTION_NOT_FOUND,
-					String.format(
-					"Interaction \"%s\" not found in logged dialogue \"%s\"",
-					loggedInteractionIndex, loggedDialogue.getId()));
-		}
-		String nodeId = loggedDialogue.getInteractionList()
-				.get(loggedInteractionIndex).getNodeId();
-		Node node = dialogueDefinition.getNodeById(nodeId);
-		if (node == null) {
-			throw new ExecutionException(ExecutionException.Type.NODE_NOT_FOUND,
-					String.format("Node \"%s\" not found in dialogue \"%s\"",
-							nodeId, dialogueName));
-		}
-		ActiveDialogue activeDialogue = new ActiveDialogue(resolver, resolved,
-				getVariableStore(projectSlug));
-		activeDialogue.setCurrentNode(node);
-		return new DialogueState(loggedDialogue, loggedInteractionIndex, activeDialogue);
+		return ActiveDialogue.restore(applicationManager.getDialogueResolver(projectSlug),
+				loggedDialogue, loggedInteractionIndex, getVariableStore(projectSlug),
+				dialogueExecutor.logFactory());
 	}
 
 	/**

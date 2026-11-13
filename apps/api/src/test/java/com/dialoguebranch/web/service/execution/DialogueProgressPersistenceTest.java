@@ -1,7 +1,7 @@
 package com.dialoguebranch.web.service.execution;
 
+import com.dialoguebranch.execution.ActiveDialogue;
 import com.dialoguebranch.execution.ExecuteNodeResult;
-import com.dialoguebranch.model.execute.DialogueState;
 import com.dialoguebranch.web.service.Application;
 import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 import com.dialoguebranch.web.service.project.DraftDialogueService;
@@ -34,11 +34,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * closed — reproducing the 500 seen from {@code /dialogue/progress} and {@code
  * /dialogue/continue} in production.
  *
- * <p>Same reasoning applies one level up: reconstructing a {@link DialogueState} without ever
+ * <p>Same reasoning applies one level up: reconstructing a {@link ActiveDialogue} without ever
  * actually progressing it (as {@link
- * #reconstructingDialogueStateAfterStartDoesNotThrowLazyInitializationException()} below does)
+ * #reconstructingDialogueAfterStartDoesNotThrowLazyInitializationException()} below does)
  * only proves the reconstruction itself doesn't throw — it doesn't prove a client can actually
- * use the result. {@link #progressDialogueSessionAfterStateReconstructionSucceeds()} and {@link
+ * use the result. {@link #progressDialogueSessionAfterReconstructionSucceeds()} and {@link
  * #startProgressGetOngoingResumeProgressFlowSucceeds()} close that gap: they drive the
  * reconstructed state through an actual {@code progressDialogueSession()}/{@code
  * continueDialogueSession()} call, which is exactly the sequence that threw {@code
@@ -63,7 +63,7 @@ class DialogueProgressPersistenceTest {
 	private PublishService publishService;
 
 	@Test
-	void reconstructingDialogueStateAfterStartDoesNotThrowLazyInitializationException()
+	void reconstructingDialogueAfterStartDoesNotThrowLazyInitializationException()
 			throws Exception {
 		String projectSlug = "progress-persistence-test-" + UUID.randomUUID();
 		DBProject project = projectService.createProject(
@@ -86,13 +86,13 @@ class DialogueProgressPersistenceTest {
 		String loggedDialogueId = startResult.loggedDialogue().getId();
 
 		// Mirrors what /dialogue/progress and /dialogue/continue do: reload the logged dialogue
-		// from storage (a fresh read, in a new transaction) to reconstruct its DialogueState.
-		DialogueState state = userService.getDialogueState(loggedDialogueId, 0);
+		// from storage (a fresh read, in a new transaction) to restore its ActiveDialogue.
+		ActiveDialogue state = userService.restoreDialogue(loggedDialogueId, 0);
 		assertNotNull(state);
 	}
 
 	@Test
-	void progressDialogueSessionAfterStateReconstructionSucceeds() throws Exception {
+	void progressDialogueSessionAfterReconstructionSucceeds() throws Exception {
 		String projectSlug = "progress-session-test-" + UUID.randomUUID();
 		DBProject project = projectService.createProject(
 				projectSlug, "Progress Session Test", "", "en", "English");
@@ -115,10 +115,10 @@ class DialogueProgressPersistenceTest {
 		String loggedDialogueId = startResult.loggedDialogue().getId();
 
 		// Reconstruct state exactly like /dialogue/progress does, then actually progress it —
-		// the one extra step reconstructingDialogueStateAfterStartDoesNotThrowLazyInitializationException()
+		// the one extra step reconstructingDialogueAfterStartDoesNotThrowLazyInitializationException()
 		// above stops short of, and the exact call sequence that threw ClassCastException in
 		// production before NodeContent gained findReplyById().
-		DialogueState state = userService.getDialogueState(loggedDialogueId, 0);
+		ActiveDialogue state = userService.restoreDialogue(loggedDialogueId, 0);
 		ExecuteNodeResult progressResult = userService.progressDialogueSession(state, 1);
 		assertEquals("Farewell", progressResult.node().getTitle());
 	}
@@ -151,7 +151,7 @@ class DialogueProgressPersistenceTest {
 		assertEquals("Start", startResult.node().getTitle());
 
 		// progress: /dialogue/progress, Start -> Middle
-		DialogueState progressState = userService.getDialogueState(loggedDialogueId, 0);
+		ActiveDialogue progressState = userService.restoreDialogue(loggedDialogueId, 0);
 		ExecuteNodeResult progressResult = userService.progressDialogueSession(progressState, 1);
 		assertEquals("Middle", progressResult.node().getTitle());
 
@@ -163,7 +163,7 @@ class DialogueProgressPersistenceTest {
 
 		// resume: /dialogue/continue — reconstructs state again (a third ActiveDialogue instance
 		// for this same logged dialogue) and re-executes the current node without progressing.
-		DialogueState resumeState = userService.getDialogueState(ongoing,
+		ActiveDialogue resumeState = userService.restoreDialogue(ongoing,
 				ongoing.getInteractionList().size() - 1);
 		ExecuteNodeResult resumeResult = userService.continueDialogueSession(resumeState,
 				ZonedDateTime.now());
@@ -171,7 +171,7 @@ class DialogueProgressPersistenceTest {
 
 		// progress again: /dialogue/progress, Middle -> Farewell, from a state reconstructed
 		// after the resume step — the same crash reproduced via a different lead-up.
-		DialogueState finalProgressState = userService.getDialogueState(loggedDialogueId,
+		ActiveDialogue finalProgressState = userService.restoreDialogue(loggedDialogueId,
 				resumeResult.interactionIndex());
 		ExecuteNodeResult finalResult = userService.progressDialogueSession(finalProgressState, 1);
 		assertEquals("Farewell", finalResult.node().getTitle());

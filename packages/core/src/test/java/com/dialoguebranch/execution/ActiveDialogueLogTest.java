@@ -30,10 +30,14 @@
 package com.dialoguebranch.execution;
 
 import com.dialoguebranch.exception.ExecutionException;
+import com.dialoguebranch.i18n.TranslationContext;
+import com.dialoguebranch.model.common.ReservedVariables;
+import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.ExecutableProject;
 import com.dialoguebranch.model.execute.LoggedDialogue;
 import com.dialoguebranch.model.execute.LoggedInteraction;
 import com.dialoguebranch.model.execute.MessageSource;
+import com.dialoguebranch.model.execute.Node;
 import com.dialoguebranch.model.execute.Reply;
 import com.dialoguebranch.model.execute.protocol.DialogueMessage;
 import org.junit.Test;
@@ -447,5 +451,35 @@ public class ActiveDialogueLogTest {
 		assertFalse(first.isCompleted());
 		assertEquals(2, first.getInteractionList().size());
 		assertEquals(1, dialogue.getLoggedInteractionIndex());
+	}
+
+	@Test
+	public void goingBackAndShowingAStepAgainFollowTheUsersGenderTranslation() throws Exception {
+		ExecutableProject base = chain();
+		ExecutableProject female = ActiveDialogueLinkTest.project(Map.of("en/chain.dlb",
+				CHAIN.replace("Two, $count.", "Two for her, $count.")));
+		ResolvedDialogue baseResolved = base.resolve("chain", null);
+		Dialogue femaleDialogue = female.resolve("chain", null).dialogue();
+		ResolvedDialogue withGender = new ResolvedDialogue(baseResolved.pointer(),
+				baseResolved.dialogue(),
+				gender -> gender == TranslationContext.Gender.FEMALE ? femaleDialogue : null);
+		DialogueResolver resolver = (name, language) -> withGender;
+		VariableStore store = variables();
+		store.setValue(ReservedVariables.USER_GENDER, "female", false, NOW);
+		ActiveDialogue dialogue = new ActiveDialogue(resolver, withGender, store);
+		LoggedDialogue log = dialogue.keepInMemoryLog(NOW);
+		dialogue.startDialogue(NOW);
+		reply(dialogue, "Go on.");
+		assertTrue(dialogue.getCurrentNode().getBody().toString().contains("for her"));
+		int index = dialogue.getLoggedInteractionIndex();
+
+		ActiveDialogue resumed = ActiveDialogue.restore(resolver, log, index, store,
+				InMemoryLoggedDialogue.factory());
+		Node shown = resumed.executeCurrentNode(NOW);
+		assertTrue(shown.getBody().toString(), shown.getBody().toString().contains("for her"));
+
+		reply(dialogue, "Go on.");
+		Node back = dialogue.back(NOW);
+		assertTrue(back.getBody().toString(), back.getBody().toString().contains("for her"));
 	}
 }
