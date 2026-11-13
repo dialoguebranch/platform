@@ -49,7 +49,9 @@ public interface LoggedDialogueFactory {
 	 *                 from. It is completed once the first step of the new dialogue has run.
 	 * @param entered the dialogue that is entered.
 	 * @param eventTime the time of the reply that leads into it.
-	 * @return a new, empty log for the entered dialogue.
+	 * @return a new, empty log for the entered dialogue: a different object from {@code
+	 *         previous}, also when the reply leads into the start of the same dialogue. A caller
+	 *         can tell that the conversation entered another dialogue by the log changing.
 	 */
 	LoggedDialogue create(LoggedDialogue previous, ResolvedDialogue entered, ZonedDateTime eventTime);
 }

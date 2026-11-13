@@ -254,6 +254,25 @@ public class ActiveDialogueLogTest {
 	}
 
 	@Test
+	public void aFactoryMustMakeANewLog() throws Exception {
+		ExecutableProject project = ActiveDialogueLinkTest.mainAndOther();
+		ActiveDialogue dialogue = new ActiveDialogue(project, project.resolve("main", null),
+				new VariableStore(new User("test")));
+		InMemoryLoggedDialogue log = new InMemoryLoggedDialogue("test",
+				project.resolve("main", null), NOW, "s");
+		dialogue.setLoggedDialogue(log, (previous, entered, eventTime) -> previous);
+		dialogue.startDialogue(NOW);
+
+		IllegalStateException e = assertThrows(IllegalStateException.class,
+				() -> reply(dialogue, "On."));
+
+		assertTrue(e.getMessage(), e.getMessage().contains("must make a new one"));
+		assertSame(log, dialogue.getLoggedDialogue());
+		assertFalse(log.isCompleted());
+		assertEquals("main", dialogue.getDialogueFileDescription().getDialogueName());
+	}
+
+	@Test
 	public void aLogCantBeSetOnceTheDialogueHasStarted() throws Exception {
 		ExecutableProject project = chain();
 		ActiveDialogue dialogue = new ActiveDialogue(project, project.resolve("chain", null),

@@ -513,8 +513,13 @@ public class ActiveDialogue {
 					userGenderTranslations;
 			Node previousNode = currentNode;
 			if (previousLog != null) {
-				loggedDialogue = Objects.requireNonNull(logFactory).create(previousLog, target,
-						eventTime);
+				LoggedDialogue enteredLog = Objects.requireNonNull(logFactory).create(previousLog,
+						target, eventTime);
+				if (enteredLog == previousLog) {
+					throw new IllegalStateException("The LoggedDialogueFactory returned the log "
+							+ "of the dialogue that is left; it must make a new one");
+				}
+				loggedDialogue = enteredLog;
 				loggedInteractionIndex = -1;
 			}
 			this.dialogueFileDescription = target.pointer();
