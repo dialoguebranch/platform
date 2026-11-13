@@ -27,7 +27,7 @@ features:
     link: /language/
     linkText: Read the language definition
   - title: Core Java Library
-    details: The library that parses and executes .dlb scripts, published to Maven Central as com.dialoguebranch:dlb-core-java.
+    details: The library that parses and executes .dlb scripts, for embedding in any Java application.
     link: /core-java/
     linkText: Explore the core library
   - title: Web Services

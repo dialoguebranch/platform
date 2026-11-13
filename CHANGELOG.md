@@ -7,6 +7,12 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Fixed
+
+- Core: `./gradlew publishToMavenLocal` works without a GPG key; signing is only required when
+  publishing to Maven Central. The 0.x releases aren't on Maven Central (it has older versions up
+  to 1.3.0), so the Core Java documentation now explains how to install a release locally.
+
 ## [0.10.0] - 2026-11-13
 
 ### Added

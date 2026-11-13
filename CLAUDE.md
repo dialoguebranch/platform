@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The Dialogue Branch Platform is a monorepo for authoring, executing, and serving branching dialogue scripts (`.dlb` files). The platform consists of five components that work together:
 
-1. **`packages/core`** — Core Java library (`com.dialoguebranch`) for parsing and executing `.dlb` scripts. Published to Maven Central as `com.dialoguebranch:dlb-core-java`.
+1. **`packages/core`** — Core Java library (`com.dialoguebranch`) for parsing and executing `.dlb` scripts. Its Maven coordinates are `com.dialoguebranch:dlb-core-java`; publishing to Maven Central is paused (see [Versioning](#versioning)).
 2. **`apps/api`** — Spring Boot web service that wraps the core library with a REST API. Deployed as a WAR on Tomcat. API base path: `/dlb-web-service/v1`.
 3. **`apps/bff`** — Spring Boot Backend-for-Frontend: performs the OAuth2 login against Keycloak on behalf of `apps/studio` and proxies its API calls to `apps/api`, so the browser never holds an access token (see [BFF service](#bff-service-apps-bff) below). Deployed as an executable JAR, not a WAR.
 4. **`apps/studio`** — Vue 3 / Vite / Tailwind CSS front-end ("Dialogue Branch Studio") that consumes the REST API via the BFF.
@@ -42,7 +42,7 @@ cd packages/core
 ./gradlew run -q --console=plain --args="<project.xml>"  # or non-interactively (validate/CI); --args="--help" for the full syntax
 ./gradlew javadoc                                        # generate Javadoc to build/reports/javadoc/
 ./gradlew publishToMavenLocal                            # install locally before publishing
-./gradlew publishToMaven                                 # publish to Maven Central
+./gradlew publishToMaven                                 # publish to Maven Central (paused, see Versioning)
 ```
 
 Test reports are written to `build/reports/tests/test/index.html`.
@@ -251,6 +251,8 @@ Two classes, not one — playback and authoring were split apart ([#231](https:/
 All version bumps go in `global.json` only. Both Gradle build scripts read from it with `new groovy.json.JsonSlurper().parse(new File(..., 'global.json')).version`. Studio syncs via `npm run sync-version`. After updating `global.json`, run `./gradlew updateConfig` in each Gradle project (`apps/api`, `apps/mock-variable-service`) if building outside Docker.
 
 The project is **pre-1.0** and treats itself as pre-release: the version was deliberately reset from an inflated `2.0.x` to `0.1.x` on 2026-09-01 (GitHub tags re-numbered too) to signal this. Under `0.x.y`, a breaking change to `dlb-core-java`'s published API — or to any other public contract (REST endpoints, `.dlb` syntax, the External Variable Service protocol) — does **not** need to be deferred to a "next major"; it rides a normal minor bump (`0.1.x` → `0.2.0`). Still flag breaking changes clearly in `CHANGELOG.md` (a `**Breaking:**` note under the relevant category; what counts as breaking is defined in the compatibility policy, see [Working with Claude Code](#working-with-claude-code) above), but don't hold work back or design around backward compatibility purely to avoid a major bump. Full semver-style major-version discipline starts at `1.0.0`.
+
+**Maven Central:** Publishing to Maven Central is paused: it already has `dlb-core-java` up to 1.3.0, from before the version was reset to 0.x on 2026-09-01, so a 0.x release would sort as older there. A release is the tags, the GitHub release and the client-js npm package; don't run `publishToMaven` until this is resolved.
 
 Cut the actual GitHub release with two GitHub Actions workflows ([#265](https://github.com/dialoguebranch/platform/issues/265)), in two steps, because `main`'s branch ruleset requires the `all-green` status check on every commit and so rejects a direct push, including a release commit. Step one, **`release-prepare.yml`** (`workflow_dispatch`, pick a `major`/`minor`/`patch` bump): bumps `global.json`, syncs `apps/studio` and `packages/client-js`'s versions, splits `CHANGELOG.md`'s `[Unreleased]` section into a dated version section, commits both on a new `release/vX.Y.Z` branch, pushes it, and opens a PR against `main` (title `Release vX.Y.Z`, body the new changelog section). Step two, **`release-finish.yml`** (`pull_request: closed`, filtered to a merged `release/v*` head branch): runs automatically once that PR merges — reads the already-bumped version back out of `global.json`, tags `vX.Y.Z`, re-points the floating `latest` tag, pushes both, and creates the GitHub release (via `gh`) with the merged PR's body as the release notes (see **Release notes** below).
 
