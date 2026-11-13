@@ -15,6 +15,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Studio: selecting several nodes in the graph editor was invisible. The box you drag now shows,
+  selected nodes get an outline (also on the map), and a click with Shift, Ctrl or Cmd changes the
+  selection without opening the node.
 - Core: `./gradlew publishToMavenLocal` works without a GPG key; signing is only required when
   publishing to Maven Central. The 0.x releases aren't on Maven Central (it has older versions up
   to 1.3.0), so the Core Java documentation now explains how to install a release locally.

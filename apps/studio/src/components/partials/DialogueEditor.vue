@@ -373,7 +373,10 @@ const selectedNodeTitle = ref(null);
 const selectedNode = computed(() => rawNodesByTitle.value.get(selectedNodeTitle.value) ?? null);
 const nodeEditPanel = useTemplateRef('node-edit-panel');
 
-function onNodeClick({ node }) {
+function onNodeClick({ event, node }) {
+    // A click with Shift, Ctrl or Cmd adds the node to the selection, or takes it out (Vue Flow
+    // does that); it doesn't open the node for editing.
+    if (event?.shiftKey || event?.ctrlKey || event?.metaKey) return;
     // Switching the selected node repopulates NodeEditPanel's form from the new node's data,
     // silently discarding any in-progress edit to the previously selected node — refuse to do
     // that while a save for it is still in flight (re-clicking the same node is always a no-op
@@ -456,7 +459,7 @@ defineExpose({
                 aria-label="Map of the whole dialogue"
                 data-test="graph-minimap"
             >
-                <template #node-dialogueNode="{ id, position, dimensions, color, borderRadius }">
+                <template #node-dialogueNode="{ id, position, dimensions, color, borderRadius, selected }">
                     <g>
                         <g v-if="id === minimapFirstNodeId" data-test="minimap-edges">
                             <line
@@ -474,18 +477,23 @@ defineExpose({
                             :width="dimensions.width" :height="dimensions.height"
                             :rx="borderRadius" :ry="borderRadius"
                             :fill="color"
+                            :stroke="selected ? EDGE_COLOR : null"
+                            :stroke-width="selected ? 2 : null"
+                            vector-effect="non-scaling-stroke"
                         />
                     </g>
                 </template>
             </MiniMap>
 
-            <template #node-dialogueNode="{ data }">
+            <template #node-dialogueNode="{ data, selected }">
                 <div
                     class="rounded-lg shadow bg-white min-w-[150px] max-w-[210px] overflow-hidden cursor-pointer hover:shadow-md"
                     :class="{
                         'ring-2 ring-offset-1 ring-node-start': data.isStart,
                         'ring-2 ring-offset-1 ring-node-end': data.isEnd,
+                        'dlb-node-selected': selected,
                     }"
+                    :data-selected="selected ? 'true' : null"
                 >
                     <div class="px-3 py-1.5 text-xs font-title font-bold text-white truncate flex items-center gap-1.5" :style="{ backgroundColor: nodeHeaderColor(data) }">
                         <FontAwesomeIcon v-if="data.isStart" icon="fa-solid fa-play" class="text-[10px] shrink-0" title="Start node — the dialogue's entry point" />
@@ -548,6 +556,34 @@ defineExpose({
 </template>
 
 <style scoped>
+/* Selecting several nodes (Shift+drag a box, or Shift/Ctrl/Cmd+click): Studio imports only Vue
+   Flow's structural CSS, not its theme, so without these the box and the selected nodes are
+   invisible. Orange, as Studio's lines and highlights are. */
+:deep(.vue-flow__selection) {
+    background: rgba(246, 203, 139, 0.18); /* --color-orange-light */
+    border: 1px dashed var(--color-orange-dark);
+    border-radius: 4px;
+}
+
+:deep(.vue-flow__selection:focus),
+:deep(.vue-flow__selection:focus-visible) {
+    outline: none;
+}
+
+/* After a box selection Vue Flow leaves a rectangle around the selected nodes, to drag them by.
+   It's hidden: the nodes' own outlines show the selection, dragging any selected node moves them
+   all (and is saved, onNodeDragStop), while a drag on that rectangle would be a selection drag,
+   which this editor doesn't save. */
+:deep(.vue-flow__nodesselection-rect) {
+    display: none;
+}
+
+/* An outline rather than a ring, so it shows next to the Start and End nodes' own rings. */
+.dlb-node-selected {
+    outline: 2px solid var(--color-orange-dark);
+    outline-offset: 3px;
+}
+
 /* Vue Flow's Controls and MiniMap, in the look of Studio's toolbar controls (see "UI building
    blocks" in CLAUDE.md): white, grey border, rounded corners, 24px buttons. */
 :deep(.dlb-flow-controls) {

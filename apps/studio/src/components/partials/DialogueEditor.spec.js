@@ -42,11 +42,19 @@ vi.mock('@/composables/client.js', () => ({
     useAuthoringClient: () => authoring,
 }));
 
+// The nodes in `selectedIds` are drawn as selected, as Vue Flow does after a box selection.
+const selectedIds = new Set();
+
 const VueFlowStub = defineComponent({
     name: 'VueFlow',
-    emits: ['node-drag-stop'],
-    setup(_, { slots }) {
-        return () => h('div', slots.default?.());
+    props: ['nodes'],
+    emits: ['node-drag-stop', 'node-click'],
+    setup(props, { slots }) {
+        return () => h('div', [
+            ...(props.nodes ?? []).map((node) => h('div', { 'data-node': node.id },
+                slots['node-dialogueNode']?.({ data: node.data, selected: selectedIds.has(node.id) }))),
+            slots.default?.(),
+        ]);
     },
 });
 
@@ -122,6 +130,7 @@ const savedPositions = () => authoring.updateDraftNode.mock.calls.map((call) =>
 
 beforeEach(() => {
     vi.clearAllMocks();
+    selectedIds.clear();
     currentNodes = [node('Start', 0), node('Next', 200), node('End', 400)];
     authoring.listDraftNodes.mockImplementation(async () => currentNodes);
     authoring.updateDraftNode.mockImplementation(async (slug, dialogue, title, tags, body) =>
@@ -198,5 +207,31 @@ describe('DialogueEditor canvas chrome (#192)', () => {
             ['x1', 'y1', 'x2', 'y2'].map((a) => Number(line.attributes(a))));
 
         expect(lines).toEqual([[50, 20, 250, 20], [250, 20, 450, 20]]);
+    });
+});
+
+describe('DialogueEditor selecting several nodes', () => {
+    const click = (wrapper, id, keys = {}) =>
+        wrapper.findComponent(VueFlowStub).vm.$emit('node-click', { event: keys, node: { id } });
+
+    it('shows which nodes are selected', async () => {
+        selectedIds.add('Next');
+        const wrapper = await mountEditor();
+        const marked = wrapper.findAll('[data-selected="true"]');
+        expect(marked).toHaveLength(1);
+        expect(wrapper.find('[data-node="Next"] [data-selected="true"]').exists()).toBe(true);
+    });
+
+    it('opens a node on a plain click, but not on a click that changes the selection', async () => {
+        for (const keys of [{ shiftKey: true }, { ctrlKey: true }, { metaKey: true }]) {
+            const wrapper = await mountEditor();
+            click(wrapper, 'Next', keys);
+            await flushPromises();
+            expect(wrapper.findComponent({ name: 'NodeEditPanel' }).exists()).toBe(false);
+        }
+        const wrapper = await mountEditor();
+        click(wrapper, 'Next');
+        await flushPromises();
+        expect(wrapper.findComponent({ name: 'NodeEditPanel' }).exists()).toBe(true);
     });
 });
