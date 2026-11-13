@@ -7,6 +7,14 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Added
+
+- Core: `ExecutableProject.load(Path)` loads a project from its `dlb-project.xml` in one call.
+  A project with parse errors fails with a `ProjectParseException` that lists every error per
+  file, instead of a project that is `null`. Parse warnings are available from the new
+  `ExecutableProject.getWarnings()`, also for projects loaded with `ProjectParser`
+  ([#473](https://github.com/dialoguebranch/platform/issues/473)).
+
 ## [0.9.2] - 2026-11-11
 
 ### Added

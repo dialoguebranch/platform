@@ -143,6 +143,7 @@ public class ProjectParser {
 
 		project.setTranslations(dlgTranslations);
 		project.setSpeakers(projectSpeakers());
+		project.setWarnings(projectParserResult.getWarnings());
 
 		if (scriptLoader instanceof ProjectScriptLoader projectScriptLoader)
 			project.setMetaData(projectScriptLoader.getProjectMetaData());

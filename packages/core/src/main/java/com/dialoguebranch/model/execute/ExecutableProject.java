@@ -28,6 +28,11 @@
 
 package com.dialoguebranch.model.execute;
 
+import com.dialoguebranch.exception.ParseException;
+import com.dialoguebranch.exception.ProjectParseException;
+import com.dialoguebranch.execution.parser.ProjectParser;
+import com.dialoguebranch.execution.parser.ProjectParserResult;
+import com.dialoguebranch.execution.parser.ProjectScriptLoader;
 import com.dialoguebranch.i18n.ContextTranslation;
 import com.dialoguebranch.i18n.Translatable;
 import com.dialoguebranch.i18n.TranslationContext;
@@ -38,6 +43,8 @@ import com.dialoguebranch.model.common.ProjectMetaData;
 import com.dialoguebranch.model.common.Speaker;
 import org.jspecify.annotations.Nullable;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.*;
 
 /**
@@ -57,6 +64,7 @@ public class ExecutableProject implements DialogueBranchProject {
 	private Map<ResourcePointer, Dialogue> sourceDialogues = new LinkedHashMap<>();
 	private Map<ResourcePointer,
 			Map<Translatable,List<ContextTranslation>>> translations = new LinkedHashMap<>();
+	private Map<String, List<String>> warnings = Map.of();
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
@@ -74,6 +82,33 @@ public class ExecutableProject implements DialogueBranchProject {
 	 */
 	public ExecutableProject(ProjectMetaData metaData) {
 		this.metaData = metaData;
+	}
+
+	/**
+	 * Loads and parses the project described by the given project metadata file ({@code
+	 * dlb-project.xml}), with its scripts and translations in the language folders next to it.
+	 *
+	 * <p>Parse warnings don't stop the project from loading; they are available from {@link
+	 * #getWarnings()}. To get the parse errors one by one instead of as an exception, or to load
+	 * a project from somewhere other than a folder on disk, use a {@link ProjectParser}.</p>
+	 *
+	 * @param projectMetadataFile the project's metadata file.
+	 * @return the parsed project.
+	 * @throws IOException if a file of the project can't be read.
+	 * @throws ProjectParseException if any file of the project has parse errors; it lists them
+	 *                               all.
+	 * @throws ParseException if the project metadata file itself is invalid.
+	 */
+	public static ExecutableProject load(Path projectMetadataFile)
+			throws IOException, ParseException {
+		ProjectScriptLoader loader = new ProjectScriptLoader(projectMetadataFile.toFile());
+		ProjectParserResult result = new ProjectParser(loader).parse();
+		ExecutableProject project = result.getProject();
+		if (!result.getParseErrors().isEmpty() || project == null) {
+			throw new ProjectParseException(projectMetadataFile.toString(),
+					result.getParseErrors());
+		}
+		return project;
 	}
 
 	// ----------------------------------------------------------- //
@@ -162,6 +197,28 @@ public class ExecutableProject implements DialogueBranchProject {
 	 */
 	public void setMetaData(ProjectMetaData metaData) {
 		this.metaData = metaData;
+	}
+
+	/**
+	 * Returns the warnings found while parsing this project, per file. They don't stop the
+	 * project from running, but may point at mistakes, such as a translation that matches no
+	 * text in its dialogue.
+	 *
+	 * @return the parse warnings, per file; empty if there were none.
+	 */
+	public Map<String, List<String>> getWarnings() {
+		return warnings;
+	}
+
+	/**
+	 * Sets the warnings found while parsing this project, per file.
+	 *
+	 * @param warnings the parse warnings, per file.
+	 */
+	public void setWarnings(Map<String, List<String>> warnings) {
+		Map<String, List<String>> copy = new LinkedHashMap<>();
+		warnings.forEach((file, list) -> copy.put(file, List.copyOf(list)));
+		this.warnings = Collections.unmodifiableMap(copy);
 	}
 
 	// ------------------------------------------------------- //
