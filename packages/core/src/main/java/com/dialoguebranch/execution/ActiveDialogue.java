@@ -50,6 +50,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.function.Function;
 
 /**
@@ -59,6 +60,12 @@ import java.util.function.Function;
  * "execution" of the dialogue. When a reply leads into another dialogue, it switches to that
  * dialogue itself, found by its {@link DialogueResolver} (see {@link #selectReply}), so one
  * {@link ActiveDialogue} runs a conversation across dialogues (#473).
+ *
+ * <p>It can keep a log of the conversation ({@link #setLoggedDialogue}): the agent's statements
+ * and the user's replies, across dialogues, as the Web Service records them. With a log it can go
+ * {@link #back()} a step, be {@link #restore restored} from the log later, and give the log's
+ * identifier and the step's index in its {@link #getCurrentMessage() message} (#483). The
+ * application decides where the log lives: it is not stored by this class.</p>
  *
  * <p><b>Not thread-safe.</b> {@link #getCurrentNode()}/{@link #setCurrentNode(Node)} and the
  * dialogue-progression methods below mutate {@link #currentNode} with no synchronization — two
@@ -113,9 +120,18 @@ public class ActiveDialogue {
 	private @Nullable Node currentNode;
 
 	/** The variable store used to read and write Dialogue Branch variables during execution. */
-	// Set in the constructor; setVariableStore() may re-point it (e.g. when a persisted
-	// DialogueState is re-attached to a fresh user session).
+	// Set in the constructor; setVariableStore() may re-point it (e.g. when a restored dialogue is
+	// attached to a fresh user session).
 	private VariableStore variableStore;
+
+	/** The log the conversation is recorded into, or {@code null} if none is kept (#483). */
+	private @Nullable LoggedDialogue loggedDialogue;
+
+	/** Creates the log of the dialogue a reply leads into; set whenever a log is kept. */
+	private @Nullable LoggedDialogueFactory logFactory;
+
+	/** The index in the log of the current step's interaction, or -1 if it has none yet. */
+	private int loggedInteractionIndex = -1;
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
@@ -220,9 +236,10 @@ public class ActiveDialogue {
 	/**
 	 * Returns the current step as a {@link DialogueMessage}, ready to show: the speaker, the
 	 * statement with its variables filled in and its actions and input fields, and the replies to
-	 * choose from. This is the same message the Web Service sends for a step. Its {@code
-	 * loggedDialogueId} is {@code null} and its {@code loggedInteractionIndex} is 0 (and has no
-	 * meaning), because an {@link ActiveDialogue} keeps no log of its own.
+	 * choose from. This is the same message the Web Service sends for a step. When a log is
+	 * kept ({@link #setLoggedDialogue}), its {@code loggedDialogueId} and {@code
+	 * loggedInteractionIndex} say where the step is in it; without one they are {@code null} and 0
+	 * (which has no meaning).
 	 *
 	 * @return the current step, or {@code null} if the dialogue hasn't started, or a reply led to
 	 *         its {@code End}.
@@ -237,7 +254,10 @@ public class ActiveDialogue {
 					+ "\" hasn't been executed: there is no step to show yet");
 		}
 		return DialogueMessageFactory.generateDialogueMessage(
-				new ExecuteNodeResult(dialogueDefinition, currentNode, null, 0));
+				loggedInteractionIndex < 0
+						? new ExecuteNodeResult(dialogueDefinition, currentNode, null, 0)
+						: new ExecuteNodeResult(dialogueDefinition, currentNode, loggedDialogue,
+								loggedInteractionIndex));
 	}
 
 	/**
@@ -250,14 +270,80 @@ public class ActiveDialogue {
 
 	/**
 	 * Re-points the {@link VariableStore} used by this {@link ActiveDialogue}. The store is
-	 * normally supplied to the constructor; this is for the case where a persisted
-	 * {@link com.dialoguebranch.model.execute.DialogueState} is re-attached to a fresh user
-	 * session and its variable store must be swapped for the live one.
+	 * normally supplied to the constructor; this is for the case where a dialogue
+	 * restored from a log ({@link #restore}) is attached to a fresh user session and its variable
+	 * store must be swapped for the live one.
 	 *
 	 * @param variableStore the {@link VariableStore} to use from now on.
 	 */
 	public void setVariableStore(VariableStore variableStore) {
 		this.variableStore = variableStore;
+	}
+
+	/**
+	 * Sets the log this conversation is recorded into, or none (#483). From then on, every agent
+	 * statement is added to it as its node is executed, and every reply as it is selected; it is
+	 * marked completed when the dialogue finishes. A reply that leads into another dialogue
+	 * completes this log, and the conversation goes on in the log the {@code factory} makes for
+	 * that dialogue. Set it before {@link #startDialogue}, or on a dialogue made with {@link
+	 * #restore}. The application stores the logs itself: {@link #getLoggedDialogue()} gives the
+	 * current one, and the one that was completed is the log that was passed in.
+	 *
+	 * @param loggedDialogue the log to record into, or {@code null} to keep none.
+	 * @param factory makes the log of a dialogue the conversation enters; required with a log.
+	 * @throws IllegalArgumentException if a log is given without a factory.
+	 * @throws IllegalStateException if a log is given and the dialogue has already started: its
+	 *                               steps so far wouldn't be in the log, and going back would
+	 *                               stop at the first step that is.
+	 */
+	public void setLoggedDialogue(@Nullable LoggedDialogue loggedDialogue,
+			@Nullable LoggedDialogueFactory factory) {
+		if (loggedDialogue != null && factory == null)
+			throw new IllegalArgumentException("A log needs a factory for the logs of the "
+					+ "dialogues a reply leads into");
+		if (loggedDialogue != null && started)
+			throw new IllegalStateException("A log must be set before the dialogue starts");
+		this.loggedDialogue = loggedDialogue;
+		this.logFactory = loggedDialogue == null ? null : factory;
+		this.loggedInteractionIndex = -1;
+	}
+
+	/**
+	 * Keeps a log in memory for this conversation, for the dialogue it is in now (#483). A
+	 * shorthand for {@link #setLoggedDialogue} with an {@link InMemoryLoggedDialogue}, with a new
+	 * session ID that the logs of the dialogues the conversation enters share. Each of those logs
+	 * points back to the one before it ({@link InMemoryLoggedDialogue#getPrevious()}), so the
+	 * whole conversation can be read from {@link #getLoggedDialogue()}.
+	 *
+	 * @param startTime when the dialogue starts, in the user's time zone.
+	 * @return the log, to read the transcript from.
+	 */
+	public InMemoryLoggedDialogue keepInMemoryLog(ZonedDateTime startTime) {
+		InMemoryLoggedDialogue log = new InMemoryLoggedDialogue(variableStore.getUser().getId(),
+				new ResolvedDialogue(dialogueFileDescription, dialogueDefinition), startTime,
+				UUID.randomUUID().toString().toLowerCase().replaceAll("-", ""));
+		setLoggedDialogue(log, InMemoryLoggedDialogue.factory());
+		return log;
+	}
+
+	/**
+	 * Returns the log the conversation is recorded into: the log of the dialogue it is in now,
+	 * which changes when a reply leads into another dialogue.
+	 *
+	 * @return the log, or {@code null} if none is kept.
+	 */
+	public @Nullable LoggedDialogue getLoggedDialogue() {
+		return loggedDialogue;
+	}
+
+	/**
+	 * Returns the index in the log's interaction list of the current step: the agent's statement
+	 * that {@link #getCurrentMessage()} gives.
+	 *
+	 * @return the index, or -1 if there is no log or the step isn't in it yet.
+	 */
+	public int getLoggedInteractionIndex() {
+		return loggedInteractionIndex;
 	}
 
 	// ------------------------------------------------------- //
@@ -346,6 +432,7 @@ public class ActiveDialogue {
 		}
 		this.currentNode = executeNode(nextNode,eventTime);
 		this.started = true;
+		recordAgentStep(-1, eventTime);
 		return currentNode;
 	}
 
@@ -404,6 +491,7 @@ public class ActiveDialogue {
 	 */
 	public @Nullable Node selectReply(int replyId, ZonedDateTime eventTime)
 			throws ExecutionException, EvaluationException {
+		int userInteractionIndex = recordUserReply(replyId, eventTime);
 		NodePointer nodePointer = processReply(replyId, eventTime);
 		if (nodePointer instanceof ExternalNodePointer externalPointer) {
 			ResolvedDialogue target = resolver.resolve(
@@ -417,12 +505,95 @@ public class ActiveDialogue {
 			}
 			if (switchListener != null)
 				switchListener.onDialogueSwitch(dialogueFileDescription, target);
+			LoggedDialogue previousLog = loggedDialogue;
+			int previousLogIndex = loggedInteractionIndex;
+			ResourcePointer previousPointer = dialogueFileDescription;
+			Dialogue previousDefinition = dialogueDefinition;
+			@Nullable Function<TranslationContext.Gender, Dialogue> previousGenders =
+					userGenderTranslations;
+			Node previousNode = currentNode;
+			if (previousLog != null) {
+				LoggedDialogue enteredLog = Objects.requireNonNull(logFactory).create(previousLog,
+						target, eventTime);
+				if (enteredLog == previousLog) {
+					throw new IllegalStateException("The LoggedDialogueFactory returned the log "
+							+ "of the dialogue that is left; it must make a new one");
+				}
+				loggedDialogue = enteredLog;
+				loggedInteractionIndex = -1;
+			}
 			this.dialogueFileDescription = target.pointer();
 			this.dialogueDefinition = target.dialogue();
 			this.userGenderTranslations = target.userGenderTranslations();
-			return startDialogue(externalPointer.getTargetNodeId(), eventTime);
+			Node entered;
+			try {
+				entered = startDialogue(externalPointer.getTargetNodeId(), eventTime);
+			} catch (ExecutionException | EvaluationException | RuntimeException e) {
+				// The dialogue stays where it was, and the reply stays in the log of the dialogue
+				// it was given in, not completed.
+				dialogueFileDescription = previousPointer;
+				dialogueDefinition = previousDefinition;
+				userGenderTranslations = previousGenders;
+				currentNode = previousNode;
+				loggedDialogue = previousLog;
+				loggedInteractionIndex = previousLogIndex;
+				throw e;
+			}
+			if (previousLog != null)
+				previousLog.setCompleted(true);
+			return entered;
 		}
-		return followInternalPointer((InternalNodePointer) nodePointer, eventTime);
+		Node next = followInternalPointer((InternalNodePointer) nodePointer, eventTime);
+		recordAgentStep(userInteractionIndex, eventTime);
+		return next;
+	}
+
+	/**
+	 * Adds the reply that is selected to the log, if one is kept, as the Web Service does: with the
+	 * statement the user gave (including what they typed into input fields, which is already
+	 * stored), before the reply's commands run.
+	 *
+	 * @return the index of the new interaction, or -1 if no log is kept.
+	 */
+	private int recordUserReply(int replyId, ZonedDateTime eventTime) throws ExecutionException {
+		if (loggedDialogue == null)
+			return -1;
+		String statement = getUserStatementFromReplyId(replyId);
+		List<LoggedInteraction> interactions = loggedDialogue.getInteractionList();
+		interactions.add(new LoggedInteraction(eventTime.toInstant().toEpochMilli(),
+				MessageSource.USER, "USER", loggedDialogue.getDialogueName(),
+				Objects.requireNonNull(Objects.requireNonNull(currentNode).getTitle()),
+				loggedInteractionIndex, statement, replyId));
+		loggedInteractionIndex = interactions.size() - 1;
+		return loggedInteractionIndex;
+	}
+
+	/**
+	 * Adds the agent's statement of the current node to the log, if one is kept and there is a
+	 * node (there is none after a reply to End), and completes the log when the dialogue has
+	 * finished.
+	 */
+	private void recordAgentStep(int previousIndex, ZonedDateTime eventTime) {
+		if (loggedDialogue == null)
+			return;
+		Node node = currentNode;
+		if (node != null) {
+			StringBuilder statement = new StringBuilder();
+			for (NodeBody.Segment segment : ((ResolvedNodeBody) Objects.requireNonNull(
+					node.getBody())).getSegments()) {
+				statement.append(segment.toString());
+			}
+			List<LoggedInteraction> interactions = loggedDialogue.getInteractionList();
+			NodeHeader header = Objects.requireNonNull(node.getHeader(), "Node has no header");
+			interactions.add(new LoggedInteraction(eventTime.toInstant().toEpochMilli(),
+					MessageSource.AGENT, Objects.requireNonNullElse(header.getSpeaker(), ""),
+					loggedDialogue.getDialogueName(),
+					Objects.requireNonNull(node.getTitle()), previousIndex,
+					statement.toString(), -1));
+			loggedInteractionIndex = interactions.size() - 1;
+		}
+		if (isFinished())
+			loggedDialogue.setCompleted(true);
 	}
 
 	/**
@@ -591,6 +762,156 @@ public class ActiveDialogue {
 				variableStore.getModifiableMap(false,eventTime));
 		ResolvedNodeBody processedBody = body.execute(variables, true);
 		return new Node(header, processedBody);
+	}
+
+
+	// ------------------------------------------------------------------ //
+	// -------------------- Going back, resuming, cancelling ------------- //
+	// ------------------------------------------------------------------ //
+
+	/**
+	 * Goes back to the agent's previous statement in the current dialogue, now (in the time zone of
+	 * the {@link VariableStore}'s user). See {@link #back(ZonedDateTime)}.
+	 *
+	 * @return the previous agent step's node, executed again.
+	 * @throws ExecutionException if the log is completed or cancelled, or its steps can't be found.
+	 * @throws EvaluationException if an expression cannot be evaluated.
+	 * @throws IllegalStateException if no log is kept.
+	 */
+	public Node back() throws ExecutionException, EvaluationException {
+		return back(now());
+	}
+
+	/**
+	 * Goes back to the agent's previous statement in the current dialogue (#483), as the Web
+	 * Service does for {@code /dialogue/back}: the node of that step is executed again, so its
+	 * commands run again, and it becomes the current step. Nothing is added to the log, so a
+	 * reply to it later continues from that step. With no earlier step, the current one is
+	 * executed again. It stays within the current dialogue: it doesn't go back across a link.
+	 *
+	 * @param eventTime the time of the event that triggered this, in the user's time zone.
+	 * @return the previous agent step's node, executed again.
+	 * @throws ExecutionException if the log is completed or cancelled, or its steps can't be found.
+	 * @throws EvaluationException if an expression cannot be evaluated.
+	 * @throws IllegalStateException if no log is kept.
+	 */
+	public Node back(ZonedDateTime eventTime) throws ExecutionException, EvaluationException {
+		LoggedDialogue log = loggedDialogue;
+		if (log == null)
+			throw new IllegalStateException("No log is kept, so there is nothing to go back in");
+		if (log.isCancelled()) {
+			throw new ExecutionException(ExecutionException.Type.DIALOGUE_CANCELLED,
+					"Dialogue '" + log.getId() + "' has been cancelled and cannot be progressed.");
+		}
+		if (log.isCompleted()) {
+			throw new ExecutionException(ExecutionException.Type.DIALOGUE_COMPLETED,
+					"Dialogue '" + log.getId() + "' has already completed and cannot be progressed.");
+		}
+		List<LoggedInteraction> interactions = log.getInteractionList();
+		checkInteractionIndex(log, loggedInteractionIndex);
+		moveToInteraction(findPreviousAgentInteractionIndex(interactions, loggedInteractionIndex));
+		return executeCurrentNode(eventTime);
+	}
+
+	/**
+	 * Rebuilds an {@link ActiveDialogue} from a log, at the step with the given index (#483), so a
+	 * conversation can be resumed later, as the Web Service does on every request. The dialogue is
+	 * found by the log's dialogue name and language. The current node is the one of that
+	 * interaction, not executed yet, so a reply can be selected right away; to show it again, use
+	 * {@link #executeCurrentNode}. Only the position is restored: the variables are those of the
+	 * {@code variableStore} that is passed in. The log is kept, and goes on being recorded into.
+	 *
+	 * @param resolver finds the dialogue of the log, and the ones replies lead into.
+	 * @param loggedDialogue the log to resume.
+	 * @param interactionIndex the index in its interaction list of the step to resume at: an agent
+	 *                         step, as {@link #getLoggedInteractionIndex()} gave it.
+	 * @param variableStore the variables of the user.
+	 * @param factory makes the log of a dialogue the conversation enters.
+	 * @return the dialogue, at that step.
+	 * @throws ExecutionException if the dialogue, the interaction or its node can't be found.
+	 */
+	public static ActiveDialogue restore(DialogueResolver resolver, LoggedDialogue loggedDialogue,
+			int interactionIndex, VariableStore variableStore, LoggedDialogueFactory factory)
+			throws ExecutionException {
+		ResolvedDialogue resolved = resolver.resolve(loggedDialogue.getDialogueName(),
+				loggedDialogue.getLanguage());
+		checkInteractionIndex(loggedDialogue, interactionIndex);
+		ActiveDialogue dialogue = new ActiveDialogue(resolver, resolved, variableStore);
+		dialogue.setLoggedDialogue(loggedDialogue, factory);
+		dialogue.moveToInteraction(interactionIndex);
+		return dialogue;
+	}
+
+	/**
+	 * Executes the current node, which was put there by {@link #restore} or {@link
+	 * #setCurrentNode} and hasn't been executed yet, and makes the result the current step, so that
+	 * {@link #getCurrentMessage()} gives it. Its commands run, so this is not for a node that has
+	 * been shown before unless that is meant (as with {@link #back}).
+	 *
+	 * @param eventTime the time of the event that triggered this, in the user's time zone.
+	 * @return the executed node.
+	 * @throws EvaluationException if an expression cannot be evaluated.
+	 * @throws IllegalStateException if the dialogue has no current node, or it was executed already.
+	 */
+	public Node executeCurrentNode(ZonedDateTime eventTime) throws EvaluationException {
+		Node node = Objects.requireNonNull(currentNode, "Dialogue has not been started");
+		if (!(node.getBody() instanceof NodeBody)) {
+			throw new IllegalStateException("The current node \"" + node.getTitle()
+					+ "\" has already been executed");
+		}
+		currentNode = executeNode(node, eventTime);
+		return currentNode;
+	}
+
+	/**
+	 * Marks the log of this conversation as cancelled, as {@code /dialogue/cancel} does (#483). It
+	 * does nothing if no log is kept. The log can't be progressed or gone back in after that.
+	 */
+	public void cancel() {
+		if (loggedDialogue != null)
+			loggedDialogue.setCancelled(true);
+	}
+
+	/** Puts the dialogue at the node of the interaction with the given index in the log. */
+	private void moveToInteraction(int index) throws ExecutionException {
+		LoggedInteraction interaction = Objects.requireNonNull(loggedDialogue)
+				.getInteractionList().get(index);
+		followUserGender();
+		String nodeId = interaction.getNodeId();
+		Node node = nodeId == null ? null : dialogueDefinition.getNodeById(nodeId);
+		if (node == null) {
+			throw new ExecutionException(ExecutionException.Type.NODE_NOT_FOUND,
+					String.format("Node \"%s\" not found in dialogue \"%s\"", nodeId,
+							dialogueDefinition.getDialogueName()));
+		}
+		this.currentNode = node;
+		this.started = true;
+		this.loggedInteractionIndex = index;
+	}
+
+	private static void checkInteractionIndex(LoggedDialogue log, int index)
+			throws ExecutionException {
+		if (index < 0 || index >= log.getInteractionList().size()) {
+			throw new ExecutionException(ExecutionException.Type.INTERACTION_NOT_FOUND,
+					String.format("Interaction \"%s\" not found in logged dialogue \"%s\"",
+							index, log.getId()));
+		}
+	}
+
+	/**
+	 * Finds the agent step before the one at {@code start}, following the interactions' links to
+	 * the interaction they came from; {@code start} itself if there is none.
+	 */
+	private static int findPreviousAgentInteractionIndex(List<LoggedInteraction> interactions,
+			int start) {
+		LoggedInteraction interaction = interactions.get(start);
+		while (interaction.getPreviousIndex() != -1) {
+			int index = interaction.getPreviousIndex();
+			interaction = interactions.get(index);
+			if (interaction.getMessageSource() == MessageSource.AGENT)
+				return index;
+		}
+		return start;
 	}
 
 }

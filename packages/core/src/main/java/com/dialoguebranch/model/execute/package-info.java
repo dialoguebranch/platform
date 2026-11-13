@@ -35,8 +35,8 @@
  * {@link com.dialoguebranch.model.execute.NodeBody} of statements and commands, and a set of
  * {@link com.dialoguebranch.model.execute.Reply} options.
  * {@link com.dialoguebranch.model.execute.LoggedDialogue} /
- * {@link com.dialoguebranch.model.execute.LoggedInteraction} record a completed run;
- * {@link com.dialoguebranch.model.execute.DialogueState} captures a run in progress.
+ * {@link com.dialoguebranch.model.execute.LoggedInteraction} record a run, which an
+ * {@link com.dialoguebranch.execution.ActiveDialogue} keeps while it runs and can be restored from.
  */
 @NullMarked
 package com.dialoguebranch.model.execute;

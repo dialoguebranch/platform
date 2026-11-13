@@ -30,10 +30,10 @@ package com.dialoguebranch.web.service.controller;
 
 import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.exception.ParseException;
+import com.dialoguebranch.execution.ActiveDialogue;
 import com.dialoguebranch.execution.ExecuteNodeResult;
 import com.dialoguebranch.json.JsonMapper;
 import com.dialoguebranch.model.common.ResourceType;
-import com.dialoguebranch.model.execute.DialogueState;
 import com.dialoguebranch.model.execute.LoggedInteraction;
 import com.dialoguebranch.model.execute.MessageSource;
 import com.dialoguebranch.model.execute.ResourcePointer;
@@ -428,17 +428,17 @@ public class DialogueController {
 				ZonedDateTime eventTime = DateTimeUtils.nowMs(userService.getDialogueBranchUser()
 						.getTimeZone());
 
-				DialogueState state = userService.getDialogueState(loggedDialogueId,
+				ActiveDialogue dialogue = userService.restoreDialogue(loggedDialogueId,
 						loggedInteractionIndex);
 
 				// If variable data has been received in the progress call, update the values in
 				// the Dialogue Branch Variable Store (scoped to this session's project — #86).
 				if (!variables.isEmpty()) {
-					String projectSlug = ((ServerLoggedDialogue) state.getLoggedDialogue())
+					String projectSlug = ((ServerLoggedDialogue) dialogue.getLoggedDialogue())
 							.getProjectName();
 					userService.storeReplyInput(projectSlug, variables, eventTime);
 				}
-				ExecuteNodeResult nextNode = userService.progressDialogueSession(state, replyId);
+				ExecuteNodeResult nextNode = userService.progressDialogueSession(dialogue, replyId);
 				if (nextNode == null)
 					return new NullableResponse<>(null);
 				DialogueMessage reply = DialogueMessageFactory.generateDialogueMessage(nextNode);
@@ -607,9 +607,9 @@ public class DialogueController {
 				MessageSource.AGENT) {
 			ExecuteNodeResult node;
 			try {
-				DialogueState state = userService.getDialogueState(currentDialogue,
+				ActiveDialogue dialogue = userService.restoreDialogue(currentDialogue,
 						currentDialogue.getInteractionList().size() - 1);
-				node = userService.continueDialogueSession(state,continueDialogueEventTime);
+				node = userService.continueDialogueSession(dialogue, continueDialogueEventTime);
 			} catch (ExecutionException ex) {
 				throw ControllerFunctions.createHttpException(ex);
 			}
@@ -841,9 +841,9 @@ public class DialogueController {
 				ZonedDateTime backDialogueEventTime =
 						DateTimeUtils.nowMs(userService.getDialogueBranchUser().getTimeZone());
 
-				DialogueState state = userService.getDialogueState(loggedDialogueId,
+				ActiveDialogue dialogue = userService.restoreDialogue(loggedDialogueId,
 						loggedInteractionIndex);
-				ExecuteNodeResult prevNode = userService.revertDialogueSession(state,
+				ExecuteNodeResult prevNode = userService.revertDialogueSession(dialogue,
 						backDialogueEventTime);
 				return DialogueMessageFactory.generateDialogueMessage(prevNode);
 			} finally {

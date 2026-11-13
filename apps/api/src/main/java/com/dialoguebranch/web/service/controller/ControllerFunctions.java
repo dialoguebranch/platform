@@ -155,6 +155,7 @@ public class ControllerFunctions {
 			case AGENT_NOT_FOUND,
 				DIALOGUE_NOT_FOUND,
 				NODE_NOT_FOUND,
+				INTERACTION_NOT_FOUND,
 				REPLY_NOT_FOUND,
 				NO_ACTIVE_DIALOGUE ->
 					new NotFoundException(exception.getMessage());

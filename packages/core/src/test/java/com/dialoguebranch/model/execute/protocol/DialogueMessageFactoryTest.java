@@ -30,6 +30,8 @@ package com.dialoguebranch.model.execute.protocol;
 
 import com.dialoguebranch.execution.ActiveDialogue;
 import com.dialoguebranch.execution.ExecuteNodeResult;
+import com.dialoguebranch.execution.InMemoryLoggedDialogue;
+import com.dialoguebranch.execution.ResolvedDialogue;
 import com.dialoguebranch.execution.StandaloneDialogue;
 import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.VariableStore;
@@ -40,7 +42,6 @@ import com.dialoguebranch.model.common.ResourceType;
 import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.Node;
 import com.dialoguebranch.model.execute.ResourcePointer;
-import com.dialoguebranch.model.execute.TestLoggedDialogue;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -109,7 +110,7 @@ public class DialogueMessageFactoryTest {
 		executedStart = active.executeNode(dialogue.getNodeById("Start"), NOW);
 	}
 
-	private DialogueMessage message(TestLoggedDialogue log, int interactionIndex) {
+	private DialogueMessage message(InMemoryLoggedDialogue log, int interactionIndex) {
 		return DialogueMessageFactory.generateDialogueMessage(
 				new ExecuteNodeResult(dialogue, executedStart, log, interactionIndex));
 	}
@@ -173,7 +174,10 @@ public class DialogueMessageFactoryTest {
 
 	@Test
 	public void withASessionLogTheLinkageIsCarriedThrough() {
-		DialogueMessage msg = message(new TestLoggedDialogue(), 3);
+		InMemoryLoggedDialogue log = new InMemoryLoggedDialogue("test-user", new ResolvedDialogue(
+				new ResourcePointer("en", "flow", ResourceType.SCRIPT), dialogue), NOW, null);
+		log.setId("log-1");
+		DialogueMessage msg = message(log, 3);
 		assertEquals("log-1", msg.getLoggedDialogueId());
 		assertEquals(3, msg.getLoggedInteractionIndex());
 	}

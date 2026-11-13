@@ -9,6 +9,16 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Core: an `ActiveDialogue` can keep a log of the conversation, as the Web Service does
+  ([#483](https://github.com/dialoguebranch/platform/issues/483)). `setLoggedDialogue(log, factory)`
+  or `keepInMemoryLog(time)` records every agent statement and reply, across dialogues (a reply
+  into another dialogue completes the log and starts a new one from the `LoggedDialogueFactory`),
+  and completes it when the dialogue ends. `back()` goes to the previous agent step,
+  `ActiveDialogue.restore(...)` rebuilds a dialogue from a log at a step, `executeCurrentNode`
+  shows it again, `cancel()` marks the log cancelled, and `getCurrentMessage()` says where the step
+  is in the log. `InMemoryLoggedDialogue` is a simple log for an application that doesn't store it;
+  the logs of one conversation share a session ID, and each points back to the one before it
+  (`getPrevious()`).
 - Core: `ExecutableProject.load(Path)` loads a project from its `dlb-project.xml` in one call.
   A project with parse errors fails with a `ProjectParseException` that lists every error per
   file, instead of a project that is `null`. Parse warnings are available from the new
@@ -51,6 +61,11 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
+- **Internal API:** Core: `DialogueState` is removed
+  ([#483](https://github.com/dialoguebranch/platform/issues/483)). An `ActiveDialogue` restored
+  with `ActiveDialogue.restore` carries the log and the step itself, and the Web Service uses that
+  instead of its own code for recording, going back and resuming; its REST behaviour, JSON and
+  database are unchanged.
 - Core: **Breaking:** an `ActiveDialogue` always has a `DialogueResolver`, and follows replies
   into other dialogues itself. The constructor `ActiveDialogue(ResourcePointer, Dialogue,
   VariableStore)` is replaced by `ActiveDialogue(DialogueResolver, ResolvedDialogue,
@@ -71,6 +86,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Web service: `/dialogue/progress` and `/dialogue/back` with a step that is not in the dialogue's log
+  answer `404`, instead of a generic `500`.
 - Studio: after a reply that led into another dialogue, the Dialogue Workspace kept showing the
   log ID of the first dialogue, and the Dialogue Browser could open an ongoing dialogue in a
   second tab. It now follows the new dialogue's log

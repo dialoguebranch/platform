@@ -31,6 +31,7 @@ package com.dialoguebranch.web.service.execution;
 import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.execution.ActiveDialogue;
 import com.dialoguebranch.execution.ExecuteNodeResult;
+import com.dialoguebranch.execution.LoggedDialogueFactory;
 import com.dialoguebranch.execution.ResolvedDialogue;
 import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.model.execute.*;
@@ -42,7 +43,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.ZonedDateTime;
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -76,9 +76,23 @@ public class DialogueExecutor {
 	// ------------------------------------------------------- //
 
 	/**
+	 * Returns the factory of the logs of dialogues that a conversation enters, for an {@link
+	 * ActiveDialogue} that keeps a {@link ServerLoggedDialogue}: the new log continues the session,
+	 * project and user of the log before it.
+	 *
+	 * @return the factory.
+	 */
+	public LoggedDialogueFactory logFactory() {
+		return (previous, entered, eventTime) -> {
+			ServerLoggedDialogue before = (ServerLoggedDialogue) previous;
+			return newLoggedDialogue(entered, eventTime, before.getSessionId(),
+					before.getSessionStartTime(), before.getProjectName());
+		};
+	}
+
+	/**
 	 * Starts the dialogue for the specified dialogue definition. If you specify a node ID, it will
 	 * start at that node. Otherwise, it starts at the "Start" node.
-	 *
 	 * @param dialogue the dialogue, as found by {@link ApplicationManager#getDialogueResolver}.
 	 * @param nodeId the node ID or {@code null}.
 	 * @param sessionId the unique session identifier to be added to the logs.
@@ -105,6 +119,12 @@ public class DialogueExecutor {
 		ZonedDateTime eventTime = DateTimeUtils.nowMs(
 				userService.getDialogueBranchUser().getTimeZone());
 
+		// The dialogue records the conversation into this log (#483); it is saved once the first
+		// step has run.
+		ServerLoggedDialogue serverLoggedDialogue = newLoggedDialogue(dialogue, eventTime,
+				sessionId, sessionStartTime, projectSlug);
+		activeDialogue.setLoggedDialogue(serverLoggedDialogue, logFactory());
+
 		Node startNode;
 		try {
 			startNode = activeDialogue.startDialogue(nodeId,eventTime);
@@ -112,12 +132,9 @@ public class DialogueExecutor {
 			throw new RuntimeException("Expression evaluation error: " + e.getMessage(), e);
 		}
 
-		ServerLoggedDialogue serverLoggedDialogue = newLoggedDialogue(dialogue, eventTime,
-				sessionId, sessionStartTime, projectSlug);
-		updateLoggedDialogue(activeDialogue, serverLoggedDialogue, -1);
 		userService.getLoggedDialogueStore().saveToSession(serverLoggedDialogue);
 		return new ExecuteNodeResult(dialogue.dialogue(), startNode, serverLoggedDialogue,
-				serverLoggedDialogue.getInteractionList().size() - 1);
+				activeDialogue.getLoggedInteractionIndex());
 	}
 
 	/**
@@ -151,58 +168,38 @@ public class DialogueExecutor {
 	}
 
 	/**
-	 * Continues the dialogue after the user selected the specified reply. This method stores the
-	 * reply as a user action in the database, and it performs any "set" actions associated with the
-	 * reply. Then it determines the next node, if any.
-	 *
-	 * <p>If there is no next node, this method will complete the current dialogue, and this method
-	 * returns null.</p>
-	 *
-	 * <p>If the reply points to another dialogue, this method will complete the current dialogue
-	 * and start the other dialogue.</p>
-	 *
-	 * <p>For the returned node, this method executes the agent statement and reply statements using
-	 * the variable store. It executes ("if" and "set") commands and resolves variables. The
-	 * returned node contains any content that should be sent to the client. This content can be
-	 * text or client commands, with all variables resolved.</p>
-	 *
-	 * @param state a collection of objects defining the state of the currently ongoing dialogue.
+	 * Continues the dialogue after the user selected the specified reply. The {@link
+	 * ActiveDialogue} records the reply as a user action in the log, performs any "set" actions
+	 * associated with the reply, and determines the next node, if any; this method saves the log.
+	 * <p>If there is no next node, the current dialogue is completed, and this method returns
+	 * null.</p>
+	 * <p>If the reply points to another dialogue, the current dialogue is completed and the other
+	 * dialogue is started, in a log of its own.</p>
+	 * <p>For the returned node, the agent statement and reply statements are executed using the
+	 * variable store. It executes ("if" and "set") commands and resolves variables. The returned
+	 * node contains any content that should be sent to the client. This content can be text or
+	 * client commands, with all variables resolved.</p>
+	 * @param dialogue the ongoing dialogue, restored from its log at the step the user replies to.
 	 * @param replyId the reply ID
 	 * @return the next node or null
 	 * @throws DatabaseException if a database error occurs
 	 * @throws IOException if a communication error occurs
 	 * @throws ExecutionException if the request is invalid
 	 */
-	public ExecuteNodeResult progressDialogue(DialogueState state, int replyId)
+	public ExecuteNodeResult progressDialogue(ActiveDialogue dialogue, int replyId)
 			throws DatabaseException, IOException, ExecutionException {
 
 		// Define the event time that is passed along and used for logging
 		ZonedDateTime progressDialogueEventTime =
 				DateTimeUtils.nowMs(userService.getDialogueBranchUser().getTimeZone());
 
-		ServerLoggedDialogue serverLoggedDialogue = (ServerLoggedDialogue)state.getLoggedDialogue();
-		ActiveDialogue dialogue = state.getActiveDialogue();
-		String userStatement = dialogue.getUserStatementFromReplyId(replyId);
-
-		// Update the serverLoggedDialogue with this interaction
-		serverLoggedDialogue.getInteractionList().add(new LoggedInteraction(
-				System.currentTimeMillis(), MessageSource.USER, "USER",
-				serverLoggedDialogue.getDialogueName(), dialogue.getCurrentNode().getTitle(),
-				state.getLoggedInteractionIndex(),
-				userStatement, replyId));
-
-		int userActionIndex = serverLoggedDialogue.getInteractionList().size() - 1;
+		ServerLoggedDialogue serverLoggedDialogue = (ServerLoggedDialogue) dialogue.getLoggedDialogue();
 
 		// Entering another dialogue reads its variables from the External Variable Service, as
-		// at a start; its log is made below, once its first node has run (#473). The listener
-		// also tells whether that happened: comparing the dialogue before and after would miss
-		// a reply that links into the start of the same dialogue, which starts a new log too.
+		// at a start (#473).
 		String projectSlug = serverLoggedDialogue.getProjectName();
-		ResolvedDialogue[] entered = new ResolvedDialogue[1];
-		dialogue.setDialogueSwitchListener((from, to) -> {
-			readExternalVariables(projectSlug, to.dialogue());
-			entered[0] = to;
-		});
+		dialogue.setDialogueSwitchListener(
+				(from, to) -> readExternalVariables(projectSlug, to.dialogue()));
 
 		Node nextNode;
 		try {
@@ -212,124 +209,55 @@ public class DialogueExecutor {
 			throw new RuntimeException("Expression evaluation error: " + ex.getMessage(), ex);
 		}
 
-		if (entered[0] == null) { // The dialogue continues within the same .dlb script
-			updateLoggedDialogue(dialogue, serverLoggedDialogue, userActionIndex);
-			userService.getLoggedDialogueStore().saveToSession(serverLoggedDialogue);
-			if (nextNode == null)
-				return null;
-			return new ExecuteNodeResult(state.getDialogueDefinition(), nextNode,
-					serverLoggedDialogue, serverLoggedDialogue.getInteractionList().size() - 1);
-		}
-
-		// The reply led into another .dlb script: its log completes, and a new one starts in the
-		// same session, for the dialogue that was entered.
-		serverLoggedDialogue.setCompleted(true);
+		ServerLoggedDialogue current = (ServerLoggedDialogue) dialogue.getLoggedDialogue();
 		userService.getLoggedDialogueStore().saveToSession(serverLoggedDialogue);
-		ServerLoggedDialogue enteredLog = newLoggedDialogue(entered[0],
-				progressDialogueEventTime, serverLoggedDialogue.getSessionId(),
-				serverLoggedDialogue.getSessionStartTime(), projectSlug);
-		updateLoggedDialogue(dialogue, enteredLog, -1);
-		userService.getLoggedDialogueStore().saveToSession(enteredLog);
-		return new ExecuteNodeResult(entered[0].dialogue(), nextNode, enteredLog,
-				enteredLog.getInteractionList().size() - 1);
+		if (current != serverLoggedDialogue) {
+			// The reply led into another .dlb script: the log it was given in is completed (saved
+			// above), and a new one started in the same session, for the dialogue that was entered.
+			userService.getLoggedDialogueStore().saveToSession(current);
+		}
+		if (nextNode == null)
+			return null;
+		return new ExecuteNodeResult(dialogue.getDialogueDefinition(), nextNode, current,
+				dialogue.getLoggedInteractionIndex());
 	}
 
 	/**
 	 * Reverts the given dialogue to the previous agent interaction node, re-executing that node
-	 * at the given event time and returning its result.
-	 *
-	 * @param state the current dialogue state from which to go back.
+	 * at the given event time and returning its result. Nothing is added to the log.
+	 * @param dialogue the ongoing dialogue, restored from its log at the step to go back from.
 	 * @param eventTime the timestamp of the back-navigation event in the user's time zone.
 	 * @return the {@link ExecuteNodeResult} for the previous agent node.
 	 * @throws ExecutionException if the previous state cannot be determined.
 	 */
-	public ExecuteNodeResult backDialogue(DialogueState state, ZonedDateTime eventTime)
+	public ExecuteNodeResult backDialogue(ActiveDialogue dialogue, ZonedDateTime eventTime)
 			throws ExecutionException {
-		ServerLoggedDialogue serverLoggedDialogue = (ServerLoggedDialogue)state.getLoggedDialogue();
-		List<LoggedInteraction> interactions = serverLoggedDialogue.getInteractionList();
-		int prevIndex = findPreviousAgentInteractionIndex(interactions,
-				state.getLoggedInteractionIndex());
-		DialogueState backState = userService.getDialogueState(serverLoggedDialogue,
-				prevIndex);
-		return executeCurrentNode(backState, eventTime);
-	}
-
-	private int findPreviousAgentInteractionIndex(List<LoggedInteraction> interactions,
-												  int start) {
-		LoggedInteraction interaction = interactions.get(start);
-		while (interaction.getPreviousIndex() != -1) {
-			int index = interaction.getPreviousIndex();
-			interaction = interactions.get(index);
-			if (interaction.getMessageSource() == MessageSource.AGENT)
-				return index;
-		}
-		return start;
-	}
-
-	/**
-	 * Executes the current node of the given dialogue state at the given event time, resolving
-	 * variables and returning the result.
-	 *
-	 * @param state the current dialogue state whose node should be executed.
-	 * @param eventTime the timestamp of the event in the user's time zone.
-	 * @return the {@link ExecuteNodeResult} for the current node.
-	 */
-	public ExecuteNodeResult executeCurrentNode(DialogueState state, ZonedDateTime eventTime) {
-		ServerLoggedDialogue serverLoggedDialogue = (ServerLoggedDialogue)state.getLoggedDialogue();
-		ActiveDialogue dialogue = state.getActiveDialogue();
-		dialogue.setVariableStore(
-				userService.getVariableStore(serverLoggedDialogue.getProjectName()));
-		Node node = dialogue.getCurrentNode();
+		Node node;
 		try {
-			node = dialogue.executeNode(node,eventTime);
+			node = dialogue.back(eventTime);
 		} catch (EvaluationException e) {
 			throw new RuntimeException("Expression evaluation error: " + e.getMessage(), e);
 		}
-		return new ExecuteNodeResult(state.getDialogueDefinition(),
-				node, serverLoggedDialogue, state.getLoggedInteractionIndex());
+		return new ExecuteNodeResult(dialogue.getDialogueDefinition(), node,
+				dialogue.getLoggedDialogue(), dialogue.getLoggedInteractionIndex());
 	}
 
 	/**
-	 * This method is called before the current node is returned from startDialogue() or
-	 * progressDialogue(). The current node is null after a reply to End.
-	 *
-	 * <p>If there is a current node, this method adds a logged agent interaction for it.</p>
-	 *
-	 * <p>If the dialogue has finished ({@link ActiveDialogue#isFinished()}), it is marked as
-	 * completed.</p>
-	 *
-	 * @param dialogue the dialogue, at its current node.
-	 * @param serverLoggedDialogue the {@link ServerLoggedDialogue} to update.
-	 * @param previousIndex the previous interaction index
+	 * Executes the current node of the given dialogue at the given event time, resolving
+	 * variables and returning the result.
+	 * @param dialogue the ongoing dialogue, restored from its log at the step to show.
+	 * @param eventTime the timestamp of the event in the user's time zone.
+	 * @return the {@link ExecuteNodeResult} for the current node.
 	 */
-	private void updateLoggedDialogue(ActiveDialogue dialogue,
-									  ServerLoggedDialogue serverLoggedDialogue,
-									  int previousIndex) {
-		Node node = dialogue.getCurrentNode();
-		ResolvedNodeBody body = node == null ? null : (ResolvedNodeBody) node.getBody();
-		if (node != null) {
-			StringBuilder agentStatement = new StringBuilder();
-			for (NodeBody.Segment segment : body.getSegments()) {
-				agentStatement.append(segment.toString());
-			}
-			String readableAgentStatement = agentStatement.toString();
-
-			serverLoggedDialogue.getInteractionList().add(new LoggedInteraction(
-				System.currentTimeMillis(),
-				MessageSource.AGENT,
-				node.getHeader().getSpeaker(),
-				serverLoggedDialogue.getDialogueName(),
-				node.getTitle(),
-				previousIndex,
-				readableAgentStatement,
-				-1)
-			);
-
+	public ExecuteNodeResult executeCurrentNode(ActiveDialogue dialogue, ZonedDateTime eventTime) {
+		Node node;
+		try {
+			node = dialogue.executeCurrentNode(eventTime);
+		} catch (EvaluationException e) {
+			throw new RuntimeException("Expression evaluation error: " + e.getMessage(), e);
 		}
-		if (dialogue.isFinished()) {
-			serverLoggedDialogue.setCompleted(true);
-		}
-
+		return new ExecuteNodeResult(dialogue.getDialogueDefinition(), node,
+				dialogue.getLoggedDialogue(), dialogue.getLoggedInteractionIndex());
 	}
 
 }
