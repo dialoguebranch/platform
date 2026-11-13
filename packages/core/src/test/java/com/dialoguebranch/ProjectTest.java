@@ -29,6 +29,7 @@
 package com.dialoguebranch;
 
 import com.dialoguebranch.execution.ActiveDialogue;
+import com.dialoguebranch.execution.ResolvedDialogue;
 import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.parser.ProjectParser;
@@ -41,8 +42,6 @@ import com.dialoguebranch.model.execute.Node;
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.Reply;
 import com.dialoguebranch.model.execute.ResourcePointer;
-import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
-import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -119,7 +118,8 @@ public class ProjectTest {
 		Dialogue dialogue = findDialogue(language, name);
 		assertNotNull("Dialogue '" + name + "' (" + language + ") not found", dialogue);
 		ResourcePointer rp = new ResourcePointer(language, name, null);
-		ActiveDialogue ad = new ActiveDialogue(rp, dialogue, new VariableStore(new User("test-user")));
+		ActiveDialogue ad = new ActiveDialogue(parseResult.getProject(),
+				new ResolvedDialogue(rp, dialogue), new VariableStore(new User("test-user")));
 		return ad;
 	}
 
@@ -140,10 +140,7 @@ public class ProjectTest {
 	private Node selectReply(ActiveDialogue ad, Node current, int replyIndex) throws Exception {
 		List<Reply> replies = current.getBody().getReplies();
 		int replyId = replies.get(replyIndex).getReplyId();
-		NodePointer np = ad.processReplyAndGetNodePointer(replyId, ZonedDateTime.now());
-		if (np instanceof InternalNodePointer ip)
-			return ad.progressDialogue(ip, ZonedDateTime.now());
-		return null;
+		return ad.selectReply(replyId, ZonedDateTime.now());
 	}
 
 	// ----------------------------------------------------------------- //

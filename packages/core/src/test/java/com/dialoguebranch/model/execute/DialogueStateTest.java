@@ -29,6 +29,7 @@
 package com.dialoguebranch.model.execute;
 
 import com.dialoguebranch.execution.ActiveDialogue;
+import com.dialoguebranch.execution.StandaloneDialogue;
 import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.model.common.ResourceType;
@@ -49,7 +50,7 @@ public class DialogueStateTest {
 		ResourcePointer pointer = new ResourcePointer("en", "flow", ResourceType.SCRIPT);
 		Dialogue definition = new Dialogue("flow");
 		LoggedDialogue log = new TestLoggedDialogue();
-		ActiveDialogue active = new ActiveDialogue(pointer, definition,
+		ActiveDialogue active = StandaloneDialogue.of(pointer, definition,
 				new VariableStore(new User("u")));
 
 		DialogueState state = new DialogueState(pointer, definition, log, 5, active);

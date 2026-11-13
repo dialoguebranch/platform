@@ -44,6 +44,8 @@ import org.junit.Test;
 import java.nio.file.Path;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.Assert.*;
 
@@ -80,6 +82,31 @@ public class ExecutableProjectStartTest {
 		assertEquals(new ResourcePointer("en", "basic", ResourceType.SCRIPT),
 				dialogue.getDialogueFileDescription());
 		assertEquals("sam", dialogue.getVariableStore().getUser().getId());
+	}
+
+	/** The example on the Core Java documentation page, played to its end. */
+	@Test
+	public void theDocumentedExampleRuns() throws Exception {
+		ExecutableProject project = ExecutableProject.load(Path.of(
+				ExecutableProjectStartTest.class.getClassLoader()
+						.getResource("project-test/dlb-project.xml").toURI()));
+		ActiveDialogue dialogue = project.startDialogue("menu", new User("sam"));
+
+		// The documented loop, with "chooseReply" taking the last reply (the first ones of the
+		// example project go round in circles), and a cap in case it never ends
+		List<String> visited = new ArrayList<>();
+		Node node = dialogue.getCurrentNode();
+		while (node != null && !node.getBody().getReplies().isEmpty() && visited.size() < 50) {
+			visited.add(dialogue.getDialogueFileDescription().getDialogueName() + "."
+					+ node.getTitle());
+			List<Reply> replies = node.getBody().getReplies();
+			Reply reply = visited.size() == 1 ? replies.get(0) : replies.get(replies.size() - 1);
+			node = dialogue.selectReply(reply.getReplyId(), ZonedDateTime.now());
+		}
+
+		// The first reply of "menu" leads into "basic", whose last reply ends it
+		assertEquals(List.of("menu.Start", "basic.Start"), visited);
+		assertNull(node);
 	}
 
 	@Test

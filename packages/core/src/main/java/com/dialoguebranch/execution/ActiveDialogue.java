@@ -53,7 +53,9 @@ import java.util.function.Function;
  * An {@link ActiveDialogue} is a wrapper around a {@link Dialogue}, which contains a static
  * definition of a dialogue (referred to as the {@code dialogueDefinition}). The
  * {@link ActiveDialogue} also contains utility functions to keep track of the state during
- * "execution" of the dialogue.
+ * "execution" of the dialogue. When a reply leads into another dialogue, it switches to that
+ * dialogue itself, found by its {@link DialogueResolver} (see {@link #selectReply}), so one
+ * {@link ActiveDialogue} runs a conversation across dialogues (#473).
  *
  * <p><b>Not thread-safe.</b> {@link #getCurrentNode()}/{@link #setCurrentNode(Node)} and the
  * dialogue-progression methods below mutate {@link #currentNode} with no synchronization — two
@@ -81,8 +83,8 @@ public class ActiveDialogue {
 	 */
 	private ResourcePointer dialogueFileDescription;
 
-	/** Finds the dialogue a reply leads into, or {@code null} if this dialogue can't follow one. */
-	private final @Nullable DialogueResolver resolver;
+	/** Finds the dialogue a reply leads into. */
+	private final DialogueResolver resolver;
 
 	/** Hears when a reply leads into another dialogue, or {@code null}. */
 	private @Nullable DialogueSwitchListener switchListener;
@@ -92,7 +94,9 @@ public class ActiveDialogue {
 
 	/**
 	 * The dialogue as translated for each gender of the end user (#400), or {@code null} when
-	 * the translation doesn't change with it (see {@link #setUserGenderTranslations}).
+	 * the translation doesn't change with it (see {@link ResolvedDialogue#userGenderTranslations()}).
+	 * Before every step, the value of {@code $dlb.userGender} in the variable store selects the
+	 * definition used for it.
 	 */
 	private @Nullable Function<TranslationContext.Gender, Dialogue> userGenderTranslations;
 
@@ -107,24 +111,6 @@ public class ActiveDialogue {
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
-
-	/**
-	 * Creates an instance of an {@link ActiveDialogue} with a given
-	 * {@link ResourcePointer}, {@link Dialogue} and {@link VariableStore}.
-	 *
-	 * @param dialogueFileDescription the {@link ResourcePointer} containing metadata
-	 *                                of the dialogue file used in this {@link ActiveDialogue}.
-	 * @param dialogueDefinition the dialogue definition
-	 * @param variableStore the {@link VariableStore} used to read and write Dialogue Branch
-	 *                      variables while this dialogue runs.
-	 */
-	public ActiveDialogue(ResourcePointer dialogueFileDescription,
-						  Dialogue dialogueDefinition, VariableStore variableStore) {
-		this.dialogueFileDescription = dialogueFileDescription;
-		this.dialogueDefinition = dialogueDefinition;
-		this.variableStore = variableStore;
-		this.resolver = null;
-	}
 
 	/**
 	 * Creates an {@link ActiveDialogue} for the given dialogue, which follows replies into other
@@ -149,19 +135,6 @@ public class ActiveDialogue {
 	// ----------------------------------------------------------- //
 	// -------------------- Getters & Setters -------------------- //
 	// ----------------------------------------------------------- //
-
-	/**
-	 * Lets this dialogue follow the end user's gender (#400): before every step, the value of
-	 * {@code $dlb.userGender} in the variable store selects the dialogue definition used for it,
-	 * given by {@code translations}. Each must be the same dialogue (same nodes), translated for
-	 * that gender.
-	 *
-	 * @param translations the dialogue for each gender of the end user.
-	 */
-	public void setUserGenderTranslations(
-			@Nullable Function<TranslationContext.Gender, Dialogue> translations) {
-		this.userGenderTranslations = translations;
-	}
 
 	/**
 	 * Sets the listener that hears when a reply leads into another dialogue, just before the
@@ -316,11 +289,9 @@ public class ActiveDialogue {
 	 */
 	public @Nullable Node selectReply(int replyId, ZonedDateTime eventTime)
 			throws ExecutionException, EvaluationException {
-		DialogueResolver dialogueResolver = Objects.requireNonNull(resolver,
-				"This ActiveDialogue was created without a DialogueResolver");
-		NodePointer nodePointer = processReplyAndGetNodePointer(replyId, eventTime);
+		NodePointer nodePointer = processReply(replyId, eventTime);
 		if (nodePointer instanceof ExternalNodePointer externalPointer) {
-			ResolvedDialogue target = dialogueResolver.resolve(
+			ResolvedDialogue target = resolver.resolve(
 					externalPointer.getAbsoluteTargetDialogue(),
 					dialogueFileDescription.getLanguage());
 			if (target.dialogue().getNodeById(externalPointer.getTargetNodeId()) == null) {
@@ -336,7 +307,7 @@ public class ActiveDialogue {
 			this.userGenderTranslations = target.userGenderTranslations();
 			return startDialogue(externalPointer.getTargetNodeId(), eventTime);
 		}
-		return progressDialogue((InternalNodePointer) nodePointer, eventTime);
+		return followInternalPointer((InternalNodePointer) nodePointer, eventTime);
 	}
 
 	/**
@@ -350,7 +321,7 @@ public class ActiveDialogue {
 	 * @return The {@link NodePointer} pointing to the next Dialogue Branch Node
 	 * @throws EvaluationException if an expression cannot be evaluated
 	 */
-	public NodePointer processReplyAndGetNodePointer(int replyId, ZonedDateTime eventTime)
+	private NodePointer processReply(int replyId, ZonedDateTime eventTime)
 			throws EvaluationException {
 		Node current = Objects.requireNonNull(currentNode,
 				"Dialogue has not been started");
@@ -383,7 +354,8 @@ public class ActiveDialogue {
 	 * @return the next {@link Node} that follows on the selected reply or {@code null}
 	 * @throws EvaluationException if an expression cannot be evaluated
 	 */
-	public @Nullable Node progressDialogue(InternalNodePointer nodePointer, ZonedDateTime eventTime)
+	private @Nullable Node followInternalPointer(InternalNodePointer nodePointer,
+			ZonedDateTime eventTime)
 			throws EvaluationException {
 		followUserGender();
 		Node nextNode = null;
@@ -398,7 +370,7 @@ public class ActiveDialogue {
 	 * Stores a set of variable values that were captured directly from the user's reply — the
 	 * values entered into the {@code <<input ...>>} fields of the reply option they selected — into
 	 * the {@link VariableStore}, tagged with {@link VariableUpdatedSource#INPUT_REPLY}. Call this
-	 * before {@link #progressDialogue} so the next node's {@code if}/{@code set}/text can already
+	 * before {@link #selectReply} so the next node's {@code if}/{@code set}/text can already
 	 * see the entered values. The {@code INPUT_REPLY} source is what tells these apart from
 	 * script-set ({@link VariableUpdatedSource#DLB_SCRIPT}), external-service, or web-service-set
 	 * values later on.

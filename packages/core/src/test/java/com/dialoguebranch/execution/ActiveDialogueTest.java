@@ -39,8 +39,6 @@ import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.NodeHeader;
 import com.dialoguebranch.model.execute.Reply;
 import com.dialoguebranch.model.execute.ResourcePointer;
-import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
-import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -125,7 +123,7 @@ public class ActiveDialogueTest {
 			dialogue = result.getDialogue();
 		}
 		store = new VariableStore(new User("tester"));
-		active = new ActiveDialogue(
+		active = StandaloneDialogue.of(
 				new ResourcePointer("en", "flow", ResourceType.SCRIPT), dialogue, store);
 	}
 
@@ -135,8 +133,7 @@ public class ActiveDialogueTest {
 	}
 
 	private Node selectReply(Node current, int index) throws Exception {
-		NodePointer pointer = active.processReplyAndGetNodePointer(replyId(current, index), NOW);
-		return active.progressDialogue((InternalNodePointer) pointer, NOW);
+		return active.selectReply(replyId(current, index), NOW);
 	}
 
 	// ---------------------------------------------------------------- //
@@ -174,7 +171,7 @@ public class ActiveDialogueTest {
 		Dialogue noStart = new Dialogue("nostart");
 		Node other = new Node(new NodeHeader("Other"), new NodeBody.Builder().build());
 		noStart.addNode(other);
-		ActiveDialogue ad = new ActiveDialogue(
+		ActiveDialogue ad = StandaloneDialogue.of(
 				new ResourcePointer("en", "nostart", ResourceType.SCRIPT), noStart, store);
 
 		ExecutionException ex =
@@ -187,14 +184,13 @@ public class ActiveDialogueTest {
 	// ---------------------------------------------------------------- //
 
 	@Test
-	public void selectingAReplyRunsItsSetCommandAndReturnsAPointerToTheTarget() throws Exception {
+	public void selectingAReplyRunsItsSetCommandAndReturnsTheTarget() throws Exception {
 		active.startDialogue("Middle", NOW);
 
-		NodePointer pointer =
-				active.processReplyAndGetNodePointer(replyId(active.getCurrentNode(), 0), NOW);
+		Node last = active.selectReply(replyId(active.getCurrentNode(), 0), NOW);
 
-		assertTrue(pointer instanceof InternalNodePointer);
-		assertEquals("Last", ((InternalNodePointer) pointer).getTargetNodeId());
+		assertEquals("Last", last.getTitle());
+		assertSame(last, active.getCurrentNode());
 		assertEquals("A", store.getValue("choice"));
 		assertEquals(VariableUpdatedSource.DLB_SCRIPT,
 				store.getVariable("choice").getUpdatedSource());

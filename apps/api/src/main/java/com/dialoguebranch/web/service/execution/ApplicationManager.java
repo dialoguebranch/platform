@@ -492,7 +492,7 @@ public class ApplicationManager {
 
 	/**
 	 * Returns the given dialogue of a loaded project as translated for each gender of the end user
-	 * (#400), for {@link com.dialoguebranch.execution.ActiveDialogue#setUserGenderTranslations}.
+	 * (#400), for {@link com.dialoguebranch.execution.ResolvedDialogue#userGenderTranslations()}.
 	 *
 	 * @param projectSlug the project's slug.
 	 * @param dialogueDescription the dialogue (name and language).
