@@ -20,6 +20,16 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `DIALOGUE_NOT_FOUND`. `getDialoguePointer(name, language)` returns the dialogue's
   `ResourcePointer`, and `getSourceLanguage()` returns the project's source language, also for a
   project without metadata ([#473](https://github.com/dialoguebranch/platform/issues/473)).
+- Core: `ExecutableProject.generateSummaryString()` describes a loaded project, as
+  `ProjectParserResult.generateSummaryString()` did for a parse without errors
+  ([#473](https://github.com/dialoguebranch/platform/issues/473)).
+
+### Changed
+
+- Core: the command-line tool (`DialogueBranchCLI`) plays a dialogue that isn't translated into
+  the chosen language in the source language, also when a reply links into it, like the Web
+  Service does. It used to stop with an error. A language the project doesn't have is still an
+  error ([#473](https://github.com/dialoguebranch/platform/issues/473)).
 
 ## [0.9.2] - 2026-11-11
 

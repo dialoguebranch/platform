@@ -29,11 +29,8 @@
 package com.dialoguebranch.execution.parser;
 
 import com.dialoguebranch.exception.ParseException;
-import com.dialoguebranch.i18n.ContextTranslation;
-import com.dialoguebranch.i18n.Translatable;
 import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.ExecutableProject;
-import com.dialoguebranch.model.execute.ResourcePointer;
 import org.jspecify.annotations.Nullable;
 
 import java.util.LinkedHashMap;
@@ -175,66 +172,10 @@ public class ProjectParserResult {
 			return result.toString();
 		}
 
-		// In case there are no errors, first list all warnings
-		if(!this.getWarnings().isEmpty()) {
-			result.append("Dialogue Branch project at ")
-					.append(projectLocationDescription)
-					.append(" contains ")
-					.append("the following warnings.\n");
-			for (String key : this.getWarnings().keySet()) {
-				result.append("WARNING: ")
-						.append(key)
-						.append("\n");
-				List<String> warningStrings = this.getWarnings().get(key);
-				for (String warningString : warningStrings) {
-					result.append("  - ")
-							.append(warningString)
-							.append("\n");
-				}
-			}
-		}
-
+		// Without errors, the summary is the project's own
 		ExecutableProject project = Objects.requireNonNull(this.getProject(),
 				"Cannot summarise a project parse result that has no project");
-		result.append("Project Summary:\n");
-		result.append("Location: ")
-				.append(projectLocationDescription)
-				.append("\n");
-
-		Map<ResourcePointer, Dialogue> sourceDialogues = project.getSourceDialogues();
-		result.append("Number of Dialogue Scripts: ")
-				.append(sourceDialogues.size())
-				.append("\n");
-		for(ResourcePointer dialogueDescription : sourceDialogues.keySet()) {
-			result.append("  - ")
-					.append(dialogueDescription)
-					.append("\n");
-		}
-
-		Map<ResourcePointer,Map<Translatable,List<ContextTranslation>>> translations =
-				project.getTranslations();
-		result.append("Number of Translation Scripts: ")
-				.append(translations.size())
-				.append("\n");
-		for(ResourcePointer dialogueDescription : translations.keySet()) {
-			result.append("  - ")
-					.append(dialogueDescription)
-					.append("\n");
-		}
-
-		Map<ResourcePointer, Dialogue> dialogues = project.getDialogues();
-
-		for (ResourcePointer dialogue : dialogues.keySet()) {
-			result.append("----------");
-			result.append("DIALOGUE ")
-					.append(dialogue.getDialogueName())
-					.append(" (")
-					.append(dialogue.getLanguage())
-					.append(")\n");
-			result.append(dialogues.get(dialogue)).append("\n");
-		}
-
-		return result.toString();
+		return project.generateSummaryString();
 	}
 
 }

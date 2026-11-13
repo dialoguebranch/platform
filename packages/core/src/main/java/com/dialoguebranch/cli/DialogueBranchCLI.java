@@ -31,12 +31,10 @@ package com.dialoguebranch.cli;
 import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.exception.InvalidInputException;
 import com.dialoguebranch.exception.ParseException;
+import com.dialoguebranch.exception.ProjectParseException;
 import com.dialoguebranch.execution.ActiveDialogue;
 import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.VariableStore;
-import com.dialoguebranch.execution.parser.ProjectParser;
-import com.dialoguebranch.execution.parser.ProjectParserResult;
-import com.dialoguebranch.execution.parser.ProjectScriptLoader;
 import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.model.common.DialogueBranchConstants;
 import com.dialoguebranch.model.common.ProjectMetaData;
@@ -57,7 +55,6 @@ import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Scanner;
 
@@ -215,22 +212,10 @@ public class DialogueBranchCLI {
 	 *         indicate a runtime error, only something worth an author's attention.
 	 */
 	private static int validateNonInteractive(File projectFile) {
-		ProjectParserResult result;
-		try {
-			ProjectScriptLoader scriptLoader = new ProjectScriptLoader(projectFile);
-			ProjectParser parser = new ProjectParser(scriptLoader);
-			result = parser.parse();
-		} catch (IOException | ParseException e) {
-			System.err.println("ERROR: Failed to load project: " + e.getMessage());
+		ExecutableProject project = loadProject(projectFile, "ERROR: Failed to load project: ");
+		if (project == null)
 			return EXIT_PARSE_ERROR;
-		}
-		if (!result.getParseErrors().isEmpty()) {
-			System.err.println("Project contains parse errors:");
-			result.getParseErrors().forEach((file, errors) ->
-					errors.forEach(e -> System.err.println("  [" + file + "] " + e.getMessage())));
-			return EXIT_PARSE_ERROR;
-		}
-		System.out.println(result.generateSummaryString());
+		System.out.println(project.generateSummaryString());
 		return EXIT_OK;
 	}
 
@@ -247,33 +232,20 @@ public class DialogueBranchCLI {
 	 */
 	private static int executeNonInteractive(File projectFile, String language,
 											 String dialogueName) {
-		ExecutableProject execProject;
-		try {
-			ProjectScriptLoader scriptLoader = new ProjectScriptLoader(projectFile);
-			ProjectParser parser = new ProjectParser(scriptLoader);
-			ProjectParserResult result = parser.parse();
-			if (!result.getParseErrors().isEmpty()) {
-				System.err.println("Project contains parse errors:");
-				result.getParseErrors().forEach((file, errors) ->
-						errors.forEach(e -> System.err.println("  [" + file + "] " + e.getMessage())));
-				return EXIT_PARSE_ERROR;
-			}
-			execProject = Objects.requireNonNull(result.getProject(),
-					"A project that parsed without errors has no ExecutableProject");
-		} catch (IOException | ParseException e) {
-			System.err.println("ERROR: Failed to load project for execution: " + e.getMessage());
+		ExecutableProject execProject = loadProject(projectFile,
+				"ERROR: Failed to load project for execution: ");
+		if (execProject == null)
 			return EXIT_PARSE_ERROR;
-		}
 
-		Map.Entry<ResourcePointer, Dialogue> found =
-				findDialogue(execProject, language, dialogueName);
-		if (found == null) {
+		ResourcePointer pointer = execProject.getLanguages().contains(language)
+				? findDialogue(execProject, language, dialogueName) : null;
+		if (pointer == null) {
 			System.err.println("ERROR: Could not find dialogue '" + dialogueName
 					+ "' (" + language + ") in the parsed project.");
 			return EXIT_USAGE_ERROR;
 		}
 
-		runDialogueLoop(new Scanner(System.in), execProject, found.getKey(), found.getValue());
+		runDialogueLoop(new Scanner(System.in), execProject, pointer);
 		return EXIT_OK;
 	}
 
@@ -326,23 +298,10 @@ public class DialogueBranchCLI {
 	 * @param projectFile the {@code dlb-project.xml} file to load the project from.
 	 */
 	private static void executeDialogue(Scanner scanner, File projectFile) {
-		ExecutableProject execProject;
-		try {
-			ProjectScriptLoader scriptLoader = new ProjectScriptLoader(projectFile);
-			ProjectParser parser = new ProjectParser(scriptLoader);
-			ProjectParserResult result = parser.parse();
-			if (!result.getParseErrors().isEmpty()) {
-				System.err.println("Project contains parse errors:");
-				result.getParseErrors().forEach((file, errors) ->
-						errors.forEach(e -> System.err.println("  [" + file + "] " + e.getMessage())));
-				return;
-			}
-			execProject = Objects.requireNonNull(result.getProject(),
-					"A project that parsed without errors has no ExecutableProject");
-		} catch (IOException | ParseException e) {
-			System.err.println("Failed to load project for execution: " + e.getMessage() + "\n");
+		ExecutableProject execProject = loadProject(projectFile,
+				"Failed to load project for execution: ");
+		if (execProject == null)
 			return;
-		}
 
 		// Collect the available languages from the loaded dialogues
 		List<String> languages = new ArrayList<>();
@@ -405,15 +364,14 @@ public class DialogueBranchCLI {
 			return;
 		}
 
-		Map.Entry<ResourcePointer, Dialogue> found =
-				findDialogue(execProject, selectedLanguage, selectedDialogue);
-		if (found == null) {
+		ResourcePointer pointer = findDialogue(execProject, selectedLanguage, selectedDialogue);
+		if (pointer == null) {
 			System.out.println("Could not locate dialogue '" + selectedDialogue
 					+ "' (" + selectedLanguage + ") in the parsed project.\n");
 			return;
 		}
 
-		runDialogueLoop(scanner, execProject, found.getKey(), found.getValue());
+		runDialogueLoop(scanner, execProject, pointer);
 	}
 
 	/**
@@ -422,11 +380,12 @@ public class DialogueBranchCLI {
 	 *
 	 * @param scanner     the shared {@link Scanner} for reading user input.
 	 * @param project     the {@link ExecutableProject} used for cross-dialogue navigation.
-	 * @param pointer     the {@link ResourcePointer} identifying the starting dialogue.
-	 * @param dialogue    the {@link Dialogue} to execute.
+	 * @param pointer     the {@link ResourcePointer} identifying the dialogue to execute.
 	 */
 	private static void runDialogueLoop(Scanner scanner, ExecutableProject project,
-										ResourcePointer pointer, Dialogue dialogue) {
+										ResourcePointer pointer) {
+		Dialogue dialogue = Objects.requireNonNull(project.getDialogues().get(pointer),
+				"A dialogue pointer from the project has no dialogue");
 		User user = new User("cli-user");
 		VariableStore variableStore = new VariableStore(user);
 
@@ -535,15 +494,14 @@ public class DialogueBranchCLI {
 			String targetDialogueName = externalPointer.getAbsoluteTargetDialogue();
 			String targetLanguage = Objects.requireNonNull(currentPointer.getLanguage(),
 					"External node pointer has no language");
-			Map.Entry<ResourcePointer, Dialogue> found =
-					findDialogue(project, targetLanguage, targetDialogueName);
-			if (found == null) {
+			ResourcePointer target = findDialogue(project, targetLanguage, targetDialogueName);
+			if (target == null) {
 				System.err.println("Could not find external dialogue '" + targetDialogueName
 						+ "' (" + targetLanguage + ").\n");
 				return null;
 			}
 			System.out.println("\n[Jumping to dialogue: " + targetDialogueName + "]\n");
-			runDialogueLoop(scanner, project, found.getKey(), found.getValue());
+			runDialogueLoop(scanner, project, target);
 			return null;
 		}
 
@@ -551,24 +509,47 @@ public class DialogueBranchCLI {
 	}
 
 	/**
-	 * Looks up the dialogue for the given {@code language} and {@code dialogueName} in the
-	 * project's dialogue map.
+	 * Looks up the dialogue with the given name in the given language, falling back to the
+	 * project's source language if it isn't translated into that language (see {@link
+	 * ExecutableProject#getDialoguePointer(String, String)}).
 	 *
 	 * @param project      the {@link ExecutableProject} to search.
-	 * @param language     the language code to match.
-	 * @param dialogueName the dialogue name to match.
-	 * @return the matching {@link ResourcePointer}/{@link Dialogue} entry, or {@code null} if no
-	 *         dialogue matches both.
+	 * @param language     the language code.
+	 * @param dialogueName the dialogue name.
+	 * @return the dialogue's {@link ResourcePointer}, or {@code null} if the project has no
+	 *         dialogue with that name.
 	 */
-	private static Map.@Nullable Entry<ResourcePointer, Dialogue> findDialogue(ExecutableProject project,
-																	 String language,
-																	 String dialogueName) {
-		for (Map.Entry<ResourcePointer, Dialogue> entry : project.getDialogues().entrySet()) {
-			ResourcePointer rp = entry.getKey();
-			if (language.equals(rp.getLanguage()) && dialogueName.equals(rp.getDialogueName()))
-				return entry;
+	private static @Nullable ResourcePointer findDialogue(ExecutableProject project,
+			String language, String dialogueName) {
+		try {
+			return project.getDialoguePointer(dialogueName, language);
+		} catch (ExecutionException e) {
+			return null;
 		}
-		return null;
+	}
+
+	/**
+	 * Loads the project from the given metadata file. If it can't be loaded, prints why to
+	 * {@link System#err}: every parse error with its file, or the given prefix and the reason.
+	 *
+	 * @param projectFile the {@code dlb-project.xml} file to load the project from.
+	 * @param failurePrefix the start of the message if the project can't be read at all.
+	 * @return the project, or {@code null} if it can't be loaded.
+	 */
+	private static @Nullable ExecutableProject loadProject(File projectFile,
+			String failurePrefix) {
+		try {
+			return ExecutableProject.load(projectFile.toPath());
+		} catch (ProjectParseException e) {
+			System.err.println("Project contains parse errors:");
+			e.getErrors().forEach((file, errors) ->
+					errors.forEach(error -> System.err.println("  [" + file + "] "
+							+ error.getMessage())));
+			return null;
+		} catch (IOException | ParseException e) {
+			System.err.println(failurePrefix + e.getMessage());
+			return null;
+		}
 	}
 
 	/**
@@ -624,24 +605,9 @@ public class DialogueBranchCLI {
 			}
 		}
 
-		ProjectParserResult result;
-		try {
-			ProjectScriptLoader scriptLoader = new ProjectScriptLoader(projectFile);
-			ProjectParser parser = new ProjectParser(scriptLoader);
-			result = parser.parse();
-		} catch (IOException | ParseException e) {
-			System.err.println("Failed to load project: " + e.getMessage() + "\n");
+		ExecutableProject project = loadProject(projectFile, "Failed to load project: ");
+		if (project == null)
 			return;
-		}
-		if (!result.getParseErrors().isEmpty()) {
-			System.err.println("Project contains parse errors:");
-			result.getParseErrors().forEach((file, errors) ->
-					errors.forEach(e -> System.err.println("  [" + file + "] " + e.getMessage())));
-			return;
-		}
-
-		ExecutableProject project = Objects.requireNonNull(result.getProject(),
-				"A project that parsed without errors has no ExecutableProject");
 		ProjectMetaData meta = Objects.requireNonNull(project.getMetaData(),
 				"A project loaded from a metadata file has no ProjectMetaData");
 		System.out.println("\nLoaded project: " + meta.getName() + " (v" + meta.getVersion() + ")\n");
@@ -651,7 +617,7 @@ public class DialogueBranchCLI {
 			printProjectMenu(meta.getName());
 			String choice = scanner.nextLine().trim();
 			switch (choice) {
-				case "1" -> System.out.println("\n" + result.generateSummaryString());
+				case "1" -> System.out.println("\n" + project.generateSummaryString());
 				case "2" -> executeDialogue(scanner, projectFile);
 				case "0" -> {
 					System.out.println("Returning to main menu.\n");

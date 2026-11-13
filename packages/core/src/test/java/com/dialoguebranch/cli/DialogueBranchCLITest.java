@@ -34,9 +34,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -63,11 +65,13 @@ public class DialogueBranchCLITest {
 	private final ByteArrayOutputStream err = new ByteArrayOutputStream();
 	private PrintStream originalOut;
 	private PrintStream originalErr;
+	private InputStream originalIn;
 
 	@Before
 	public void captureStdio() {
 		originalOut = System.out;
 		originalErr = System.err;
+		originalIn = System.in;
 		System.setOut(new PrintStream(out, true, StandardCharsets.UTF_8));
 		System.setErr(new PrintStream(err, true, StandardCharsets.UTF_8));
 	}
@@ -76,6 +80,13 @@ public class DialogueBranchCLITest {
 	public void restoreStdio() {
 		System.setOut(originalOut);
 		System.setErr(originalErr);
+		System.setIn(originalIn);
+	}
+
+	/** Feeds the given lines to the CLI as the user's input. */
+	private static void input(String... lines) {
+		System.setIn(new ByteArrayInputStream((String.join("\n", lines) + "\n")
+				.getBytes(StandardCharsets.UTF_8)));
 	}
 
 	private String stdout() {
@@ -98,6 +109,30 @@ public class DialogueBranchCLITest {
 		File en = tmp.newFolder("en");
 		Files.writeString(new File(en, "intro.dlb").toPath(),
 				"title: Start\ntags:\nspeaker: Robot\n---\n" + introBody + "\n===\n");
+		return new File(tmp.getRoot(), "dlb-project.xml");
+	}
+
+	/**
+	 * Writes a project with the source language "en" and the translation language "nl":
+	 * "intro" (translated) links into "outro" (not translated).
+	 */
+	private File translatedProject() throws IOException {
+		Files.writeString(new File(tmp.getRoot(), "dlb-project.xml").toPath(), """
+			<dlb-project name="CLI Test" version="1">
+				<language-map>
+					<source-language code="en" name="English"/>
+					<translation-language code="nl" name="Dutch"/>
+				</language-map>
+			</dlb-project>
+			""");
+		File en = tmp.newFolder("en");
+		Files.writeString(new File(en, "intro.dlb").toPath(),
+				"title: Start\nspeaker: Robot\n---\nHello.\n[[Onwards.|outro.Start]]\n===\n");
+		Files.writeString(new File(en, "outro.dlb").toPath(),
+				"title: Start\nspeaker: Robot\n---\nGoodbye.\n===\n");
+		File nl = tmp.newFolder("nl");
+		Files.writeString(new File(nl, "intro.json").toPath(),
+				"{\"Robot\":{\"Hello.\":\"Hallo.\"},\"_user\":{\"Onwards.\":\"Verder.\"}}");
 		return new File(tmp.getRoot(), "dlb-project.xml");
 	}
 
@@ -127,6 +162,20 @@ public class DialogueBranchCLITest {
 				new String[] {xml.getAbsolutePath(), "--validate"});
 		assertEquals(EXIT_PARSE_ERROR, code);
 		assertTrue(stderr(), stderr().contains("parse errors"));
+		assertTrue(stderr(), stderr().contains("[en/intro] "));
+		assertTrue(stderr(), stderr().contains("DoesNotExist"));
+	}
+
+	@Test
+	public void validatePrintsTheWarningsWithTheSummary() throws Exception {
+		File xml = translatedProject();
+		Files.writeString(new File(tmp.getRoot(), "nl/outro.json").toPath(), "");
+		int code = DialogueBranchCLI.runNonInteractive(
+				new String[] {xml.getAbsolutePath(), "--validate"});
+		assertEquals(EXIT_OK, code);
+		assertTrue(stdout(), stdout().contains("WARNING: "));
+		assertTrue(stdout(), stdout().contains("Empty translation file"));
+		assertTrue(stdout(), stdout().contains("Number of Dialogue Scripts: 2"));
 	}
 
 	// ---------------------------------------------------------------- //
@@ -139,6 +188,49 @@ public class DialogueBranchCLITest {
 				project("The end, immediately.").getAbsolutePath(), "--execute", "en", "intro"});
 		assertEquals(EXIT_OK, code);
 		assertTrue(stdout(), stdout().contains("Dialogue finished."));
+	}
+
+	@Test
+	public void executeFollowsALinkIntoAnotherDialogueInTheSameLanguage() throws Exception {
+		File xml = translatedProject();
+		Files.writeString(new File(tmp.getRoot(), "nl/outro.json").toPath(),
+				"{\"Robot\":{\"Goodbye.\":\"Tot ziens.\"}}");
+		input("1");
+		int code = DialogueBranchCLI.runNonInteractive(new String[] {
+				xml.getAbsolutePath(), "--execute", "nl", "intro"});
+		assertEquals(EXIT_OK, code);
+		assertTrue(stdout(), stdout().contains("Agent: Hallo."));
+		assertTrue(stdout(), stdout().contains("1. Verder."));
+		assertTrue(stdout(), stdout().contains("Executing: outro [nl]"));
+		assertTrue(stdout(), stdout().contains("Agent: Tot ziens."));
+	}
+
+	@Test
+	public void aLinkIntoAnUntranslatedDialogueContinuesInTheSourceLanguage() throws Exception {
+		input("1");
+		int code = DialogueBranchCLI.runNonInteractive(new String[] {
+				translatedProject().getAbsolutePath(), "--execute", "nl", "intro"});
+		assertEquals(EXIT_OK, code);
+		assertTrue(stdout(), stdout().contains("Agent: Hallo."));
+		assertTrue(stdout(), stdout().contains("Executing: outro [en]"));
+		assertTrue(stdout(), stdout().contains("Agent: Goodbye."));
+		assertEquals("", stderr());
+	}
+
+	@Test
+	public void executeAnUntranslatedDialogueRunsItInTheSourceLanguage() throws Exception {
+		int code = DialogueBranchCLI.runNonInteractive(new String[] {
+				translatedProject().getAbsolutePath(), "--execute", "nl", "outro"});
+		assertEquals(EXIT_OK, code);
+		assertTrue(stdout(), stdout().contains("Executing: outro [en]"));
+	}
+
+	@Test
+	public void executeInALanguageTheProjectDoesntHaveIsAUsageError() throws Exception {
+		int code = DialogueBranchCLI.runNonInteractive(new String[] {
+				translatedProject().getAbsolutePath(), "--execute", "fr", "intro"});
+		assertEquals(EXIT_USAGE_ERROR, code);
+		assertTrue(stderr(), stderr().contains("Could not find dialogue 'intro' (fr)"));
 	}
 
 	@Test

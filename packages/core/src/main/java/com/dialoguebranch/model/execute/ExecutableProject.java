@@ -366,6 +366,76 @@ public class ExecutableProject implements DialogueBranchProject {
 		return translator.translate(dialogue);
 	}
 
+	/**
+	 * Generates a human-readable summary of this project: where it was loaded from, its parse
+	 * warnings, its dialogue and translation files, and the contents of every dialogue.
+	 *
+	 * @return a human-readable summary of this project.
+	 */
+	public String generateSummaryString() {
+		StringBuilder result = new StringBuilder();
+
+		result.append("===== Summary of Results for Parsing Dialogue Branch Project =====\n");
+
+		String projectLocationDescription = "unknown";
+		if (metaData != null && metaData.getBasePath() != null)
+			projectLocationDescription = metaData.getBasePath();
+
+		// First list all warnings
+		if(!this.warnings.isEmpty()) {
+			result.append("Dialogue Branch project at ")
+					.append(projectLocationDescription)
+					.append(" contains ")
+					.append("the following warnings.\n");
+			for (String key : this.warnings.keySet()) {
+				result.append("WARNING: ")
+						.append(key)
+						.append("\n");
+				List<String> warningStrings = this.warnings.get(key);
+				for (String warningString : warningStrings) {
+					result.append("  - ")
+							.append(warningString)
+							.append("\n");
+				}
+			}
+		}
+
+		result.append("Project Summary:\n");
+		result.append("Location: ")
+				.append(projectLocationDescription)
+				.append("\n");
+
+		result.append("Number of Dialogue Scripts: ")
+				.append(sourceDialogues.size())
+				.append("\n");
+		for(ResourcePointer dialogueDescription : sourceDialogues.keySet()) {
+			result.append("  - ")
+					.append(dialogueDescription)
+					.append("\n");
+		}
+
+		result.append("Number of Translation Scripts: ")
+				.append(translations.size())
+				.append("\n");
+		for(ResourcePointer dialogueDescription : translations.keySet()) {
+			result.append("  - ")
+					.append(dialogueDescription)
+					.append("\n");
+		}
+
+		for (ResourcePointer dialogue : dialogues.keySet()) {
+			result.append("----------");
+			result.append("DIALOGUE ")
+					.append(dialogue.getDialogueName())
+					.append(" (")
+					.append(dialogue.getLanguage())
+					.append(")\n");
+			result.append(dialogues.get(dialogue)).append("\n");
+		}
+
+		return result.toString();
+	}
+
 	@Override
 	public List<ResourcePointer> getResourcePointers() {
 		return new ArrayList<>(dialogues.keySet());
