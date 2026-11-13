@@ -18,6 +18,7 @@ import { isUndefinedSpeaker, projectSpeakers, speakerForNewNode } from '@/compos
 import { useLatestRequest } from '@/composables/latest-request.js';
 import NodeEditPanel from './NodeEditPanel.vue';
 import PreambleBar from './PreambleBar.vue';
+import ContextMenu from '../widgets/ContextMenu.vue';
 
 // Pure content component — no header of its own. It's only ever embedded in
 // DialogueWorkspace.vue's "edit" mode, whose own toolbar (with the balloon/text/edit
@@ -369,9 +370,27 @@ function addNode(position) {
         });
 }
 
+// A right-click on the canvas opens a menu to add a node there, so a stray right-click doesn't
+// make one; Shift+right-click adds it at once, for whoever adds many.
+const paneMenu = ref(null); // { x, y } on screen, and the point in the flow it was opened at
+
+const PANE_MENU_ITEMS = [
+    { id: 'add-node', label: 'Add node here', icon: 'fa-solid fa-plus', test: 'pane-menu-add-node' },
+];
+
 function onPaneContextMenu(event) {
     event.preventDefault();
-    addNode(screenToFlowCoordinate({ x: event.clientX, y: event.clientY }));
+    const position = screenToFlowCoordinate({ x: event.clientX, y: event.clientY });
+    if (event.shiftKey) {
+        paneMenu.value = null;
+        addNode(position);
+        return;
+    }
+    paneMenu.value = { x: event.clientX, y: event.clientY, position };
+}
+
+function onPaneMenuSelect(item) {
+    if (item.id === 'add-node' && paneMenu.value) addNode(paneMenu.value.position);
 }
 
 // ---- Node selection / content editing ----
@@ -579,12 +598,22 @@ defineExpose({
                 <dt><kbd>{{ multiSelectKey }}</kbd> + click a node</dt><dd>Add it to the selection, or take it out</dd>
                 <dt>Drag a selected node</dt><dd>Move all selected nodes together</dd>
                 <dt>Click the canvas</dt><dd>Clear the selection</dd>
-                <dt>Right-click the canvas</dt><dd>Add a node there</dd>
+                <dt>Right-click the canvas</dt><dd>A menu to add a node there</dd>
+                <dt><kbd>Shift</kbd> + right-click the canvas</dt><dd>Add a node there at once</dd>
                 <dt>Drag the canvas</dt><dd>Move around</dd>
                 <dt>Scroll, or double-click</dt><dd>Zoom</dd>
                 <dt>Drag or scroll in the map</dt><dd>Move around, zoom</dd>
             </dl>
         </div>
+
+        <ContextMenu
+            v-if="paneMenu"
+            :items="PANE_MENU_ITEMS"
+            :x="paneMenu.x"
+            :y="paneMenu.y"
+            @select="onPaneMenuSelect"
+            @close="paneMenu = null"
+        />
 
         <NodeEditPanel
             v-if="selectedNode"

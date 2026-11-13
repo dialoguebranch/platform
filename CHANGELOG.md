@@ -14,6 +14,12 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   move around in ([#192](https://github.com/dialoguebranch/platform/issues/192)). A **?** button
   next to them lists what the mouse and keys do.
 
+### Changed
+
+- Studio: a right-click on the graph editor's canvas opens a menu with *Add node here*, instead of
+  adding a node at once, so a stray right-click no longer makes one. Shift+right-click still adds
+  a node at once.
+
 ### Fixed
 
 - Studio: selecting several nodes in the graph editor was invisible. The box you drag now shows,

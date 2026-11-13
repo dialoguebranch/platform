@@ -36,6 +36,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 const authoring = {
     listDraftNodes: vi.fn(),
     updateDraftNode: vi.fn(),
+    createDraftNode: vi.fn(),
 };
 
 vi.mock('@/composables/client.js', () => ({
@@ -48,7 +49,7 @@ const selectedIds = new Set();
 const VueFlowStub = defineComponent({
     name: 'VueFlow',
     props: ['nodes', 'deleteKeyCode'],
-    emits: ['node-drag-stop', 'node-click'],
+    emits: ['node-drag-stop', 'node-click', 'pane-context-menu'],
     setup(props, { slots }) {
         return () => h('div', [
             ...(props.nodes ?? []).map((node) => h('div', { 'data-node': node.id },
@@ -141,6 +142,7 @@ beforeEach(() => {
     selectedIds.clear();
     currentNodes = [node('Start', 0), node('Next', 200), node('End', 400)];
     authoring.listDraftNodes.mockImplementation(async () => currentNodes);
+    authoring.createDraftNode.mockResolvedValue({});
     authoring.updateDraftNode.mockImplementation(async (slug, dialogue, title, tags, body) =>
         ({ title, tags, body }));
 });
@@ -272,3 +274,36 @@ describe('DialogueEditor keys', () => {
         expect(wrapper.findComponent(VueFlowStub).props('deleteKeyCode')).toBe(false);
     });
 });
+
+describe('DialogueEditor adding a node from the canvas', () => {
+    const rightClick = (wrapper, keys = {}) =>
+        wrapper.findComponent(VueFlowStub).vm.$emit('pane-context-menu',
+            { preventDefault: () => {}, clientX: 300, clientY: 120, ...keys });
+    const createdAt = () => authoring.createDraftNode.mock.calls.map((call) =>
+        call[2].find((tag) => tag.key === 'position').value);
+
+    it('opens a menu on a right-click, and adds nothing until it is chosen', async () => {
+        const wrapper = await mountEditor();
+        rightClick(wrapper);
+        await flushPromises();
+
+        expect(wrapper.find('[data-test="pane-menu-add-node"]').exists()).toBe(true);
+        expect(authoring.createDraftNode).not.toHaveBeenCalled();
+
+        await wrapper.find('[data-test="pane-menu-add-node"]').trigger('click');
+        await flushPromises();
+        // centred on the point that was right-clicked (a new node is 180 x 30)
+        expect(createdAt()).toEqual(['210,105']);
+        expect(wrapper.find('[data-test="pane-menu-add-node"]').exists()).toBe(false);
+    });
+
+    it('adds the node at once on Shift+right-click, without a menu', async () => {
+        const wrapper = await mountEditor();
+        rightClick(wrapper, { shiftKey: true });
+        await flushPromises();
+
+        expect(wrapper.find('[data-test="pane-menu-add-node"]').exists()).toBe(false);
+        expect(createdAt()).toEqual(['210,105']);
+    });
+});
+
