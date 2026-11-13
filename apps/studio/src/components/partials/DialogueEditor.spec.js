@@ -334,3 +334,15 @@ describe('DialogueEditor adding a node from the canvas', () => {
     });
 });
 
+describe('DialogueEditor node cards (#200)', () => {
+    it('shows a preview of the node\'s text, without its replies and commands', async () => {
+        currentNodes = [node('Start', 0, '<<set $a = 1>>Hello there, $name.\n[[Go|Next]]'),
+            node('Next', 200, '[[On|End]]'), node('End', 400, '')];
+        const wrapper = await mountEditor();
+
+        expect(wrapper.find('[data-node="Start"] [data-test="node-preview"]').text())
+            .toBe('Hello there, $name.');
+        expect(wrapper.find('[data-node="Next"] [data-test="node-preview"]').exists()).toBe(false);
+    });
+});
+

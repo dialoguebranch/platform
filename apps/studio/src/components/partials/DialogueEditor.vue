@@ -13,6 +13,7 @@ import { describeError } from '@/composables/error-message.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
 import { tagsToMap, mapToTags, getPosition, setPosition } from '@/authoring/DlbHeaderTags.js';
 import { extractReplyLinks } from '@/authoring/DlbReplyLinks.js';
+import { bodyPreview } from '@/authoring/DlbBodyPreview.js';
 import { colorForNode } from '@/composables/node-colors.js';
 import { isUndefinedSpeaker, projectSpeakers, speakerForNewNode } from '@/composables/project-speakers.js';
 import { useLatestRequest } from '@/composables/latest-request.js';
@@ -190,6 +191,7 @@ function buildGraph(nodes) {
             title: node.title,
             speaker: tags.get('speaker') ?? '',
             comment: tags.get('comment') ?? '',
+            preview: bodyPreview(node.body),
             nodeColor: tags.get('nodeColor') ?? null,
             externalLinks: externalLinkCounts.get(node.title) ?? 0,
             isStart: isReservedNodeTitle(node.title, RESERVED_NODE_START_ID),
@@ -547,7 +549,7 @@ defineExpose({
                             <FontAwesomeIcon icon="fa-regular fa-comment" class="text-[11px]" />
                         </span>
                     </div>
-                    <div v-if="data.speaker || data.externalLinks" class="px-3 py-2 text-xs font-title">
+                    <div v-if="data.speaker || data.preview || data.externalLinks" class="px-3 py-2 text-xs font-title">
                         <div v-if="data.speaker" class="flex items-center gap-1 text-grey-dark min-w-0">
                             <span class="truncate">{{ data.speaker }}</span>
                             <span
@@ -559,6 +561,7 @@ defineExpose({
                                 <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" class="text-[11px]" />
                             </span>
                         </div>
+                        <div v-if="data.preview" class="mt-1 text-[11px] leading-snug text-black/70 line-clamp-2 break-words" data-test="node-preview">{{ data.preview }}</div>
                         <div v-if="data.externalLinks" class="mt-1 inline-flex items-center gap-1 text-[10px] text-orange-dark" :title="`${data.externalLinks} link(s) to other dialogues`">
                             <FontAwesomeIcon icon="fa-solid fa-arrow-up-right-from-square" />
                             {{ data.externalLinks }} external
