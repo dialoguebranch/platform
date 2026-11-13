@@ -20,6 +20,12 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `DIALOGUE_NOT_FOUND`. `getDialoguePointer(name, language)` returns the dialogue's
   `ResourcePointer`, and `getSourceLanguage()` returns the project's source language, also for a
   project without metadata ([#473](https://github.com/dialoguebranch/platform/issues/473)).
+- Core: an `ActiveDialogue` follows a reply into another dialogue itself. Create it with a
+  `DialogueResolver`, which finds a dialogue by name and language (an `ExecutableProject` is one),
+  and call `selectReply(replyId, eventTime)`: it returns the next node, also when that is in
+  another dialogue, keeps the same `VariableStore` and follows the user's gender there too. A
+  `DialogueSwitchListener` hears of the switch before the first node there runs
+  ([#473](https://github.com/dialoguebranch/platform/issues/473)).
 - Core: `ExecutableProject.generateSummaryString()` describes a loaded project, as
   `ProjectParserResult.generateSummaryString()` did for a parse without errors
   ([#473](https://github.com/dialoguebranch/platform/issues/473)).

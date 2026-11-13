@@ -37,6 +37,7 @@ import com.dialoguebranch.model.execute.*;
 import com.dialoguebranch.model.execute.command.Command;
 import com.dialoguebranch.model.execute.command.InputCommand;
 import com.dialoguebranch.model.execute.command.SetCommand;
+import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import org.jspecify.annotations.Nullable;
@@ -74,8 +75,17 @@ import java.util.function.Function;
  */
 public class ActiveDialogue {
 
-	/** Metadata describing the file from which the dialogue definition was loaded. */
-	private final ResourcePointer dialogueFileDescription;
+	/**
+	 * Metadata describing the file from which the dialogue definition was loaded. Changes when
+	 * a reply leads into another dialogue.
+	 */
+	private ResourcePointer dialogueFileDescription;
+
+	/** Finds the dialogue a reply leads into, or {@code null} if this dialogue can't follow one. */
+	private final @Nullable DialogueResolver resolver;
+
+	/** Hears when a reply leads into another dialogue, or {@code null}. */
+	private @Nullable DialogueSwitchListener switchListener;
 
 	/** The static dialogue definition containing all nodes and their content. */
 	private Dialogue dialogueDefinition;
@@ -113,6 +123,27 @@ public class ActiveDialogue {
 		this.dialogueFileDescription = dialogueFileDescription;
 		this.dialogueDefinition = dialogueDefinition;
 		this.variableStore = variableStore;
+		this.resolver = null;
+	}
+
+	/**
+	 * Creates an {@link ActiveDialogue} for the given dialogue, which follows replies into other
+	 * dialogues by finding them with the given {@link DialogueResolver} (#473). It keeps the same
+	 * {@link VariableStore} throughout.
+	 *
+	 * @param resolver finds the dialogues that replies lead into, such as the {@link
+	 *                 com.dialoguebranch.model.execute.ExecutableProject} the dialogue is part of.
+	 * @param dialogue the dialogue to run.
+	 * @param variableStore the {@link VariableStore} used to read and write Dialogue Branch
+	 *                      variables while the dialogue runs.
+	 */
+	public ActiveDialogue(DialogueResolver resolver, ResolvedDialogue dialogue,
+						  VariableStore variableStore) {
+		this.resolver = resolver;
+		this.dialogueFileDescription = dialogue.pointer();
+		this.dialogueDefinition = dialogue.dialogue();
+		this.userGenderTranslations = dialogue.userGenderTranslations();
+		this.variableStore = variableStore;
 	}
 
 	// ----------------------------------------------------------- //
@@ -130,6 +161,16 @@ public class ActiveDialogue {
 	public void setUserGenderTranslations(
 			@Nullable Function<TranslationContext.Gender, Dialogue> translations) {
 		this.userGenderTranslations = translations;
+	}
+
+	/**
+	 * Sets the listener that hears when a reply leads into another dialogue, just before the
+	 * first node there is executed.
+	 *
+	 * @param switchListener the listener, or {@code null} for none.
+	 */
+	public void setDialogueSwitchListener(@Nullable DialogueSwitchListener switchListener) {
+		this.switchListener = switchListener;
 	}
 
 	/** Switches to the definition for the end user's current gender, if this dialogue follows it. */
@@ -255,6 +296,47 @@ public class ActiveDialogue {
 		}
 		this.currentNode = executeNode(nextNode,eventTime);
 		return currentNode;
+	}
+
+	/**
+	 * Selects the reply with the given {@code replyId} in the current node, and returns the node
+	 * it leads to, executed. Performs the reply's "set" commands first. If the reply leads into
+	 * another dialogue, this {@link ActiveDialogue} switches to that dialogue, found by its
+	 * {@link DialogueResolver} in the language of the current dialogue (or the source language,
+	 * if it isn't available in that one), tells its {@link DialogueSwitchListener}, and starts
+	 * it at the linked node. The {@link VariableStore} stays the same.
+	 *
+	 * @param replyId the ID of the selected reply.
+	 * @param eventTime the time (in the user's time zone) of the event that triggered this
+	 *                  selection.
+	 * @return the next {@link Node}, or {@code null} if the reply ends the dialogue.
+	 * @throws ExecutionException if the dialogue or node the reply leads to can't be found, or
+	 *                            if the {@link DialogueSwitchListener} stops the switch.
+	 * @throws EvaluationException if an expression cannot be evaluated.
+	 */
+	public @Nullable Node selectReply(int replyId, ZonedDateTime eventTime)
+			throws ExecutionException, EvaluationException {
+		DialogueResolver dialogueResolver = Objects.requireNonNull(resolver,
+				"This ActiveDialogue was created without a DialogueResolver");
+		NodePointer nodePointer = processReplyAndGetNodePointer(replyId, eventTime);
+		if (nodePointer instanceof ExternalNodePointer externalPointer) {
+			ResolvedDialogue target = dialogueResolver.resolve(
+					externalPointer.getAbsoluteTargetDialogue(),
+					dialogueFileDescription.getLanguage());
+			if (target.dialogue().getNodeById(externalPointer.getTargetNodeId()) == null) {
+				throw new ExecutionException(ExecutionException.Type.NODE_NOT_FOUND,
+						String.format("Node \"%s\" not found in dialogue \"%s\"",
+								externalPointer.getTargetNodeId(),
+								target.dialogue().getDialogueName()));
+			}
+			if (switchListener != null)
+				switchListener.onDialogueSwitch(dialogueFileDescription, target);
+			this.dialogueFileDescription = target.pointer();
+			this.dialogueDefinition = target.dialogue();
+			this.userGenderTranslations = target.userGenderTranslations();
+			return startDialogue(externalPointer.getTargetNodeId(), eventTime);
+		}
+		return progressDialogue((InternalNodePointer) nodePointer, eventTime);
 	}
 
 	/**

@@ -31,6 +31,8 @@ package com.dialoguebranch.model.execute;
 import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.exception.ParseException;
 import com.dialoguebranch.exception.ProjectParseException;
+import com.dialoguebranch.execution.DialogueResolver;
+import com.dialoguebranch.execution.ResolvedDialogue;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;
 import com.dialoguebranch.execution.parser.ProjectScriptLoader;
@@ -56,7 +58,7 @@ import java.util.*;
  * @author Dennis Hofs
  * @author Harm op den Akker
  */
-public class ExecutableProject implements DialogueBranchProject {
+public class ExecutableProject implements DialogueBranchProject, DialogueResolver {
 	private @Nullable ProjectMetaData metaData;
 	private List<Speaker> speakers = List.of();
 	private final Map<ResourcePointer, Map<TranslationContext.Gender, Dialogue>> userGenderDialogues =
@@ -273,6 +275,27 @@ public class ExecutableProject implements DialogueBranchProject {
 	public Dialogue getDialogue(String dialogueName, @Nullable String language)
 			throws ExecutionException {
 		return Objects.requireNonNull(dialogues.get(getDialoguePointer(dialogueName, language)));
+	}
+
+	/**
+	 * Finds the dialogue with the given name, in the given language, as {@link
+	 * #getDialoguePointer(String, String)} does, together with its translation for each gender
+	 * of the end user (see {@link #getDialogueForUserGender}). This makes the project the {@link
+	 * DialogueResolver} of the dialogues started from it.
+	 *
+	 * @param dialogueName the dialogue's name, including its folders, such as {@code
+	 *                     "intro/welcome"}; a leading {@code "/"} is allowed.
+	 * @param language the language code, or {@code null} for the source language.
+	 * @return the dialogue.
+	 * @throws ExecutionException ({@link ExecutionException.Type#DIALOGUE_NOT_FOUND}) if the
+	 *                            project has no dialogue with that name.
+	 */
+	@Override
+	public ResolvedDialogue resolve(String dialogueName, @Nullable String language)
+			throws ExecutionException {
+		ResourcePointer pointer = getDialoguePointer(dialogueName, language);
+		return new ResolvedDialogue(pointer, Objects.requireNonNull(dialogues.get(pointer)),
+				(gender) -> getDialogueForUserGender(pointer, gender));
 	}
 
 	/**
