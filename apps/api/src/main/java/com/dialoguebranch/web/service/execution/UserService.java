@@ -361,17 +361,9 @@ public class UserService {
 					applicationManager.getSourceLanguage(projectSlug));
 		}
 
-		ResourcePointer dialogueDescription =
-				getDialogueDescriptionFromProject(projectSlug, dialogueId, language);
-
-		if (dialogueDescription == null) {
-			throw new ExecutionException(ExecutionException.Type.DIALOGUE_NOT_FOUND,
-					"Dialogue '" + dialogueId + "' not found in project '" + projectSlug + "'.");
-		}
-		Dialogue dialogue = getDialogueDefinitionForProject(projectSlug, dialogueDescription);
-
-		return dialogueExecutor.startDialogue(dialogueDescription, dialogue, nodeId, sessionId,
-				sessionStartTime, projectSlug);
+		ResolvedDialogue dialogue = getDialogueResolver(projectSlug).resolve(dialogueId, language);
+		return dialogueExecutor.startDialogue(dialogue, nodeId, sessionId, sessionStartTime,
+				projectSlug);
 	}
 
 	/**
@@ -604,6 +596,32 @@ public class UserService {
 	}
 
 	/**
+	 * Returns the {@link DialogueResolver} that finds this user's dialogues in the given project
+	 * (#473): in the requested language, or the project's source language if the dialogue isn't
+	 * available in it (see {@link #getDialogueDescriptionFromProject}), translated in this
+	 * user's {@link TranslationContext}, and with the translation for each gender of the end user.
+	 * An {@link ActiveDialogue} uses it to follow a reply into another dialogue.
+	 *
+	 * @param projectSlug the project's slug.
+	 * @return the resolver; it throws an {@link ExecutionException} of type {@link
+	 *         ExecutionException.Type#DIALOGUE_NOT_FOUND} for a dialogue the project doesn't have.
+	 */
+	public DialogueResolver getDialogueResolver(String projectSlug) {
+		return (dialogueName, language) -> {
+			ResourcePointer pointer =
+					getDialogueDescriptionFromProject(projectSlug, dialogueName, language);
+			if (pointer == null) {
+				throw new ExecutionException(ExecutionException.Type.DIALOGUE_NOT_FOUND,
+						"Dialogue '" + dialogueName + "' not found in project '" + projectSlug
+								+ "'.");
+			}
+			return new ResolvedDialogue(pointer,
+					getDialogueDefinitionForProject(projectSlug, pointer),
+					applicationManager.getUserGenderTranslations(projectSlug, pointer));
+		};
+	}
+
+	/**
 	 * Retrieves the dialogue definition from the named project for the specified description, or
 	 * throws a {@link ExecutionException} with
 	 * {@link ExecutionException.Type#DIALOGUE_NOT_FOUND DIALOGUE_NOT_FOUND} if not found.
@@ -663,15 +681,10 @@ public class UserService {
 										  int loggedInteractionIndex) throws ExecutionException {
 		String dialogueName = loggedDialogue.getDialogueName();
 		String projectSlug = loggedDialogue.getProjectName();
-		ResourcePointer dialogueDescription =
-				getDialogueDescriptionFromProject(projectSlug, dialogueName,
-				loggedDialogue.getLanguage());
-		if (dialogueDescription == null) {
-			throw new ExecutionException(ExecutionException.Type.DIALOGUE_NOT_FOUND,
-					"Dialogue '" + dialogueName + "' not found in project '" + projectSlug + "'.");
-		}
-		Dialogue dialogueDefinition = getDialogueDefinitionForProject(projectSlug,
-				dialogueDescription);
+		DialogueResolver resolver = getDialogueResolver(projectSlug);
+		ResolvedDialogue resolved = resolver.resolve(dialogueName, loggedDialogue.getLanguage());
+		ResourcePointer dialogueDescription = resolved.pointer();
+		Dialogue dialogueDefinition = resolved.dialogue();
 		List<LoggedInteraction> interactions =
 				loggedDialogue.getInteractionList();
 		if (loggedInteractionIndex < 0 || loggedInteractionIndex >= interactions.size()) {
@@ -688,10 +701,8 @@ public class UserService {
 					String.format("Node \"%s\" not found in dialogue \"%s\"",
 							nodeId, dialogueName));
 		}
-		ActiveDialogue activeDialogue = new ActiveDialogue(
-				dialogueDescription, dialogueDefinition, getVariableStore(projectSlug));
-		activeDialogue.setUserGenderTranslations(
-				applicationManager.getUserGenderTranslations(projectSlug, dialogueDescription));
+		ActiveDialogue activeDialogue = new ActiveDialogue(resolver, resolved,
+				getVariableStore(projectSlug));
 		activeDialogue.setCurrentNode(node);
 		return new DialogueState(dialogueDescription, dialogueDefinition,
 				loggedDialogue, loggedInteractionIndex, activeDialogue);
