@@ -48,7 +48,7 @@ const selectedIds = new Set();
 
 const VueFlowStub = defineComponent({
     name: 'VueFlow',
-    props: ['nodes', 'deleteKeyCode'],
+    props: ['nodes', 'deleteKeyCode', 'zoomOnDoubleClick'],
     emits: ['node-drag-stop', 'node-click', 'pane-context-menu'],
     setup(props, { slots }) {
         return () => h('div', [
@@ -297,13 +297,28 @@ describe('DialogueEditor adding a node from the canvas', () => {
         expect(wrapper.find('[data-test="pane-menu-add-node"]').exists()).toBe(false);
     });
 
-    it('adds the node at once on Shift+right-click, without a menu', async () => {
+    it('adds the node at once on a double-click on the empty canvas, without a menu', async () => {
         const wrapper = await mountEditor();
-        rightClick(wrapper, { shiftKey: true });
+        const pane = document.createElement('div');
+        pane.className = 'vue-flow__pane';
+        wrapper.element.appendChild(pane);
+        pane.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, clientX: 300, clientY: 120 }));
         await flushPromises();
 
         expect(wrapper.find('[data-test="pane-menu-add-node"]').exists()).toBe(false);
         expect(createdAt()).toEqual(['210,105']);
+    });
+
+    it('adds nothing on a double-click on a node', async () => {
+        const wrapper = await mountEditor();
+        await wrapper.find('[data-node="Next"]').trigger('dblclick');
+        await flushPromises();
+        expect(authoring.createDraftNode).not.toHaveBeenCalled();
+    });
+
+    it('turns off Vue Flow\'s zoom on a double-click', async () => {
+        const wrapper = await mountEditor();
+        expect(wrapper.findComponent(VueFlowStub).props('zoomOnDoubleClick')).toBe(false);
     });
 });
 

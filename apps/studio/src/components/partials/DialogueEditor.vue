@@ -371,7 +371,8 @@ function addNode(position) {
 }
 
 // A right-click on the canvas opens a menu to add a node there, so a stray right-click doesn't
-// make one; Shift+right-click adds it at once, for whoever adds many.
+// make one; a double-click on the canvas adds it at once, for whoever adds many. (Not
+// Shift+right-click: Firefox keeps that for its own menu.)
 const paneMenu = ref(null); // { x, y } on screen, and the point in the flow it was opened at
 
 const PANE_MENU_ITEMS = [
@@ -381,12 +382,15 @@ const PANE_MENU_ITEMS = [
 function onPaneContextMenu(event) {
     event.preventDefault();
     const position = screenToFlowCoordinate({ x: event.clientX, y: event.clientY });
-    if (event.shiftKey) {
-        paneMenu.value = null;
-        addNode(position);
-        return;
-    }
     paneMenu.value = { x: event.clientX, y: event.clientY, position };
+}
+
+// Vue Flow reports no double-click on the canvas itself, so it's caught here: the target is the
+// canvas only on its empty part, not on a node, the map or the buttons. Vue Flow's own zoom on a
+// double-click is off (zoom-on-double-click), so the two don't both happen.
+function onCanvasDoubleClick(event) {
+    if (!event.target?.classList?.contains('vue-flow__pane')) return;
+    addNode(screenToFlowCoordinate({ x: event.clientX, y: event.clientY }));
 }
 
 function onPaneMenuSelect(item) {
@@ -452,7 +456,7 @@ defineExpose({
 </script>
 
 <template>
-    <div class="relative h-full">
+    <div class="relative h-full" @dblclick="onCanvasDoubleClick">
         <div v-if="!dialogueName" class="flex items-center justify-center h-full text-grey-dark font-title text-sm">
             Open a dialogue from the Dialogue Browser to start editing.
         </div>
@@ -462,6 +466,7 @@ defineExpose({
             v-model:edges="flowEdges"
             class="h-full"
             :delete-key-code="false"
+            :zoom-on-double-click="false"
             @node-drag-stop="onNodeDragStop"
             @node-click="onNodeClick"
             @nodes-initialized="onNodesInitialized"
@@ -599,9 +604,9 @@ defineExpose({
                 <dt>Drag a selected node</dt><dd>Move all selected nodes together</dd>
                 <dt>Click the canvas</dt><dd>Clear the selection</dd>
                 <dt>Right-click the canvas</dt><dd>A menu to add a node there</dd>
-                <dt><kbd>Shift</kbd> + right-click the canvas</dt><dd>Add a node there at once</dd>
+                <dt>Double-click the canvas</dt><dd>Add a node there at once</dd>
                 <dt>Drag the canvas</dt><dd>Move around</dd>
-                <dt>Scroll, or double-click</dt><dd>Zoom</dd>
+                <dt>Scroll</dt><dd>Zoom</dd>
                 <dt>Drag or scroll in the map</dt><dd>Move around, zoom</dd>
             </dl>
         </div>
