@@ -44,6 +44,10 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `ReplyMessage.getText()` does the same for a reply, and `ReplyMessage.isAutoForward()` tells an
   auto-forward reply apart. The JSON the Web Service sends is unchanged
   ([#485](https://github.com/dialoguebranch/platform/issues/485)).
+- Core: `ActiveDialogue.selectReply(replyId)`, `selectReply(reply)` (a `ReplyMessage` of the
+  current step), `startDialogue()` and `startDialogue(nodeId)` need no time: they use now, in the
+  time zone of the user of the dialogue's `VariableStore`
+  ([#485](https://github.com/dialoguebranch/platform/issues/485)).
 
 ### Changed
 
