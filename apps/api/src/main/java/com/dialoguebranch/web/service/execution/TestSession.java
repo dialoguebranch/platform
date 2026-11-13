@@ -29,7 +29,6 @@ package com.dialoguebranch.web.service.execution;
 
 import com.dialoguebranch.execution.ActiveDialogue;
 import com.dialoguebranch.model.execute.Dialogue;
-import com.dialoguebranch.model.execute.ExecutableProject;
 import com.dialoguebranch.web.service.auth.DialogueBranchUserId;
 
 import java.util.UUID;
@@ -48,50 +47,24 @@ public class TestSession {
 	private final String id;
 	private final DialogueBranchUserId tester;
 	private final TestSessionService.CopyKey copyKey;
-	private volatile ActiveDialogue activeDialogue;
-	private volatile Dialogue dialogueDefinition;
+	private final ActiveDialogue activeDialogue;
 	private volatile long lastActivityTime = System.currentTimeMillis();
-
-	/**
-	 * The whole project's parsed content (every draft dialogue, not just the one under test),
-	 * kept for the lifetime of the session so that {@link TestSessionService#progressSession}
-	 * can resolve a reply that links to a sibling dialogue — see
-	 * {@link #switchToDialogue(ActiveDialogue, Dialogue)} — without needing to re-parse.
-	 */
-	private final ExecutableProject executableProject;
-
-	/**
-	 * The project's source language code, resolved once from the authoritative {@code DBProject}
-	 * record when this session started (see {@code TestSessionService#startSession}) and kept
-	 * for the lifetime of the session, since {@code executableProject.getMetaData()} isn't a
-	 * reliable source for it — these dialogues are parsed from in-memory content maps via {@code
-	 * DatabasePublishedScriptLoader}, not an actual {@code dlb-project.xml}.
-	 */
-	private final String sourceLanguage;
 
 	/**
 	 * Creates a new {@link TestSession} with a freshly generated ID.
 	 *
-	 * @param tester             the authenticated user running the test.
-	 * @param copyKey            the copy of the variables this session runs against (the
-	 *                           tester's, for the tested user and project).
-	 * @param activeDialogue     the {@link ActiveDialogue} driving execution for this session.
-	 * @param dialogueDefinition the parsed {@link Dialogue} being tested.
-	 * @param executableProject  the whole project's parsed content, kept so a later reply that
-	 *                           links to a sibling dialogue can be resolved without re-parsing.
-	 * @param sourceLanguage     the project's source language code, resolved from the
-	 *                           authoritative {@code DBProject} record.
+	 * @param tester         the authenticated user running the test.
+	 * @param copyKey        the copy of the variables this session runs against (the tester's,
+	 *                       for the tested user and project).
+	 * @param activeDialogue the {@link ActiveDialogue} driving execution for this session. It
+	 *                       follows replies into the project's other dialogues itself (#473).
 	 */
 	public TestSession(DialogueBranchUserId tester, TestSessionService.CopyKey copyKey,
-			ActiveDialogue activeDialogue, Dialogue dialogueDefinition,
-			ExecutableProject executableProject, String sourceLanguage) {
+			ActiveDialogue activeDialogue) {
 		this.id = UUID.randomUUID().toString().toLowerCase().replaceAll("-", "");
 		this.tester = tester;
 		this.copyKey = copyKey;
 		this.activeDialogue = activeDialogue;
-		this.dialogueDefinition = dialogueDefinition;
-		this.sourceLanguage = sourceLanguage;
-		this.executableProject = executableProject;
 	}
 
 	/**
@@ -136,7 +109,9 @@ public class TestSession {
 	}
 
 	/**
-	 * Returns the {@link ActiveDialogue} driving execution for this session.
+	 * Returns the {@link ActiveDialogue} driving execution for this session. It isn't
+	 * thread-safe: {@link TestSessionService#progressSession} serializes the requests on a
+	 * session (#215).
 	 *
 	 * @return the active dialogue.
 	 */
@@ -145,48 +120,13 @@ public class TestSession {
 	}
 
 	/**
-	 * Returns the parsed {@link Dialogue} being tested.
+	 * Returns the parsed {@link Dialogue} the session is in: the one being tested, or the one a
+	 * reply has led into since.
 	 *
 	 * @return the dialogue definition.
 	 */
 	public Dialogue getDialogueDefinition() {
-		return dialogueDefinition;
-	}
-
-	/**
-	 * Returns the whole project's parsed content (every draft dialogue), used to resolve a reply
-	 * that links to a sibling dialogue.
-	 *
-	 * @return the parsed project.
-	 */
-	public ExecutableProject getExecutableProject() {
-		return executableProject;
-	}
-
-	/**
-	 * Returns the project's source language code, used to resolve a reply that links to a
-	 * sibling dialogue with no content in the currently active dialogue's language.
-	 *
-	 * @return the source language code.
-	 */
-	public String getSourceLanguage() {
-		return sourceLanguage;
-	}
-
-	/**
-	 * Switches this session to a different dialogue — called by {@link
-	 * TestSessionService#progressSession} when a reply points to a sibling dialogue rather
-	 * than a node within the one currently being tested. Updates {@link #getActiveDialogue()} and
-	 * {@link #getDialogueDefinition()}. Not atomic on its own: it is only called with the
-	 * session's lock held (see {@link TestSessionService#progressSession}, #215), the same lock
-	 * every other request on the session takes.
-	 *
-	 * @param activeDialogue     the new {@link ActiveDialogue}, already started at the target node.
-	 * @param dialogueDefinition the new dialogue's parsed {@link Dialogue}.
-	 */
-	void switchToDialogue(ActiveDialogue activeDialogue, Dialogue dialogueDefinition) {
-		this.activeDialogue = activeDialogue;
-		this.dialogueDefinition = dialogueDefinition;
+		return activeDialogue.getDialogueDefinition();
 	}
 
 }
