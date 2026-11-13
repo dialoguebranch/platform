@@ -18,22 +18,23 @@ Load a project from its `dlb-project.xml`, start one of its dialogues, and show 
 ExecutableProject project = ExecutableProject.load(Path.of("dlb-project.xml"));
 ActiveDialogue dialogue = project.startDialogue("welcome", new User("sam"));
 
-while (true) {
-    DialogueMessage step = dialogue.getCurrentMessage(); // null only after a reply to End
-    if (step != null) show(step);
+DialogueMessage step = dialogue.getCurrentMessage();
+while (step != null) {
+    System.out.println(step.getSpeaker() + ": " + step.getStatement().getText());
     if (dialogue.isFinished()) break;
-    ReplyMessage reply = chooseReply(step.getReplies()); // e.g. ask the user
-    dialogue.selectReply(reply.getReplyId(), ZonedDateTime.now());
+    dialogue.selectReply(chooseReply(step.getReplies())); // e.g. ask the user
+    step = dialogue.getCurrentMessage();
 }
 ```
 
-`show` and `chooseReply` stand for your own code.
+`chooseReply` stands for your own code: it shows the replies (`reply.getText()`, or a "Continue" button where `reply.isAutoForward()`) and returns the one the user picks.
 
 * `ExecutableProject.load` throws a `ProjectParseException` that lists every parse error, per file; warnings are available from `project.getWarnings()`.
 * `startDialogue` has overloads that take a language, an existing `VariableStore` and the start time. A dialogue that isn't available in the given language runs in the project's source language.
-* `getCurrentMessage` returns the current step as a `DialogueMessage`, the same shape the Web Service sends: the speaker, the statement with its variables filled in, its actions and input fields, and the replies with their IDs. Its `loggedDialogueId` and `loggedInteractionIndex` are only used by the Web Service, which keeps a log of every step.
+* `getCurrentMessage` returns the current step as a `DialogueMessage`, the same shape the Web Service sends: the speaker, the statement with its variables filled in, its actions and input fields, and the replies with their IDs. `getStatement().getText()` and `reply.getText()` give the text without the input fields and actions, which `getSegments()` has. The step's `loggedDialogueId` and `loggedInteractionIndex` are only used by the Web Service, which keeps a log of every step.
+* `getCurrentMessage` returns `null` only after a reply to `End`: there is nothing left to show then. That is why the loop checks for `null` and for `isFinished` separately.
 * `isFinished` is true once a reply led to `End`, or the dialogue is at a node without replies. That last node still has a statement to show.
-* `selectReply` runs the reply's `set` commands and returns the next node, or `null` when the reply ends the dialogue. When a reply leads into another dialogue, the `ActiveDialogue` switches to it, in the same language and with the same variables; a `DialogueSwitchListener` hears of the switch, before the first node there runs.
+* `selectReply` runs the reply's `set` commands and returns the next node, or `null` when the reply ends the dialogue. It takes the reply, or its ID, and optionally the time of the selection; without one, it uses now, in the time zone of the `VariableStore`'s user, as `startDialogue` does. When a reply leads into another dialogue, the `ActiveDialogue` switches to it, in the same language and with the same variables; a `DialogueSwitchListener` hears of the switch, before the first node there runs.
 * Where a translation depends on the end user's gender, the dialogue follows the value of `$dlb.userGender` in its variables at every step.
 * To look up a dialogue without starting it, use `project.getDialogue(name)` or `getDialogue(name, language)`.
 

@@ -195,11 +195,12 @@ public class ActiveDialogueStepTest {
 			List<String> shown = new ArrayList<>();
 			List<String> toChoose = new ArrayList<>(choices);
 
-			while (true) {
-				DialogueMessage step = dialogue.getCurrentMessage();
-				if (step != null) shown.add(text(step.getStatement()));
+			DialogueMessage step = dialogue.getCurrentMessage();
+			while (step != null) {
+				shown.add(step.getStatement().getText().trim());
 				if (dialogue.isFinished()) break;
-				dialogue.selectReply(reply(step, toChoose.remove(0)).getReplyId(), NOW);
+				dialogue.selectReply(reply(step, toChoose.remove(0)));
+				step = dialogue.getCurrentMessage();
 			}
 
 			assertTrue(toChoose.isEmpty());
