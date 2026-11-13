@@ -452,16 +452,20 @@ public class TestSessionService {
 		ActiveDialogue activeDialogue = new ActiveDialogue(executableProject, resolved, copy);
 		activeDialogue.setDialogueSwitchListener((from, to) ->
 				readFromExternalService(copyKey, copy, to.dialogue()));
+		// The conversation is logged in memory, for the length of the session, so that it can go
+		// back a step (#490); it is never stored.
+		ZonedDateTime startTime = DateTimeUtils.nowMs(timeZone);
+		activeDialogue.keepInMemoryLog(startTime);
 
 		Node startNode;
 		try {
-			startNode = activeDialogue.startDialogue(startNodeId, DateTimeUtils.nowMs(timeZone));
+			startNode = activeDialogue.startDialogue(startNodeId, startTime);
 		} catch (EvaluationException e) {
 			throw new RuntimeException("Expression evaluation error: " + e.getMessage(), e);
 		}
 
 		TestSession session = new TestSession(tester, copyKey, activeDialogue);
-		ExecuteNodeResult result = new ExecuteNodeResult(resolved.dialogue(), startNode, null, 0);
+		ExecuteNodeResult result = currentStep(activeDialogue, startNode);
 		// A dialogue that ends at its start node needs no session to continue it.
 		if (!activeDialogue.isFinished()) sessions.put(session.getId(), session);
 
@@ -549,7 +553,38 @@ public class TestSessionService {
 		}
 
 		if (nextNode == null) return null;
-		return new ExecuteNodeResult(activeDialogue.getDialogueDefinition(), nextNode, null, 0);
+		return currentStep(activeDialogue, nextNode);
+	}
+
+	/**
+	 * Goes back a step in the given test session (#490), as {@code /dialogue/back} does in live
+	 * playback: to the agent's previous step in the current dialogue, whose node is executed again
+	 * (its commands too); nothing is added to the session's log, so a later reply continues from
+	 * there. At the first step, that step is shown again.
+	 *
+	 * @param session the test session.
+	 * @param eventTime the time of this request, in the tester's time zone.
+	 * @return the step gone back to.
+	 * @throws ExecutionException if the session's log is completed, or its steps can't be found.
+	 */
+	public ExecuteNodeResult backSession(TestSession session, ZonedDateTime eventTime)
+			throws ExecutionException {
+		synchronized (session) {
+			ActiveDialogue activeDialogue = session.getActiveDialogue();
+			Node node;
+			try {
+				node = activeDialogue.back(eventTime);
+			} catch (EvaluationException e) {
+				throw new RuntimeException("Expression evaluation error: " + e.getMessage(), e);
+			}
+			return currentStep(activeDialogue, node);
+		}
+	}
+
+	/** The given node of the session, with its place in the session's log. */
+	private static ExecuteNodeResult currentStep(ActiveDialogue activeDialogue, Node node) {
+		return new ExecuteNodeResult(activeDialogue.getDialogueDefinition(), node,
+				activeDialogue.getLoggedDialogue(), activeDialogue.getLoggedInteractionIndex());
 	}
 
 	/**
