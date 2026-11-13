@@ -77,7 +77,7 @@ public class ActiveDialogueLinkTest {
 			+ "title: Second\nspeaker: Robin\n---\nWelcome.\n===\n";
 
 	/** Writes a project from the given files, keyed by "language/name.dlb" or ".json". */
-	private static ExecutableProject project(Map<String, String> files) throws Exception {
+	static ExecutableProject project(Map<String, String> files) throws Exception {
 		Map<ResourcePointer, String> content = new LinkedHashMap<>();
 		files.forEach((path, text) -> {
 			String language = path.substring(0, path.indexOf('/'));
@@ -102,7 +102,7 @@ public class ActiveDialogueLinkTest {
 		return Objects.requireNonNull(result.getProject());
 	}
 
-	private static ExecutableProject mainAndOther() throws Exception {
+	static ExecutableProject mainAndOther() throws Exception {
 		return project(Map.of("en/main.dlb", MAIN, "en/other.dlb", OTHER));
 	}
 

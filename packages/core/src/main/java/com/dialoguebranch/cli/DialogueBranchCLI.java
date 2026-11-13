@@ -413,7 +413,7 @@ public class DialogueBranchCLI {
 			printAgentStatement(body);
 			List<Reply> replies = body.getReplies();
 
-			if (replies.isEmpty()) {
+			if (activeDialogue.isFinished()) {
 				System.out.println("\n[Dialogue ended — no reply options.]\n");
 				break;
 			}

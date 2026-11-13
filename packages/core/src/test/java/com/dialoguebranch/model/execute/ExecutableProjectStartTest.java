@@ -38,6 +38,8 @@ import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.Variable;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.model.common.ResourceType;
+import com.dialoguebranch.model.execute.protocol.DialogueMessage;
+import com.dialoguebranch.model.execute.protocol.ReplyMessage;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -92,21 +94,24 @@ public class ExecutableProjectStartTest {
 						.getResource("project-test/dlb-project.xml").toURI()));
 		ActiveDialogue dialogue = project.startDialogue("menu", new User("sam"));
 
-		// The documented loop, with "chooseReply" taking the last reply (the first ones of the
-		// example project go round in circles), and a cap in case it never ends
-		List<String> visited = new ArrayList<>();
-		Node node = dialogue.getCurrentNode();
-		while (node != null && !node.getBody().getReplies().isEmpty() && visited.size() < 50) {
-			visited.add(dialogue.getDialogueFileDescription().getDialogueName() + "."
-					+ node.getTitle());
-			List<Reply> replies = node.getBody().getReplies();
-			Reply reply = visited.size() == 1 ? replies.get(0) : replies.get(replies.size() - 1);
-			node = dialogue.selectReply(reply.getReplyId(), ZonedDateTime.now());
+		// The documented loop, with "show" noting the step and "chooseReply" taking the first
+		// reply, then the last (the first ones of the example project go round in circles),
+		// and a cap in case it never ends
+		List<String> shown = new ArrayList<>();
+		while (shown.size() < 50) {
+			DialogueMessage step = dialogue.getCurrentMessage();
+			if (step != null) shown.add(step.getDialogue() + "." + step.getNode());
+			if (dialogue.isFinished()) break;
+			List<ReplyMessage> replies = step.getReplies();
+			ReplyMessage reply = shown.size() == 1 ? replies.get(0)
+					: replies.get(replies.size() - 1);
+			dialogue.selectReply(reply.getReplyId(), ZonedDateTime.now());
 		}
 
-		// The first reply of "menu" leads into "basic", whose last reply ends it
-		assertEquals(List.of("menu.Start", "basic.Start"), visited);
-		assertNull(node);
+		// The first reply of "menu" leads into "basic", whose last reply goes to End
+		assertEquals(List.of("menu.Start", "basic.Start"), shown);
+		assertTrue(dialogue.isFinished());
+		assertNull(dialogue.getCurrentMessage());
 	}
 
 	@Test

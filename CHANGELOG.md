@@ -31,6 +31,11 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   start time. The dialogue follows replies into the project's other dialogues, and where a
   translation depends on the user's gender, it follows `$dlb.userGender` at every step
   ([#473](https://github.com/dialoguebranch/platform/issues/473)).
+- Core: `ActiveDialogue.getCurrentMessage()` returns the current step as a `DialogueMessage`, the
+  same shape the Web Service sends, ready to show: speaker, statement and replies.
+  `ActiveDialogue.isFinished()` says whether the dialogue has finished: after a reply to `End`, or
+  at a node without replies. The Web Service and the command-line tool use this one rule now
+  ([#473](https://github.com/dialoguebranch/platform/issues/473)).
 - Core: `ExecutableProject.generateSummaryString()` describes a loaded project, as
   `ProjectParserResult.generateSummaryString()` did for a parse without errors
   ([#473](https://github.com/dialoguebranch/platform/issues/473)).

@@ -12,22 +12,27 @@ dependencies {
 
 ## Playing a Dialogue
 
-Load a project from its `dlb-project.xml`, start one of its dialogues, and select replies until it ends:
+Load a project from its `dlb-project.xml`, start one of its dialogues, and show each step and select replies until it finishes:
 
 ```java
 ExecutableProject project = ExecutableProject.load(Path.of("dlb-project.xml"));
 ActiveDialogue dialogue = project.startDialogue("welcome", new User("sam"));
 
-Node node = dialogue.getCurrentNode();
-while (node != null && !node.getBody().getReplies().isEmpty()) {
-    System.out.println(node.getBody());
-    Reply reply = chooseReply(node.getBody().getReplies()); // e.g. ask the user
-    node = dialogue.selectReply(reply.getReplyId(), ZonedDateTime.now());
+while (true) {
+    DialogueMessage step = dialogue.getCurrentMessage(); // null only after a reply to End
+    if (step != null) show(step);
+    if (dialogue.isFinished()) break;
+    ReplyMessage reply = chooseReply(step.getReplies()); // e.g. ask the user
+    dialogue.selectReply(reply.getReplyId(), ZonedDateTime.now());
 }
 ```
 
+`show` and `chooseReply` stand for your own code.
+
 * `ExecutableProject.load` throws a `ProjectParseException` that lists every parse error, per file; warnings are available from `project.getWarnings()`.
 * `startDialogue` has overloads that take a language, an existing `VariableStore` and the start time. A dialogue that isn't available in the given language runs in the project's source language.
+* `getCurrentMessage` returns the current step as a `DialogueMessage`, the same shape the Web Service sends: the speaker, the statement with its variables filled in, its actions and input fields, and the replies with their IDs. Its `loggedDialogueId` and `loggedInteractionIndex` are only used by the Web Service, which keeps a log of every step.
+* `isFinished` is true once a reply led to `End`, or the dialogue is at a node without replies. That last node still has a statement to show.
 * `selectReply` runs the reply's `set` commands and returns the next node, or `null` when the reply ends the dialogue. When a reply leads into another dialogue, the `ActiveDialogue` switches to it, in the same language and with the same variables; a `DialogueSwitchListener` hears of the switch, before the first node there runs.
 * Where a translation depends on the end user's gender, the dialogue follows the value of `$dlb.userGender` in its variables at every step.
 * To look up a dialogue without starting it, use `project.getDialogue(name)` or `getDialogue(name, language)`.

@@ -114,7 +114,7 @@ public class DialogueExecutor {
 
 		ServerLoggedDialogue serverLoggedDialogue = newLoggedDialogue(dialogue, eventTime,
 				sessionId, sessionStartTime, projectSlug);
-		updateLoggedDialogue(startNode, serverLoggedDialogue, -1);
+		updateLoggedDialogue(activeDialogue, serverLoggedDialogue, -1);
 		userService.getLoggedDialogueStore().saveToSession(serverLoggedDialogue);
 		return new ExecuteNodeResult(dialogue.dialogue(), startNode, serverLoggedDialogue,
 				serverLoggedDialogue.getInteractionList().size() - 1);
@@ -211,7 +211,7 @@ public class DialogueExecutor {
 		}
 
 		if (entered[0] == null) { // The dialogue continues within the same .dlb script
-			updateLoggedDialogue(nextNode, serverLoggedDialogue, userActionIndex);
+			updateLoggedDialogue(dialogue, serverLoggedDialogue, userActionIndex);
 			userService.getLoggedDialogueStore().saveToSession(serverLoggedDialogue);
 			if (nextNode == null)
 				return null;
@@ -226,7 +226,7 @@ public class DialogueExecutor {
 		ServerLoggedDialogue enteredLog = newLoggedDialogue(entered[0],
 				progressDialogueEventTime, serverLoggedDialogue.getSessionId(),
 				serverLoggedDialogue.getSessionStartTime(), projectSlug);
-		updateLoggedDialogue(nextNode, enteredLog, -1);
+		updateLoggedDialogue(dialogue, enteredLog, -1);
 		userService.getLoggedDialogueStore().saveToSession(enteredLog);
 		return new ExecuteNodeResult(entered[0].dialogue(), nextNode, enteredLog,
 				enteredLog.getInteractionList().size() - 1);
@@ -289,18 +289,21 @@ public class DialogueExecutor {
 
 	/**
 	 * This method is called before the current node is returned from startDialogue() or
-	 * progressDialogue(). The node can be null as a result of progressDialogue() with an end reply.
+	 * progressDialogue(). The current node is null after a reply to End.
 	 *
-	 * <p>If the node is not null, this method adds a logged agent interaction for it.</p>
+	 * <p>If there is a current node, this method adds a logged agent interaction for it.</p>
 	 *
-	 * <p>If the node is null or it has no replies, the dialogue is marked as completed.</p>
+	 * <p>If the dialogue has finished ({@link ActiveDialogue#isFinished()}), it is marked as
+	 * completed.</p>
 	 *
-	 * @param node the current node or null
+	 * @param dialogue the dialogue, at its current node.
 	 * @param serverLoggedDialogue the {@link ServerLoggedDialogue} to update.
 	 * @param previousIndex the previous interaction index
 	 */
-	private void updateLoggedDialogue(Node node, ServerLoggedDialogue serverLoggedDialogue,
+	private void updateLoggedDialogue(ActiveDialogue dialogue,
+									  ServerLoggedDialogue serverLoggedDialogue,
 									  int previousIndex) {
+		Node node = dialogue.getCurrentNode();
 		ResolvedNodeBody body = node == null ? null : (ResolvedNodeBody) node.getBody();
 		if (node != null) {
 			StringBuilder agentStatement = new StringBuilder();
@@ -321,7 +324,7 @@ public class DialogueExecutor {
 			);
 
 		}
-		if (node == null || body.getReplies().isEmpty()) {
+		if (dialogue.isFinished()) {
 			serverLoggedDialogue.setCompleted(true);
 		}
 

@@ -458,7 +458,7 @@ public class TestSessionService {
 		TestSession session = new TestSession(tester, copyKey, activeDialogue);
 		ExecuteNodeResult result = new ExecuteNodeResult(resolved.dialogue(), startNode, null, 0);
 		// A dialogue that ends at its start node needs no session to continue it.
-		if (!hasEnded(result)) sessions.put(session.getId(), session);
+		if (!activeDialogue.isFinished()) sessions.put(session.getId(), session);
 
 		return new StartResult(session.getId(), result);
 	}
@@ -515,7 +515,7 @@ public class TestSessionService {
 		synchronized (session) {
 			ExecuteNodeResult result = advance(session, replyId, variables, eventTime);
 			// A dialogue that has ended can't be progressed any more: the session is done.
-			if (hasEnded(result)) sessions.remove(session.getId());
+			if (session.getActiveDialogue().isFinished()) sessions.remove(session.getId());
 			return result;
 		}
 	}
@@ -539,14 +539,6 @@ public class TestSessionService {
 				copyKey.testerIssuer(), copyKey.userSubject(), copyKey.projectSlug(),
 				copy.getUser().getTimeZone().toString(), current, true);
 		ExternalVariableServiceClient.applyUpdates(copy, updates);
-	}
-
-	/**
-	 * Whether a dialogue has ended with the given step: it reached {@code End}, or a node without
-	 * replies, which can't be progressed any further (the same rule clients use).
-	 */
-	private static boolean hasEnded(ExecuteNodeResult result) {
-		return result == null || result.node().getBody().getReplies().isEmpty();
 	}
 
 	private ExecuteNodeResult advance(TestSession session, int replyId,
