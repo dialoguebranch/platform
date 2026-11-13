@@ -43,21 +43,25 @@ export class OngoingDialogue {
      * `dialogueName`) or {@link DialogueBranchClient#cancelDialogue} to resume or end it.
      * @param {number} secondsSinceLastEngagement How many seconds ago the user last interacted
      * with this dialogue.
+     * @param {?string} [language] The language code the dialogue runs in, or `null` from an older
+     * Web Service that doesn't send it.
      */
-    constructor(dialogueName, loggedDialogueId, secondsSinceLastEngagement) {
+    constructor(dialogueName, loggedDialogueId, secondsSinceLastEngagement, language = null) {
         this._dialogueName = dialogueName;
         this._loggedDialogueId = loggedDialogueId;
         this._secondsSinceLastEngagement = secondsSinceLastEngagement;
+        this._language = language;
     }
 
     /**
      * Builds an OngoingDialogue from the JSON form the Web Service sends.
      *
-     * @param {Object} json `{ dialogueName, loggedDialogueId, secondsSinceLastEngagement }`.
+     * @param {Object} json `{ dialogueName, loggedDialogueId, secondsSinceLastEngagement, language }`.
      * @returns {OngoingDialogue} The parsed ongoing-dialogue info.
      */
     static fromJSON(json) {
-        return new OngoingDialogue(json.dialogueName, json.loggedDialogueId, json.secondsSinceLastEngagement);
+        return new OngoingDialogue(json.dialogueName, json.loggedDialogueId,
+            json.secondsSinceLastEngagement, json.language ?? null);
     }
 
     // ---------------------------------------
@@ -86,6 +90,14 @@ export class OngoingDialogue {
 
     get secondsSinceLastEngagement() {
         return this._secondsSinceLastEngagement;
+    }
+
+    set language(language) {
+        this._language = language;
+    }
+
+    get language() {
+        return this._language;
     }
 
 }

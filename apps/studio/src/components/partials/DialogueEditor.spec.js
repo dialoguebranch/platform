@@ -26,9 +26,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { defineComponent, h, ref } from 'vue';
-import { flushPromises, mount } from '@vue/test-utils';
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils';
 
 // Moving several selected nodes together saves every one's position, not only the one that was
 // grabbed (#196). Vue Flow itself is stubbed: the test fires its drag-stop event directly.
@@ -37,6 +37,8 @@ const authoring = {
     listDraftNodes: vi.fn(),
     updateDraftNode: vi.fn(),
     createDraftNode: vi.fn(),
+    findNodeReferences: vi.fn(),
+    deleteDraftNode: vi.fn(),
 };
 
 vi.mock('@/composables/client.js', () => ({
@@ -49,7 +51,7 @@ const selectedIds = new Set();
 const VueFlowStub = defineComponent({
     name: 'VueFlow',
     props: ['nodes', 'deleteKeyCode', 'zoomOnDoubleClick'],
-    emits: ['node-drag-stop', 'node-click', 'pane-context-menu'],
+    emits: ['node-drag-stop', 'node-click', 'pane-context-menu', 'node-context-menu'],
     setup(props, { slots }) {
         return () => h('div', [
             ...(props.nodes ?? []).map((node) => h('div', { 'data-node': node.id },
@@ -109,6 +111,9 @@ vi.mock('@vue-flow/controls', () => ({ Controls: ControlsStub, ControlButton: Co
 vi.mock('@vue-flow/minimap', () => ({ MiniMap: MiniMapStub }));
 
 const { default: DialogueEditor } = await import('./DialogueEditor.vue');
+
+// The editor listens for keys on the document, so no editor may outlive its test.
+enableAutoUnmount(afterEach);
 const { DEFAULT_NODE_COLOR } = await import('@/composables/node-colors.js');
 
 let currentNodes = [];
@@ -268,7 +273,7 @@ describe('DialogueEditor mouse and keyboard hints', () => {
 
 describe('DialogueEditor keys', () => {
     // Vue Flow deletes the selected nodes on Backspace by default, but only on screen: they'd come
-    // back on the next load. Until deleting from the canvas is built (#193, #197), the key is off.
+    // back on the next load. The editor handles the delete keys itself, with a confirmation.
     it('turns off Vue Flow\'s delete key', async () => {
         const wrapper = await mountEditor();
         expect(wrapper.findComponent(VueFlowStub).props('deleteKeyCode')).toBe(false);
@@ -331,6 +336,137 @@ describe('DialogueEditor adding a node from the canvas', () => {
     it('turns off Vue Flow\'s zoom on a double-click', async () => {
         const wrapper = await mountEditor();
         expect(wrapper.findComponent(VueFlowStub).props('zoomOnDoubleClick')).toBe(false);
+    });
+});
+
+describe('DialogueEditor node cards (#200)', () => {
+    it('shows a preview of the node\'s text, without its replies and commands', async () => {
+        currentNodes = [node('Start', 0, '<<set $a = 1>>Hello there, $name.\n[[Go|Next]]'),
+            node('Next', 200, '[[On|End]]'), node('End', 400, '')];
+        const wrapper = await mountEditor();
+
+        expect(wrapper.find('[data-node="Start"] [data-test="node-preview"]').text())
+            .toBe('Hello there, $name.');
+        expect(wrapper.find('[data-node="Next"] [data-test="node-preview"]').exists()).toBe(false);
+    });
+});
+
+describe('DialogueEditor deleting the selected nodes (#193, #197)', () => {
+    // Selects nodes the way Vue Flow does: through the nodes' v-model.
+    async function select(wrapper, ...titles) {
+        const flow = wrapper.findComponent(VueFlowStub);
+        flow.vm.$emit('update:nodes', flow.props('nodes').map((n) => ({ ...n, selected: titles.includes(n.id) })));
+        await flushPromises();
+    }
+    const press = async (key, target = document.body) => {
+        target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+        await flushPromises();
+    };
+    const dialog = (wrapper) => wrapper.find('[data-test="delete-nodes-dialog"]');
+
+    beforeEach(() => {
+        authoring.deleteDraftNode.mockResolvedValue({});
+        // Start links to Next, Next to End; another dialogue links to Next too.
+        authoring.findNodeReferences.mockImplementation(async (slug, dialogue, title) => ({
+            Next: [{ dialogueName: 'main', nodeTitle: 'Start' }, { dialogueName: 'other', nodeTitle: 'Hub' }],
+            End: [{ dialogueName: 'main', nodeTitle: 'Next' }],
+        })[title] ?? []);
+    });
+
+    it('asks before deleting, and counts only the links from outside what is deleted', async () => {
+        const wrapper = await mountEditor();
+        await select(wrapper, 'Next', 'End');
+        await press('Delete');
+
+        expect(dialog(wrapper).exists()).toBe(true);
+        expect(wrapper.find('[data-test="delete-nodes-titles"]').text()).toBe('Next, End');
+        // Next <- Start and Next <- other.Hub; End <- Next doesn't count, Next goes too
+        expect(wrapper.find('[data-test="delete-nodes-references"]').text()).toContain('2 replies in 2 dialogues');
+        expect(authoring.deleteDraftNode).not.toHaveBeenCalled();
+
+        const loads = authoring.listDraftNodes.mock.calls.length;
+        await wrapper.find('[data-test="delete-nodes-confirm"]').trigger('click');
+        await flushPromises();
+
+        expect(authoring.deleteDraftNode.mock.calls.map((c) => c[2])).toEqual(['Next', 'End']);
+        expect(wrapper.emitted('nodeDeleted')).toEqual([['Next'], ['End']]);
+        expect(wrapper.emitted('dialogueSaved')).toHaveLength(1);
+        expect(authoring.listDraftNodes.mock.calls.length).toBe(loads + 1);
+        expect(dialog(wrapper).exists()).toBe(false);
+    });
+
+    it('deletes nothing when cancelled', async () => {
+        const wrapper = await mountEditor();
+        await select(wrapper, 'Next');
+        await press('Backspace');
+        await wrapper.find('[data-test="delete-nodes-cancel"]').trigger('click');
+        expect(dialog(wrapper).exists()).toBe(false);
+        expect(authoring.deleteDraftNode).not.toHaveBeenCalled();
+    });
+
+    it('warns when the Start node is among them', async () => {
+        const wrapper = await mountEditor();
+        await select(wrapper, 'Start');
+        await press('Delete');
+        expect(wrapper.find('[data-test="delete-nodes-start"]').exists()).toBe(true);
+    });
+
+    it('ignores the keys with nothing selected, and while typing', async () => {
+        const wrapper = await mountEditor();
+        await press('Delete');
+        expect(dialog(wrapper).exists()).toBe(false);
+
+        await select(wrapper, 'Next');
+        const input = document.createElement('input');
+        document.body.appendChild(input);
+        await press('Backspace', input);
+        input.remove();
+        expect(dialog(wrapper).exists()).toBe(false);
+        expect(authoring.findNodeReferences).not.toHaveBeenCalled();
+    });
+
+    const rightClickNode = async (wrapper, id) => {
+        wrapper.findComponent(VueFlowStub).vm.$emit('node-context-menu',
+            { event: { preventDefault: () => {}, clientX: 10, clientY: 10 }, node: { id } });
+        await flushPromises();
+    };
+
+    it('deletes a node from its right-click menu', async () => {
+        const wrapper = await mountEditor();
+        await rightClickNode(wrapper, 'End');
+        const item = wrapper.find('[data-test="node-menu-delete"]');
+        expect(item.text()).toContain('Delete node');
+        await item.trigger('click');
+        await flushPromises();
+        expect(wrapper.find('[data-test="delete-nodes-titles"]').text()).toBe('End');
+    });
+
+    it('deletes the whole selection from the menu of a node in it, else only that node', async () => {
+        const wrapper = await mountEditor();
+        await select(wrapper, 'Next', 'End');
+        await rightClickNode(wrapper, 'End');
+        expect(wrapper.find('[data-test="node-menu-delete"]').text()).toContain('Delete 2 selected nodes');
+        await wrapper.find('[data-test="node-menu-delete"]').trigger('click');
+        await flushPromises();
+        expect(wrapper.find('[data-test="delete-nodes-titles"]').text()).toBe('Next, End');
+        await wrapper.find('[data-test="delete-nodes-cancel"]').trigger('click');
+
+        await rightClickNode(wrapper, 'Start');
+        await wrapper.find('[data-test="node-menu-delete"]').trigger('click');
+        await flushPromises();
+        expect(wrapper.find('[data-test="delete-nodes-titles"]').text()).toBe('Start');
+    });
+
+    it('stops at a failure, shows it, and reloads what is left', async () => {
+        authoring.deleteDraftNode.mockResolvedValueOnce({}).mockRejectedValueOnce(new Error('Server down'));
+        const wrapper = await mountEditor();
+        await select(wrapper, 'Start', 'Next', 'End');
+        await press('Delete');
+        await wrapper.find('[data-test="delete-nodes-confirm"]').trigger('click');
+        await flushPromises();
+
+        expect(authoring.deleteDraftNode).toHaveBeenCalledTimes(2);
+        expect(wrapper.emitted('nodeDeleted')).toEqual([['Start']]);
     });
 });
 

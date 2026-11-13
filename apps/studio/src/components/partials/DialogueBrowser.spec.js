@@ -240,6 +240,7 @@ describe('DialogueBrowser', () => {
             dialogueName: 'resumable-dialogue',
             loggedDialogueId: 'log-123',
             secondsSinceLastEngagement: 45,
+            language: 'nl-NL',
         });
 
         const { wrapper } = mountBrowser({ mode: DLB_APP_MODE_LIVE });
@@ -260,6 +261,7 @@ describe('DialogueBrowser', () => {
         expect(continueButton).toBeDefined();
         await continueButton.trigger('click');
         expect(wrapper.emitted('resumeDialogue')).toBeTruthy();
-        expect(wrapper.emitted('resumeDialogue')[0]).toEqual(['resumable-dialogue']);
+        // with the language it runs in, for the workspace's language selector (#489)
+        expect(wrapper.emitted('resumeDialogue')[0]).toEqual(['resumable-dialogue', { language: 'nl-NL' }]);
     });
 });

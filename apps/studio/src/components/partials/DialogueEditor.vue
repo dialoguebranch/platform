@@ -1,5 +1,5 @@
 <script setup>
-import { ref, inject, watch, computed, useTemplateRef } from 'vue';
+import { ref, inject, watch, computed, useTemplateRef, onMounted, onBeforeUnmount } from 'vue';
 import { VueFlow, Panel, MarkerType, BaseEdge, getStraightPath, useVueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import { Background } from '@vue-flow/background';
@@ -13,6 +13,7 @@ import { describeError } from '@/composables/error-message.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
 import { tagsToMap, mapToTags, getPosition, setPosition } from '@/authoring/DlbHeaderTags.js';
 import { extractReplyLinks } from '@/authoring/DlbReplyLinks.js';
+import { bodyPreview } from '@/authoring/DlbBodyPreview.js';
 import { colorForNode } from '@/composables/node-colors.js';
 import { isUndefinedSpeaker, projectSpeakers, speakerForNewNode } from '@/composables/project-speakers.js';
 import { useLatestRequest } from '@/composables/latest-request.js';
@@ -190,6 +191,7 @@ function buildGraph(nodes) {
             title: node.title,
             speaker: tags.get('speaker') ?? '',
             comment: tags.get('comment') ?? '',
+            preview: bodyPreview(node.body),
             nodeColor: tags.get('nodeColor') ?? null,
             externalLinks: externalLinkCounts.get(node.title) ?? 0,
             isStart: isReservedNodeTitle(node.title, RESERVED_NODE_START_ID),
@@ -384,6 +386,7 @@ const PANE_MENU_ITEMS = [
 
 function onPaneContextMenu(event) {
     event.preventDefault();
+    nodeMenu.value = null;
     const position = screenToFlowCoordinate({ x: event.clientX, y: event.clientY });
     paneMenu.value = { x: event.clientX, y: event.clientY, position };
 }
@@ -443,6 +446,109 @@ function onNodeRenamed(updatedNode) {
     emit('dialogueSaved');
 }
 
+// ---- Deleting nodes from the canvas (#193, #197) ----
+// The Delete and Backspace keys delete the selected nodes, after a confirmation that warns about
+// the replies elsewhere that will be left dangling: links between the nodes being deleted don't
+// count. It never blocks, like deleting a node from its edit panel. Vue Flow's own delete key is
+// off (delete-key-code), since that only removed nodes from the screen.
+
+const deletePrompt = ref(null); // { titles, references (or null if they couldn't be checked) }
+const deletingNodes = ref(false);
+
+const selectedTitles = () => flowNodes.value.filter((node) => node.selected).map((node) => node.id);
+
+function startDeleting(titles) {
+    if (!titles.length || deletePrompt.value) return;
+    const slug = state.value.selectedProject?.slug;
+    const deleted = new Set(titles);
+    Promise.all(titles.map((title) => client.findNodeReferences(slug, props.dialogueName, title)))
+        .then((lists) => {
+            const references = lists.flat().filter((ref) =>
+                !(ref.dialogueName === props.dialogueName && deleted.has(ref.nodeTitle)));
+            deletePrompt.value = { titles, references };
+        })
+        .catch(() => {
+            // The look-up failed: still let the user delete, without the warning.
+            deletePrompt.value = { titles, references: null };
+        });
+}
+
+async function confirmDeleteNodes() {
+    const { titles } = deletePrompt.value;
+    const slug = state.value.selectedProject?.slug;
+    deletingNodes.value = true;
+    dismissError();
+    const done = [];
+    try {
+        // One after another, so updates to the same dialogue never race on the server; a failure
+        // stops the rest, and the reload below shows what was deleted.
+        for (const title of titles) {
+            await client.deleteDraftNode(slug, props.dialogueName, title);
+            done.push(title);
+        }
+    } catch (error) {
+        showError(describeError(error));
+    } finally {
+        deletingNodes.value = false;
+        deletePrompt.value = null;
+        if (done.length) {
+            if (done.includes(selectedNodeTitle.value)) selectedNodeTitle.value = null;
+            done.forEach((title) => emit('nodeDeleted', title));
+            emit('dialogueSaved');
+            loadNodes();
+        }
+    }
+}
+
+// A right-click on a node: delete it, or the whole selection when it's part of one.
+const nodeMenu = ref(null); // { x, y, titles }
+
+function onNodeContextMenu({ event, node }) {
+    event.preventDefault();
+    paneMenu.value = null;
+    const selected = selectedTitles();
+    const titles = selected.includes(node.id) ? selected : [node.id];
+    nodeMenu.value = { x: event.clientX, y: event.clientY, titles };
+}
+
+const nodeMenuItems = computed(() => {
+    const count = nodeMenu.value?.titles.length ?? 0;
+    return [{
+        id: 'delete',
+        label: count > 1 ? `Delete ${count} selected nodes…` : 'Delete node…',
+        icon: 'fa-solid fa-trash',
+        danger: true,
+        test: 'node-menu-delete',
+    }];
+});
+
+function onNodeMenuSelect(item) {
+    if (item.id === 'delete' && nodeMenu.value) startDeleting(nodeMenu.value.titles);
+}
+
+function isTyping(target) {
+    const tag = target?.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable;
+}
+
+function onKeyDown(event) {
+    if (event.key !== 'Delete' && event.key !== 'Backspace') return;
+    if (!props.dialogueName || isTyping(event.target)) return;
+    // Not while a dialog or menu of this editor is open.
+    if (selectedNode.value || deletePrompt.value || paneMenu.value || nodeMenu.value) return;
+    const titles = selectedTitles();
+    if (!titles.length) return;
+    event.preventDefault();
+    startDeleting(titles);
+}
+
+onMounted(() => document.addEventListener('keydown', onKeyDown));
+onBeforeUnmount(() => document.removeEventListener('keydown', onKeyDown));
+
+function referenceDialogueCount(references) {
+    return new Set((references ?? []).map((ref) => ref.dialogueName)).size;
+}
+
 const preambleBar = useTemplateRef('preamble-bar');
 
 function reload() {
@@ -474,6 +580,7 @@ defineExpose({
             @node-click="onNodeClick"
             @nodes-initialized="onNodesInitialized"
             @pane-context-menu="onPaneContextMenu"
+            @node-context-menu="onNodeContextMenu"
         >
             <Panel position="top-left">
                 <PreambleBar ref="preamble-bar" :dialogue-name="dialogueName" @saved="emit('dialogueSaved')" />
@@ -547,7 +654,7 @@ defineExpose({
                             <FontAwesomeIcon icon="fa-regular fa-comment" class="text-[11px]" />
                         </span>
                     </div>
-                    <div v-if="data.speaker || data.externalLinks" class="px-3 py-2 text-xs font-title">
+                    <div v-if="data.speaker || data.preview || data.externalLinks" class="px-3 py-2 text-xs font-title">
                         <div v-if="data.speaker" class="flex items-center gap-1 text-grey-dark min-w-0">
                             <span class="truncate">{{ data.speaker }}</span>
                             <span
@@ -559,6 +666,7 @@ defineExpose({
                                 <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" class="text-[11px]" />
                             </span>
                         </div>
+                        <div v-if="data.preview" class="mt-1 text-[11px] leading-snug text-black/70 line-clamp-2 break-words" data-test="node-preview">{{ data.preview }}</div>
                         <div v-if="data.externalLinks" class="mt-1 inline-flex items-center gap-1 text-[10px] text-orange-dark" :title="`${data.externalLinks} link(s) to other dialogues`">
                             <FontAwesomeIcon icon="fa-solid fa-arrow-up-right-from-square" />
                             {{ data.externalLinks }} external
@@ -606,6 +714,8 @@ defineExpose({
                 <dt><kbd>{{ multiSelectKey }}</kbd> + click a node</dt><dd>Add it to the selection, or take it out</dd>
                 <dt>Drag a selected node</dt><dd>Move all selected nodes together</dd>
                 <dt>Click the canvas</dt><dd>Clear the selection</dd>
+                <dt><kbd>Delete</kbd> or <kbd>Backspace</kbd></dt><dd>Delete the selected nodes, after asking</dd>
+                <dt>Right-click a node</dt><dd>Delete it, or the selection it's part of</dd>
                 <dt>Right-click the canvas</dt><dd>A menu to add a node there</dd>
                 <dt>Double-click the canvas</dt><dd>Add a node there at once</dd>
                 <dt>Drag the canvas</dt><dd>Move around</dd>
@@ -615,6 +725,15 @@ defineExpose({
         </div>
 
         <ContextMenu
+            v-if="nodeMenu"
+            :items="nodeMenuItems"
+            :x="nodeMenu.x"
+            :y="nodeMenu.y"
+            @select="onNodeMenuSelect"
+            @close="nodeMenu = null"
+        />
+
+        <ContextMenu
             v-if="paneMenu"
             :items="PANE_MENU_ITEMS"
             :x="paneMenu.x"
@@ -622,6 +741,54 @@ defineExpose({
             @select="onPaneMenuSelect"
             @close="paneMenu = null"
         />
+
+        <Teleport to="body">
+            <div v-if="deletePrompt" class="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50" data-test="delete-nodes-dialog">
+                <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 flex flex-col">
+                    <div class="flex items-center gap-2 px-5 py-4 bg-red-dark rounded-t-xl text-white font-title font-bold">
+                        <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" />
+                        Delete {{ deletePrompt.titles.length === 1 ? 'Node' : `${deletePrompt.titles.length} Nodes` }}
+                    </div>
+                    <div class="px-5 py-4 flex flex-col gap-3 text-sm font-title">
+                        <p>
+                            You are about to delete
+                            {{ deletePrompt.titles.length === 1 ? 'the node' : 'these nodes' }}
+                            from the draft:
+                            <span class="font-bold text-orange-darker" data-test="delete-nodes-titles">{{ deletePrompt.titles.slice(0, 8).join(', ') }}<template v-if="deletePrompt.titles.length > 8"> and {{ deletePrompt.titles.length - 8 }} more</template></span>.
+                        </p>
+                        <div v-if="deletePrompt.titles.some((t) => t.toLowerCase() === 'start')" class="text-xs text-red-dark" data-test="delete-nodes-start">
+                            The Start node is where the dialogue begins: without it, the dialogue can't run or be published.
+                        </div>
+                        <div v-if="deletePrompt.references === null" class="text-xs text-grey-dark italic">
+                            Could not check for references to these nodes — proceed with caution.
+                        </div>
+                        <div v-else-if="deletePrompt.references.length > 0" class="flex items-start gap-2 border border-red-dark/40 bg-red-dark/10 text-red-dark rounded-lg px-3 py-2.5 text-xs" data-test="delete-nodes-references">
+                            <FontAwesomeIcon icon="fa-solid fa-circle-exclamation" class="shrink-0 mt-0.5" />
+                            <span>
+                                {{ deletePrompt.references.length }} repl{{ deletePrompt.references.length === 1 ? 'y' : 'ies' }}
+                                in {{ referenceDialogueCount(deletePrompt.references) }} dialogue{{ referenceDialogueCount(deletePrompt.references) === 1 ? '' : 's' }}
+                                still link{{ deletePrompt.references.length === 1 ? 's' : '' }} to {{ deletePrompt.titles.length === 1 ? 'this node' : 'these nodes' }}. Deleting will leave those links dangling.
+                            </span>
+                        </div>
+                        <div v-else class="text-xs text-grey-dark italic">No other node links to {{ deletePrompt.titles.length === 1 ? 'this one' : 'these' }}.</div>
+                    </div>
+                    <div class="flex items-center justify-end gap-3 px-5 py-4 border-t border-grey-light bg-grey-lighter rounded-b-xl">
+                        <button type="button" class="px-4 py-2 rounded font-title text-sm text-grey-dark border border-grey-light hover:bg-grey-light cursor-pointer" :disabled="deletingNodes" data-test="delete-nodes-cancel" @click="deletePrompt = null">Cancel</button>
+                        <button
+                            type="button"
+                            class="px-4 py-2 rounded font-title text-sm text-white flex items-center gap-2 bg-red-dark hover:bg-red-900 cursor-pointer"
+                            :disabled="deletingNodes"
+                            data-test="delete-nodes-confirm"
+                            @click="confirmDeleteNodes"
+                        >
+                            <FontAwesomeIcon v-if="deletingNodes" icon="fa-solid fa-circle-notch" class="animate-spin" />
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
 
         <NodeEditPanel
             v-if="selectedNode"

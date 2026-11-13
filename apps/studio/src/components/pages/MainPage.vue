@@ -445,9 +445,9 @@ function confirmDelegateChange() {
     delegateConfirm.value = null;
 }
 
-function onResumeDialogue(dialogueName) {
+function onResumeDialogue(dialogueName, options) {
     panels.value.selectMobileTab(1);
-    dialogueWorkspace.value.resumeDialogue(dialogueName);
+    dialogueWorkspace.value.resumeDialogue(dialogueName, options);
 }
 
 function onOpenDialogue(dialogueName) {

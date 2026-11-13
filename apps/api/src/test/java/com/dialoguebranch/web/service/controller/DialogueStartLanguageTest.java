@@ -140,6 +140,25 @@ class DialogueStartLanguageTest {
 		assertEquals("nl-NL", startAndReadLoggedLanguage("default-test", "menu", "nl-NL"));
 	}
 
+	/**
+	 * {@code /dialogue/get-ongoing} says which language the ongoing dialogue runs in, so a client
+	 * resuming it can show that language rather than its own setting (#489).
+	 */
+	@Test
+	void theOngoingDialogueSaysItsLanguage() throws Exception {
+		String subject = "language-" + UUID.randomUUID();
+		mockMvc.perform(asParticipant(post("/v1/dialogue/start")
+						.param("projectSlug", "default-test").param("dialogueName", "menu")
+						.param("language", "nl-NL").param("timeZone", "UTC"), subject))
+				.andExpect(status().isOk());
+
+		mockMvc.perform(asParticipant(get("/v1/dialogue/get-ongoing")
+						.param("projectSlug", "default-test").param("timeZone", "UTC"), subject))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.value.dialogueName").value("menu"))
+				.andExpect(jsonPath("$.value.language").value("nl-NL"));
+	}
+
 	@Test
 	void theFallbackIsTheSourceLanguageEvenWhenItIsNotEnglish() throws Exception {
 		String slug = "language-fallback-" + UUID.randomUUID();
