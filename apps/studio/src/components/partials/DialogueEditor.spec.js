@@ -417,6 +417,7 @@ describe('DialogueEditor deleting the selected nodes (#193, #197)', () => {
 
     it('ignores the keys with nothing selected, and while typing', async () => {
         const wrapper = await mountEditor();
+        authoring.findNodeReferences.mockClear(); // the orphan check on loading (#195)
         await press('Delete');
         expect(dialog(wrapper).exists()).toBe(false);
 
@@ -684,6 +685,40 @@ describe('DialogueEditor following an external link (#191)', () => {
         flowView.setCenter.mockClear();
         wrapper.vm.focusNode('End');
         expect(flowView.setCenter).toHaveBeenCalledWith(450, 20, expect.anything());
+    });
+});
+
+describe('DialogueEditor orphaned nodes (#195)', () => {
+    const orphans = (wrapper) => wrapper.findAll('[data-test="node-orphan"]')
+        .map((el) => el.element.closest('[data-node]').dataset.node);
+
+    it('marks the nodes no reply leads to, here or in another dialogue, except Start', async () => {
+        // Start -> Next; Loose and Called have no link here, but another dialogue calls Called;
+        // Self only links to itself, which counts, as in core.
+        currentNodes = [node('Start', 0, '[[Go|next]]'), node('Next', 200, ''),
+            node('Loose', 400, ''), node('Called', 600, ''), node('Self', 800, '[[Again|Self]]')];
+        authoring.findNodeReferences.mockImplementation(async (slug, dialogue, title) =>
+            (title === 'Called' ? [{ dialogueName: 'other', nodeTitle: 'Hub' }] : []));
+        const wrapper = await mountEditor();
+
+        expect(orphans(wrapper)).toEqual(['Loose']);
+        // only the nodes nothing here links to are looked up
+        expect(authoring.findNodeReferences.mock.calls.map((c) => c[2]).sort()).toEqual(['Called', 'Loose']);
+    });
+
+    it('counts a link into this dialogue written as an external one', async () => {
+        currentNodes = [node('Start', 0, '[[Round|main.Back]]'), node('Back', 200, '')];
+        authoring.findNodeReferences.mockResolvedValue([]);
+        const wrapper = await mountEditor();
+        expect(orphans(wrapper)).toEqual([]);
+        expect(authoring.findNodeReferences).not.toHaveBeenCalled();
+    });
+
+    it('marks nothing when the look-up fails', async () => {
+        currentNodes = [node('Start', 0, ''), node('Loose', 200, '')];
+        authoring.findNodeReferences.mockRejectedValue(new Error('Server down'));
+        const wrapper = await mountEditor();
+        expect(orphans(wrapper)).toEqual([]);
     });
 });
 

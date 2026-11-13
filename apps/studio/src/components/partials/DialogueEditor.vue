@@ -166,13 +166,17 @@ function buildGraph(nodes) {
     const externalLinkCounts = new Map();
     // Where each node's external links lead, for its card's menu (#191).
     const externalTargets = new Map();
+    // The titles (in lower case, as core compares them) a link in this dialogue points to (#195).
+    const linkedHere = new Set();
     const newFlowEdges = [];
     for (const { node } of parsedByTitle.values()) {
         for (const link of extractReplyLinks(node.body)) {
+            if (!link.isExternal) linkedHere.add(link.nodeTitle.toLowerCase());
             if (link.isExternal) {
                 externalLinkCounts.set(node.title, (externalLinkCounts.get(node.title) ?? 0) + 1);
                 const dialogueName = link.dialogueRef
                     ? resolveDialogueReference(props.dialogueName, link.dialogueRef) : null;
+                if (dialogueName === props.dialogueName) linkedHere.add(link.nodeTitle.toLowerCase());
                 if (dialogueName) {
                     const targets = externalTargets.get(node.title) ?? [];
                     targets.push({ dialogueName, nodeTitle: link.nodeTitle, text: link.displayText });
@@ -212,6 +216,35 @@ function buildGraph(nodes) {
         },
     }));
     flowEdges.value = newFlowEdges;
+    findOrphans([...parsedByTitle.keys()].filter((title) =>
+        !linkedHere.has(title.toLowerCase()) && !isReservedNodeTitle(title, RESERVED_NODE_START_ID)));
+}
+
+// ---- Orphaned nodes (#195) ----
+// A node no reply link points to can never be reached, as core's OrphanedNodeValidator warns when
+// publishing: the Start node doesn't count, and a link from another dialogue does. The links in
+// this dialogue are known from the graph; for the few nodes none of them points to, the Web
+// Service is asked whether another dialogue links to them (find-node-references, on the drafts).
+
+const orphanIds = ref(new Set());
+const { next: nextOrphanRequest, isCurrent: isCurrentOrphanRequest } = useLatestRequest();
+
+function findOrphans(candidates) {
+    const requestId = nextOrphanRequest();
+    if (!candidates.length) {
+        orphanIds.value = new Set();
+        return;
+    }
+    const slug = state.value.selectedProject?.slug;
+    Promise.all(candidates.map((title) =>
+        client.findNodeReferences(slug, props.dialogueName, title)
+            .then((references) => (references.length ? null : title))
+            // Not knowing isn't a warning: leave the node unmarked.
+            .catch(() => null)))
+        .then((titles) => {
+            if (!isCurrentOrphanRequest(requestId)) return;
+            orphanIds.value = new Set(titles.filter(Boolean));
+        });
 }
 
 // DialogueEditor is a single persistent instance reused across tabs (see DialogueWorkspace.vue),
@@ -905,6 +938,7 @@ defineExpose({
                         'ring-2 ring-offset-1 ring-node-start': data.isStart,
                         'ring-2 ring-offset-1 ring-node-end': data.isEnd,
                         'dlb-node-selected': selected,
+                        'dlb-node-orphan': orphanIds.has(id),
                         'dlb-node-match': (searchMatchIds.has(id) && id !== currentMatchId) || linkSourceIds.has(id),
                         'dlb-node-current-match': id === currentMatchId || id === linksView?.target,
                     }"
@@ -916,7 +950,15 @@ defineExpose({
                         <FontAwesomeIcon v-if="data.isStart" icon="fa-solid fa-play" class="text-[10px] shrink-0" title="Start node — the dialogue's entry point" />
                         <FontAwesomeIcon v-if="data.isEnd" icon="fa-solid fa-flag-checkered" class="text-[10px] shrink-0" title="End node — terminates the dialogue" />
                         <span class="truncate">{{ data.title }}</span>
-                        <span v-if="data.comment" class="ml-auto shrink-0 cursor-help" :title="data.comment" data-test="node-comment-icon">
+                        <span
+                            v-if="orphanIds.has(id)"
+                            class="ml-auto shrink-0 cursor-help"
+                            title="Nothing links to this node, so the dialogue can never reach it (it isn't the Start node, and no reply here or in another dialogue leads to it)"
+                            data-test="node-orphan"
+                        >
+                            <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" class="text-[11px]" />
+                        </span>
+                        <span v-if="data.comment" class="shrink-0 cursor-help" :class="{ 'ml-auto': !orphanIds.has(id) }" :title="data.comment" data-test="node-comment-icon">
                             <FontAwesomeIcon icon="fa-regular fa-comment" class="text-[11px]" />
                         </span>
                     </div>
@@ -1108,6 +1150,11 @@ defineExpose({
    which this editor doesn't save. */
 :deep(.vue-flow__nodesselection-rect) {
     display: none;
+}
+
+/* An orphaned node (#195): a dashed edge, as a warning, not an error. */
+.dlb-node-orphan {
+    border: 1.5px dashed var(--color-orange-dark);
 }
 
 /* Search matches (#190): a soft glow, and a strong one for the current match. */
