@@ -240,6 +240,18 @@ public class ActiveDialogueLogTest {
 	}
 
 	@Test
+	public void aStepThatIsNotInTheLogHasNoPlaceInIt() throws Exception {
+		ExecutableProject project = chain();
+		ActiveDialogue dialogue = new ActiveDialogue(project, project.resolve("chain", null),
+				variables());
+		dialogue.startDialogue(NOW);
+		dialogue.keepInMemoryLog(NOW);
+
+		assertNull(dialogue.getCurrentMessage().getLoggedDialogueId());
+		assertEquals(-1, dialogue.getLoggedInteractionIndex());
+	}
+
+	@Test
 	public void anInMemoryLogKeepsTheWholeConversationAcrossLinks() throws Exception {
 		ExecutableProject project = ActiveDialogueLinkTest.mainAndOther();
 		ActiveDialogue dialogue = new ActiveDialogue(project, project.resolve("main", null),

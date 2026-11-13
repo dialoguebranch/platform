@@ -254,8 +254,10 @@ public class ActiveDialogue {
 					+ "\" hasn't been executed: there is no step to show yet");
 		}
 		return DialogueMessageFactory.generateDialogueMessage(
-				new ExecuteNodeResult(dialogueDefinition, currentNode, loggedDialogue,
-						Math.max(loggedInteractionIndex, 0)));
+				loggedInteractionIndex < 0
+						? new ExecuteNodeResult(dialogueDefinition, currentNode, null, 0)
+						: new ExecuteNodeResult(dialogueDefinition, currentNode, loggedDialogue,
+								loggedInteractionIndex));
 	}
 
 	/**
