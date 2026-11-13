@@ -212,7 +212,7 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
-- Documentation: a new [Compatibility Policy](https://dialoguebranch.com/docs/compatibility) page
+- Documentation: a new [Compatibility Policy](https://www.dialoguebranch.com/docs/compatibility.html) page
   lists which surfaces are stable (the `.dlb` language, the stable REST end-points, authentication,
   the External Variable Service protocol, `DialogueBranchClient`, configuration and upgrades,
   `dlb-core-java`'s public API) and which are internal to Studio. From here on, only a change to a

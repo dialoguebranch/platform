@@ -42,7 +42,7 @@ sequenceDiagram
 
 ## Studio Authentication (via the BFF)
 
-`apps/bff` is a small Spring Boot [Backend-for-Frontend](https://samnewman.io/patterns/architecture/bff/) service that sits between Dialogue Branch Studio (`apps/studio`) and the Web Service. It exists so that the browser never has to hold an OAuth2 access or refresh token: the token lives server-side, in the BFF's HTTP session, and the browser only ever holds a `JSESSIONID` session cookie.
+`apps/bff` is a small Spring Boot [Backend-for-Frontend](https://samnewman.io/patterns/architectural/bff/) service that sits between Dialogue Branch Studio (`apps/studio`) and the Web Service. It exists so that the browser never has to hold an OAuth2 access or refresh token: the token lives server-side, in the BFF's HTTP session, and the browser only ever holds a `JSESSIONID` session cookie.
 
 The flow:
 
