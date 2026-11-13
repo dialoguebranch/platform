@@ -364,7 +364,8 @@ describe('DialogueBranchClient playback methods', () => {
 
     it('getOngoingDialogue() parses an OngoingDialogue when one exists', async () => {
         const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
-            value: { dialogueName: 'menu', loggedDialogueId: 'ld-1', secondsSinceLastEngagement: 42 },
+            value: { dialogueName: 'menu', loggedDialogueId: 'ld-1', secondsSinceLastEngagement: 42,
+                language: 'nl-NL' },
         }));
         vi.stubGlobal('fetch', fetchMock);
 
@@ -373,6 +374,14 @@ describe('DialogueBranchClient playback methods', () => {
         expect(fetchMock.mock.calls[0][0]).toContain('projectSlug=default-test');
         expect(ongoing).toBeInstanceOf(OngoingDialogue);
         expect(ongoing.loggedDialogueId).toBe('ld-1');
+        expect(ongoing.language).toBe('nl-NL');
+    });
+
+    it('getOngoingDialogue() leaves the language null for a Web Service that doesn\'t send it', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({
+            value: { dialogueName: 'menu', loggedDialogueId: 'ld-1', secondsSinceLastEngagement: 42 },
+        })));
+        expect((await client().getOngoingDialogue()).language).toBeNull();
     });
 
     it('getOngoingDialogue() resolves to null when there is none', async () => {
