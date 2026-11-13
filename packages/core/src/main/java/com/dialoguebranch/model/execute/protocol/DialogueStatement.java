@@ -34,6 +34,7 @@ import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.command.ActionCommand;
 import com.dialoguebranch.model.execute.command.InputCommand;
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
@@ -92,6 +93,24 @@ public class DialogueStatement {
 	 */
 	public void setSegments(List<Segment> segments) {
 		this.segments = segments;
+	}
+
+	/**
+	 * Returns the text of this statement: its text segments joined, as they are, in order. Input
+	 * segments (fields the user fills in) and action segments (such as an image to show) are
+	 * left out, since they have no text of their own; show them from {@link #getSegments()}.
+	 * This gives the same result as {@code Statement.fullStatement()} in the JavaScript client.
+	 *
+	 * @return the statement's text; empty if it has no text segments.
+	 */
+	@JsonIgnore
+	public String getText() {
+		StringBuilder text = new StringBuilder();
+		for (Segment segment : segments) {
+			if (segment instanceof TextSegment textSegment)
+				text.append(textSegment.getText());
+		}
+		return text.toString();
 	}
 
 	/**

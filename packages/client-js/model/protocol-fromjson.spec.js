@@ -21,6 +21,22 @@ describe('Statement.fromJSON', () => {
     it('defaults to no segments when absent', () => {
         expect(Statement.fromJSON({}).segments).toEqual([]);
     });
+    // The same statements as core's DialogueMessageJsonTest and ProtocolTextTest: the Java
+    // DialogueStatement.getText() must give exactly these results too (#485).
+    it('fullStatement() joins the text as it is, without inputs or actions', () => {
+        const spoken = Statement.fromJSON({ segments: [
+            { text: 'Hello, ', segmentType: 'TEXT' },
+            { action: { type: 'image', value: 'wave.png', parameters: {} }, segmentType: 'ACTION' },
+            { text: 'Sam.', segmentType: 'TEXT' },
+        ] });
+        const answer = Statement.fromJSON({ segments: [
+            { text: 'I am ', segmentType: 'TEXT' },
+            { segmentType: 'INPUT', inputType: 'numeric', description: 'age', variable: 'age' },
+            { text: ' years old.', segmentType: 'TEXT' },
+        ] });
+        expect(spoken.fullStatement()).toBe('Hello, Sam.');
+        expect(answer.fullStatement()).toBe('I am  years old.');
+    });
 });
 
 describe('BasicReply.fromJSON / AutoForwardReply.fromJSON', () => {

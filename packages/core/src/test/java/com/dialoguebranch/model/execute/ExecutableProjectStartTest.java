@@ -94,22 +94,24 @@ public class ExecutableProjectStartTest {
 						.getResource("project-test/dlb-project.xml").toURI()));
 		ActiveDialogue dialogue = project.startDialogue("menu", new User("sam"));
 
-		// The documented loop, with "show" noting the step and "chooseReply" taking the first
-		// reply, then the last (the first ones of the example project go round in circles),
-		// and a cap in case it never ends
+		// The documented loop, with the println noted, "chooseReply" taking the first reply,
+		// then the last (the first ones of the example project go round in circles), and a cap
+		// in case it never ends
 		List<String> shown = new ArrayList<>();
-		while (shown.size() < 50) {
-			DialogueMessage step = dialogue.getCurrentMessage();
-			if (step != null) shown.add(step.getDialogue() + "." + step.getNode());
+		DialogueMessage step = dialogue.getCurrentMessage();
+		while (step != null && shown.size() < 50) {
+			shown.add(step.getSpeaker() + ": " + step.getStatement().getText());
 			if (dialogue.isFinished()) break;
 			List<ReplyMessage> replies = step.getReplies();
-			ReplyMessage reply = shown.size() == 1 ? replies.get(0)
-					: replies.get(replies.size() - 1);
-			dialogue.selectReply(reply.getReplyId(), ZonedDateTime.now());
+			dialogue.selectReply(shown.size() == 1 ? replies.get(0)
+					: replies.get(replies.size() - 1));
+			step = dialogue.getCurrentMessage();
 		}
 
 		// The first reply of "menu" leads into "basic", whose last reply goes to End
-		assertEquals(List.of("menu.Start", "basic.Start"), shown);
+		assertEquals(2, shown.size());
+		assertTrue(shown.get(0), shown.get(0).startsWith("Martin McOwl: This is the Default"));
+		assertTrue(shown.get(1), shown.get(1).startsWith("Martin McOwl: Hi, my name is"));
 		assertTrue(dialogue.isFinished());
 		assertNull(dialogue.getCurrentMessage());
 	}

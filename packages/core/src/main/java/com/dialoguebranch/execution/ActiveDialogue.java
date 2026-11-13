@@ -42,6 +42,7 @@ import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import com.dialoguebranch.model.execute.protocol.DialogueMessage;
 import com.dialoguebranch.model.execute.protocol.DialogueMessageFactory;
+import com.dialoguebranch.model.execute.protocol.ReplyMessage;
 import org.jspecify.annotations.Nullable;
 
 import java.time.ZonedDateTime;
@@ -264,6 +265,33 @@ public class ActiveDialogue {
 	// ------------------------------------------------------- //
 
 	/**
+	 * Starts this {@link ActiveDialogue} at its "Start" node, now (in the time zone of the
+	 * {@link VariableStore}'s user). See {@link #startDialogue(String, ZonedDateTime)}.
+	 *
+	 * @return the start {@link Node}, executed.
+	 * @throws ExecutionException if the dialogue has no start node.
+	 * @throws EvaluationException if an expression cannot be evaluated.
+	 */
+	public Node startDialogue() throws ExecutionException, EvaluationException {
+		return startDialogue((String) null, now());
+	}
+
+	/**
+	 * Starts this {@link ActiveDialogue} at the node with the given ID, or at its "Start" node if
+	 * it is {@code null}, now (in the time zone of the {@link VariableStore}'s user). See {@link
+	 * #startDialogue(String, ZonedDateTime)}.
+	 *
+	 * @param startNodeId the ID of the node to start at, or {@code null} for the "Start" node.
+	 * @return the start {@link Node}, executed.
+	 * @throws ExecutionException if there is no such node.
+	 * @throws EvaluationException if an expression cannot be evaluated.
+	 */
+	public Node startDialogue(@Nullable String startNodeId)
+			throws ExecutionException, EvaluationException {
+		return startDialogue(startNodeId, now());
+	}
+
+	/**
 	 * "Starts" this {@link ActiveDialogue}, returning the start node and updating its internal
 	 * state.
 	 *
@@ -275,7 +303,7 @@ public class ActiveDialogue {
 	 */
 	public Node startDialogue(ZonedDateTime eventTime) throws ExecutionException,
 			EvaluationException {
-		return startDialogue(null, eventTime);
+		return startDialogue((String) null, eventTime);
 	}
 
 	/**
@@ -319,6 +347,43 @@ public class ActiveDialogue {
 		this.currentNode = executeNode(nextNode,eventTime);
 		this.started = true;
 		return currentNode;
+	}
+
+	/**
+	 * Selects the reply with the given {@code replyId} in the current node, now (in the time zone
+	 * of the {@link VariableStore}'s user), and returns the node it leads to. See {@link
+	 * #selectReply(int, ZonedDateTime)}.
+	 *
+	 * @param replyId the ID of the selected reply.
+	 * @return the next {@link Node}, or {@code null} if the reply ends the dialogue.
+	 * @throws ExecutionException if the dialogue or node the reply leads to can't be found, or
+	 *                            if the {@link DialogueSwitchListener} stops the switch.
+	 * @throws EvaluationException if an expression cannot be evaluated.
+	 */
+	public @Nullable Node selectReply(int replyId)
+			throws ExecutionException, EvaluationException {
+		return selectReply(replyId, now());
+	}
+
+	/**
+	 * Selects the given reply of the current step, as {@link #getCurrentMessage()} gave it, now
+	 * (in the time zone of the {@link VariableStore}'s user), and returns the node it leads to.
+	 * See {@link #selectReply(int, ZonedDateTime)}.
+	 *
+	 * @param reply the selected reply.
+	 * @return the next {@link Node}, or {@code null} if the reply ends the dialogue.
+	 * @throws ExecutionException if the dialogue or node the reply leads to can't be found, or
+	 *                            if the {@link DialogueSwitchListener} stops the switch.
+	 * @throws EvaluationException if an expression cannot be evaluated.
+	 */
+	public @Nullable Node selectReply(ReplyMessage reply)
+			throws ExecutionException, EvaluationException {
+		return selectReply(reply.getReplyId(), now());
+	}
+
+	/** Returns the current time in the time zone of the {@link VariableStore}'s user. */
+	private ZonedDateTime now() {
+		return ZonedDateTime.now(variableStore.getUser().getTimeZone());
 	}
 
 	/**

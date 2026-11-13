@@ -30,6 +30,7 @@ package com.dialoguebranch.model.execute.protocol;
 
 import com.dialoguebranch.model.execute.NodeBody;
 import com.dialoguebranch.model.execute.Reply;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.jspecify.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -105,6 +106,30 @@ public class ReplyMessage {
 	 */
 	public void setStatement(@Nullable DialogueStatement statement) {
 		this.statement = statement;
+	}
+
+	/**
+	 * Returns whether this is an auto-forward reply: one without a statement, which a client
+	 * shows as a way to continue (for example a "Continue" button) rather than as something the
+	 * user says.
+	 *
+	 * @return {@code true} if this reply has no statement.
+	 */
+	@JsonIgnore
+	public boolean isAutoForward() {
+		return statement == null;
+	}
+
+	/**
+	 * Returns the text of this reply, as {@link DialogueStatement#getText()} gives it: what the
+	 * user says by choosing it, without its input fields.
+	 *
+	 * @return the reply's text, or an empty string for an auto-forward reply (see {@link
+	 *         #isAutoForward()}).
+	 */
+	@JsonIgnore
+	public String getText() {
+		return statement == null ? "" : statement.getText();
 	}
 
 	/**
