@@ -42,8 +42,8 @@ const REPLY_PATTERN = /\[\[(.*?)]]/g;
  *
  * A target matching `NODE_NAME_REGEX` (letters/digits/underscore/hyphen only) is an *internal*
  * link (same dialogue); anything else is treated as *external* (a `<dialogueRef>.<nodeTitle>`
- * cross-dialogue reference) — this mirrors the parser's own distinction, though resolving the
- * relative dialogue path itself (as `ExternalNodePointer` does) is left to the backend.
+ * cross-dialogue reference) — this mirrors the parser's own distinction. Where an external link
+ * leads is {@link resolveDialogueReference}.
  *
  * @param {string} bodySource the raw body script to scan.
  * @returns {Array<{raw: string, displayText: string|null, target: string, actionRaw: string|null,
@@ -85,3 +85,34 @@ export function extractReplyLinks(bodySource) {
     }
     return links;
 }
+
+/**
+ * The full name of the dialogue an external reply link leads to (#191), from the name of the
+ * dialogue the link is in and the reference as written: the same rules as core's
+ * `ExternalNodePointer` (`getAbsoluteDialogueId`). A reference is relative to the folder of the
+ * dialogue it's in; `../` goes up a folder; a leading `/` means nothing; and `./` starts from the
+ * project's root.
+ *
+ * @param {string} originDialogueName the full name (with folders) of the dialogue the link is in.
+ * @param {string} reference the dialogue part of the link's target, as written.
+ * @returns {?string} the target dialogue's full name, or `null` if the reference goes below the
+ *   project's root or names no dialogue (core refuses those when parsing).
+ */
+export function resolveDialogueReference(originDialogueName, reference) {
+    if (reference.startsWith('./')) return reference.slice(2) || null;
+    const path = originDialogueName.includes('/') ? originDialogueName.split('/').slice(0, -1) : [];
+    let rest = reference.startsWith('/') ? reference.slice(1) : reference;
+    while (rest.includes('/')) {
+        if (rest.startsWith('../')) {
+            if (!path.length) return null;
+            path.pop();
+            rest = rest.slice(3);
+        } else {
+            path.push(rest.slice(0, rest.indexOf('/')));
+            rest = rest.slice(rest.indexOf('/') + 1);
+        }
+    }
+    if (!rest) return null;
+    return [...path, rest].join('/');
+}
+
