@@ -507,27 +507,20 @@ public class ApplicationManager {
 	}
 
 	/**
-	 * Returns the {@link Dialogue} identified by the given {@code dialogueDescription} and
-	 * {@code translationContext}, searching only within the named project.
+	 * Returns the {@link Dialogue} identified by the given {@code dialogueDescription}, searching
+	 * only within the named project.
 	 *
 	 * @param projectSlug         the project folder name / slug.
 	 * @param dialogueDescription the {@link ResourcePointer} identifying the requested dialogue.
-	 * @param translationContext  the translation context to apply, or {@code null} for the source.
 	 * @return the requested {@link Dialogue}.
 	 * @throws ExecutionException with type {@link ExecutionException.Type#DIALOGUE_NOT_FOUND} if the
 	 *                            project is not loaded or the dialogue is not found within it.
 	 */
 	public Dialogue getDialogueDefinitionForProject(String projectSlug,
-			ResourcePointer dialogueDescription, TranslationContext translationContext)
-			throws ExecutionException {
+			ResourcePointer dialogueDescription) throws ExecutionException {
 		DialogueBranchProject project = projects.get(projectSlug);
 		if (project instanceof ExecutableProject execProject) {
-			Dialogue dialogue;
-			if (translationContext == null) {
-				dialogue = execProject.getDialogues().get(dialogueDescription);
-			} else {
-				dialogue = execProject.getTranslatedDialogue(dialogueDescription, translationContext);
-			}
+			Dialogue dialogue = execProject.getDialogues().get(dialogueDescription);
 			if (dialogue != null) return dialogue;
 		}
 		throw new ExecutionException(ExecutionException.Type.DIALOGUE_NOT_FOUND,

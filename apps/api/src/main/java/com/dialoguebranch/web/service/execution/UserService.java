@@ -31,7 +31,6 @@ package com.dialoguebranch.web.service.execution;
 import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.exception.ParseException;
 import com.dialoguebranch.execution.*;
-import com.dialoguebranch.i18n.TranslationContext;
 import com.dialoguebranch.model.execute.*;
 import com.dialoguebranch.web.service.DateTimeUtils;
 import com.dialoguebranch.web.service.DlbProperties;
@@ -88,8 +87,6 @@ public class UserService {
 	private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 	private final LoggedDialogueStore loggedDialogueStore;
 	private final DialogueExecutor dialogueExecutor;
-
-	private TranslationContext translationContext = null;
 
 	/**
 	 * Epoch millis of the last time this {@link UserService} was resolved for an active request
@@ -166,24 +163,6 @@ public class UserService {
 	 */
 	public DialogueBranchUserId getUserId() {
 		return userId;
-	}
-
-	/**
-	 * Returns the {@link TranslationContext} describing the relevant contextual parameters
-	 * needed to select the right translations.
-	 * @return the {@link TranslationContext}.
-	 */
-	public TranslationContext getTranslationContext() {
-		return translationContext;
-	}
-
-	/**
-	 * Sets the {@link TranslationContext} describing the relevant contextual parameters
-	 * needed to select the right translations.
-	 * @param translationContext the {@link TranslationContext}.
-	 */
-	public void setTranslationContext(TranslationContext translationContext) {
-		this.translationContext = translationContext;
 	}
 
 	/**
@@ -598,8 +577,8 @@ public class UserService {
 	/**
 	 * Returns the {@link DialogueResolver} that finds this user's dialogues in the given project
 	 * (#473): in the requested language, or the project's source language if the dialogue isn't
-	 * available in it (see {@link #getDialogueDescriptionFromProject}), translated in this
-	 * user's {@link TranslationContext}, and with the translation for each gender of the end user.
+	 * available in it (see {@link #getDialogueDescriptionFromProject}), and with the translation
+	 * for each gender of the end user.
 	 * An {@link ActiveDialogue} uses it to follow a reply into another dialogue.
 	 *
 	 * @param projectSlug the project's slug.
@@ -634,7 +613,7 @@ public class UserService {
 	public Dialogue getDialogueDefinitionForProject(String projectSlug,
 			ResourcePointer dialogueDescription) throws ExecutionException {
 		return this.applicationManager.getDialogueDefinitionForProject(
-				projectSlug, dialogueDescription, translationContext);
+				projectSlug, dialogueDescription);
 	}
 
 	/**
