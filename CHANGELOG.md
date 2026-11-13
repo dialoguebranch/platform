@@ -39,6 +39,11 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 - Core: `ExecutableProject.generateSummaryString()` describes a loaded project, as
   `ProjectParserResult.generateSummaryString()` did for a parse without errors
   ([#473](https://github.com/dialoguebranch/platform/issues/473)).
+- Core: `DialogueStatement.getText()` returns the text of a statement (its text segments joined,
+  without input fields or actions), as `fullStatement()` does in the JavaScript client.
+  `ReplyMessage.getText()` does the same for a reply, and `ReplyMessage.isAutoForward()` tells an
+  auto-forward reply apart. The JSON the Web Service sends is unchanged
+  ([#485](https://github.com/dialoguebranch/platform/issues/485)).
 
 ### Changed
 
