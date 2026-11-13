@@ -748,6 +748,21 @@ function editDialogue(name) {
     selectedMode.value = 'edit';
 }
 
+// Following an external reply link in the graph editor (#191): the dialogue it leads to opens in
+// Edit mode, in its own tab or one already open for it, centred on the node.
+function followExternalLink({ dialogueName, nodeTitle }) {
+    const open = tabs.value.find((t) => t.dialogueName === dialogueName && t.openedForEditOnly);
+    if (activeTab.value.dialogueName === dialogueName) {
+        // a link into the dialogue that's open: only centre the node
+    } else if (open) {
+        activeTabId.value = open.id;
+        selectedMode.value = 'edit';
+    } else {
+        editDialogue(dialogueName);
+    }
+    nextTick(() => dialogueEditor.value?.focusNode?.(nodeTitle));
+}
+
 function openDialogueForTranslation(name) {
     prepareAuthoringTab(name);
     selectedMode.value = 'translate';
@@ -1199,6 +1214,7 @@ function onSelectReply(dialogueStep, reply, inputValues) {
                     @nodeChanged="onEditorNodeChanged"
                     @nodeDeleted="onEditorNodeDeleted"
                     @dialogueSaved="$emit('dialogueSaved')"
+                    @openDialogue="followExternalLink"
                 />
             </MainPagePanelContainer>
             <MainPagePanelContainer v-else-if="selectedMode === 'translate'" class="-mt-px !overflow-hidden relative">

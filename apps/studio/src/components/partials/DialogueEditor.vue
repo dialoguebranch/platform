@@ -12,7 +12,7 @@ import { useAuthoringClient } from '@/composables/client.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
 import { tagsToMap, mapToTags, getPosition, setPosition } from '@/authoring/DlbHeaderTags.js';
-import { extractReplyLinks } from '@/authoring/DlbReplyLinks.js';
+import { extractReplyLinks, resolveDialogueReference } from '@/authoring/DlbReplyLinks.js';
 import { bodyPreview } from '@/authoring/DlbBodyPreview.js';
 import { colorForNode } from '@/composables/node-colors.js';
 import { isUndefinedSpeaker, projectSpeakers, speakerForNewNode } from '@/composables/project-speakers.js';
@@ -38,7 +38,9 @@ const props = defineProps({
 // which is the condition DialogueWorkspace's handleReturnFromEdit cares about. dialogueSaved fires
 // on every successful save, including drags — used to tell the Dialogue Browser its
 // "New"/"Draft"/"Deleted" labels and Publish-enablement may be stale.
-const emit = defineEmits(['nodeChanged', 'nodeDeleted', 'dialogueSaved']);
+// openDialogue ({ dialogueName, nodeTitle }) asks the workspace to open another dialogue here, at
+// that node: following an external reply link (#191).
+const emit = defineEmits(['nodeChanged', 'nodeDeleted', 'dialogueSaved', 'openDialogue']);
 
 const state = inject('state');
 const client = useAuthoringClient();
@@ -162,11 +164,20 @@ function buildGraph(nodes) {
     });
 
     const externalLinkCounts = new Map();
+    // Where each node's external links lead, for its card's menu (#191).
+    const externalTargets = new Map();
     const newFlowEdges = [];
     for (const { node } of parsedByTitle.values()) {
         for (const link of extractReplyLinks(node.body)) {
             if (link.isExternal) {
                 externalLinkCounts.set(node.title, (externalLinkCounts.get(node.title) ?? 0) + 1);
+                const dialogueName = link.dialogueRef
+                    ? resolveDialogueReference(props.dialogueName, link.dialogueRef) : null;
+                if (dialogueName) {
+                    const targets = externalTargets.get(node.title) ?? [];
+                    targets.push({ dialogueName, nodeTitle: link.nodeTitle, text: link.displayText });
+                    externalTargets.set(node.title, targets);
+                }
                 continue;
             }
             // A dangling internal link (target doesn't exist in this dialogue) is a validation
@@ -195,6 +206,7 @@ function buildGraph(nodes) {
             preview: bodyPreview(node.body),
             nodeColor: tags.get('nodeColor') ?? null,
             externalLinks: externalLinkCounts.get(node.title) ?? 0,
+            externalTargets: externalTargets.get(node.title) ?? [],
             isStart: isReservedNodeTitle(node.title, RESERVED_NODE_START_ID),
             isEnd: isReservedNodeTitle(node.title, RESERVED_NODE_END_ID),
         },
@@ -241,9 +253,38 @@ watch(() => props.dialogueName, (name) => {
 
 // Fires whenever Vue Flow (re)measures node dimensions — including after the fetch above resolves
 // and populates flowNodes for the first time.
+// The node to centre on instead of Start when the dialogue opens, after following a link (#191).
+let focusOnOpen = null;
+
+/**
+ * Centres the given node once this dialogue's nodes are shown: right away if they are, or when
+ * the dialogue that's opening has loaded.
+ *
+ * @param {string} nodeTitle the node.
+ */
+function focusNode(nodeTitle) {
+    if (!centerOnOpenPending && findNode(nodeTitle)) {
+        centreOn(nodeTitle);
+    } else {
+        focusOnOpen = nodeTitle;
+    }
+}
+
 function onNodesInitialized() {
     if (!centerOnOpenPending) return;
     centerOnOpenPending = false;
+
+    const focus = focusOnOpen;
+    focusOnOpen = null;
+    if (focus) {
+        if (findNode(focus)) {
+            fitView({ duration: 0 }).then(() => centreOn(focus));
+        } else {
+            showError(`There's no node "${focus}" in the dialogue "${props.dialogueName}".`);
+            fitView({ duration: 300 });
+        }
+        return;
+    }
 
     const startNode = flowNodes.value.find((n) => isReservedNodeTitle(n.id, RESERVED_NODE_START_ID));
     if (!startNode) {
@@ -585,6 +626,37 @@ async function confirmDeleteNodes() {
     }
 }
 
+// ---- Following an external link (#191) ----
+// The "N external" line on a card opens a menu of where its links lead; choosing one opens that
+// dialogue in this editor, at that node.
+
+const externalMenu = ref(null); // { anchor, targets }
+
+function openExternalMenu(event, data) {
+    paneMenu.value = null;
+    nodeMenu.value = null;
+    externalMenu.value = { anchor: event.currentTarget, targets: data.externalTargets };
+}
+
+const externalMenuItems = computed(() => {
+    const targets = externalMenu.value?.targets ?? [];
+    if (!targets.length) {
+        return [{ label: 'Where these links lead can\'t be read', disabled: true }];
+    }
+    return targets.map((target, index) => ({
+        id: index,
+        label: `${target.dialogueName} → ${target.nodeTitle}`,
+        title: target.text ? `Reply "${target.text}"` : undefined,
+        icon: 'fa-solid fa-arrow-up-right-from-square',
+        test: 'external-link-item',
+    }));
+});
+
+function onExternalMenuSelect(item) {
+    const target = externalMenu.value?.targets[item.id];
+    if (target) emit('openDialogue', { dialogueName: target.dialogueName, nodeTitle: target.nodeTitle });
+}
+
 // A right-click on a node: delete it, or the whole selection when it's part of one.
 const nodeMenu = ref(null); // { x, y, titles }
 
@@ -705,6 +777,7 @@ function reload() {
 
 defineExpose({
     reload,
+    focusNode,
     addNode,
     isLoading: () => loading.value,
     isCreatingNode: () => creatingNode.value,
@@ -860,10 +933,17 @@ defineExpose({
                             </span>
                         </div>
                         <div v-if="data.preview" class="mt-1 text-[11px] leading-snug text-black/70 line-clamp-2 break-words" data-test="node-preview">{{ data.preview }}</div>
-                        <div v-if="data.externalLinks" class="mt-1 inline-flex items-center gap-1 text-[10px] text-orange-dark" :title="`${data.externalLinks} link(s) to other dialogues`">
+                        <button
+                            v-if="data.externalLinks"
+                            type="button"
+                            class="nodrag mt-1 inline-flex items-center gap-1 text-[10px] text-orange-dark hover:underline cursor-pointer"
+                            :title="`${data.externalLinks} link(s) to other dialogues — click to go to one`"
+                            data-test="node-external-links"
+                            @click.stop="openExternalMenu($event, data)"
+                        >
                             <FontAwesomeIcon icon="fa-solid fa-arrow-up-right-from-square" />
                             {{ data.externalLinks }} external
-                        </div>
+                        </button>
                     </div>
                     <div v-if="data.isEnd" class="px-3 py-2 text-[10px] italic text-grey-dark">Ends the conversation — no content</div>
                 </div>
@@ -909,6 +989,7 @@ defineExpose({
                 <dt>Drag a selected node</dt><dd>Move all selected nodes together</dd>
                 <dt>Click the canvas</dt><dd>Clear the selection</dd>
                 <dt><kbd>Delete</kbd> or <kbd>Backspace</kbd></dt><dd>Delete the selected nodes, after asking</dd>
+                <dt>Click "N external" on a node</dt><dd>Go to where its links to other dialogues lead</dd>
                 <dt>Right-click a node</dt><dd>Show the links to it; delete it, or the selection it's part of</dd>
                 <dt>Right-click the canvas</dt><dd>A menu to add a node there</dd>
                 <dt>Double-click the canvas</dt><dd>Add a node there at once</dd>
@@ -918,6 +999,14 @@ defineExpose({
                 <dt>Drag or scroll in the map</dt><dd>Move around, zoom</dd>
             </dl>
         </div>
+
+        <ContextMenu
+            v-if="externalMenu"
+            :items="externalMenuItems"
+            :anchor="externalMenu.anchor"
+            @select="onExternalMenuSelect"
+            @close="externalMenu = null"
+        />
 
         <ContextMenu
             v-if="nodeMenu"

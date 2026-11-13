@@ -51,7 +51,7 @@ const selectedIds = new Set();
 const VueFlowStub = defineComponent({
     name: 'VueFlow',
     props: ['nodes', 'deleteKeyCode', 'zoomOnDoubleClick'],
-    emits: ['node-drag-stop', 'node-click', 'pane-context-menu', 'node-context-menu'],
+    emits: ['node-drag-stop', 'node-click', 'pane-context-menu', 'node-context-menu', 'nodes-initialized'],
     setup(props, { slots }) {
         return () => h('div', [
             ...(props.nodes ?? []).map((node) => h('div', { 'data-node': node.id },
@@ -71,7 +71,7 @@ vi.mock('@vue-flow/core', () => ({
     MarkerType: { ArrowClosed: 'arrowclosed' },
     getStraightPath: () => ['', 0, 0],
     useVueFlow: () => ({
-        fitView: vi.fn(), setCenter: flowView.setCenter, getViewport: () => ({ x: 0, y: 0, zoom: 1 }),
+        fitView: vi.fn(() => Promise.resolve(true)), setCenter: flowView.setCenter, getViewport: () => ({ x: 0, y: 0, zoom: 1 }),
         screenToFlowCoordinate: (p) => p,
         // Every node measures 100 x 40 at its stored position, for the MiniMap's lines.
         findNode: (id) => {
@@ -645,6 +645,45 @@ describe('DialogueEditor links to a node (#194)', () => {
         await flushPromises();
         expect(wrapper.find('[data-test="graph-links"]').exists()).toBe(false);
         expect(marked(wrapper, 'source')).toEqual([]);
+    });
+});
+
+describe('DialogueEditor following an external link (#191)', () => {
+    it('lists where a card\'s external links lead, and asks to open the one chosen', async () => {
+        currentNodes = [node('Start', 0, '[[On|other.Start]]\n[[Up|../intro/welcome.Second]]'),
+            node('Next', 200), node('End', 400, '')];
+        const wrapper = mount(DialogueEditor, {
+            props: { dialogueName: 'lessons/main' },
+            global: {
+                provide: { state: ref({ selectedProject: { slug: 'p' } }) },
+                stubs: { FontAwesomeIcon: true, PreambleBar: true, NodeEditPanel: true, teleport: true },
+            },
+        });
+        await flushPromises();
+
+        await wrapper.find('[data-node="Start"] [data-test="node-external-links"]').trigger('click');
+        const items = wrapper.findAll('[data-test="external-link-item"]');
+        expect(items.map((i) => i.text())).toEqual(['lessons/other → Start', 'intro/welcome → Second']);
+        // the click doesn't open the node itself
+        expect(wrapper.findComponent({ name: 'NodeEditPanel' }).exists()).toBe(false);
+
+        await items[1].trigger('click');
+        expect(wrapper.emitted('openDialogue')).toEqual([[{ dialogueName: 'intro/welcome', nodeTitle: 'Second' }]]);
+    });
+
+    it('centres a node at once when it is shown, or once the dialogue has loaded', async () => {
+        // before the nodes are shown, it waits for them
+        const wrapper = await mountEditor();
+        wrapper.vm.focusNode('Next');
+        flowView.setCenter.mockClear();
+        wrapper.findComponent(VueFlowStub).vm.$emit('nodes-initialized');
+        await flushPromises();
+        expect(flowView.setCenter).toHaveBeenCalledWith(250, 20, expect.anything());
+
+        // once they are, at once
+        flowView.setCenter.mockClear();
+        wrapper.vm.focusNode('End');
+        expect(flowView.setCenter).toHaveBeenCalledWith(450, 20, expect.anything());
     });
 });
 

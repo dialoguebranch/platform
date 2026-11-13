@@ -14,6 +14,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 - Studio: *Show links to this node* in a node's right-click menu highlights the nodes whose
   replies lead to it, and names those in other dialogues
   ([#194](https://github.com/dialoguebranch/platform/issues/194)).
+- Studio: the *N external* line on a node's card in the graph editor lists where its links into
+  other dialogues lead; choosing one opens that dialogue at that node
+  ([#191](https://github.com/dialoguebranch/platform/issues/191)).
 - Web service: `/dialogue/get-ongoing` also returns the `language` the ongoing dialogue runs in;
   in client-js, `OngoingDialogue.language` ([#489](https://github.com/dialoguebranch/platform/issues/489)).
 - Studio: a *Go back a step* button while testing a dialogue, in Live Mode and in draft tests
