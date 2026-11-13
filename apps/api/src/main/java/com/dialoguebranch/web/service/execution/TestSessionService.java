@@ -381,9 +381,12 @@ public class TestSessionService {
 		}
 
 		ExecutableProject executableProject = (ExecutableProject) parserResult.getProject();
-		ResolvedDialogue resolved = resolveDialogue(executableProject, dialogue.getName(),
-				language);
-		if (resolved == null) {
+		// In the requested language, or the source language if the dialogue has no content in
+		// exactly that language, as published dialogues do.
+		ResolvedDialogue resolved;
+		try {
+			resolved = executableProject.resolve(dialogue.getName(), language);
+		} catch (ExecutionException e) {
 			throw new BadRequestException("Draft dialogue '" + dialogue.getName() +
 					"' could not be parsed into a runnable dialogue.");
 		}
@@ -424,8 +427,10 @@ public class TestSessionService {
 			throw new NotFoundException("Project '" + project.getSlug() +
 					"' has no published version.");
 		}
-		ResolvedDialogue resolved = resolveDialogue(published, dialogueName, language);
-		if (resolved == null) {
+		ResolvedDialogue resolved;
+		try {
+			resolved = published.resolve(dialogueName, language);
+		} catch (ExecutionException e) {
 			throw new NotFoundException("Dialogue not found in the published version: " +
 					dialogueName);
 		}
@@ -461,26 +466,6 @@ public class TestSessionService {
 		if (!activeDialogue.isFinished()) sessions.put(session.getId(), session);
 
 		return new StartResult(session.getId(), result);
-	}
-
-	/**
-	 * Finds {@code dialogueName} in the given already-parsed {@code executableProject}, in {@code
-	 * language}, falling back to the project's source language if the dialogue has no content in
-	 * exactly that language, as published dialogues do (see {@link
-	 * ExecutableProject#getDialoguePointer}).
-	 *
-	 * @param executableProject the already-parsed project to resolve against.
-	 * @param dialogueName      the dialogue to resolve.
-	 * @param language          the preferred language code.
-	 * @return the resolved dialogue, or {@code null} if the project has no such dialogue.
-	 */
-	private static ResolvedDialogue resolveDialogue(ExecutableProject executableProject,
-			String dialogueName, String language) {
-		try {
-			return executableProject.resolve(dialogueName, language);
-		} catch (ExecutionException e) {
-			return null;
-		}
 	}
 
 	/**

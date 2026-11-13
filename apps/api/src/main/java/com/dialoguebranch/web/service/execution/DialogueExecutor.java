@@ -194,7 +194,9 @@ public class DialogueExecutor {
 		int userActionIndex = serverLoggedDialogue.getInteractionList().size() - 1;
 
 		// Entering another dialogue reads its variables from the External Variable Service, as
-		// at a start; its log is made below, once its first node has run (#473).
+		// at a start; its log is made below, once its first node has run (#473). The listener
+		// also tells whether that happened: comparing the dialogue before and after would miss
+		// a reply that links into the start of the same dialogue, which starts a new log too.
 		String projectSlug = serverLoggedDialogue.getProjectName();
 		ResolvedDialogue[] entered = new ResolvedDialogue[1];
 		dialogue.setDialogueSwitchListener((from, to) -> {

@@ -83,7 +83,7 @@ class CrossDialogueLinkIntegrationTest {
 	/** "main" sets $mood, shows $mark, and links into "other" at its Start and at Second. */
 	private static final String MAIN = "title: Start\nspeaker: Robin\n---\n"
 			+ "<<set $mood = \"happy\">>\nMark is $mark.\n"
-			+ "[[On|other.Start]]\n[[Skip ahead|other.Second]]\n===\n";
+			+ "[[On|other.Start]]\n[[Skip ahead|other.Second]]\n[[Again|main.Start]]\n===\n";
 
 	/** "other" shows $weather and $mood, then goes through Middle and ends at Second. */
 	private static final String OTHER = "title: Start\nspeaker: Robin\n---\n"
@@ -92,7 +92,8 @@ class CrossDialogueLinkIntegrationTest {
 			+ "title: Second\nspeaker: Robin\n---\nBye.\n===\n";
 
 	private static final String MAIN_NL = "{\"_user\":{\"On\":\"Verder\",\"Skip ahead\":"
-			+ "\"Overslaan\"},\"Robin\":{\"Mark is $mark.\":\"Cijfer is $mark.\"}}";
+			+ "\"Overslaan\",\"Again\":\"Opnieuw\"},"
+			+ "\"Robin\":{\"Mark is $mark.\":\"Cijfer is $mark.\"}}";
 
 	private static final String OTHER_NL = "{\"_user\":{\"Next\":\"Volgende\"},\"Robin\":{"
 			+ "\"Weather is $weather. Mood is $mood.\":\"Weer is $weather. Stemming is $mood.\","
@@ -320,6 +321,25 @@ class CrossDialogueLinkIntegrationTest {
 		logs = session(sessionId, subject);
 		assertEquals(2, logs.size(), logs.toString());
 		assertTrue(logs.get(1).get("completed").asBoolean());
+	}
+
+	@Test
+	void aLinkIntoTheStartOfTheSameDialogueStartsANewLogToo() throws Exception {
+		String slug = publishedProject(false);
+		String subject = unique("cross-link-");
+		String sessionId = unique("session-");
+
+		JsonNode main = start(slug, "en", sessionId, subject);
+		JsonNode again = reply(main, "Again", subject);
+
+		assertEquals("main", again.get("dialogue").asText());
+		assertEquals("Start", again.get("node").asText());
+		assertNotEquals(main.get("loggedDialogueId").asText(),
+				again.get("loggedDialogueId").asText());
+		JsonNode logs = session(sessionId, subject);
+		assertEquals(2, logs.size(), logs.toString());
+		assertTrue(logs.get(0).get("completed").asBoolean());
+		assertFalse(logs.get(1).get("completed").asBoolean());
 	}
 
 	@Test
