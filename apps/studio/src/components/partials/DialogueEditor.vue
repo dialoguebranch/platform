@@ -3,7 +3,7 @@ import { ref, inject, watch, computed, useTemplateRef } from 'vue';
 import { VueFlow, Panel, MarkerType, BaseEdge, getStraightPath, useVueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
 import { Background } from '@vue-flow/background';
-import { Controls } from '@vue-flow/controls';
+import { Controls, ControlButton } from '@vue-flow/controls';
 import '@vue-flow/controls/dist/style.css';
 import { MiniMap } from '@vue-flow/minimap';
 import '@vue-flow/minimap/dist/style.css';
@@ -310,6 +310,13 @@ const minimapEdgeLines = computed(() => flowEdges.value.flatMap((edge) => {
     return from && to ? [{ id: edge.id, x1: from.x, y1: from.y, x2: to.x, y2: to.y }] : [];
 }));
 
+// ---- Mouse and keyboard hints (the ? button under the zoom controls) ----
+
+const showHints = ref(false);
+// Vue Flow adds to a selection with Cmd on a Mac and Ctrl elsewhere.
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform ?? '');
+const multiSelectKey = isMac ? 'Cmd' : 'Ctrl';
+
 // ---- Node creation ----
 
 const creatingNode = ref(false);
@@ -447,7 +454,16 @@ defineExpose({
             <!-- Canvas chrome (#192): a dot grid, zoom / fit / lock buttons, and a map of the whole
                  dialogue for orientation, styled like Studio's toolbars (see the <style> below). -->
             <Background variant="dots" :gap="20" :size="1.2" pattern-color="#b4b4b4" />
-            <Controls position="bottom-left" class="dlb-flow-controls" :fit-view-params="{ duration: 300 }" data-test="graph-controls" />
+            <Controls position="bottom-left" class="dlb-flow-controls" :fit-view-params="{ duration: 300 }" data-test="graph-controls">
+                <ControlButton
+                    title="Mouse and keyboard hints"
+                    :class="{ 'dlb-control-active': showHints }"
+                    data-test="graph-hints-button"
+                    @click="showHints = !showHints"
+                >
+                    <FontAwesomeIcon icon="fa-solid fa-question" />
+                </ControlButton>
+            </Controls>
             <MiniMap
                 position="bottom-right"
                 class="dlb-flow-minimap"
@@ -542,6 +558,33 @@ defineExpose({
             </template>
         </VueFlow>
 
+        <div
+            v-if="dialogueName && showHints"
+            class="absolute left-12 bottom-3 z-10 w-80 rounded border border-grey-light bg-white shadow-md text-xs font-title"
+            role="dialog"
+            aria-label="Mouse and keyboard hints"
+            data-test="graph-hints"
+        >
+            <div class="flex items-center justify-between px-3 py-1.5 bg-grey-lighter border-b border-grey-light rounded-t">
+                <span class="font-bold">Mouse and keyboard</span>
+                <button type="button" class="text-grey-dark hover:text-black" title="Close" data-test="graph-hints-close" @click="showHints = false">
+                    <FontAwesomeIcon icon="fa-solid fa-xmark" />
+                </button>
+            </div>
+            <dl class="dlb-hints px-3 py-2">
+                <dt>Click a node</dt><dd>Edit it</dd>
+                <dt>Drag a node</dt><dd>Move it</dd>
+                <dt><kbd>Shift</kbd> + drag the canvas</dt><dd>Select the nodes in the box</dd>
+                <dt><kbd>{{ multiSelectKey }}</kbd> + click a node</dt><dd>Add it to the selection, or take it out</dd>
+                <dt>Drag a selected node</dt><dd>Move all selected nodes together</dd>
+                <dt>Click the canvas</dt><dd>Clear the selection</dd>
+                <dt>Right-click the canvas</dt><dd>Add a node there</dd>
+                <dt>Drag the canvas</dt><dd>Move around</dd>
+                <dt>Scroll, or double-click</dt><dd>Zoom</dd>
+                <dt>Drag or scroll in the map</dt><dd>Move around, zoom</dd>
+            </dl>
+        </div>
+
         <NodeEditPanel
             v-if="selectedNode"
             ref="node-edit-panel"
@@ -612,6 +655,36 @@ defineExpose({
 
 :deep(.dlb-flow-controls .vue-flow__controls-button:hover) {
     background: var(--color-grey-lighter);
+}
+
+:deep(.dlb-flow-controls .vue-flow__controls-button.dlb-control-active) {
+    background: var(--color-orange-dark);
+    border-color: var(--color-orange-dark);
+    color: white;
+}
+
+.dlb-hints {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 12px;
+    row-gap: 4px;
+}
+
+.dlb-hints dt {
+    color: var(--color-orange-darker);
+    white-space: nowrap;
+}
+
+.dlb-hints kbd {
+    display: inline-block;
+    padding: 0 4px;
+    border: 1px solid var(--color-grey-light);
+    border-bottom-width: 2px;
+    border-radius: 3px;
+    background: var(--color-grey-lighter);
+    font-family: inherit;
+    font-size: 10px;
+    line-height: 14px;
 }
 
 :deep(.dlb-flow-minimap) {

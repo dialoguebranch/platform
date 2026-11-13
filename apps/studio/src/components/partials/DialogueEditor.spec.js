@@ -84,7 +84,15 @@ const chrome = (name) => defineComponent({
     setup: () => () => h('div'),
 });
 const BackgroundStub = chrome('Background');
-const ControlsStub = chrome('Controls');
+const ControlsStub = defineComponent({
+    name: 'Controls', inheritAttrs: false,
+    props: ['position', 'fitViewParams'],
+    setup: (_, { slots }) => () => h('div', slots.default?.()),
+});
+const ControlButtonStub = defineComponent({
+    name: 'ControlButton',
+    setup: (_, { slots }) => () => h('button', slots.default?.()),
+});
 // The MiniMap stand-in draws its first node through the editor's slot, as the real one does for
 // every node.
 const MiniMapStub = defineComponent({
@@ -96,7 +104,7 @@ const MiniMapStub = defineComponent({
     })),
 });
 vi.mock('@vue-flow/background', () => ({ Background: BackgroundStub }));
-vi.mock('@vue-flow/controls', () => ({ Controls: ControlsStub }));
+vi.mock('@vue-flow/controls', () => ({ Controls: ControlsStub, ControlButton: ControlButtonStub }));
 vi.mock('@vue-flow/minimap', () => ({ MiniMap: MiniMapStub }));
 
 const { default: DialogueEditor } = await import('./DialogueEditor.vue');
@@ -233,5 +241,25 @@ describe('DialogueEditor selecting several nodes', () => {
         click(wrapper, 'Next');
         await flushPromises();
         expect(wrapper.findComponent({ name: 'NodeEditPanel' }).exists()).toBe(true);
+    });
+});
+
+describe('DialogueEditor mouse and keyboard hints', () => {
+    it('opens the hints from the ? button, and closes them again', async () => {
+        const wrapper = await mountEditor();
+        expect(wrapper.find('[data-test="graph-hints"]').exists()).toBe(false);
+
+        await wrapper.find('[data-test="graph-hints-button"]').trigger('click');
+        const hints = wrapper.find('[data-test="graph-hints"]');
+        expect(hints.exists()).toBe(true);
+        expect(hints.text()).toContain('Shift');
+        expect(hints.text()).toContain('Move all selected nodes together');
+
+        await wrapper.find('[data-test="graph-hints-close"]').trigger('click');
+        expect(wrapper.find('[data-test="graph-hints"]').exists()).toBe(false);
+
+        await wrapper.find('[data-test="graph-hints-button"]').trigger('click');
+        await wrapper.find('[data-test="graph-hints-button"]').trigger('click');
+        expect(wrapper.find('[data-test="graph-hints"]').exists()).toBe(false);
     });
 });

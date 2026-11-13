@@ -11,7 +11,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 - Studio: the graph editor has a dot grid, buttons to zoom, fit the dialogue in view and lock the
   nodes, and a map of the whole dialogue (nodes in their colours and the links between them) to
-  move around in ([#192](https://github.com/dialoguebranch/platform/issues/192)).
+  move around in ([#192](https://github.com/dialoguebranch/platform/issues/192)). A **?** button
+  next to them lists what the mouse and keys do.
 
 ### Fixed
 
