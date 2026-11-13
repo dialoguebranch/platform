@@ -901,6 +901,8 @@ function onSelectReply(dialogueStep, reply, inputValues) {
         if (tab.dialogueCancelled) return;
         if (nextStep) {
             tab.dialogueName = nextStep.dialogueName;
+            // A reply into another dialogue gives that dialogue its own log (#473)
+            tab.loggedDialogueId = nextStep.loggedDialogueId;
             tab.dialogueSteps.push(nextStep);
             logStatementActions(nextStep);
             tab.dialogueEnded = nextStep.replies.length === 0;

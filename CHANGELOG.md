@@ -62,6 +62,10 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Studio: after a reply that led into another dialogue, the Dialogue Workspace kept showing the
+  log ID of the first dialogue, and the Dialogue Browser could open an ongoing dialogue in a
+  second tab. It now follows the new dialogue's log
+  ([#473](https://github.com/dialoguebranch/platform/issues/473)).
 - Core: the command-line tool kept no variables when a reply led into another dialogue: a
   variable set in one dialogue was empty in the next. It now plays them as one run, with the same
   variables throughout ([#473](https://github.com/dialoguebranch/platform/issues/473)).
