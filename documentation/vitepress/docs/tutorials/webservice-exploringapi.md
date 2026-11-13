@@ -1,4 +1,5 @@
 ---
+title: "Tutorial: Exploring the Web Service API"
 description: "Tutorial: explore the Dialogue Branch Web Service API by running a dialogue from start to end: authenticate, select replies, step back and continue."
 ---
 

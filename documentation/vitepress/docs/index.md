@@ -1,5 +1,7 @@
 ---
 layout: home
+# the page title is already the whole name, so the "| Dialogue Branch Docs" suffix would only repeat it
+titleTemplate: false
 
 hero:
   name: Dialogue Branch

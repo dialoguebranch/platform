@@ -47,6 +47,8 @@ export default withMermaid(defineConfig({
   title: 'Dialogue Branch Documentation Hub',
   description: 'Documentation for the Dialogue Branch Platform: the language, the core Java library, the web services, and tutorials for getting started.',
   base: '/docs/',
+  // "<page title> | Dialogue Branch Docs": short enough that a search result doesn't cut the page title
+  titleTemplate: ':title | Dialogue Branch Docs',
   // Plain `.html` URLs: the docs are hosted under www.dialoguebranch.com/docs/ on a static host
   // that doesn't resolve extension-less ("clean") URLs, so those would 404 when opened directly.
   cleanUrls: false,
@@ -82,7 +84,7 @@ export default withMermaid(defineConfig({
   },
 
   themeConfig: {
-    logo: '/dlb-square.png',
+    logo: { src: '/dlb-square.png', alt: 'Dialogue Branch' },
     // Hides the default site-title text next to the logo — a custom SiteTitle
     // component is injected instead (see theme/index.ts), showing the full
     // "Dialogue Branch Documentation Hub" only on the home page and a shorter

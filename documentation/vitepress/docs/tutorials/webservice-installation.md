@@ -1,4 +1,5 @@
 ---
+title: "Tutorial: Installing the Web Service"
 description: "Tutorial: run the Dialogue Branch Web Service on your own machine with the bundled local development stack, create a test user and verify the installation."
 ---
 
