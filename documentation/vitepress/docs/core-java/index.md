@@ -2,13 +2,28 @@
 
 ## Introduction
 
-The "Core" of the Dialogue Branch software is a library that can read and execute Dialogue Branch (.dlb) scripts. This core library is written in Java, and its source lives in this monorepo under [`packages/core`](https://github.com/dialoguebranch/platform/tree/main/packages/core). It is published to Maven Central as `com.dialoguebranch:dlb-core-java`.
+The "Core" of the Dialogue Branch software is a library that can read and execute Dialogue Branch (.dlb) scripts. This core library is written in Java, and its source lives in this monorepo under [`packages/core`](https://github.com/dialoguebranch/platform/tree/main/packages/core). Its Maven coordinates are `com.dialoguebranch:dlb-core-java`.
+
+::: warning Not on Maven Central for now
+The current 0.x releases are not published to Maven Central. Maven Central has older versions, up to 1.3.0, published before the version numbering was reset to 0.x, so a dependency on the latest version there gets you that old library, which doesn't match this documentation. To use a current release, install it in your local Maven repository from its release tag:
+
+```bash
+git clone --branch v0.10.0 https://github.com/dialoguebranch/platform.git
+cd platform/packages/core
+./gradlew publishToMavenLocal
+```
+
+and depend on it from there:
 
 ```groovy
+repositories {
+    mavenLocal()
+}
 dependencies {
-    implementation 'com.dialoguebranch:dlb-core-java:<version>'
+    implementation 'com.dialoguebranch:dlb-core-java:0.10.0'
 }
 ```
+:::
 
 ## Playing a Dialogue
 
@@ -101,4 +116,4 @@ when the project defines speakers). Warnings are printed but do not affect the e
 
 ## Documentation
 
-Javadoc for the library can be generated locally with `./gradlew javadoc` (output in `packages/core/build/reports/javadoc/`). Since the library is published to Maven Central, its Javadoc is also browsable via [javadoc.io](https://javadoc.io/doc/com.dialoguebranch/dlb-core-java) for any released version, without a local build.
+Javadoc for the library can be generated locally with `./gradlew javadoc` (output in `packages/core/build/reports/javadoc/`). The versions on Maven Central (up to 1.3.0, older than the 0.x releases) also have their Javadoc on [javadoc.io](https://javadoc.io/doc/com.dialoguebranch/dlb-core-java); for a current release, generate it locally.

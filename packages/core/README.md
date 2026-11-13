@@ -162,7 +162,12 @@ Some more advanced tasks:
 
 ## Publishing to Maven Central
 
-The library is published to Maven Central under the coordinates
+> **Paused.** Maven Central already has `dlb-core-java` up to version 1.3.0, published before the
+> monorepo's version was reset to 0.x on 2026-09-01. A 0.x release would sort as older than 1.3.0
+> there, so the 0.x releases are not published to Maven Central. The steps below describe how
+> publishing works, for when it resumes.
+
+The library's Maven Central coordinates are
 `com.dialoguebranch:dlb-core-java`. Publishing uses the
 [NMCP plugin](https://gradleup.com/nmcp/) (New Maven Central Publishing) via the Sonatype Central
 Portal API.
