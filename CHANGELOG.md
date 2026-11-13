@@ -19,6 +19,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 - Studio: a right-click on the graph editor's canvas opens a menu with *Add node here*, instead of
   adding a node at once, so a stray right-click no longer makes one. A double-click on the empty
   canvas adds a node at once; it no longer zooms (the scroll wheel and the zoom buttons do).
+- The example project (`default-test`) defines its speakers, with Martin McOwl as the default, so a
+  node added in Studio gets a speaker. A database seeded before this keeps its project as it was.
 
 ### Fixed
 

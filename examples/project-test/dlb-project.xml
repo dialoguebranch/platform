@@ -7,4 +7,11 @@
 		<translation-language name="Dutch (Netherlands)" code="nl-NL" />
 		<translation-language name="Portuguese (Portugal)" code="pt-PT" />
 	</language-map>
+	<speakers>
+		<speaker name="Martin McOwl" gender="male" default="true" />
+		<speaker name="Caravan Master Odema" />
+		<speaker name="Imoen" />
+		<speaker name="Winthrop" />
+		<speaker name="Calisca" />
+	</speakers>
 </dlb-project>
