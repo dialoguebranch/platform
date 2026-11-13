@@ -31,11 +31,15 @@ package com.dialoguebranch.model.execute;
 import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.exception.ParseException;
 import com.dialoguebranch.exception.ProjectParseException;
+import com.dialoguebranch.execution.ActiveDialogue;
 import com.dialoguebranch.execution.DialogueResolver;
 import com.dialoguebranch.execution.ResolvedDialogue;
+import com.dialoguebranch.execution.User;
+import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;
 import com.dialoguebranch.execution.parser.ProjectScriptLoader;
+import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.i18n.ContextTranslation;
 import com.dialoguebranch.i18n.Translatable;
 import com.dialoguebranch.i18n.TranslationContext;
@@ -48,6 +52,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.ZonedDateTime;
 import java.util.*;
 
 /**
@@ -275,6 +280,73 @@ public class ExecutableProject implements DialogueBranchProject, DialogueResolve
 	public Dialogue getDialogue(String dialogueName, @Nullable String language)
 			throws ExecutionException {
 		return Objects.requireNonNull(dialogues.get(getDialoguePointer(dialogueName, language)));
+	}
+
+	/**
+	 * Starts the dialogue with the given name, in the project's source language, for the given
+	 * user, with a new, empty {@link VariableStore}. See {@link #startDialogue(String, String,
+	 * VariableStore, ZonedDateTime)}.
+	 *
+	 * @param dialogueName the dialogue's name, including its folders, such as {@code
+	 *                     "intro/welcome"}.
+	 * @param user the user the dialogue is played with.
+	 * @return the running dialogue, at its first node ({@link ActiveDialogue#getCurrentNode()}).
+	 * @throws ExecutionException if the project has no dialogue with that name, or it has no
+	 *                            start node.
+	 * @throws EvaluationException if an expression in the first node cannot be evaluated.
+	 */
+	public ActiveDialogue startDialogue(String dialogueName, User user)
+			throws ExecutionException, EvaluationException {
+		return startDialogue(dialogueName, null, new VariableStore(user));
+	}
+
+	/**
+	 * Starts the dialogue with the given name, in the given language, with the given variables,
+	 * now (in the time zone of the variables' user). See {@link #startDialogue(String, String,
+	 * VariableStore, ZonedDateTime)}.
+	 *
+	 * @param dialogueName the dialogue's name, including its folders, such as {@code
+	 *                     "intro/welcome"}.
+	 * @param language the language code, or {@code null} for the source language.
+	 * @param variableStore the variables the dialogue reads and writes.
+	 * @return the running dialogue, at its first node ({@link ActiveDialogue#getCurrentNode()}).
+	 * @throws ExecutionException if the project has no dialogue with that name, or it has no
+	 *                            start node.
+	 * @throws EvaluationException if an expression in the first node cannot be evaluated.
+	 */
+	public ActiveDialogue startDialogue(String dialogueName, @Nullable String language,
+			VariableStore variableStore) throws ExecutionException, EvaluationException {
+		return startDialogue(dialogueName, language, variableStore,
+				ZonedDateTime.now(variableStore.getUser().getTimeZone()));
+	}
+
+	/**
+	 * Starts the dialogue with the given name, in the given language, with the given variables,
+	 * at its start node. The dialogue is found as {@link #getDialogue(String, String)} does: if
+	 * it isn't available in the language, it runs in the source language.
+	 *
+	 * <p>The returned {@link ActiveDialogue} follows replies into the project's other dialogues
+	 * (see {@link ActiveDialogue#selectReply}), in the same language where they are available.
+	 * Where a translation depends on the end user's gender, it follows the value of {@code
+	 * $dlb.userGender} in the variables at every step.</p>
+	 *
+	 * @param dialogueName the dialogue's name, including its folders, such as {@code
+	 *                     "intro/welcome"}.
+	 * @param language the language code, or {@code null} for the source language.
+	 * @param variableStore the variables the dialogue reads and writes.
+	 * @param eventTime the time (in the user's time zone) the dialogue starts.
+	 * @return the running dialogue, at its first node ({@link ActiveDialogue#getCurrentNode()}).
+	 * @throws ExecutionException if the project has no dialogue with that name, or it has no
+	 *                            start node.
+	 * @throws EvaluationException if an expression in the first node cannot be evaluated.
+	 */
+	public ActiveDialogue startDialogue(String dialogueName, @Nullable String language,
+			VariableStore variableStore, ZonedDateTime eventTime)
+			throws ExecutionException, EvaluationException {
+		ActiveDialogue dialogue = new ActiveDialogue(this, resolve(dialogueName, language),
+				variableStore);
+		dialogue.startDialogue(eventTime);
+		return dialogue;
 	}
 
 	/**

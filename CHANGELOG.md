@@ -26,6 +26,11 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   another dialogue, keeps the same `VariableStore` and follows the user's gender there too. A
   `DialogueSwitchListener` hears of the switch before the first node there runs
   ([#473](https://github.com/dialoguebranch/platform/issues/473)).
+- Core: `ExecutableProject.startDialogue(name, user)` starts a dialogue of the project for a
+  user, with a new `VariableStore`. Overloads take a language, an existing `VariableStore` and the
+  start time. The dialogue follows replies into the project's other dialogues, and where a
+  translation depends on the user's gender, it follows `$dlb.userGender` at every step
+  ([#473](https://github.com/dialoguebranch/platform/issues/473)).
 - Core: `ExecutableProject.generateSummaryString()` describes a loaded project, as
   `ProjectParserResult.generateSummaryString()` did for a parse without errors
   ([#473](https://github.com/dialoguebranch/platform/issues/473)).
