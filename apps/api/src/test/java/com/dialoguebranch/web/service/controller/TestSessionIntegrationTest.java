@@ -185,6 +185,25 @@ class TestSessionIntegrationTest {
 	}
 
 	@Test
+	void aReplyThatIsNotInTheStepIsNotFoundAndTheSessionGoesOn() throws Exception {
+		String slug = project();
+		String editor = unique("test-session-editor-");
+		String json = mockMvc.perform(as(start(slug, "main"), editor, "editor"))
+				.andExpect(status().isOk())
+				.andReturn().getResponse().getContentAsString();
+		int replyId = objectMapper.readTree(json).get("dialogueMessage").get("replies")
+				.get(0).get("replyId").asInt();
+
+		mockMvc.perform(as(post("/v1/test-session/progress").param("testSessionId", sessionId(json))
+						.param("replyId", "999").param("timeZone", "UTC"), editor, "editor"))
+				.andExpect(status().isNotFound());
+		mockMvc.perform(as(post("/v1/test-session/progress").param("testSessionId", sessionId(json))
+						.param("replyId", String.valueOf(replyId)).param("timeZone", "UTC"),
+						editor, "editor"))
+				.andExpect(status().isOk());
+	}
+
+	@Test
 	void aTestRunChangesOnlyTheCopy() throws Exception {
 		String slug = project();
 		String editor = unique("test-session-editor-");

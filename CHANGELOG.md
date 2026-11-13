@@ -11,14 +11,15 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 - Core: an `ActiveDialogue` can keep a log of the conversation, as the Web Service does
   ([#483](https://github.com/dialoguebranch/platform/issues/483)). `setLoggedDialogue(log, factory)`
-  or `keepInMemoryLog(time)` records every agent statement and reply, across dialogues (a reply
+  or `keepInMemoryLog()` records every agent statement and reply, across dialogues (a reply
   into another dialogue completes the log and starts a new one from the `LoggedDialogueFactory`),
   and completes it when the dialogue ends. `back()` goes to the previous agent step,
   `ActiveDialogue.restore(...)` rebuilds a dialogue from a log at a step, `executeCurrentNode`
   shows it again, `cancel()` marks the log cancelled, and `getCurrentMessage()` says where the step
   is in the log. `InMemoryLoggedDialogue` is a simple log for an application that doesn't store it;
   the logs of one conversation share a session ID, and each points back to the one before it
-  (`getPrevious()`).
+  (`getPrevious()`). A log is set before the dialogue starts: `ExecutableProject.createDialogue(name,
+  language, variables)` gives a project's dialogue without starting it.
 - Core: `ExecutableProject.load(Path)` loads a project from its `dlb-project.xml` in one call.
   A project with parse errors fails with a `ProjectParseException` that lists every error per
   file, instead of a project that is `null`. Parse warnings are available from the new
@@ -44,7 +45,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 - Core: `ActiveDialogue.getCurrentMessage()` returns the current step as a `DialogueMessage`, the
   same shape the Web Service sends, ready to show: speaker, statement and replies.
   `ActiveDialogue.isFinished()` says whether the dialogue has finished: after a reply to `End`, or
-  at a node without replies. The Web Service and the command-line tool use this one rule now
+  at a node without replies (asked of a node that hasn't been executed yet, it throws an
+  `IllegalStateException`, as `getCurrentMessage()` does). The Web Service and the command-line
+  tool use this one rule now
   ([#473](https://github.com/dialoguebranch/platform/issues/473)).
 - Core: `ExecutableProject.generateSummaryString()` describes a loaded project, as
   `ProjectParserResult.generateSummaryString()` did for a parse without errors
@@ -85,6 +88,12 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 - Web service: `/dialogue/progress` and `/dialogue/back` with a step that is not in the dialogue's log
   answer `404`, instead of a generic `500`
   ([#483](https://github.com/dialoguebranch/platform/issues/483)).
+- Web service: `/test-session/progress` with a reply that is not in the current step answers
+  `404`, instead of a generic `500`.
+- Core: `ActiveDialogue.selectReply` throws an `ExecutionException` instead of a
+  `NullPointerException` for a reply that is not in the current node (`REPLY_NOT_FOUND`) or a
+  dialogue that has finished (`DIALOGUE_COMPLETED`), and refuses a reply once its log has been
+  cancelled or completed, instead of recording into it; it changes nothing then.
 - Studio: after a reply that led into another dialogue, the Dialogue Workspace kept showing the
   log ID of the first dialogue, and the Dialogue Browser could open an ongoing dialogue in a
   second tab. It now follows the new dialogue's log

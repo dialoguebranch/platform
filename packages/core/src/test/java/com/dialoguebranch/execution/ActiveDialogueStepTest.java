@@ -164,10 +164,18 @@ public class ActiveDialogueStepTest {
 	public void puttingTheDialogueAtANodeStartsIt() throws Exception {
 		ActiveDialogue dialogue = main();
 		dialogue.setCurrentNode(dialogue.getDialogueDefinition().getNodeById("Here"));
+		try {
+			dialogue.isFinished();
+			fail("the node hasn't been executed yet");
+		} catch (IllegalStateException expected) {
+			// its replies aren't known yet
+		}
+		dialogue.executeCurrentNode(NOW);
 		assertTrue(dialogue.isFinished());
 
 		ActiveDialogue other = main();
 		other.setCurrentNode(other.getDialogueDefinition().getNodeById("Start"));
+		other.executeCurrentNode(NOW);
 		assertFalse(other.isFinished());
 	}
 

@@ -4,71 +4,79 @@ The Dialogue Branch Core Java Library is the foundation of the Dialogue Branch p
 provides everything needed to define, parse, translate, and execute Dialogue Branch scripts
 (`.dlb` files), as well as tooling for managing projects and generating translation artefacts.
 
+For a short guide to loading a project, playing a dialogue, keeping a log, going back and resuming,
+see the [Core Java](https://www.dialoguebranch.com/docs/core-java/) documentation page.
+
+```java
+ExecutableProject project = ExecutableProject.load(Path.of("my-project/dlb-project.xml"));
+ActiveDialogue dialogue = project.startDialogue("welcome", new User("sam"));
+DialogueMessage step = dialogue.getCurrentMessage();
+```
+
 ## Package Structure
 
-All classes live under the root package `com.dialoguebranch`. The source is divided into six
-top-level packages.
+All classes live under the root package `com.dialoguebranch`. The main packages are described
+below; `expression` (the `<<if>>`/`<<set>>` expression language), `io`, `json` and `util` hold
+supporting code.
 
 ---
 
-### `cli` — Command-Line Tools
-
-Runnable entry points for interacting with the library from the command line.
+### `cli` — Command-Line Tool
 
 | Class | Description |
 |---|---|
-| `DialogueBranchCLI` | Interactive menu-driven tool for inspecting Dialogue Branch projects with no arguments — loads a `dlb-project.xml` and presents options such as printing a full project summary (language map, node counts per dialogue) — or a non-interactive, scriptable validator/executor when given a project path and flags (see its own `--help`). This is the default main class. |
+| `DialogueBranchCLI` | Interactive menu-driven tool with no arguments — loads a `dlb-project.xml` and offers options such as printing a project summary or playing a dialogue — or a non-interactive, scriptable validator/executor when given a project path and flags (see its own `--help`). This is the default main class. |
 
 ---
 
 ### `model` — Data Model
 
-The data model is split into two sub-packages.
-
 #### `model/common` — Shared Structures
-
-Types shared across the project model.
 
 | Class | Description |
 |---|---|
-| `ProjectMetaData` | Name, version, description, base path, and language map for a project. |
-| `StorageSource` / `FileStorageSource` | Abstraction over where a script or translation file is physically stored. |
+| `ProjectMetaData` | Name, version, description, base path, language map and speakers of a project, as declared in `dlb-project.xml`. |
+| `DialogueBranchProject` | The common contract of every representation of a project. |
+| `Speaker` | A speaker of the project: name, gender, and whether new nodes get it by default. |
+| `StorageSource` / `FileStorageSource` / `DescribedStorageSource` | Where a script or translation was read from: a file, or a described source such as a database row. |
 | `ResourceType` | Enum: `SCRIPT`, `TRANSLATION`, or `FOLDER`. |
-| `DialogueBranchConstants` | File extensions (`.dlb`, `.json`) and other shared constants. |
+| `ReservedVariables` / `VariableNames` | The reserved `$dlb.` variables and their allowed values; what a variable name is. |
+| `DialogueBranchConstants` | File extensions (`.dlb`, `.json`), reserved node and header names, and other shared constants. |
 
 #### `model/execute` — Execution Model
 
-The fully parsed, immutable model used at runtime when executing dialogues.
+The parsed model used at runtime.
 
 | Class | Description |
 |---|---|
-| `ExecutableProject` | Top-level runtime project: source dialogues, translations, and lookup logic. Holds all dialogues and translation maps; provides `getTranslatedDialogue()` for runtime lookup. |
-| `Dialogue` | A parsed dialogue script: an ordered list of `Node`s. |
-| `Node` | A single dialogue node with a `NodeHeader` and `NodeBody`. |
-| `NodeBody` | The body of a node: a list of segments that may be plain text, variable references, commands, or reply options. |
-| `NodeHeader` | The header of a node: title and optional tags. |
+| `ExecutableProject` | A loaded project: its dialogues in every language and their translations. `load(Path)` loads one from its `dlb-project.xml`; `getDialogue`, `resolve` and `getDialoguePointer` look a dialogue up by name and language (falling back to the source language); `startDialogue` starts one, and `createDialogue` creates one without starting it, for example to keep a log. It is the `DialogueResolver` of the dialogues started from it. |
+| `Dialogue` | A parsed dialogue script: its nodes, the variables it reads and writes, and the dialogues it links to. |
+| `Node` | A single dialogue node with a `NodeHeader` and a body. |
+| `NodeHeader` | The header of a node: its title, its speaker (optional only for the `End` node), and other `key: value` tags. |
+| `NodeContent` / `NodeBody` / `ResolvedNodeBody` | The body of a node: as parsed (`NodeBody`, with every command and `<<if>>`/`<<random>>` branch), and as executed (`ResolvedNodeBody`, only what applies, ready to show). |
 | `Reply` | A reply option in a node body, pointing to another node via a `NodePointer`. |
 | `VariableString` | A string that may contain embedded variable references (`$varName`). |
-| `Language` / `LanguageSet` / `LanguageMap` | Language definitions and source-to-translation mappings as declared in `dlb-project.xml`. |
-| `FileDescriptor` | Identifies a dialogue by name and language code. |
-| `LoggedDialogue` / `LoggedInteraction` | Record types for persisting a user's dialogue session history. |
+| `ResourcePointer` | Identifies a script or translation by language, dialogue name and resource type. |
+| `Language` / `LanguageMap` | A language of the project, and its source and translation languages. |
+| `LoggedDialogue` / `LoggedInteraction` / `MessageSource` | The log of a conversation in one dialogue: its steps, each by the agent or the user. |
 | `command/` | `Command` subtypes: `SetCommand`, `IfCommand`, `RandomCommand`, `ActionCommand`, and the family of `InputCommand`s (`InputTextCommand`, `InputNumericCommand`, etc.). |
-| `nodepointer/` | `InternalNodePointer` (same script) and `ExternalNodePointer` (different script). |
-| `protocol/` | API-layer message types: `DialogueMessage`, `DialogueStatement`, `DialogueAction`, `ReplyMessage`. Used for serialising dialogue state to JSON for REST clients. |
+| `nodepointer/` | `InternalNodePointer` (same dialogue) and `ExternalNodePointer` (another dialogue). |
+| `protocol/` | The step as a client gets it: `DialogueMessage` (made by `DialogueMessageFactory`), `DialogueStatement`, `DialogueAction`, `ReplyMessage`; the Web Service sends these as JSON. |
 
 ---
 
 ### `execution` — Dialogue Execution Engine
 
-Runtime classes that drive an active dialogue session for a given user.
-
 | Class | Description |
 |---|---|
-| `ActiveDialogue` | Manages a single in-progress dialogue: tracks the current node, resolves variable references, and evaluates `<<if>>` conditions. |
-| `ExecuteNodeResult` | The result of executing one node: the rendered statement text, available reply options, and any triggered actions. |
-| `User` | Represents an end-user participating in dialogue sessions. |
-| `VariableStore` / `Variable` | Key-value store for dialogue variables, with change-listener support via `VariableStoreOnChangeListener` and `VariableStoreChange`. |
-| `parser/` | Low-level parsers for `.dlb` files: `DialogueBranchParser`, `BodyParser`, `BodyTokenizer`, `CommandParser`, `ReplyParser`, as well as project-level loaders (`ProjectParser`, `ProjectFileLoader`, `DirectoryFileLoader`, `ResourceFileLoader`) and their result types. |
+| `ActiveDialogue` | A conversation in progress: starts a dialogue (`startDialogue`), gives the current step (`getCurrentMessage`), selects a reply (`selectReply`), following replies into other dialogues, and says when it has finished (`isFinished`). It can keep a log (`setLoggedDialogue`, `keepInMemoryLog`), go back a step (`back`), be cancelled (`cancel`), and be rebuilt from a log to resume (`restore`). |
+| `DialogueResolver` / `ResolvedDialogue` | Finds the dialogue a reply leads into, by name and language; `ExecutableProject` is one. |
+| `DialogueSwitchListener` | Hears when a reply leads into another dialogue, before its first node runs. |
+| `LoggedDialogueFactory` / `InMemoryLoggedDialogue` | Makes the log of a dialogue the conversation enters; a log kept in memory, for an application that doesn't store it. |
+| `ExecuteNodeResult` | An executed node with its dialogue, and its log and place in it, if one is kept. |
+| `User` | The person playing the dialogue: an ID and a time zone. |
+| `VariableStore` / `Variable` | The variables of a user, with change listeners (`VariableStoreOnChangeListener`, `VariableStoreChange`) and the source of each change (`VariableUpdatedSource`). |
+| `parser/` | Parsers for `.dlb` files (`DialogueBranchParser`, `BodyParser`, `BodyTokenizer`, `CommandParser`, `ReplyParser`), a node header (`DialogueBranchHeader`) and how a script splits into nodes (`DialogueBranchScriptSplitter`); for a project, `ProjectParser` with a `ScriptLoader` (`ProjectScriptLoader` reads a `dlb-project.xml` and its files), `ProjectMetaDataParser`, and the validators it runs. |
 
 ---
 
@@ -86,12 +94,12 @@ Translation extraction, storage, and application.
 
 | Class | Description |
 |---|---|
-| `Translator` | Applies a set of translations to a `Dialogue`, returning a translated copy. Uses exact-match (trimmed) then normalised-whitespace fallback. |
+| `Translator` | Applies a set of translations to a `Dialogue`, returning a translated copy. A text is only translated by an entry of its own speaker; matching is exact (trimmed), then with normalised whitespace. |
 | `TranslatableExtractor` | Walks a node body and extracts all translatable text segments as `SourceTranslatable` records, descending into `<<if>>` and `<<random>>` branches. |
 | `Translatable` | A single segment of translatable text, which may span multiple body parts. |
 | `SourceTranslatable` | A `Translatable` paired with the speaker name that provides its translation context key. |
-| `TranslationContext` | Carries the locale/context in which a translation is applied. |
-| `ContextTranslation` | A translated string bound to a specific `TranslationContext`. |
+| `TranslationContext` | The genders of the speaker and the user, which select a translation where a text changes with them. |
+| `ContextTranslation` | A translation of one speaker's text, for a set of contexts. |
 | `TranslationFile` | In-memory representation of a `.json` translation file, with read/write support. |
 | `TranslationParser` / `TranslationParserResult` | Parses a `.json` translation file. |
 
@@ -99,16 +107,19 @@ Translation extraction, storage, and application.
 
 ### `exception` — Exception Types
 
-Typed exceptions thrown throughout the library.
-
 | Class | Meaning |
 |---|---|
 | `DialogueBranchException` | Base class for all library exceptions. |
-| `NodeParseException` | Thrown when an individual node within a script cannot be parsed. |
-| `InvalidInputException` | Thrown on invalid user or programmatic input. |
-| `ExecutionException` | Thrown during dialogue execution (e.g. missing node). |
-| `DuplicateLanguageCodeException` | Thrown when adding a language code that already exists in the project. |
-| `UnknownLanguageCodeException` | Thrown when looking up a language code that does not exist. |
+| `ParseException` | Content with an invalid format; the base of the parse errors below. |
+| `LineNumberParseException` | A parse error at a line and column. |
+| `NodeParseException` | A parse error within a node. |
+| `ProjectParseException` | A project can't be loaded: every parse error, per file. |
+| `InvalidInputException` | Invalid user or programmatic input. |
+| `ExecutionException` | An error while playing a dialogue, with a type such as `DIALOGUE_NOT_FOUND`, `NODE_NOT_FOUND`, `REPLY_NOT_FOUND`, `DIALOGUE_COMPLETED` or `DIALOGUE_CANCELLED`. |
+| `DuplicateLanguageCodeException` | Adding a language code that already exists in the project. |
+| `UnknownLanguageCodeException` | Looking up a language code that does not exist. |
+
+`EvaluationException` (in `expression`) is thrown when an expression can't be evaluated.
 
 ---
 
@@ -196,7 +207,8 @@ centralPortal.password=<TOKEN_PASSWORD>
 
 ### Publishing
 
-Before publishing, update the `version` in `build.gradle` to the new release version, then run:
+The version comes from `global.json` at the repository root, which a release sets (see the
+root `CLAUDE.md`). Check out the release tag, then run:
 
 ```bash
 ./gradlew publishToMaven

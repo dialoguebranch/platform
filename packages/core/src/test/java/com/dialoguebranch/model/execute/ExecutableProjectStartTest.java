@@ -34,6 +34,7 @@ package com.dialoguebranch.model.execute;
 
 import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.execution.ActiveDialogue;
+import com.dialoguebranch.execution.InMemoryLoggedDialogue;
 import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.Variable;
 import com.dialoguebranch.execution.VariableStore;
@@ -114,6 +115,37 @@ public class ExecutableProjectStartTest {
 		assertTrue(shown.get(1), shown.get(1).startsWith("Martin McOwl: Hi, my name is"));
 		assertTrue(dialogue.isFinished());
 		assertNull(dialogue.getCurrentMessage());
+	}
+
+	/** The log example on the Core Java documentation page. */
+	@Test
+	public void aDialogueCreatedFromTheProjectCanKeepALog() throws Exception {
+		ActiveDialogue dialogue = project.createDialogue("menu", null,
+				new VariableStore(new User("sam")));
+		assertNull(dialogue.getCurrentNode());
+		InMemoryLoggedDialogue log = dialogue.keepInMemoryLog();
+		dialogue.startDialogue();
+
+		assertEquals("menu", log.getDialogueName());
+		assertEquals(1, log.getInteractionList().size());
+		assertEquals(MessageSource.AGENT, log.getInteractionList().get(0).getMessageSource());
+		assertEquals(log.getId(), dialogue.getCurrentMessage().getLoggedDialogueId());
+
+		// the first reply of "menu" leads into "basic": a new log, pointing back to this one
+		dialogue.selectReply(dialogue.getCurrentMessage().getReplies().get(0));
+		assertTrue(log.isCompleted());
+		InMemoryLoggedDialogue entered = (InMemoryLoggedDialogue) dialogue.getLoggedDialogue();
+		assertEquals("basic", entered.getDialogueName());
+		assertSame(log, entered.getPrevious());
+	}
+
+	@Test
+	public void aCreatedDialogueIsFoundAsAStartedOneIs() throws Exception {
+		ActiveDialogue dialogue = project.createDialogue("basic", "fr",
+				new VariableStore(new User("sam")));
+		assertEquals("en", dialogue.getDialogueFileDescription().getLanguage());
+		assertThrows(ExecutionException.class, () -> project.createDialogue("nonexistent", null,
+				new VariableStore(new User("sam"))));
 	}
 
 	@Test

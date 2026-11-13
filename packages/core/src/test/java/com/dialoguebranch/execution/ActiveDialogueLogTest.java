@@ -439,6 +439,33 @@ public class ActiveDialogueLogTest {
 		assertEquals(index, log.getInteractionList().get(logged).getPreviousIndex());
 	}
 
+	/** Start's only reply is inside an if, so whether it has one is known once it's executed. */
+	private static final String CONDITIONAL = "title: Start\nspeaker: Robin\n---\nHello.\n"
+			+ "<<if $count == 0>>\n[[Go on.|End]]\n<<endif>>\n===\n"
+			+ "title: End\nspeaker: Robin\n---\n===\n";
+
+	@Test
+	public void whetherAResumedDialogueHasFinishedIsKnownOnceItsStepIsExecuted() throws Exception {
+		ExecutableProject project = ActiveDialogueLinkTest.project(
+				Map.of("en/conditional.dlb", CONDITIONAL));
+		ActiveDialogue before = new ActiveDialogue(project,
+				project.resolve("conditional", null), variables());
+		before.keepInMemoryLog(NOW);
+		before.startDialogue(NOW);
+		assertFalse(before.isFinished());
+
+		ActiveDialogue resumed = ActiveDialogue.restore(project, before.getLoggedDialogue(),
+				before.getLoggedInteractionIndex(), variables(), InMemoryLoggedDialogue.factory());
+		try {
+			resumed.isFinished();
+			fail("the node hasn't been executed yet");
+		} catch (IllegalStateException expected) {
+			// not executed
+		}
+		resumed.executeCurrentNode(NOW);
+		assertFalse(resumed.isFinished());
+	}
+
 	@Test
 	public void aStepThatIsNotInTheLogCantBeResumed() throws Exception {
 		ExecutableProject project = chain();

@@ -343,6 +343,20 @@ class CrossDialogueLinkIntegrationTest {
 	}
 
 	@Test
+	void aReplyThatIsNotInTheStepIsNotFoundAndNotLogged() throws Exception {
+		String slug = publishedProject(false);
+		String subject = unique("link-user-");
+		JsonNode step = start(slug, "en", unique("session-"), subject);
+
+		mockMvc.perform(as(post("/v1/dialogue/progress")
+						.param("loggedDialogueId", step.get("loggedDialogueId").asText())
+						.param("loggedInteractionIndex", step.get("loggedInteractionIndex").asText())
+						.param("replyId", "999"), subject, "participant"))
+				.andExpect(status().isNotFound());
+		reply(step, "On", subject);
+	}
+
+	@Test
 	void aLinkToANodeOtherThanStartArrivesAtThatNode() throws Exception {
 		String slug = publishedProject(false);
 		String subject = unique("cross-link-");
