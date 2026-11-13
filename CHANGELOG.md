@@ -50,6 +50,10 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `selectReply(replyId, eventTime)`, which returns the next node instead of a pointer, also in
   another dialogue. `setUserGenderTranslations` is replaced by the user-gender translations of the
   `ResolvedDialogue` ([#473](https://github.com/dialoguebranch/platform/issues/473)).
+- Core: **Internal API:** `DialogueState` takes only the log, the interaction index and the
+  `ActiveDialogue`; `getDialogueDescription()` and `getDialogueDefinition()` return the dialogue the
+  `ActiveDialogue` is in, also after it followed a reply into another dialogue
+  ([#473](https://github.com/dialoguebranch/platform/issues/473)).
 - Core: the command-line tool (`DialogueBranchCLI`) plays a dialogue that isn't available in the
   chosen language in the source language, also when a reply links into it, like the Web Service
   does. It used to stop with an error. For a language the project doesn't have at all,

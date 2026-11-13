@@ -566,7 +566,6 @@ public class UserService {
 		String projectSlug = loggedDialogue.getProjectName();
 		DialogueResolver resolver = applicationManager.getDialogueResolver(projectSlug);
 		ResolvedDialogue resolved = resolver.resolve(dialogueName, loggedDialogue.getLanguage());
-		ResourcePointer dialogueDescription = resolved.pointer();
 		Dialogue dialogueDefinition = resolved.dialogue();
 		List<LoggedInteraction> interactions =
 				loggedDialogue.getInteractionList();
@@ -587,8 +586,7 @@ public class UserService {
 		ActiveDialogue activeDialogue = new ActiveDialogue(resolver, resolved,
 				getVariableStore(projectSlug));
 		activeDialogue.setCurrentNode(node);
-		return new DialogueState(dialogueDescription, dialogueDefinition,
-				loggedDialogue, loggedInteractionIndex, activeDialogue);
+		return new DialogueState(loggedDialogue, loggedInteractionIndex, activeDialogue);
 	}
 
 	/**
