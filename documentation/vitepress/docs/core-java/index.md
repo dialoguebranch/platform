@@ -58,7 +58,7 @@ dialogue.cancel();    // marks the log cancelled
 * Each step is an interaction of the log, `AGENT` for what the agent said and `USER` for the reply, with the index of the interaction before it. The log is marked completed when the dialogue ends.
 * A reply that leads into another dialogue completes the log, and the conversation continues in a new one, made by the `LoggedDialogueFactory` you pass to `setLoggedDialogue(log, factory)`; `InMemoryLoggedDialogue.factory()` makes in-memory logs of the same session.
 * `back()` goes to the previous agent step in the current dialogue and executes it again, so its `set` commands run again. A later reply continues from that step. It refuses a log that is completed or cancelled.
-* `ActiveDialogue.restore(resolver, log, index, variables, factory)` rebuilds a dialogue from a log at a step, to resume later: the Web Service does this on every request. It leaves the step's node unexecuted so a reply can be selected right away; `executeCurrentNode` executes it to show it again. Only the position is restored: the variables are those of the `VariableStore` you pass.
+* `ActiveDialogue.restore(resolver, log, index, variables, factory)` rebuilds a dialogue from a log at a step, to resume later: the Web Service does this on every request. It leaves the step's node unexecuted so a reply can be selected right away; `executeCurrentNode` executes it to show it again. Until then `getCurrentMessage` and `isFinished` throw an `IllegalStateException`, since the replies a node has depend on its `<<if>>`s. Only the position is restored: the variables are those of the `VariableStore` you pass.
 
 ## Package Overview
 

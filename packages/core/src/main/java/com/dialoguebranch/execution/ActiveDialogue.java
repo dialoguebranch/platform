@@ -225,12 +225,21 @@ public class ActiveDialogue {
 	 * returns it. Only after a reply to {@code End} is there nothing left to show.</p>
 	 *
 	 * @return {@code true} if the dialogue has finished.
+	 * @throws IllegalStateException if the current node was put there by {@link #restore} or
+	 *                               {@link #setCurrentNode} and hasn't been executed since: which
+	 *                               of its replies there are depends on its {@code <<if>>}s.
 	 */
 	public boolean isFinished() {
 		if (!started)
 			return false;
-		return currentNode == null || Objects.requireNonNull(currentNode.getBody(),
-				"The current node has no body").getReplies().isEmpty();
+		Node node = currentNode;
+		if (node == null)
+			return true;
+		if (!(node.getBody() instanceof ResolvedNodeBody body)) {
+			throw new IllegalStateException("The current node \"" + node.getTitle()
+					+ "\" hasn't been executed: whether it has replies isn't known yet");
+		}
+		return body.getReplies().isEmpty();
 	}
 
 	/**

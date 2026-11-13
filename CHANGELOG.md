@@ -44,7 +44,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 - Core: `ActiveDialogue.getCurrentMessage()` returns the current step as a `DialogueMessage`, the
   same shape the Web Service sends, ready to show: speaker, statement and replies.
   `ActiveDialogue.isFinished()` says whether the dialogue has finished: after a reply to `End`, or
-  at a node without replies. The Web Service and the command-line tool use this one rule now
+  at a node without replies (asked of a node that hasn't been executed yet, it throws an
+  `IllegalStateException`, as `getCurrentMessage()` does). The Web Service and the command-line
+  tool use this one rule now
   ([#473](https://github.com/dialoguebranch/platform/issues/473)).
 - Core: `ExecutableProject.generateSummaryString()` describes a loaded project, as
   `ProjectParserResult.generateSummaryString()` did for a parse without errors
