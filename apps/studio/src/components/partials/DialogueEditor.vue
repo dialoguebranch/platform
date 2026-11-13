@@ -268,7 +268,29 @@ function onNodesInitialized() {
 // so updates to the same dialogue never race each other on the server; a failure stops the rest,
 // since the error is shown and a reload shows what was saved.
 async function onNodeDragStop({ node, nodes }) {
-    const moved = nodes?.length ? nodes : [node];
+    await savePositions(nodes?.length ? nodes : [node]);
+}
+
+// Vue Flow also moves the selected nodes with the arrow keys (5px a press, 20px with Shift), but
+// raises no drag-stop for it, so those moves are saved when the key is let go: every selected node
+// whose position differs from its stored one (#193). Only selected nodes move by key, which also
+// keeps out a node that has no stored position yet and is shown at its grid place.
+function movedByKeys() {
+    return flowNodes.value.filter((node) => {
+        const raw = node.selected && rawNodesByTitle.value.get(node.id);
+        if (!raw) return false;
+        const stored = getPosition(tagsToMap(raw.tags));
+        return Math.round(node.position.x) !== stored.x || Math.round(node.position.y) !== stored.y;
+    });
+}
+
+function onKeyUp(event) {
+    if (!event.key?.startsWith('Arrow') || !props.dialogueName || isTyping(event.target)) return;
+    const moved = movedByKeys();
+    if (moved.length) savePositions(moved);
+}
+
+async function savePositions(moved) {
     const slug = state.value.selectedProject?.slug;
     dismissError();
     let saved = false;
@@ -542,8 +564,14 @@ function onKeyDown(event) {
     startDeleting(titles);
 }
 
-onMounted(() => document.addEventListener('keydown', onKeyDown));
-onBeforeUnmount(() => document.removeEventListener('keydown', onKeyDown));
+onMounted(() => {
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keyup', onKeyUp);
+});
+onBeforeUnmount(() => {
+    document.removeEventListener('keydown', onKeyDown);
+    document.removeEventListener('keyup', onKeyUp);
+});
 
 function referenceDialogueCount(references) {
     return new Set((references ?? []).map((ref) => ref.dialogueName)).size;
@@ -710,6 +738,7 @@ defineExpose({
             <dl class="dlb-hints px-3 py-2">
                 <dt>Click a node</dt><dd>Edit it</dd>
                 <dt>Drag a node</dt><dd>Move it</dd>
+                <dt>Arrow keys</dt><dd>Move the selected nodes (<kbd>Shift</kbd>: further)</dd>
                 <dt><kbd>Shift</kbd> + drag the canvas</dt><dd>Select the nodes in the box</dd>
                 <dt><kbd>{{ multiSelectKey }}</kbd> + click a node</dt><dd>Add it to the selection, or take it out</dd>
                 <dt>Drag a selected node</dt><dd>Move all selected nodes together</dd>

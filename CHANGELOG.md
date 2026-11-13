@@ -49,6 +49,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   selection without opening the node.
 - Studio: pressing Backspace in the graph editor removed the selected nodes from the screen without
   deleting them, so they came back on the next load. It now deletes them, after asking (see Added).
+- Studio: moving the selected nodes with the arrow keys in the graph editor moved them on screen
+  only; the moves are saved now ([#193](https://github.com/dialoguebranch/platform/issues/193)).
 - Studio: when a dialogue can't be translated because it has errors, the Translate view shows a
   short message with the errors folded away, as the Test views do, instead of every error inline.
   The fold says how many errors there are.
