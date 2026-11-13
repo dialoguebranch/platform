@@ -74,10 +74,6 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   `selectReply(replyId, eventTime)`, which returns the next node instead of a pointer, also in
   another dialogue. `setUserGenderTranslations` is replaced by the user-gender translations of the
   `ResolvedDialogue` ([#473](https://github.com/dialoguebranch/platform/issues/473)).
-- Core: **Internal API:** `DialogueState` takes only the log, the interaction index and the
-  `ActiveDialogue`; `getDialogueDescription()` and `getDialogueDefinition()` return the dialogue the
-  `ActiveDialogue` is in, also after it followed a reply into another dialogue
-  ([#473](https://github.com/dialoguebranch/platform/issues/473)).
 - Core: the command-line tool (`DialogueBranchCLI`) plays a dialogue that isn't available in the
   chosen language in the source language, also when a reply links into it, like the Web Service
   does. It used to stop with an error. For a language the project doesn't have at all,
@@ -87,7 +83,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 ### Fixed
 
 - Web service: `/dialogue/progress` and `/dialogue/back` with a step that is not in the dialogue's log
-  answer `404`, instead of a generic `500`.
+  answer `404`, instead of a generic `500`
+  ([#483](https://github.com/dialoguebranch/platform/issues/483)).
 - Studio: after a reply that led into another dialogue, the Dialogue Workspace kept showing the
   log ID of the first dialogue, and the Dialogue Browser could open an ongoing dialogue in a
   second tab. It now follows the new dialogue's log
