@@ -7,6 +7,12 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Added
+
+- Studio: the graph editor has a dot grid, buttons to zoom, fit the dialogue in view and lock the
+  nodes, and a map of the whole dialogue (nodes in their colours and the links between them) to
+  move around in ([#192](https://github.com/dialoguebranch/platform/issues/192)).
+
 ### Fixed
 
 - Core: `./gradlew publishToMavenLocal` works without a GPG key; signing is only required when

@@ -59,13 +59,45 @@ vi.mock('@vue-flow/core', () => ({
     useVueFlow: () => ({
         fitView: vi.fn(), setCenter: vi.fn(), getViewport: () => ({ x: 0, y: 0, zoom: 1 }),
         screenToFlowCoordinate: (p) => p,
+        // Every node measures 100 x 40 at its stored position, for the MiniMap's lines.
+        findNode: (id) => {
+            const stored = currentNodes.find((n) => n.title === id);
+            if (!stored) return undefined;
+            const [x, y] = stored.tags.find((t) => t.key === 'position').value.split(',').map(Number);
+            return { computedPosition: { x, y }, dimensions: { width: 100, height: 40 } };
+        },
     }),
 }));
 
-const { default: DialogueEditor } = await import('./DialogueEditor.vue');
+// The canvas chrome (#192): stand-ins that keep their props, so the tests can check them.
+const chrome = (name) => defineComponent({
+    name, inheritAttrs: false,
+    props: ['variant', 'position', 'nodeColor', 'pannable', 'zoomable', 'fitViewParams'],
+    setup: () => () => h('div'),
+});
+const BackgroundStub = chrome('Background');
+const ControlsStub = chrome('Controls');
+// The MiniMap stand-in draws its first node through the editor's slot, as the real one does for
+// every node.
+const MiniMapStub = defineComponent({
+    name: 'MiniMap', inheritAttrs: false,
+    props: ['position', 'nodeColor', 'pannable', 'zoomable'],
+    setup: (_, { slots }) => () => h('svg', slots['node-dialogueNode']?.({
+        id: 'Start', position: { x: 0, y: 0 }, dimensions: { width: 100, height: 40 },
+        color: '#000', borderRadius: 4,
+    })),
+});
+vi.mock('@vue-flow/background', () => ({ Background: BackgroundStub }));
+vi.mock('@vue-flow/controls', () => ({ Controls: ControlsStub }));
+vi.mock('@vue-flow/minimap', () => ({ MiniMap: MiniMapStub }));
 
-const node = (title, x) => ({
-    title, body: 'Hi.',
+const { default: DialogueEditor } = await import('./DialogueEditor.vue');
+const { DEFAULT_NODE_COLOR } = await import('@/composables/node-colors.js');
+
+let currentNodes = [];
+
+const node = (title, x, body = 'Hi.') => ({
+    title, body,
     tags: [{ key: 'title', value: title }, { key: 'speaker', value: 'Robin' },
         { key: 'position', value: `${x},0` }],
 });
@@ -90,7 +122,8 @@ const savedPositions = () => authoring.updateDraftNode.mock.calls.map((call) =>
 
 beforeEach(() => {
     vi.clearAllMocks();
-    authoring.listDraftNodes.mockResolvedValue([node('Start', 0), node('Next', 200), node('End', 400)]);
+    currentNodes = [node('Start', 0), node('Next', 200), node('End', 400)];
+    authoring.listDraftNodes.mockImplementation(async () => currentNodes);
     authoring.updateDraftNode.mockImplementation(async (slug, dialogue, title, tags, body) =>
         ({ title, tags, body }));
 });
@@ -132,5 +165,38 @@ describe('DialogueEditor dragging (#196)', () => {
         await flushPromises();
         expect(authoring.updateDraftNode).toHaveBeenCalledTimes(2);
         expect(wrapper.emitted('dialogueSaved')).toHaveLength(1);
+    });
+});
+
+describe('DialogueEditor canvas chrome (#192)', () => {
+    it('shows a dot grid, the zoom controls and a map of the dialogue', async () => {
+        const wrapper = await mountEditor();
+        expect(wrapper.findComponent(BackgroundStub).props('variant')).toBe('dots');
+        expect(wrapper.findComponent(ControlsStub).props('position')).toBe('bottom-left');
+        const map = wrapper.findComponent(MiniMapStub);
+        expect(map.props('position')).toBe('bottom-right');
+        expect(map.props('pannable')).not.toBe(false);
+        expect(map.props('zoomable')).not.toBe(false);
+    });
+
+    it('colours the map\'s nodes as the graph does, with plain colours', async () => {
+        document.documentElement.style.setProperty('--color-node-start', '#04aa6d');
+        document.documentElement.style.setProperty('--color-node-end', '#44403c');
+        const color = (await mountEditor()).findComponent(MiniMapStub).props('nodeColor');
+
+        expect(color({ data: { isStart: true } })).toBe('#04aa6d');
+        expect(color({ data: { isEnd: true } })).toBe('#44403c');
+        expect(color({ data: { nodeColor: '#123abc' } })).toBe('#123abc');
+        expect(color({ data: {} })).toBe(DEFAULT_NODE_COLOR);
+    });
+
+    it('draws the connector lines on the map, between the centres of the nodes', async () => {
+        currentNodes = [node('Start', 0, '[[Go|Next]]'), node('Next', 200, '[[On|End]]'),
+            node('End', 400, '')];
+        const wrapper = await mountEditor();
+        const lines = wrapper.findAll('[data-test="minimap-edges"] line').map((line) =>
+            ['x1', 'y1', 'x2', 'y2'].map((a) => Number(line.attributes(a))));
+
+        expect(lines).toEqual([[50, 20, 250, 20], [250, 20, 450, 20]]);
     });
 });

@@ -2,6 +2,11 @@
 import { ref, inject, watch, computed, useTemplateRef } from 'vue';
 import { VueFlow, Panel, MarkerType, BaseEdge, getStraightPath, useVueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
+import { Background } from '@vue-flow/background';
+import { Controls } from '@vue-flow/controls';
+import '@vue-flow/controls/dist/style.css';
+import { MiniMap } from '@vue-flow/minimap';
+import '@vue-flow/minimap/dist/style.css';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useAuthoringClient } from '@/composables/client.js';
 import { describeError } from '@/composables/error-message.js';
@@ -64,6 +69,23 @@ function nodeHeaderColor(data) {
     return colorForNode(data.nodeColor);
 }
 
+// The MiniMap paints its nodes as SVG `fill` attributes, which can't resolve `var(--...)`, so the
+// Start/End accents are read from the theme once, as plain colours.
+let themeNodeColors = null;
+
+function minimapNodeColor(node) {
+    if (!themeNodeColors) {
+        const style = getComputedStyle(document.documentElement);
+        themeNodeColors = {
+            start: style.getPropertyValue('--color-node-start').trim() || '#04aa6d',
+            end: style.getPropertyValue('--color-node-end').trim() || '#44403c',
+        };
+    }
+    if (node.data?.isStart) return themeNodeColors.start;
+    if (node.data?.isEnd) return themeNodeColors.end;
+    return colorForNode(node.data?.nodeColor);
+}
+
 // ---- Floating edges: connect each edge to the point on the node's rectangle nearest the other
 // node (its center-to-center line's boundary intersection), rather than a fixed handle position.
 // Our node template has no <Handle> elements at all (edges are derived from parsed [[links]], not
@@ -112,7 +134,7 @@ function floatingEdgePath(sourceNode, targetNode) {
     return { path, labelX, labelY };
 }
 
-const { fitView, setCenter, getViewport, screenToFlowCoordinate } = useVueFlow();
+const { fitView, setCenter, getViewport, screenToFlowCoordinate, findNode } = useVueFlow();
 
 const loading = ref(false);
 const flowNodes = ref([]);
@@ -266,6 +288,28 @@ async function onNodeDragStop({ node, nodes }) {
     }
 }
 
+// ---- The MiniMap's connector lines ----
+// Vue Flow's MiniMap draws nodes only. It lets a slot draw each node, in flow coordinates, in the
+// order of the nodes; so the first node also draws every edge, as a line between the centres of
+// its two nodes, just before its own rectangle: the lines end up under all the nodes. The nodes'
+// positions are Vue Flow's own, so the lines follow a node while it's dragged.
+
+const minimapFirstNodeId = computed(() => flowNodes.value[0]?.id ?? null);
+
+function nodeCentre(id) {
+    const node = findNode(id);
+    if (!node?.dimensions?.width) return null;
+    const position = node.computedPosition ?? node.position;
+    return { x: position.x + node.dimensions.width / 2, y: position.y + node.dimensions.height / 2 };
+}
+
+const minimapEdgeLines = computed(() => flowEdges.value.flatMap((edge) => {
+    if (edge.source === edge.target) return [];
+    const from = nodeCentre(edge.source);
+    const to = nodeCentre(edge.target);
+    return from && to ? [{ id: edge.id, x1: from.x, y1: from.y, x2: to.x, y2: to.y }] : [];
+}));
+
 // ---- Node creation ----
 
 const creatingNode = ref(false);
@@ -397,6 +441,44 @@ defineExpose({
                 <PreambleBar ref="preamble-bar" :dialogue-name="dialogueName" @saved="emit('dialogueSaved')" />
             </Panel>
 
+            <!-- Canvas chrome (#192): a dot grid, zoom / fit / lock buttons, and a map of the whole
+                 dialogue for orientation, styled like Studio's toolbars (see the <style> below). -->
+            <Background variant="dots" :gap="20" :size="1.2" pattern-color="#b4b4b4" />
+            <Controls position="bottom-left" class="dlb-flow-controls" :fit-view-params="{ duration: 300 }" data-test="graph-controls" />
+            <MiniMap
+                position="bottom-right"
+                class="dlb-flow-minimap"
+                pannable
+                zoomable
+                :node-color="minimapNodeColor"
+                :node-border-radius="4"
+                mask-color="rgba(240, 240, 240, 0.6)"
+                aria-label="Map of the whole dialogue"
+                data-test="graph-minimap"
+            >
+                <template #node-dialogueNode="{ id, position, dimensions, color, borderRadius }">
+                    <g>
+                        <g v-if="id === minimapFirstNodeId" data-test="minimap-edges">
+                            <line
+                                v-for="line in minimapEdgeLines"
+                                :key="line.id"
+                                :x1="line.x1" :y1="line.y1" :x2="line.x2" :y2="line.y2"
+                                :stroke="EDGE_COLOR"
+                                stroke-width="0.75"
+                                stroke-opacity="0.6"
+                                vector-effect="non-scaling-stroke"
+                            />
+                        </g>
+                        <rect
+                            :x="position.x" :y="position.y"
+                            :width="dimensions.width" :height="dimensions.height"
+                            :rx="borderRadius" :ry="borderRadius"
+                            :fill="color"
+                        />
+                    </g>
+                </template>
+            </MiniMap>
+
             <template #node-dialogueNode="{ data }">
                 <div
                     class="rounded-lg shadow bg-white min-w-[150px] max-w-[210px] overflow-hidden cursor-pointer hover:shadow-md"
@@ -464,3 +546,42 @@ defineExpose({
         />
     </div>
 </template>
+
+<style scoped>
+/* Vue Flow's Controls and MiniMap, in the look of Studio's toolbar controls (see "UI building
+   blocks" in CLAUDE.md): white, grey border, rounded corners, 24px buttons. */
+:deep(.dlb-flow-controls) {
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+:deep(.dlb-flow-controls .vue-flow__controls-button) {
+    box-sizing: border-box;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: white;
+    border: 1px solid var(--color-grey-light);
+    border-radius: 4px;
+    color: var(--color-orange-darker);
+}
+
+:deep(.dlb-flow-controls .vue-flow__controls-button svg) {
+    max-width: 11px;
+    max-height: 11px;
+    fill: currentColor;
+}
+
+:deep(.dlb-flow-controls .vue-flow__controls-button:hover) {
+    background: var(--color-grey-lighter);
+}
+
+:deep(.dlb-flow-minimap) {
+    background: white;
+    border: 1px solid var(--color-grey-light);
+    border-radius: 4px;
+    overflow: hidden;
+}
+</style>
