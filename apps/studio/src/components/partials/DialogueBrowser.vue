@@ -242,6 +242,7 @@ function checkOngoingDialogue() {
                 dialogueName: ongoing.dialogueName,
                 loggedDialogueId: ongoing.loggedDialogueId,
                 secondsSinceLastEngagement: ongoing.secondsSinceLastEngagement,
+                language: ongoing.language,
                 alreadyOpenTabId: alreadyOpenTab?.id ?? null,
             };
         } else {
@@ -270,9 +271,9 @@ function formatTimeSince(seconds) {
 }
 
 function confirmResume() {
-    const name = ongoingConfirm.value.dialogueName;
+    const { dialogueName, language } = ongoingConfirm.value;
     ongoingConfirm.value = null;
-    emit('resumeDialogue', name);
+    emit('resumeDialogue', dialogueName, { language });
 }
 
 function confirmCancel() {

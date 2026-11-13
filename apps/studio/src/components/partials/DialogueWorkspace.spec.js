@@ -244,3 +244,61 @@ describe('DialogueWorkspace — a reply into another dialogue', () => {
         expect(wrapper.text()).not.toContain('log-main');
     });
 });
+
+describe('DialogueWorkspace — resuming a dialogue (#489)', () => {
+    async function mountLive() {
+        const state = ref({
+            selectedProject: { slug: 'p' },
+            mode: DLB_APP_MODE_LIVE,
+            dialogueWorkspaceStyle: DIALOGUE_WORKSPACE_STYLE_BALLOONS,
+        });
+        const wrapper = mount(DialogueWorkspace, {
+            global: {
+                provide: { state },
+                stubs: {
+                    FontAwesomeIcon: true, BalloonDialogueComponent: true, TextDialogueComponent: true,
+                    DialogueEditor: true, TranslationEditor: true, teleport: true,
+                },
+            },
+        });
+        await flushPromises();
+        return wrapper;
+    }
+
+    const languageSelector = (wrapper) => wrapper.find('select[title="Language new dialogue tests are started in"]');
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        authoring.getProject.mockResolvedValue({
+            sourceLanguageCode: 'en', sourceLanguageName: 'English',
+            latestVersion: { publishedTranslationLanguages: [
+                { translationLanguageCode: 'nl-NL', translationLanguageName: 'Dutch (Netherlands)' },
+            ] },
+        });
+        playback.continueDialogue.mockResolvedValue({ ...step([reply]), loggedDialogueId: 'ld-1' });
+    });
+
+    it('shows the language the resumed dialogue runs in, without restarting it', async () => {
+        const wrapper = await mountLive();
+        expect(languageSelector(wrapper).element.value).toBe('en');
+
+        wrapper.vm.resumeDialogue('basic', { language: 'nl-NL' });
+        await flushPromises();
+
+        expect(languageSelector(wrapper).element.value).toBe('nl-NL');
+        expect(playback.continueDialogue).toHaveBeenCalledTimes(1);
+        expect(playback.startDialogue).not.toHaveBeenCalled();
+    });
+
+    it('leaves the selector alone when the language isn\'t known or isn\'t offered', async () => {
+        const wrapper = await mountLive();
+        wrapper.vm.resumeDialogue('basic');
+        await flushPromises();
+        expect(languageSelector(wrapper).element.value).toBe('en');
+
+        wrapper.vm.resumeDialogue('basic', { language: 'fr' });
+        await flushPromises();
+        expect(languageSelector(wrapper).element.value).toBe('en');
+        expect(playback.startDialogue).not.toHaveBeenCalled();
+    });
+});

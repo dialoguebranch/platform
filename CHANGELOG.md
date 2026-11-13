@@ -28,6 +28,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Studio: after resuming a dialogue started in another language, the *Test in* selector said
+  English. It now shows the language the dialogue runs in
+  ([#489](https://github.com/dialoguebranch/platform/issues/489)).
 - Studio: selecting several nodes in the graph editor was invisible. The box you drag now shows,
   selected nodes get an outline (also on the map), and a click with Shift, Ctrl or Cmd changes the
   selection without opening the node.

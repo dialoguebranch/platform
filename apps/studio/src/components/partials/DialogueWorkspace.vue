@@ -608,7 +608,10 @@ const resize = () => {
     if (balloons.value) balloons.value.resize();
 };
 
-const resumeDialogue = (name) => {
+// `language` is the one the ongoing dialogue runs in (from get-ongoing, #489): the tab is in it, and
+// the language selector shows it, when the project offers it. The tab's language is set first, so
+// the selector's watcher sees nothing to restart.
+const resumeDialogue = (name, { language } = {}) => {
     // A simulation never takes over the user's real ongoing dialogue: it starts afresh (#411).
     if (simulating.value) {
         loadDraftDialogue(name, { content: 'published' });
@@ -618,6 +621,12 @@ const resumeDialogue = (name) => {
     const newTab = getOrCreateEmptyTab();
     newTab.dialogueName = name;
     newTab.openedForEditOnly = false;
+    if (language) {
+        newTab.language = language;
+        if (availableLanguages.value.some((l) => l.code === language)) {
+            selectedLanguage.value = language;
+        }
+    }
     activeTabId.value = newTab.id;
     nextTick(updateScrollState);
     dismissError();
