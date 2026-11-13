@@ -79,7 +79,7 @@ public class DialogueExecutor {
 	 * Starts the dialogue for the specified dialogue definition. If you specify a node ID, it will
 	 * start at that node. Otherwise, it starts at the "Start" node.
 	 *
-	 * @param dialogue the dialogue, as found by {@link UserService#getDialogueResolver}.
+	 * @param dialogue the dialogue, as found by {@link ApplicationManager#getDialogueResolver}.
 	 * @param nodeId the node ID or {@code null}.
 	 * @param sessionId the unique session identifier to be added to the logs.
 	 * @param sessionStartTime the utc timestamp of when this session was started.
@@ -97,7 +97,7 @@ public class DialogueExecutor {
 		// The dialogues that replies lead into are found by the same resolver (#473), and the end
 		// user's gender, $dlb.userGender, selects the translation at every step (#400).
 		ActiveDialogue activeDialogue = new ActiveDialogue(
-				userService.getDialogueResolver(projectSlug), dialogue,
+				userService.getApplicationManager().getDialogueResolver(projectSlug), dialogue,
 				userService.getVariableStore(projectSlug));
 		readExternalVariables(projectSlug, dialogue.dialogue());
 

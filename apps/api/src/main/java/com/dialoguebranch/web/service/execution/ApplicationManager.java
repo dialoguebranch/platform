@@ -30,10 +30,10 @@ package com.dialoguebranch.web.service.execution;
 
 import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.exception.ParseException;
+import com.dialoguebranch.execution.DialogueResolver;
 import com.dialoguebranch.execution.parser.ProjectParser;
 import com.dialoguebranch.execution.parser.ProjectParserResult;
 import com.dialoguebranch.execution.parser.ScriptLoader;
-import com.dialoguebranch.i18n.TranslationContext;
 import com.dialoguebranch.model.common.DialogueBranchProject;
 import com.dialoguebranch.model.common.Speaker;
 import com.dialoguebranch.model.execute.Dialogue;
@@ -51,7 +51,6 @@ import com.dialoguebranch.web.service.repository.DBUserRepository;
 import com.dialoguebranch.web.service.storage.ExternalVariableServiceClient;
 import com.dialoguebranch.web.service.storage.VariableHistoryStorageHandler;
 import com.dialoguebranch.web.service.storage.VariableStoreDatabaseStorageHandler;
-import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,8 +66,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
-
 /**
  * The Dialogue Branch Web Service maintains one instance of an {@link ApplicationManager}. This
  * class keeps track of the different active {@link UserService} instances that are needed to serve
@@ -491,41 +488,31 @@ public class ApplicationManager {
 	}
 
 	/**
-	 * Returns the given dialogue of a loaded project as translated for each gender of the end user
-	 * (#400), for {@link com.dialoguebranch.execution.ResolvedDialogue#userGenderTranslations()}.
+	 * Returns the {@link DialogueResolver} that finds dialogues in the named project's published
+	 * version (#473), as {@link ExecutableProject#resolve} does: in the requested language, or the
+	 * project's source language if the dialogue isn't available in it (an exact match only: a
+	 * project's languages are a fixed set, so {@code "nl"} doesn't select {@code "nl-NL"}), with
+	 * the translation for each gender of the end user (#400). The project is looked up at every
+	 * call, so a dialogue started before a publish goes on with the version loaded at the time
+	 * of each step, as before.
 	 *
 	 * @param projectSlug the project's slug.
-	 * @param dialogueDescription the dialogue (name and language).
-	 * @return the translations by the end user's gender, or {@code null} if the project isn't
-	 *         loaded.
+	 * @return the resolver. For a dialogue the project doesn't have, or a project that isn't
+	 *         loaded, it throws an {@link ExecutionException} of type {@link
+	 *         ExecutionException.Type#DIALOGUE_NOT_FOUND} that names the project.
 	 */
-	public @Nullable Function<TranslationContext.Gender, Dialogue> getUserGenderTranslations(
-			String projectSlug, ResourcePointer dialogueDescription) {
-		if (!(projects.get(projectSlug) instanceof ExecutableProject execProject))
-			return null;
-		return (gender) -> execProject.getDialogueForUserGender(dialogueDescription, gender);
-	}
-
-	/**
-	 * Returns the {@link Dialogue} identified by the given {@code dialogueDescription}, searching
-	 * only within the named project.
-	 *
-	 * @param projectSlug         the project folder name / slug.
-	 * @param dialogueDescription the {@link ResourcePointer} identifying the requested dialogue.
-	 * @return the requested {@link Dialogue}.
-	 * @throws ExecutionException with type {@link ExecutionException.Type#DIALOGUE_NOT_FOUND} if the
-	 *                            project is not loaded or the dialogue is not found within it.
-	 */
-	public Dialogue getDialogueDefinitionForProject(String projectSlug,
-			ResourcePointer dialogueDescription) throws ExecutionException {
-		DialogueBranchProject project = projects.get(projectSlug);
-		if (project instanceof ExecutableProject execProject) {
-			Dialogue dialogue = execProject.getDialogues().get(dialogueDescription);
-			if (dialogue != null) return dialogue;
-		}
-		throw new ExecutionException(ExecutionException.Type.DIALOGUE_NOT_FOUND,
-				"Dialogue '" + dialogueDescription.getDialogueName() + "' not found in project '" +
-						projectSlug + "' for language '" + dialogueDescription.getLanguage() + "'.");
+	public DialogueResolver getDialogueResolver(String projectSlug) {
+		return (dialogueName, language) -> {
+			if (projects.get(projectSlug) instanceof ExecutableProject project) {
+				try {
+					return project.resolve(dialogueName, language);
+				} catch (ExecutionException e) {
+					if (e.getType() != ExecutionException.Type.DIALOGUE_NOT_FOUND) throw e;
+				}
+			}
+			throw new ExecutionException(ExecutionException.Type.DIALOGUE_NOT_FOUND,
+					"Dialogue '" + dialogueName + "' not found in project '" + projectSlug + "'.");
+		};
 	}
 
 	// ---------------------------------------------------------------- //
