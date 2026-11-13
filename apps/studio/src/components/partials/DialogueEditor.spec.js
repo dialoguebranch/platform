@@ -51,15 +51,18 @@ const selectedIds = new Set();
 const VueFlowStub = defineComponent({
     name: 'VueFlow',
     props: ['nodes', 'deleteKeyCode', 'zoomOnDoubleClick'],
-    emits: ['node-drag-stop', 'node-click', 'pane-context-menu', 'node-context-menu'],
+    emits: ['node-drag-stop', 'node-click', 'pane-context-menu', 'node-context-menu', 'nodes-initialized'],
     setup(props, { slots }) {
         return () => h('div', [
             ...(props.nodes ?? []).map((node) => h('div', { 'data-node': node.id },
-                slots['node-dialogueNode']?.({ data: node.data, selected: selectedIds.has(node.id) }))),
+                slots['node-dialogueNode']?.({ id: node.id, data: node.data, selected: selectedIds.has(node.id) || !!node.selected }))),
             slots.default?.(),
         ]);
     },
 });
+
+// Moving the view, shared so the tests can see where it went.
+const flowView = { setCenter: vi.fn() };
 
 vi.mock('@vue-flow/core', () => ({
     VueFlow: VueFlowStub,
@@ -68,7 +71,7 @@ vi.mock('@vue-flow/core', () => ({
     MarkerType: { ArrowClosed: 'arrowclosed' },
     getStraightPath: () => ['', 0, 0],
     useVueFlow: () => ({
-        fitView: vi.fn(), setCenter: vi.fn(), getViewport: () => ({ x: 0, y: 0, zoom: 1 }),
+        fitView: vi.fn(() => Promise.resolve(true)), setCenter: flowView.setCenter, getViewport: () => ({ x: 0, y: 0, zoom: 1 }),
         screenToFlowCoordinate: (p) => p,
         // Every node measures 100 x 40 at its stored position, for the MiniMap's lines.
         findNode: (id) => {
@@ -124,8 +127,9 @@ const node = (title, x, body = 'Hi.') => ({
         { key: 'position', value: `${x},0` }],
 });
 
-async function mountEditor() {
+async function mountEditor(options = {}) {
     const wrapper = mount(DialogueEditor, {
+        ...options,
         props: { dialogueName: 'main' },
         global: {
             provide: { state: ref({ selectedProject: { slug: 'p' } }) },
@@ -413,6 +417,7 @@ describe('DialogueEditor deleting the selected nodes (#193, #197)', () => {
 
     it('ignores the keys with nothing selected, and while typing', async () => {
         const wrapper = await mountEditor();
+        authoring.findNodeReferences.mockClear(); // the orphan check on loading (#195)
         await press('Delete');
         expect(dialog(wrapper).exists()).toBe(false);
 
@@ -507,6 +512,213 @@ describe('DialogueEditor moving nodes with the arrow keys (#193)', () => {
         await release('ArrowLeft', input);
         input.remove();
         expect(authoring.updateDraftNode).not.toHaveBeenCalled();
+    });
+});
+
+describe('DialogueEditor search (#190)', () => {
+    beforeEach(() => {
+        currentNodes = [
+            node('Start', 0, 'Welcome to the owl house.\n[[Hello|Next]]'),
+            { ...node('Next', 200, 'Nothing here.'), tags: [{ key: 'title', value: 'Next' },
+                { key: 'speaker', value: 'Imoen' }, { key: 'position', value: '200,0' },
+                { key: 'comment', value: 'needs an owl joke' }] },
+            node('End', 400, ''),
+        ];
+    });
+
+    const search = async (wrapper, text) => {
+        await wrapper.find('[data-test="graph-search-input"]').setValue(text);
+        await flushPromises();
+    };
+    const marked = (wrapper, kind) =>
+        wrapper.findAll(`[data-search="${kind}"]`).map((el) => el.element.closest('[data-node]').dataset.node);
+
+    it('finds nodes by title, speaker, comment and text, ignoring case', async () => {
+        const wrapper = await mountEditor();
+        await search(wrapper, 'OWL');
+        // text of Start, comment of Next
+        expect(wrapper.find('[data-test="graph-search-count"]').text()).toBe('1 of 2');
+        expect(marked(wrapper, 'current')).toEqual(['Start']);
+        expect(marked(wrapper, 'match')).toEqual(['Next']);
+
+        await search(wrapper, 'imoen');
+        expect(marked(wrapper, 'current')).toEqual(['Next']);
+        await search(wrapper, 'end');
+        expect(marked(wrapper, 'current')).toEqual(['End']);
+    });
+
+    it('doesn\'t match the reply links or commands', async () => {
+        const wrapper = await mountEditor();
+        await search(wrapper, 'Hello');
+        expect(wrapper.find('[data-test="graph-search-count"]').text()).toBe('None');
+    });
+
+    it('goes to the next and previous match, round, centring each', async () => {
+        const wrapper = await mountEditor();
+        await search(wrapper, 'owl');
+        expect(flowView.setCenter).toHaveBeenLastCalledWith(50, 20, expect.anything());
+
+        await wrapper.find('[data-test="graph-search-next"]').trigger('click');
+        expect(wrapper.find('[data-test="graph-search-count"]').text()).toBe('2 of 2');
+        expect(flowView.setCenter).toHaveBeenLastCalledWith(250, 20, expect.anything());
+
+        await wrapper.find('[data-test="graph-search-input"]').trigger('keydown', { key: 'Enter' });
+        expect(wrapper.find('[data-test="graph-search-count"]').text()).toBe('1 of 2');
+        await wrapper.find('[data-test="graph-search-input"]').trigger('keydown', { key: 'Enter', shiftKey: true });
+        expect(wrapper.find('[data-test="graph-search-count"]').text()).toBe('2 of 2');
+    });
+
+    it('doesn\'t select what it finds', async () => {
+        const wrapper = await mountEditor();
+        await search(wrapper, 'owl');
+        expect(wrapper.findAll('[data-selected="true"]')).toHaveLength(0);
+    });
+
+    it('takes Ctrl+F only while the pointer is over the graph', async () => {
+        const wrapper = await mountEditor({ attachTo: document.body });
+        const input = wrapper.find('[data-test="graph-search-input"]').element;
+        const ctrlF = () => document.body.dispatchEvent(new KeyboardEvent('keydown',
+            { key: 'f', ctrlKey: true, bubbles: true, cancelable: true }));
+
+        expect(ctrlF()).toBe(true); // not cancelled: the browser's own find
+        expect(document.activeElement).not.toBe(input);
+
+        await wrapper.trigger('mouseenter');
+        expect(ctrlF()).toBe(false);
+        expect(document.activeElement).toBe(input);
+    });
+});
+
+describe('DialogueEditor links to a node (#194)', () => {
+    const rightClickNode = async (wrapper, id) => {
+        wrapper.findComponent(VueFlowStub).vm.$emit('node-context-menu',
+            { event: { preventDefault: () => {}, clientX: 10, clientY: 10 }, node: { id } });
+        await flushPromises();
+    };
+    const showLinks = async (wrapper, id) => {
+        await rightClickNode(wrapper, id);
+        await wrapper.find('[data-test="node-menu-links"]').trigger('click');
+        await flushPromises();
+    };
+    const marked = (wrapper, kind) =>
+        wrapper.findAll(`[data-links="${kind}"]`).map((el) => el.element.closest('[data-node]').dataset.node);
+
+    beforeEach(() => {
+        authoring.findNodeReferences.mockResolvedValue([
+            { dialogueName: 'main', nodeTitle: 'Start', snippet: '[[Go|Next]]' },
+            { dialogueName: 'main', nodeTitle: 'Start', snippet: '[[Again|Next]]' },
+            { dialogueName: 'other', nodeTitle: 'Hub', snippet: '[[On|main.Next]]' },
+        ]);
+    });
+
+    it('marks the node and the nodes here that link to it, and names the ones elsewhere', async () => {
+        const wrapper = await mountEditor();
+        await showLinks(wrapper, 'Next');
+
+        expect(authoring.findNodeReferences).toHaveBeenCalledWith('p', 'main', 'Next');
+        expect(marked(wrapper, 'target')).toEqual(['Next']);
+        expect(marked(wrapper, 'source')).toEqual(['Start']);
+        expect(wrapper.find('[data-test="graph-links-here"]').text()).toBe('From this dialogue: Start');
+        expect(wrapper.find('[data-test="graph-links-elsewhere"]').text()).toBe('From other dialogues: other.Hub');
+        expect(flowView.setCenter).toHaveBeenCalled();
+    });
+
+    it('says so when nothing links to the node', async () => {
+        authoring.findNodeReferences.mockResolvedValue([]);
+        const wrapper = await mountEditor();
+        await showLinks(wrapper, 'Start');
+        expect(wrapper.find('[data-test="graph-links"]').text()).toContain('No reply links to this node.');
+    });
+
+    it('closes with its button, with Escape, and when searching', async () => {
+        const wrapper = await mountEditor();
+        await showLinks(wrapper, 'Next');
+        await wrapper.find('[data-test="graph-links-close"]').trigger('click');
+        expect(wrapper.find('[data-test="graph-links"]').exists()).toBe(false);
+
+        await showLinks(wrapper, 'Next');
+        document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        await flushPromises();
+        expect(wrapper.find('[data-test="graph-links"]').exists()).toBe(false);
+
+        await showLinks(wrapper, 'Next');
+        await wrapper.find('[data-test="graph-search-input"]').setValue('owl');
+        await flushPromises();
+        expect(wrapper.find('[data-test="graph-links"]').exists()).toBe(false);
+        expect(marked(wrapper, 'source')).toEqual([]);
+    });
+});
+
+describe('DialogueEditor following an external link (#191)', () => {
+    it('lists where a card\'s external links lead, and asks to open the one chosen', async () => {
+        currentNodes = [node('Start', 0, '[[On|other.Start]]\n[[Up|../intro/welcome.Second]]'),
+            node('Next', 200), node('End', 400, '')];
+        const wrapper = mount(DialogueEditor, {
+            props: { dialogueName: 'lessons/main' },
+            global: {
+                provide: { state: ref({ selectedProject: { slug: 'p' } }) },
+                stubs: { FontAwesomeIcon: true, PreambleBar: true, NodeEditPanel: true, teleport: true },
+            },
+        });
+        await flushPromises();
+
+        await wrapper.find('[data-node="Start"] [data-test="node-external-links"]').trigger('click');
+        const items = wrapper.findAll('[data-test="external-link-item"]');
+        expect(items.map((i) => i.text())).toEqual(['lessons/other → Start', 'intro/welcome → Second']);
+        // the click doesn't open the node itself
+        expect(wrapper.findComponent({ name: 'NodeEditPanel' }).exists()).toBe(false);
+
+        await items[1].trigger('click');
+        expect(wrapper.emitted('openDialogue')).toEqual([[{ dialogueName: 'intro/welcome', nodeTitle: 'Second' }]]);
+    });
+
+    it('centres a node at once when it is shown, or once the dialogue has loaded', async () => {
+        // before the nodes are shown, it waits for them
+        const wrapper = await mountEditor();
+        wrapper.vm.focusNode('Next');
+        flowView.setCenter.mockClear();
+        wrapper.findComponent(VueFlowStub).vm.$emit('nodes-initialized');
+        await flushPromises();
+        expect(flowView.setCenter).toHaveBeenCalledWith(250, 20, expect.anything());
+
+        // once they are, at once
+        flowView.setCenter.mockClear();
+        wrapper.vm.focusNode('End');
+        expect(flowView.setCenter).toHaveBeenCalledWith(450, 20, expect.anything());
+    });
+});
+
+describe('DialogueEditor orphaned nodes (#195)', () => {
+    const orphans = (wrapper) => wrapper.findAll('[data-test="node-orphan"]')
+        .map((el) => el.element.closest('[data-node]').dataset.node);
+
+    it('marks the nodes no reply leads to, here or in another dialogue, except Start', async () => {
+        // Start -> Next; Loose and Called have no link here, but another dialogue calls Called;
+        // Self only links to itself, which counts, as in core.
+        currentNodes = [node('Start', 0, '[[Go|next]]'), node('Next', 200, ''),
+            node('Loose', 400, ''), node('Called', 600, ''), node('Self', 800, '[[Again|Self]]')];
+        authoring.findNodeReferences.mockImplementation(async (slug, dialogue, title) =>
+            (title === 'Called' ? [{ dialogueName: 'other', nodeTitle: 'Hub' }] : []));
+        const wrapper = await mountEditor();
+
+        expect(orphans(wrapper)).toEqual(['Loose']);
+        // only the nodes nothing here links to are looked up
+        expect(authoring.findNodeReferences.mock.calls.map((c) => c[2]).sort()).toEqual(['Called', 'Loose']);
+    });
+
+    it('counts a link into this dialogue written as an external one', async () => {
+        currentNodes = [node('Start', 0, '[[Round|main.Back]]'), node('Back', 200, '')];
+        authoring.findNodeReferences.mockResolvedValue([]);
+        const wrapper = await mountEditor();
+        expect(orphans(wrapper)).toEqual([]);
+        expect(authoring.findNodeReferences).not.toHaveBeenCalled();
+    });
+
+    it('marks nothing when the look-up fails', async () => {
+        currentNodes = [node('Start', 0, ''), node('Loose', 200, '')];
+        authoring.findNodeReferences.mockRejectedValue(new Error('Server down'));
+        const wrapper = await mountEditor();
+        expect(orphans(wrapper)).toEqual([]);
     });
 });
 

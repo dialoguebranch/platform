@@ -428,3 +428,30 @@ describe('DialogueWorkspace — going back a step (#490)', () => {
     });
 });
 
+describe('DialogueWorkspace — following an external link (#191)', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        authoring.getProject.mockResolvedValue({ sourceLanguageCode: 'en', draftTranslationLanguages: [] });
+    });
+
+    it('opens the dialogue the link leads to in Edit mode, in a tab of its own', async () => {
+        const state = ref({ selectedProject: { slug: 'p' }, mode: DLB_APP_MODE_DRAFT,
+            dialogueWorkspaceStyle: DIALOGUE_WORKSPACE_STYLE_BALLOONS });
+        const wrapper = mount(DialogueWorkspace, {
+            global: { provide: { state }, stubs: { FontAwesomeIcon: true, BalloonDialogueComponent: true,
+                TextDialogueComponent: true, DialogueEditor: true, TranslationEditor: true, teleport: true } },
+        });
+        await flushPromises();
+        wrapper.vm.editDialogue('main');
+        await flushPromises();
+
+        wrapper.findComponent({ name: 'DialogueEditor' }).vm.$emit('openDialogue',
+            { dialogueName: 'other', nodeTitle: 'Second' });
+        await flushPromises();
+
+        const editor = wrapper.findComponent({ name: 'DialogueEditor' });
+        expect(editor.props('dialogueName')).toBe('other');
+        expect(wrapper.vm.tabs.map((t) => t.dialogueName)).toEqual(['main', 'other']);
+    });
+});
+

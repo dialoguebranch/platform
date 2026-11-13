@@ -12,7 +12,7 @@ import { useAuthoringClient } from '@/composables/client.js';
 import { describeError } from '@/composables/error-message.js';
 import { showError, dismissError } from '@/composables/error-toast.js';
 import { tagsToMap, mapToTags, getPosition, setPosition } from '@/authoring/DlbHeaderTags.js';
-import { extractReplyLinks } from '@/authoring/DlbReplyLinks.js';
+import { extractReplyLinks, resolveDialogueReference } from '@/authoring/DlbReplyLinks.js';
 import { bodyPreview } from '@/authoring/DlbBodyPreview.js';
 import { colorForNode } from '@/composables/node-colors.js';
 import { isUndefinedSpeaker, projectSpeakers, speakerForNewNode } from '@/composables/project-speakers.js';
@@ -20,6 +20,7 @@ import { useLatestRequest } from '@/composables/latest-request.js';
 import NodeEditPanel from './NodeEditPanel.vue';
 import PreambleBar from './PreambleBar.vue';
 import ContextMenu from '../widgets/ContextMenu.vue';
+import ToolbarButton from '../widgets/ToolbarButton.vue';
 
 // Pure content component — no header of its own. It's only ever embedded in
 // DialogueWorkspace.vue's "edit" mode, whose own toolbar (with the balloon/text/edit
@@ -37,7 +38,9 @@ const props = defineProps({
 // which is the condition DialogueWorkspace's handleReturnFromEdit cares about. dialogueSaved fires
 // on every successful save, including drags — used to tell the Dialogue Browser its
 // "New"/"Draft"/"Deleted" labels and Publish-enablement may be stale.
-const emit = defineEmits(['nodeChanged', 'nodeDeleted', 'dialogueSaved']);
+// openDialogue ({ dialogueName, nodeTitle }) asks the workspace to open another dialogue here, at
+// that node: following an external reply link (#191).
+const emit = defineEmits(['nodeChanged', 'nodeDeleted', 'dialogueSaved', 'openDialogue']);
 
 const state = inject('state');
 const client = useAuthoringClient();
@@ -161,11 +164,24 @@ function buildGraph(nodes) {
     });
 
     const externalLinkCounts = new Map();
+    // Where each node's external links lead, for its card's menu (#191).
+    const externalTargets = new Map();
+    // The titles (in lower case, as core compares them) a link in this dialogue points to (#195).
+    const linkedHere = new Set();
     const newFlowEdges = [];
     for (const { node } of parsedByTitle.values()) {
         for (const link of extractReplyLinks(node.body)) {
+            if (!link.isExternal) linkedHere.add(link.nodeTitle.toLowerCase());
             if (link.isExternal) {
                 externalLinkCounts.set(node.title, (externalLinkCounts.get(node.title) ?? 0) + 1);
+                const dialogueName = link.dialogueRef
+                    ? resolveDialogueReference(props.dialogueName, link.dialogueRef) : null;
+                if (dialogueName === props.dialogueName) linkedHere.add(link.nodeTitle.toLowerCase());
+                if (dialogueName) {
+                    const targets = externalTargets.get(node.title) ?? [];
+                    targets.push({ dialogueName, nodeTitle: link.nodeTitle, text: link.displayText });
+                    externalTargets.set(node.title, targets);
+                }
                 continue;
             }
             // A dangling internal link (target doesn't exist in this dialogue) is a validation
@@ -194,11 +210,41 @@ function buildGraph(nodes) {
             preview: bodyPreview(node.body),
             nodeColor: tags.get('nodeColor') ?? null,
             externalLinks: externalLinkCounts.get(node.title) ?? 0,
+            externalTargets: externalTargets.get(node.title) ?? [],
             isStart: isReservedNodeTitle(node.title, RESERVED_NODE_START_ID),
             isEnd: isReservedNodeTitle(node.title, RESERVED_NODE_END_ID),
         },
     }));
     flowEdges.value = newFlowEdges;
+    findOrphans([...parsedByTitle.keys()].filter((title) =>
+        !linkedHere.has(title.toLowerCase()) && !isReservedNodeTitle(title, RESERVED_NODE_START_ID)));
+}
+
+// ---- Orphaned nodes (#195) ----
+// A node no reply link points to can never be reached, as core's OrphanedNodeValidator warns when
+// publishing: the Start node doesn't count, and a link from another dialogue does. The links in
+// this dialogue are known from the graph; for the few nodes none of them points to, the Web
+// Service is asked whether another dialogue links to them (find-node-references, on the drafts).
+
+const orphanIds = ref(new Set());
+const { next: nextOrphanRequest, isCurrent: isCurrentOrphanRequest } = useLatestRequest();
+
+function findOrphans(candidates) {
+    const requestId = nextOrphanRequest();
+    if (!candidates.length) {
+        orphanIds.value = new Set();
+        return;
+    }
+    const slug = state.value.selectedProject?.slug;
+    Promise.all(candidates.map((title) =>
+        client.findNodeReferences(slug, props.dialogueName, title)
+            .then((references) => (references.length ? null : title))
+            // Not knowing isn't a warning: leave the node unmarked.
+            .catch(() => null)))
+        .then((titles) => {
+            if (!isCurrentOrphanRequest(requestId)) return;
+            orphanIds.value = new Set(titles.filter(Boolean));
+        });
 }
 
 // DialogueEditor is a single persistent instance reused across tabs (see DialogueWorkspace.vue),
@@ -240,9 +286,38 @@ watch(() => props.dialogueName, (name) => {
 
 // Fires whenever Vue Flow (re)measures node dimensions — including after the fetch above resolves
 // and populates flowNodes for the first time.
+// The node to centre on instead of Start when the dialogue opens, after following a link (#191).
+let focusOnOpen = null;
+
+/**
+ * Centres the given node once this dialogue's nodes are shown: right away if they are, or when
+ * the dialogue that's opening has loaded.
+ *
+ * @param {string} nodeTitle the node.
+ */
+function focusNode(nodeTitle) {
+    if (!centerOnOpenPending && findNode(nodeTitle)) {
+        centreOn(nodeTitle);
+    } else {
+        focusOnOpen = nodeTitle;
+    }
+}
+
 function onNodesInitialized() {
     if (!centerOnOpenPending) return;
     centerOnOpenPending = false;
+
+    const focus = focusOnOpen;
+    focusOnOpen = null;
+    if (focus) {
+        if (findNode(focus)) {
+            fitView({ duration: 0 }).then(() => centreOn(focus));
+        } else {
+            showError(`There's no node "${focus}" in the dialogue "${props.dialogueName}".`);
+            fitView({ duration: 300 });
+        }
+        return;
+    }
 
     const startNode = flowNodes.value.find((n) => isReservedNodeTitle(n.id, RESERVED_NODE_START_ID));
     if (!startNode) {
@@ -334,6 +409,68 @@ const minimapEdgeLines = computed(() => flowEdges.value.flatMap((edge) => {
     const to = nodeCentre(edge.target);
     return from && to ? [{ id: edge.id, x1: from.x, y1: from.y, x2: to.x, y2: to.y }] : [];
 }));
+
+// ---- Search (#190) ----
+// Finds nodes by title, speaker, comment or text (as the card preview reads it, so without
+// commands and reply links), ignoring case; Enter or the arrows go to the next or previous one,
+// centring it. Matches get an outline, the current one a strong one. It doesn't select them, so
+// a Delete afterwards can't hit them by surprise. Ctrl/Cmd+F opens it while the pointer is over
+// the graph; elsewhere it stays the browser's own find.
+
+const searchQuery = ref('');
+const searchIndex = ref(0);
+const searchInput = useTemplateRef('search-input');
+const pointerOverGraph = ref(false);
+
+function searchableText(node) {
+    const tags = tagsToMap(node.tags);
+    return [node.title, tags.get('speaker'), tags.get('comment'), bodyPreview(node.body, Infinity)]
+        .filter(Boolean).join('\n').toLowerCase();
+}
+
+const searchMatches = computed(() => {
+    const query = searchQuery.value.trim().toLowerCase();
+    if (!query) return [];
+    return flowNodes.value
+        .filter((flowNode) => {
+            const raw = rawNodesByTitle.value.get(flowNode.id);
+            return raw && searchableText(raw).includes(query);
+        })
+        .map((flowNode) => flowNode.id);
+});
+const searchMatchIds = computed(() => new Set(searchMatches.value));
+const currentMatchId = computed(() => searchMatches.value[searchIndex.value] ?? null);
+
+function centreOn(id) {
+    const node = findNode(id);
+    if (!node) return;
+    const position = node.computedPosition ?? node.position;
+    setCenter(position.x + (node.dimensions?.width ?? 0) / 2,
+        position.y + (node.dimensions?.height ?? 0) / 2,
+        { zoom: getViewport().zoom, duration: 300 });
+}
+
+function goToMatch(step) {
+    const count = searchMatches.value.length;
+    if (!count) return;
+    searchIndex.value = (searchIndex.value + step + count) % count;
+    centreOn(currentMatchId.value);
+}
+
+watch(searchQuery, () => {
+    searchIndex.value = 0;
+    if (currentMatchId.value) centreOn(currentMatchId.value);
+});
+
+function onSearchKeyDown(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        goToMatch(event.shiftKey ? -1 : 1);
+    } else if (event.key === 'Escape') {
+        searchQuery.value = '';
+        event.target.blur();
+    }
+}
 
 // ---- Mouse and keyboard hints (the ? button under the zoom controls) ----
 
@@ -522,6 +659,37 @@ async function confirmDeleteNodes() {
     }
 }
 
+// ---- Following an external link (#191) ----
+// The "N external" line on a card opens a menu of where its links lead; choosing one opens that
+// dialogue in this editor, at that node.
+
+const externalMenu = ref(null); // { anchor, targets }
+
+function openExternalMenu(event, data) {
+    paneMenu.value = null;
+    nodeMenu.value = null;
+    externalMenu.value = { anchor: event.currentTarget, targets: data.externalTargets };
+}
+
+const externalMenuItems = computed(() => {
+    const targets = externalMenu.value?.targets ?? [];
+    if (!targets.length) {
+        return [{ label: 'Where these links lead can\'t be read', disabled: true }];
+    }
+    return targets.map((target, index) => ({
+        id: index,
+        label: `${target.dialogueName} → ${target.nodeTitle}`,
+        title: target.text ? `Reply "${target.text}"` : undefined,
+        icon: 'fa-solid fa-arrow-up-right-from-square',
+        test: 'external-link-item',
+    }));
+});
+
+function onExternalMenuSelect(item) {
+    const target = externalMenu.value?.targets[item.id];
+    if (target) emit('openDialogue', { dialogueName: target.dialogueName, nodeTitle: target.nodeTitle });
+}
+
 // A right-click on a node: delete it, or the whole selection when it's part of one.
 const nodeMenu = ref(null); // { x, y, titles }
 
@@ -530,12 +698,17 @@ function onNodeContextMenu({ event, node }) {
     paneMenu.value = null;
     const selected = selectedTitles();
     const titles = selected.includes(node.id) ? selected : [node.id];
-    nodeMenu.value = { x: event.clientX, y: event.clientY, titles };
+    nodeMenu.value = { x: event.clientX, y: event.clientY, titles, node: node.id };
 }
 
 const nodeMenuItems = computed(() => {
     const count = nodeMenu.value?.titles.length ?? 0;
     return [{
+        id: 'links',
+        label: 'Show links to this node',
+        icon: 'fa-solid fa-diagram-project',
+        test: 'node-menu-links',
+    }, { separator: true }, {
         id: 'delete',
         label: count > 1 ? `Delete ${count} selected nodes…` : 'Delete node…',
         icon: 'fa-solid fa-trash',
@@ -545,8 +718,47 @@ const nodeMenuItems = computed(() => {
 });
 
 function onNodeMenuSelect(item) {
-    if (item.id === 'delete' && nodeMenu.value) startDeleting(nodeMenu.value.titles);
+    if (!nodeMenu.value) return;
+    if (item.id === 'delete') startDeleting(nodeMenu.value.titles);
+    if (item.id === 'links') showLinksTo(nodeMenu.value.node);
 }
+
+// ---- What links here (#194) ----
+// The replies that lead to a node, found by the Web Service (find-node-references, the look-up a
+// rename and a delete use): in this dialogue they're highlighted like search matches, and their
+// lines drawn bold; the panel under the search names them, with those in other dialogues. A
+// search and this clear each other, so only one set of highlights shows.
+
+const linksView = ref(null); // { target, here: [titles], elsewhere: [{ dialogueName, nodeTitle }] }
+
+function showLinksTo(title) {
+    searchQuery.value = '';
+    dismissError();
+    client.findNodeReferences(state.value.selectedProject?.slug, props.dialogueName, title)
+        .then((references) => {
+            const here = [...new Set(references.filter((r) => r.dialogueName === props.dialogueName)
+                .map((r) => r.nodeTitle))];
+            const elsewhere = references.filter((r) => r.dialogueName !== props.dialogueName);
+            linksView.value = { target: title, here, elsewhere };
+            centreOn(title);
+        })
+        .catch((error) => showError(describeError(error)));
+}
+
+const linkSourceIds = computed(() => new Set(linksView.value?.here ?? []));
+
+function isHighlightedEdge(sourceNode, targetNode) {
+    return !!linksView.value && targetNode?.id === linksView.value.target
+        && linkSourceIds.value.has(sourceNode?.id);
+}
+
+watch(searchQuery, (query) => {
+    if (query) linksView.value = null;
+});
+watch(() => props.dialogueName, () => {
+    linksView.value = null;
+    searchQuery.value = '';
+});
 
 function isTyping(target) {
     const tag = target?.tagName;
@@ -554,6 +766,18 @@ function isTyping(target) {
 }
 
 function onKeyDown(event) {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') {
+        if (props.dialogueName && pointerOverGraph.value) {
+            event.preventDefault();
+            searchInput.value?.focus();
+            searchInput.value?.select();
+        }
+        return;
+    }
+    if (event.key === 'Escape' && linksView.value && !isTyping(event.target)) {
+        linksView.value = null;
+        return;
+    }
     if (event.key !== 'Delete' && event.key !== 'Backspace') return;
     if (!props.dialogueName || isTyping(event.target)) return;
     // Not while a dialog or menu of this editor is open.
@@ -586,6 +810,7 @@ function reload() {
 
 defineExpose({
     reload,
+    focusNode,
     addNode,
     isLoading: () => loading.value,
     isCreatingNode: () => creatingNode.value,
@@ -593,7 +818,7 @@ defineExpose({
 </script>
 
 <template>
-    <div class="relative h-full" @dblclick="onCanvasDoubleClick">
+    <div class="relative h-full" @dblclick="onCanvasDoubleClick" @mouseenter="pointerOverGraph = true" @mouseleave="pointerOverGraph = false">
         <div v-if="!dialogueName" class="flex items-center justify-center h-full text-grey-dark font-title text-sm">
             Open a dialogue from the Dialogue Browser to start editing.
         </div>
@@ -612,6 +837,48 @@ defineExpose({
         >
             <Panel position="top-left">
                 <PreambleBar ref="preamble-bar" :dialogue-name="dialogueName" @saved="emit('dialogueSaved')" />
+            </Panel>
+
+            <Panel position="top-right" class="flex flex-col items-end gap-1.5">
+                <div class="flex items-center gap-1 font-title text-xs" data-test="graph-search">
+                    <div class="relative">
+                        <FontAwesomeIcon icon="fa-solid fa-magnifying-glass" class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-grey-dark pointer-events-none" />
+                        <input
+                            ref="search-input"
+                            v-model="searchQuery"
+                            type="search"
+                            placeholder="Find a node"
+                            title="Find a node by its title, speaker, comment or text (Ctrl/Cmd+F over the graph; Enter for the next, Shift+Enter for the previous)"
+                            class="h-6 w-44 pl-6 pr-2 border border-grey-light rounded-lg bg-white focus:outline-none focus:border-orange-dark"
+                            data-test="graph-search-input"
+                            @keydown="onSearchKeyDown"
+                        >
+                    </div>
+                    <template v-if="searchQuery.trim()">
+                        <span class="px-1 text-grey-dark whitespace-nowrap" data-test="graph-search-count">{{ searchMatches.length ? `${searchIndex + 1} of ${searchMatches.length}` : 'None' }}</span>
+                        <ToolbarButton icon="fa-solid fa-caret-up" title="Previous match (Shift+Enter)" :disabled="!searchMatches.length" data-test="graph-search-previous" @click="goToMatch(-1)" />
+                        <ToolbarButton icon="fa-solid fa-caret-down" title="Next match (Enter)" :disabled="!searchMatches.length" data-test="graph-search-next" @click="goToMatch(1)" />
+                    </template>
+                </div>
+                <div v-if="linksView" class="w-64 rounded-lg border border-grey-light bg-white shadow-sm font-title text-xs" data-test="graph-links">
+                    <div class="flex items-center justify-between gap-2 px-2.5 py-1 bg-grey-lighter border-b border-grey-light rounded-t-lg">
+                        <span class="font-bold truncate">Links to {{ linksView.target }}</span>
+                        <button type="button" class="text-grey-dark hover:text-black" title="Close (Escape)" data-test="graph-links-close" @click="linksView = null">
+                            <FontAwesomeIcon icon="fa-solid fa-xmark" />
+                        </button>
+                    </div>
+                    <div class="px-2.5 py-1.5 flex flex-col gap-1">
+                        <div v-if="!linksView.here.length && !linksView.elsewhere.length" class="italic text-grey-dark">No reply links to this node.</div>
+                        <div v-if="linksView.here.length" data-test="graph-links-here">
+                            From this dialogue:
+                            <template v-for="(title, i) in linksView.here" :key="title"><button type="button" class="text-orange-darker hover:underline" @click="centreOn(title)">{{ title }}</button><template v-if="i < linksView.here.length - 1">, </template></template>
+                        </div>
+                        <div v-if="linksView.elsewhere.length" class="text-grey-dark" data-test="graph-links-elsewhere">
+                            From other dialogues:
+                            <span v-for="(ref, i) in linksView.elsewhere" :key="ref.dialogueName + '.' + ref.nodeTitle">{{ ref.dialogueName }}.{{ ref.nodeTitle }}<template v-if="i < linksView.elsewhere.length - 1">, </template></span>
+                        </div>
+                    </div>
+                </div>
             </Panel>
 
             <!-- Canvas chrome (#192): a dot grid, zoom / fit / lock buttons, and a map of the whole
@@ -664,21 +931,34 @@ defineExpose({
                 </template>
             </MiniMap>
 
-            <template #node-dialogueNode="{ data, selected }">
+            <template #node-dialogueNode="{ id, data, selected }">
                 <div
                     class="rounded-lg shadow bg-white min-w-[150px] max-w-[210px] overflow-hidden cursor-pointer hover:shadow-md"
                     :class="{
                         'ring-2 ring-offset-1 ring-node-start': data.isStart,
                         'ring-2 ring-offset-1 ring-node-end': data.isEnd,
                         'dlb-node-selected': selected,
+                        'dlb-node-orphan': orphanIds.has(id),
+                        'dlb-node-match': (searchMatchIds.has(id) && id !== currentMatchId) || linkSourceIds.has(id),
+                        'dlb-node-current-match': id === currentMatchId || id === linksView?.target,
                     }"
+                    :data-search="id === currentMatchId ? 'current' : searchMatchIds.has(id) ? 'match' : null"
+                    :data-links="id === linksView?.target ? 'target' : linkSourceIds.has(id) ? 'source' : null"
                     :data-selected="selected ? 'true' : null"
                 >
                     <div class="px-3 py-1.5 text-xs font-title font-bold text-white truncate flex items-center gap-1.5" :style="{ backgroundColor: nodeHeaderColor(data) }">
                         <FontAwesomeIcon v-if="data.isStart" icon="fa-solid fa-play" class="text-[10px] shrink-0" title="Start node — the dialogue's entry point" />
                         <FontAwesomeIcon v-if="data.isEnd" icon="fa-solid fa-flag-checkered" class="text-[10px] shrink-0" title="End node — terminates the dialogue" />
                         <span class="truncate">{{ data.title }}</span>
-                        <span v-if="data.comment" class="ml-auto shrink-0 cursor-help" :title="data.comment" data-test="node-comment-icon">
+                        <span
+                            v-if="orphanIds.has(id)"
+                            class="ml-auto shrink-0 cursor-help"
+                            title="Nothing links to this node, so the dialogue can never reach it (it isn't the Start node, and no reply here or in another dialogue leads to it)"
+                            data-test="node-orphan"
+                        >
+                            <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" class="text-[11px]" />
+                        </span>
+                        <span v-if="data.comment" class="shrink-0 cursor-help" :class="{ 'ml-auto': !orphanIds.has(id) }" :title="data.comment" data-test="node-comment-icon">
                             <FontAwesomeIcon icon="fa-regular fa-comment" class="text-[11px]" />
                         </span>
                     </div>
@@ -695,10 +975,17 @@ defineExpose({
                             </span>
                         </div>
                         <div v-if="data.preview" class="mt-1 text-[11px] leading-snug text-black/70 line-clamp-2 break-words" data-test="node-preview">{{ data.preview }}</div>
-                        <div v-if="data.externalLinks" class="mt-1 inline-flex items-center gap-1 text-[10px] text-orange-dark" :title="`${data.externalLinks} link(s) to other dialogues`">
+                        <button
+                            v-if="data.externalLinks"
+                            type="button"
+                            class="nodrag mt-1 inline-flex items-center gap-1 text-[10px] text-orange-dark hover:underline cursor-pointer"
+                            :title="`${data.externalLinks} link(s) to other dialogues — click to go to one`"
+                            data-test="node-external-links"
+                            @click.stop="openExternalMenu($event, data)"
+                        >
                             <FontAwesomeIcon icon="fa-solid fa-arrow-up-right-from-square" />
                             {{ data.externalLinks }} external
-                        </div>
+                        </button>
                     </div>
                     <div v-if="data.isEnd" class="px-3 py-2 text-[10px] italic text-grey-dark">Ends the conversation — no content</div>
                 </div>
@@ -717,7 +1004,7 @@ defineExpose({
                     :label-bg-padding="labelBgPadding"
                     :label-bg-border-radius="labelBgBorderRadius"
                     :marker-end="markerEnd"
-                    :style="style"
+                    :style="isHighlightedEdge(sourceNode, targetNode) ? { ...style, strokeWidth: 3.5 } : style"
                 />
             </template>
         </VueFlow>
@@ -744,14 +1031,24 @@ defineExpose({
                 <dt>Drag a selected node</dt><dd>Move all selected nodes together</dd>
                 <dt>Click the canvas</dt><dd>Clear the selection</dd>
                 <dt><kbd>Delete</kbd> or <kbd>Backspace</kbd></dt><dd>Delete the selected nodes, after asking</dd>
-                <dt>Right-click a node</dt><dd>Delete it, or the selection it's part of</dd>
+                <dt>Click "N external" on a node</dt><dd>Go to where its links to other dialogues lead</dd>
+                <dt>Right-click a node</dt><dd>Show the links to it; delete it, or the selection it's part of</dd>
                 <dt>Right-click the canvas</dt><dd>A menu to add a node there</dd>
                 <dt>Double-click the canvas</dt><dd>Add a node there at once</dd>
                 <dt>Drag the canvas</dt><dd>Move around</dd>
                 <dt>Scroll</dt><dd>Zoom</dd>
+                <dt><kbd>{{ multiSelectKey }}</kbd> + <kbd>F</kbd> over the graph</dt><dd>Find a node</dd>
                 <dt>Drag or scroll in the map</dt><dd>Move around, zoom</dd>
             </dl>
         </div>
+
+        <ContextMenu
+            v-if="externalMenu"
+            :items="externalMenuItems"
+            :anchor="externalMenu.anchor"
+            @select="onExternalMenuSelect"
+            @close="externalMenu = null"
+        />
 
         <ContextMenu
             v-if="nodeMenu"
@@ -853,6 +1150,20 @@ defineExpose({
    which this editor doesn't save. */
 :deep(.vue-flow__nodesselection-rect) {
     display: none;
+}
+
+/* An orphaned node (#195): a dashed edge, as a warning, not an error. */
+.dlb-node-orphan {
+    border: 1.5px dashed var(--color-orange-dark);
+}
+
+/* Search matches (#190): a soft glow, and a strong one for the current match. */
+.dlb-node-match {
+    box-shadow: 0 0 0 3px var(--color-orange-light);
+}
+
+.dlb-node-current-match {
+    box-shadow: 0 0 0 3px var(--color-orange-dark), 0 0 12px 2px var(--color-orange-light);
 }
 
 /* An outline rather than a ring, so it shows next to the Start and End nodes' own rings. */
