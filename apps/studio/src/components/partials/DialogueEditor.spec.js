@@ -51,7 +51,7 @@ const selectedIds = new Set();
 const VueFlowStub = defineComponent({
     name: 'VueFlow',
     props: ['nodes', 'deleteKeyCode', 'zoomOnDoubleClick'],
-    emits: ['node-drag-stop', 'node-click', 'pane-context-menu'],
+    emits: ['node-drag-stop', 'node-click', 'pane-context-menu', 'node-context-menu'],
     setup(props, { slots }) {
         return () => h('div', [
             ...(props.nodes ?? []).map((node) => h('div', { 'data-node': node.id },
@@ -423,6 +423,38 @@ describe('DialogueEditor deleting the selected nodes (#193, #197)', () => {
         input.remove();
         expect(dialog(wrapper).exists()).toBe(false);
         expect(authoring.findNodeReferences).not.toHaveBeenCalled();
+    });
+
+    const rightClickNode = async (wrapper, id) => {
+        wrapper.findComponent(VueFlowStub).vm.$emit('node-context-menu',
+            { event: { preventDefault: () => {}, clientX: 10, clientY: 10 }, node: { id } });
+        await flushPromises();
+    };
+
+    it('deletes a node from its right-click menu', async () => {
+        const wrapper = await mountEditor();
+        await rightClickNode(wrapper, 'End');
+        const item = wrapper.find('[data-test="node-menu-delete"]');
+        expect(item.text()).toContain('Delete node');
+        await item.trigger('click');
+        await flushPromises();
+        expect(wrapper.find('[data-test="delete-nodes-titles"]').text()).toBe('End');
+    });
+
+    it('deletes the whole selection from the menu of a node in it, else only that node', async () => {
+        const wrapper = await mountEditor();
+        await select(wrapper, 'Next', 'End');
+        await rightClickNode(wrapper, 'End');
+        expect(wrapper.find('[data-test="node-menu-delete"]').text()).toContain('Delete 2 selected nodes');
+        await wrapper.find('[data-test="node-menu-delete"]').trigger('click');
+        await flushPromises();
+        expect(wrapper.find('[data-test="delete-nodes-titles"]').text()).toBe('Next, End');
+        await wrapper.find('[data-test="delete-nodes-cancel"]').trigger('click');
+
+        await rightClickNode(wrapper, 'Start');
+        await wrapper.find('[data-test="node-menu-delete"]').trigger('click');
+        await flushPromises();
+        expect(wrapper.find('[data-test="delete-nodes-titles"]').text()).toBe('Start');
     });
 
     it('stops at a failure, shows it, and reloads what is left', async () => {

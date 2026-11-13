@@ -15,7 +15,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   ([#490](https://github.com/dialoguebranch/platform/issues/490)).
 - Studio: each node's card in the graph editor shows the start of its text, without its replies
   and commands ([#200](https://github.com/dialoguebranch/platform/issues/200)).
-- Studio: Delete or Backspace in the graph editor deletes the selected nodes, after a confirmation
+- Studio: Delete or Backspace in the graph editor deletes the selected nodes, or a right-click on a
+  node offers to delete it (or the selection it's part of), after a confirmation
   that warns about replies elsewhere that will be left dangling
   ([#193](https://github.com/dialoguebranch/platform/issues/193),
   [#197](https://github.com/dialoguebranch/platform/issues/197)).

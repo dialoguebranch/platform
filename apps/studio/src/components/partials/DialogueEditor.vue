@@ -386,6 +386,7 @@ const PANE_MENU_ITEMS = [
 
 function onPaneContextMenu(event) {
     event.preventDefault();
+    nodeMenu.value = null;
     const position = screenToFlowCoordinate({ x: event.clientX, y: event.clientY });
     paneMenu.value = { x: event.clientX, y: event.clientY, position };
 }
@@ -499,6 +500,32 @@ async function confirmDeleteNodes() {
     }
 }
 
+// A right-click on a node: delete it, or the whole selection when it's part of one.
+const nodeMenu = ref(null); // { x, y, titles }
+
+function onNodeContextMenu({ event, node }) {
+    event.preventDefault();
+    paneMenu.value = null;
+    const selected = selectedTitles();
+    const titles = selected.includes(node.id) ? selected : [node.id];
+    nodeMenu.value = { x: event.clientX, y: event.clientY, titles };
+}
+
+const nodeMenuItems = computed(() => {
+    const count = nodeMenu.value?.titles.length ?? 0;
+    return [{
+        id: 'delete',
+        label: count > 1 ? `Delete ${count} selected nodes…` : 'Delete node…',
+        icon: 'fa-solid fa-trash',
+        danger: true,
+        test: 'node-menu-delete',
+    }];
+});
+
+function onNodeMenuSelect(item) {
+    if (item.id === 'delete' && nodeMenu.value) startDeleting(nodeMenu.value.titles);
+}
+
 function isTyping(target) {
     const tag = target?.tagName;
     return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target?.isContentEditable;
@@ -508,7 +535,7 @@ function onKeyDown(event) {
     if (event.key !== 'Delete' && event.key !== 'Backspace') return;
     if (!props.dialogueName || isTyping(event.target)) return;
     // Not while a dialog or menu of this editor is open.
-    if (selectedNode.value || deletePrompt.value || paneMenu.value) return;
+    if (selectedNode.value || deletePrompt.value || paneMenu.value || nodeMenu.value) return;
     const titles = selectedTitles();
     if (!titles.length) return;
     event.preventDefault();
@@ -553,6 +580,7 @@ defineExpose({
             @node-click="onNodeClick"
             @nodes-initialized="onNodesInitialized"
             @pane-context-menu="onPaneContextMenu"
+            @node-context-menu="onNodeContextMenu"
         >
             <Panel position="top-left">
                 <PreambleBar ref="preamble-bar" :dialogue-name="dialogueName" @saved="emit('dialogueSaved')" />
@@ -687,6 +715,7 @@ defineExpose({
                 <dt>Drag a selected node</dt><dd>Move all selected nodes together</dd>
                 <dt>Click the canvas</dt><dd>Clear the selection</dd>
                 <dt><kbd>Delete</kbd> or <kbd>Backspace</kbd></dt><dd>Delete the selected nodes, after asking</dd>
+                <dt>Right-click a node</dt><dd>Delete it, or the selection it's part of</dd>
                 <dt>Right-click the canvas</dt><dd>A menu to add a node there</dd>
                 <dt>Double-click the canvas</dt><dd>Add a node there at once</dd>
                 <dt>Drag the canvas</dt><dd>Move around</dd>
@@ -694,6 +723,15 @@ defineExpose({
                 <dt>Drag or scroll in the map</dt><dd>Move around, zoom</dd>
             </dl>
         </div>
+
+        <ContextMenu
+            v-if="nodeMenu"
+            :items="nodeMenuItems"
+            :x="nodeMenu.x"
+            :y="nodeMenu.y"
+            @select="onNodeMenuSelect"
+            @close="nodeMenu = null"
+        />
 
         <ContextMenu
             v-if="paneMenu"
