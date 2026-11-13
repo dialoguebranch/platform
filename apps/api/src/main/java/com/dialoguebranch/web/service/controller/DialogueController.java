@@ -983,7 +983,7 @@ public class DialogueController {
 						latestInteractionTimestamp) / 1000.0);
 		OngoingDialoguePayload ongoingDialoguePayload =
 				new OngoingDialoguePayload(dialogueName, latestOngoingDialogue.getId(),
-						secondsSinceLastEngagement);
+						secondsSinceLastEngagement, latestOngoingDialogue.getLanguage());
 		return new NullableResponse<>(ongoingDialoguePayload);
 	}
 

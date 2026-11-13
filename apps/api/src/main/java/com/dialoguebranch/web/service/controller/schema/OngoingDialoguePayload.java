@@ -53,6 +53,11 @@ public class OngoingDialoguePayload {
 			example = "60")
 	private long secondsSinceLastEngagement;
 
+	@Schema(description = "The language code the dialogue runs in: the one it was started in, or "
+			+ "the project's source language if it wasn't available in that one.",
+			example = "nl-NL")
+	private String language;
+
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
 	// -------------------------------------------------------- //
@@ -69,12 +74,14 @@ public class OngoingDialoguePayload {
 	 * @param loggedDialogueId the ID of the logged dialogue.
 	 * @param secondsSinceLastEngagement the number of seconds since the user last engaged with this
 	 *                                   dialogue.
+	 * @param language the language code the dialogue runs in.
 	 */
 	public OngoingDialoguePayload(String dialogueName, String loggedDialogueId,
-								  long secondsSinceLastEngagement) {
+								  long secondsSinceLastEngagement, String language) {
 		this.dialogueName = dialogueName;
 		this.loggedDialogueId = loggedDialogueId;
 		this.secondsSinceLastEngagement = secondsSinceLastEngagement;
+		this.language = language;
 	}
 
 	// ----------------------------------------------------------- //
@@ -128,6 +135,22 @@ public class OngoingDialoguePayload {
 	 */
 	public void setSecondsSinceLastEngagement(long secondsSinceLastEngagement) {
 		this.secondsSinceLastEngagement = secondsSinceLastEngagement;
+	}
+
+	/**
+	 * Returns the language code the dialogue runs in.
+	 * @return the language code the dialogue runs in.
+	 */
+	public String getLanguage() {
+		return language;
+	}
+
+	/**
+	 * Sets the language code the dialogue runs in.
+	 * @param language the language code the dialogue runs in.
+	 */
+	public void setLanguage(String language) {
+		this.language = language;
 	}
 
 }
