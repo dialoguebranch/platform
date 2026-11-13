@@ -9,6 +9,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Added
 
+- Studio: a search field in the graph editor finds nodes by title, speaker, comment or text and
+  goes from one to the next ([#190](https://github.com/dialoguebranch/platform/issues/190)).
 - Web service: `/dialogue/get-ongoing` also returns the `language` the ongoing dialogue runs in;
   in client-js, `OngoingDialogue.language` ([#489](https://github.com/dialoguebranch/platform/issues/489)).
 - Studio: a *Go back a step* button while testing a dialogue, in Live Mode and in draft tests

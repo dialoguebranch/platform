@@ -20,6 +20,7 @@ import { useLatestRequest } from '@/composables/latest-request.js';
 import NodeEditPanel from './NodeEditPanel.vue';
 import PreambleBar from './PreambleBar.vue';
 import ContextMenu from '../widgets/ContextMenu.vue';
+import ToolbarButton from '../widgets/ToolbarButton.vue';
 
 // Pure content component — no header of its own. It's only ever embedded in
 // DialogueWorkspace.vue's "edit" mode, whose own toolbar (with the balloon/text/edit
@@ -335,6 +336,68 @@ const minimapEdgeLines = computed(() => flowEdges.value.flatMap((edge) => {
     return from && to ? [{ id: edge.id, x1: from.x, y1: from.y, x2: to.x, y2: to.y }] : [];
 }));
 
+// ---- Search (#190) ----
+// Finds nodes by title, speaker, comment or text (as the card preview reads it, so without
+// commands and reply links), ignoring case; Enter or the arrows go to the next or previous one,
+// centring it. Matches get an outline, the current one a strong one. It doesn't select them, so
+// a Delete afterwards can't hit them by surprise. Ctrl/Cmd+F opens it while the pointer is over
+// the graph; elsewhere it stays the browser's own find.
+
+const searchQuery = ref('');
+const searchIndex = ref(0);
+const searchInput = useTemplateRef('search-input');
+const pointerOverGraph = ref(false);
+
+function searchableText(node) {
+    const tags = tagsToMap(node.tags);
+    return [node.title, tags.get('speaker'), tags.get('comment'), bodyPreview(node.body, Infinity)]
+        .filter(Boolean).join('\n').toLowerCase();
+}
+
+const searchMatches = computed(() => {
+    const query = searchQuery.value.trim().toLowerCase();
+    if (!query) return [];
+    return flowNodes.value
+        .filter((flowNode) => {
+            const raw = rawNodesByTitle.value.get(flowNode.id);
+            return raw && searchableText(raw).includes(query);
+        })
+        .map((flowNode) => flowNode.id);
+});
+const searchMatchIds = computed(() => new Set(searchMatches.value));
+const currentMatchId = computed(() => searchMatches.value[searchIndex.value] ?? null);
+
+function centreOn(id) {
+    const node = findNode(id);
+    if (!node) return;
+    const position = node.computedPosition ?? node.position;
+    setCenter(position.x + (node.dimensions?.width ?? 0) / 2,
+        position.y + (node.dimensions?.height ?? 0) / 2,
+        { zoom: getViewport().zoom, duration: 300 });
+}
+
+function goToMatch(step) {
+    const count = searchMatches.value.length;
+    if (!count) return;
+    searchIndex.value = (searchIndex.value + step + count) % count;
+    centreOn(currentMatchId.value);
+}
+
+watch(searchQuery, () => {
+    searchIndex.value = 0;
+    if (currentMatchId.value) centreOn(currentMatchId.value);
+});
+
+function onSearchKeyDown(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        goToMatch(event.shiftKey ? -1 : 1);
+    } else if (event.key === 'Escape') {
+        searchQuery.value = '';
+        event.target.blur();
+    }
+}
+
 // ---- Mouse and keyboard hints (the ? button under the zoom controls) ----
 
 const showHints = ref(false);
@@ -554,6 +617,14 @@ function isTyping(target) {
 }
 
 function onKeyDown(event) {
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') {
+        if (props.dialogueName && pointerOverGraph.value) {
+            event.preventDefault();
+            searchInput.value?.focus();
+            searchInput.value?.select();
+        }
+        return;
+    }
     if (event.key !== 'Delete' && event.key !== 'Backspace') return;
     if (!props.dialogueName || isTyping(event.target)) return;
     // Not while a dialog or menu of this editor is open.
@@ -593,7 +664,7 @@ defineExpose({
 </script>
 
 <template>
-    <div class="relative h-full" @dblclick="onCanvasDoubleClick">
+    <div class="relative h-full" @dblclick="onCanvasDoubleClick" @mouseenter="pointerOverGraph = true" @mouseleave="pointerOverGraph = false">
         <div v-if="!dialogueName" class="flex items-center justify-center h-full text-grey-dark font-title text-sm">
             Open a dialogue from the Dialogue Browser to start editing.
         </div>
@@ -612,6 +683,29 @@ defineExpose({
         >
             <Panel position="top-left">
                 <PreambleBar ref="preamble-bar" :dialogue-name="dialogueName" @saved="emit('dialogueSaved')" />
+            </Panel>
+
+            <Panel position="top-right">
+                <div class="flex items-center gap-1 font-title text-xs" data-test="graph-search">
+                    <div class="relative">
+                        <FontAwesomeIcon icon="fa-solid fa-magnifying-glass" class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-grey-dark pointer-events-none" />
+                        <input
+                            ref="search-input"
+                            v-model="searchQuery"
+                            type="search"
+                            placeholder="Find a node"
+                            title="Find a node by its title, speaker, comment or text (Ctrl/Cmd+F over the graph; Enter for the next, Shift+Enter for the previous)"
+                            class="h-6 w-44 pl-6 pr-2 border border-grey-light rounded-lg bg-white focus:outline-none focus:border-orange-dark"
+                            data-test="graph-search-input"
+                            @keydown="onSearchKeyDown"
+                        >
+                    </div>
+                    <template v-if="searchQuery.trim()">
+                        <span class="px-1 text-grey-dark whitespace-nowrap" data-test="graph-search-count">{{ searchMatches.length ? `${searchIndex + 1} of ${searchMatches.length}` : 'None' }}</span>
+                        <ToolbarButton icon="fa-solid fa-caret-up" title="Previous match (Shift+Enter)" :disabled="!searchMatches.length" data-test="graph-search-previous" @click="goToMatch(-1)" />
+                        <ToolbarButton icon="fa-solid fa-caret-down" title="Next match (Enter)" :disabled="!searchMatches.length" data-test="graph-search-next" @click="goToMatch(1)" />
+                    </template>
+                </div>
             </Panel>
 
             <!-- Canvas chrome (#192): a dot grid, zoom / fit / lock buttons, and a map of the whole
@@ -664,14 +758,17 @@ defineExpose({
                 </template>
             </MiniMap>
 
-            <template #node-dialogueNode="{ data, selected }">
+            <template #node-dialogueNode="{ id, data, selected }">
                 <div
                     class="rounded-lg shadow bg-white min-w-[150px] max-w-[210px] overflow-hidden cursor-pointer hover:shadow-md"
                     :class="{
                         'ring-2 ring-offset-1 ring-node-start': data.isStart,
                         'ring-2 ring-offset-1 ring-node-end': data.isEnd,
                         'dlb-node-selected': selected,
+                        'dlb-node-match': searchMatchIds.has(id) && id !== currentMatchId,
+                        'dlb-node-current-match': id === currentMatchId,
                     }"
+                    :data-search="id === currentMatchId ? 'current' : searchMatchIds.has(id) ? 'match' : null"
                     :data-selected="selected ? 'true' : null"
                 >
                     <div class="px-3 py-1.5 text-xs font-title font-bold text-white truncate flex items-center gap-1.5" :style="{ backgroundColor: nodeHeaderColor(data) }">
@@ -749,6 +846,7 @@ defineExpose({
                 <dt>Double-click the canvas</dt><dd>Add a node there at once</dd>
                 <dt>Drag the canvas</dt><dd>Move around</dd>
                 <dt>Scroll</dt><dd>Zoom</dd>
+                <dt><kbd>{{ multiSelectKey }}</kbd> + <kbd>F</kbd> over the graph</dt><dd>Find a node</dd>
                 <dt>Drag or scroll in the map</dt><dd>Move around, zoom</dd>
             </dl>
         </div>
@@ -853,6 +951,15 @@ defineExpose({
    which this editor doesn't save. */
 :deep(.vue-flow__nodesselection-rect) {
     display: none;
+}
+
+/* Search matches (#190): a soft glow, and a strong one for the current match. */
+.dlb-node-match {
+    box-shadow: 0 0 0 3px var(--color-orange-light);
+}
+
+.dlb-node-current-match {
+    box-shadow: 0 0 0 3px var(--color-orange-dark), 0 0 12px 2px var(--color-orange-light);
 }
 
 /* An outline rather than a ring, so it shows next to the Start and End nodes' own rings. */

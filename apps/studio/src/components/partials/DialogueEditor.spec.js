@@ -55,11 +55,14 @@ const VueFlowStub = defineComponent({
     setup(props, { slots }) {
         return () => h('div', [
             ...(props.nodes ?? []).map((node) => h('div', { 'data-node': node.id },
-                slots['node-dialogueNode']?.({ data: node.data, selected: selectedIds.has(node.id) }))),
+                slots['node-dialogueNode']?.({ id: node.id, data: node.data, selected: selectedIds.has(node.id) || !!node.selected }))),
             slots.default?.(),
         ]);
     },
 });
+
+// Moving the view, shared so the tests can see where it went.
+const flowView = { setCenter: vi.fn() };
 
 vi.mock('@vue-flow/core', () => ({
     VueFlow: VueFlowStub,
@@ -68,7 +71,7 @@ vi.mock('@vue-flow/core', () => ({
     MarkerType: { ArrowClosed: 'arrowclosed' },
     getStraightPath: () => ['', 0, 0],
     useVueFlow: () => ({
-        fitView: vi.fn(), setCenter: vi.fn(), getViewport: () => ({ x: 0, y: 0, zoom: 1 }),
+        fitView: vi.fn(), setCenter: flowView.setCenter, getViewport: () => ({ x: 0, y: 0, zoom: 1 }),
         screenToFlowCoordinate: (p) => p,
         // Every node measures 100 x 40 at its stored position, for the MiniMap's lines.
         findNode: (id) => {
@@ -124,8 +127,9 @@ const node = (title, x, body = 'Hi.') => ({
         { key: 'position', value: `${x},0` }],
 });
 
-async function mountEditor() {
+async function mountEditor(options = {}) {
     const wrapper = mount(DialogueEditor, {
+        ...options,
         props: { dialogueName: 'main' },
         global: {
             provide: { state: ref({ selectedProject: { slug: 'p' } }) },
@@ -507,6 +511,80 @@ describe('DialogueEditor moving nodes with the arrow keys (#193)', () => {
         await release('ArrowLeft', input);
         input.remove();
         expect(authoring.updateDraftNode).not.toHaveBeenCalled();
+    });
+});
+
+describe('DialogueEditor search (#190)', () => {
+    beforeEach(() => {
+        currentNodes = [
+            node('Start', 0, 'Welcome to the owl house.\n[[Hello|Next]]'),
+            { ...node('Next', 200, 'Nothing here.'), tags: [{ key: 'title', value: 'Next' },
+                { key: 'speaker', value: 'Imoen' }, { key: 'position', value: '200,0' },
+                { key: 'comment', value: 'needs an owl joke' }] },
+            node('End', 400, ''),
+        ];
+    });
+
+    const search = async (wrapper, text) => {
+        await wrapper.find('[data-test="graph-search-input"]').setValue(text);
+        await flushPromises();
+    };
+    const marked = (wrapper, kind) =>
+        wrapper.findAll(`[data-search="${kind}"]`).map((el) => el.element.closest('[data-node]').dataset.node);
+
+    it('finds nodes by title, speaker, comment and text, ignoring case', async () => {
+        const wrapper = await mountEditor();
+        await search(wrapper, 'OWL');
+        // text of Start, comment of Next
+        expect(wrapper.find('[data-test="graph-search-count"]').text()).toBe('1 of 2');
+        expect(marked(wrapper, 'current')).toEqual(['Start']);
+        expect(marked(wrapper, 'match')).toEqual(['Next']);
+
+        await search(wrapper, 'imoen');
+        expect(marked(wrapper, 'current')).toEqual(['Next']);
+        await search(wrapper, 'end');
+        expect(marked(wrapper, 'current')).toEqual(['End']);
+    });
+
+    it('doesn\'t match the reply links or commands', async () => {
+        const wrapper = await mountEditor();
+        await search(wrapper, 'Hello');
+        expect(wrapper.find('[data-test="graph-search-count"]').text()).toBe('None');
+    });
+
+    it('goes to the next and previous match, round, centring each', async () => {
+        const wrapper = await mountEditor();
+        await search(wrapper, 'owl');
+        expect(flowView.setCenter).toHaveBeenLastCalledWith(50, 20, expect.anything());
+
+        await wrapper.find('[data-test="graph-search-next"]').trigger('click');
+        expect(wrapper.find('[data-test="graph-search-count"]').text()).toBe('2 of 2');
+        expect(flowView.setCenter).toHaveBeenLastCalledWith(250, 20, expect.anything());
+
+        await wrapper.find('[data-test="graph-search-input"]').trigger('keydown', { key: 'Enter' });
+        expect(wrapper.find('[data-test="graph-search-count"]').text()).toBe('1 of 2');
+        await wrapper.find('[data-test="graph-search-input"]').trigger('keydown', { key: 'Enter', shiftKey: true });
+        expect(wrapper.find('[data-test="graph-search-count"]').text()).toBe('2 of 2');
+    });
+
+    it('doesn\'t select what it finds', async () => {
+        const wrapper = await mountEditor();
+        await search(wrapper, 'owl');
+        expect(wrapper.findAll('[data-selected="true"]')).toHaveLength(0);
+    });
+
+    it('takes Ctrl+F only while the pointer is over the graph', async () => {
+        const wrapper = await mountEditor({ attachTo: document.body });
+        const input = wrapper.find('[data-test="graph-search-input"]').element;
+        const ctrlF = () => document.body.dispatchEvent(new KeyboardEvent('keydown',
+            { key: 'f', ctrlKey: true, bubbles: true, cancelable: true }));
+
+        expect(ctrlF()).toBe(true); // not cancelled: the browser's own find
+        expect(document.activeElement).not.toBe(input);
+
+        await wrapper.trigger('mouseenter');
+        expect(ctrlF()).toBe(false);
+        expect(document.activeElement).toBe(input);
     });
 });
 
