@@ -225,7 +225,9 @@ public class DialogueBranchCLI {
 	 * session's "Execute a dialogue script" option.
 	 *
 	 * @param projectFile   the {@code dlb-project.xml} file to load the project from.
-	 * @param language      the language code of the dialogue to execute.
+	 * @param language      the language code of the dialogue to execute; if the dialogue
+	 *                      isn't available in it, it runs in the project's source language, with
+	 *                      a warning if the project doesn't have the language at all.
 	 * @param dialogueName  the name of the dialogue to execute.
 	 * @return {@link #EXIT_OK} once the dialogue finishes, {@link #EXIT_PARSE_ERROR} if the
 	 *         project fails to parse, or {@link #EXIT_USAGE_ERROR} if no such dialogue exists.
@@ -237,8 +239,11 @@ public class DialogueBranchCLI {
 		if (execProject == null)
 			return EXIT_PARSE_ERROR;
 
-		ResourcePointer pointer = execProject.getLanguages().contains(language)
-				? findDialogue(execProject, language, dialogueName) : null;
+		if (!execProject.getLanguages().contains(language)) {
+			System.err.println("WARNING: the project has no language '" + language
+					+ "'; playing in '" + execProject.getSourceLanguage() + "'.");
+		}
+		ResourcePointer pointer = findDialogue(execProject, language, dialogueName);
 		if (pointer == null) {
 			System.err.println("ERROR: Could not find dialogue '" + dialogueName
 					+ "' (" + language + ") in the parsed project.");
@@ -267,7 +272,8 @@ public class DialogueBranchCLI {
 			  DialogueBranchCLI <path-to-dlb-project.xml> --execute <language> <dialogue>
 				  Parse the project, then run the given dialogue interactively on the terminal —
 				  the same conversational execution as the interactive session's "Execute a
-				  dialogue script" option.
+				  dialogue script" option. A dialogue that isn't available in the given
+				  language runs in the project's source language.
 
 			  DialogueBranchCLI -h | --help | -?
 				  Print this usage message.""");

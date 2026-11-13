@@ -226,11 +226,35 @@ public class DialogueBranchCLITest {
 	}
 
 	@Test
-	public void executeInALanguageTheProjectDoesntHaveIsAUsageError() throws Exception {
+	public void executeInALanguageTheProjectDoesntHaveRunsTheSourceLanguageWithAWarning()
+			throws Exception {
+		input("1");
 		int code = DialogueBranchCLI.runNonInteractive(new String[] {
 				translatedProject().getAbsolutePath(), "--execute", "fr", "intro"});
-		assertEquals(EXIT_USAGE_ERROR, code);
-		assertTrue(stderr(), stderr().contains("Could not find dialogue 'intro' (fr)"));
+		assertEquals(EXIT_OK, code);
+		assertEquals("WARNING: the project has no language 'fr'; playing in 'en'.\n",
+				stderr().replace("\r\n", "\n"));
+		assertTrue(stdout(), stdout().contains("Executing: intro [en]"));
+		assertTrue(stdout(), stdout().contains("Agent: Hello."));
+		assertTrue(stdout(), stdout().contains("Executing: outro [en]"));
+	}
+
+	@Test
+	public void aLanguageIsMatchedExactlySoAPrefixAlsoFallsBack() throws Exception {
+		int code = DialogueBranchCLI.runNonInteractive(new String[] {
+				translatedProject().getAbsolutePath(), "--execute", "nl-NL", "outro"});
+		assertEquals(EXIT_OK, code);
+		assertTrue(stderr(), stderr().contains("no language 'nl-NL'"));
+		assertTrue(stdout(), stdout().contains("Executing: outro [en]"));
+	}
+
+	@Test
+	public void anUntranslatedDialogueInAKnownLanguageFallsBackWithoutAWarning()
+			throws Exception {
+		int code = DialogueBranchCLI.runNonInteractive(new String[] {
+				translatedProject().getAbsolutePath(), "--execute", "nl", "outro"});
+		assertEquals(EXIT_OK, code);
+		assertEquals("", stderr());
 	}
 
 	@Test

@@ -26,10 +26,11 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Changed
 
-- Core: the command-line tool (`DialogueBranchCLI`) plays a dialogue that isn't translated into
-  the chosen language in the source language, also when a reply links into it, like the Web
-  Service does. It used to stop with an error. A language the project doesn't have is still an
-  error ([#473](https://github.com/dialoguebranch/platform/issues/473)).
+- Core: the command-line tool (`DialogueBranchCLI`) plays a dialogue that isn't available in the
+  chosen language in the source language, also when a reply links into it, like the Web Service
+  does. It used to stop with an error. For a language the project doesn't have at all,
+  `--execute` prints a warning and plays the source language
+  ([#473](https://github.com/dialoguebranch/platform/issues/473)).
 
 ## [0.9.2] - 2026-11-11
 
