@@ -7,8 +7,35 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Added
+
+- Studio: the graph editor has a dot grid, buttons to zoom, fit the dialogue in view and lock the
+  nodes, and a map of the whole dialogue (nodes in their colours and the links between them) to
+  move around in ([#192](https://github.com/dialoguebranch/platform/issues/192)). A **?** button
+  next to them lists what the mouse and keys do.
+
+### Changed
+
+- Studio: a right-click on the graph editor's canvas opens a menu with *Add node here*, instead of
+  adding a node at once, so a stray right-click no longer makes one. A double-click on the empty
+  canvas adds a node at once; it no longer zooms (the scroll wheel and the zoom buttons do).
+- The example project (`default-test`) defines its speakers, with Martin McOwl as the default, so a
+  node added in Studio gets a speaker. A database seeded before this keeps its project as it was.
+- Studio: in a project without speakers, a node added in the graph editor gets the speaker used
+  most in its dialogue, instead of none (a node without a speaker doesn't parse).
+
 ### Fixed
 
+- Studio: selecting several nodes in the graph editor was invisible. The box you drag now shows,
+  selected nodes get an outline (also on the map), and a click with Shift, Ctrl or Cmd changes the
+  selection without opening the node.
+- Studio: pressing Backspace in the graph editor removed the selected nodes from the screen without
+  deleting them, so they came back on the next load. The key does nothing there now; deleting from
+  the canvas is planned ([#193](https://github.com/dialoguebranch/platform/issues/193),
+  [#197](https://github.com/dialoguebranch/platform/issues/197)).
+- Studio: when a dialogue can't be translated because it has errors, the Translate view shows a
+  short message with the errors folded away, as the Test views do, instead of every error inline.
+  The fold says how many errors there are.
 - Core: `./gradlew publishToMavenLocal` works without a GPG key; signing is only required when
   publishing to Maven Central. The 0.x releases aren't on Maven Central (it has older versions up
   to 1.3.0), so the Core Java documentation now explains how to install a release locally.

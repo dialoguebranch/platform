@@ -40,6 +40,19 @@ describe('speakerForNewNode', () => {
         expect(speakerForNewNode([{ name: 'Anna' }, { name: 'Bob' }])).toBe('Anna');
         expect(speakerForNewNode([])).toBeNull();
     });
+
+    it('takes the speaker used most in the dialogue when the project has none', () => {
+        const used = ['Imoen', 'Martin McOwl', '', 'Martin McOwl', null, 'Imoen', 'Martin McOwl'];
+        expect(speakerForNewNode([], used)).toBe('Martin McOwl');
+        // a tie goes to the one that comes first in the dialogue
+        expect(speakerForNewNode([], ['Imoen', 'Martin McOwl', 'Martin McOwl', 'Imoen'])).toBe('Imoen');
+        expect(speakerForNewNode([], ['', null])).toBeNull();
+        expect(speakerForNewNode([], [])).toBeNull();
+    });
+
+    it('prefers the project\'s speakers to the ones used in the dialogue', () => {
+        expect(speakerForNewNode(SPEAKERS, ['Imoen', 'Imoen'])).toBe('Martin McOwl');
+    });
 });
 
 describe('checkNewSpeakerName', () => {

@@ -309,3 +309,20 @@ describe('TranslationEditor gender variants (#453, #455)', () => {
     });
 });
 
+describe('TranslationEditor with a dialogue that does not parse', () => {
+    it('shows a short message, with the errors folded away', async () => {
+        authoring.listTranslatableTerms.mockRejectedValue(Object.assign(new Error(
+            "Dialogue 'poe' contains errors, preventing translation."), {
+            status: 400,
+            errors: { poe: Array.from({ length: 10 }, (_, i) => `Error in node NewNode${i}`) },
+        }));
+        const wrapper = await mountEditor();
+        const box = wrapper.find('[data-test="translation-load-error"]');
+
+        expect(box.exists()).toBe(true);
+        expect(box.text()).toContain("Dialogue 'poe' contains errors, preventing translation.");
+        expect(box.find('summary').text()).toBe('Show details (10 errors)');
+        expect(box.find('details').attributes('open')).toBeUndefined();
+    });
+});
+

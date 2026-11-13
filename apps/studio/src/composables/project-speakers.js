@@ -57,14 +57,27 @@ export function setProjectSpeakers(speakers) {
 }
 
 /**
- * Returns the speaker a new node gets: the default speaker, or else the first one, or `null` when
- * the project has no speakers.
+ * Returns the speaker a new node gets: the project's default speaker, or else its first one. A
+ * project made before projects had speakers may have none; then it's the speaker used most in the
+ * dialogue (on a tie, the one that comes first), since a node without a speaker doesn't parse.
+ * `null` when there is none of either.
  *
  * @param {Array} speakers the project's speakers.
+ * @param {Array<?string>} [usedSpeakers] the speakers of the dialogue's nodes, in their order.
  * @returns {?string} the speaker's name, or `null`.
  */
-export function speakerForNewNode(speakers) {
-    return (speakers.find((s) => s.default) ?? speakers[0])?.name ?? null;
+export function speakerForNewNode(speakers, usedSpeakers = []) {
+    const fromProject = (speakers.find((s) => s.default) ?? speakers[0])?.name;
+    if (fromProject) return fromProject;
+    const counts = new Map();
+    for (const name of usedSpeakers) {
+        if (name) counts.set(name, (counts.get(name) ?? 0) + 1);
+    }
+    let best = null;
+    for (const [name, count] of counts) {
+        if (best === null || count > counts.get(best)) best = name;
+    }
+    return best;
 }
 
 /**

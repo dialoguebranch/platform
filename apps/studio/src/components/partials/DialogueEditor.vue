@@ -2,6 +2,11 @@
 import { ref, inject, watch, computed, useTemplateRef } from 'vue';
 import { VueFlow, Panel, MarkerType, BaseEdge, getStraightPath, useVueFlow } from '@vue-flow/core';
 import '@vue-flow/core/dist/style.css';
+import { Background } from '@vue-flow/background';
+import { Controls, ControlButton } from '@vue-flow/controls';
+import '@vue-flow/controls/dist/style.css';
+import { MiniMap } from '@vue-flow/minimap';
+import '@vue-flow/minimap/dist/style.css';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useAuthoringClient } from '@/composables/client.js';
 import { describeError } from '@/composables/error-message.js';
@@ -13,6 +18,7 @@ import { isUndefinedSpeaker, projectSpeakers, speakerForNewNode } from '@/compos
 import { useLatestRequest } from '@/composables/latest-request.js';
 import NodeEditPanel from './NodeEditPanel.vue';
 import PreambleBar from './PreambleBar.vue';
+import ContextMenu from '../widgets/ContextMenu.vue';
 
 // Pure content component — no header of its own. It's only ever embedded in
 // DialogueWorkspace.vue's "edit" mode, whose own toolbar (with the balloon/text/edit
@@ -64,6 +70,23 @@ function nodeHeaderColor(data) {
     return colorForNode(data.nodeColor);
 }
 
+// The MiniMap paints its nodes as SVG `fill` attributes, which can't resolve `var(--...)`, so the
+// Start/End accents are read from the theme once, as plain colours.
+let themeNodeColors = null;
+
+function minimapNodeColor(node) {
+    if (!themeNodeColors) {
+        const style = getComputedStyle(document.documentElement);
+        themeNodeColors = {
+            start: style.getPropertyValue('--color-node-start').trim() || '#04aa6d',
+            end: style.getPropertyValue('--color-node-end').trim() || '#44403c',
+        };
+    }
+    if (node.data?.isStart) return themeNodeColors.start;
+    if (node.data?.isEnd) return themeNodeColors.end;
+    return colorForNode(node.data?.nodeColor);
+}
+
 // ---- Floating edges: connect each edge to the point on the node's rectangle nearest the other
 // node (its center-to-center line's boundary intersection), rather than a fixed handle position.
 // Our node template has no <Handle> elements at all (edges are derived from parsed [[links]], not
@@ -112,7 +135,7 @@ function floatingEdgePath(sourceNode, targetNode) {
     return { path, labelX, labelY };
 }
 
-const { fitView, setCenter, getViewport, screenToFlowCoordinate } = useVueFlow();
+const { fitView, setCenter, getViewport, screenToFlowCoordinate, findNode } = useVueFlow();
 
 const loading = ref(false);
 const flowNodes = ref([]);
@@ -266,6 +289,35 @@ async function onNodeDragStop({ node, nodes }) {
     }
 }
 
+// ---- The MiniMap's connector lines ----
+// Vue Flow's MiniMap draws nodes only. It lets a slot draw each node, in flow coordinates, in the
+// order of the nodes; so the first node also draws every edge, as a line between the centres of
+// its two nodes, just before its own rectangle: the lines end up under all the nodes. The nodes'
+// positions are Vue Flow's own, so the lines follow a node while it's dragged.
+
+const minimapFirstNodeId = computed(() => flowNodes.value[0]?.id ?? null);
+
+function nodeCentre(id) {
+    const node = findNode(id);
+    if (!node?.dimensions?.width) return null;
+    const position = node.computedPosition ?? node.position;
+    return { x: position.x + node.dimensions.width / 2, y: position.y + node.dimensions.height / 2 };
+}
+
+const minimapEdgeLines = computed(() => flowEdges.value.flatMap((edge) => {
+    if (edge.source === edge.target) return [];
+    const from = nodeCentre(edge.source);
+    const to = nodeCentre(edge.target);
+    return from && to ? [{ id: edge.id, x1: from.x, y1: from.y, x2: to.x, y2: to.y }] : [];
+}));
+
+// ---- Mouse and keyboard hints (the ? button under the zoom controls) ----
+
+const showHints = ref(false);
+// Vue Flow adds to a selection with Cmd on a Mac and Ctrl elsewhere.
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform ?? '');
+const multiSelectKey = isMac ? 'Cmd' : 'Ctrl';
+
 // ---- Node creation ----
 
 const creatingNode = ref(false);
@@ -296,9 +348,12 @@ function addNode(position) {
         x = (index % GRID_COLUMNS) * GRID_SPACING_X;
         y = Math.floor(index / GRID_COLUMNS) * GRID_SPACING_Y;
     }
-    // A new node gets the project's default speaker, or else its first one (#396).
+    // A new node gets the project's default speaker, or else its first one (#396); in a project
+    // without speakers, the one used most in this dialogue.
     const header = new Map([['title', title]]);
-    const speaker = speakerForNewNode(projectSpeakers.value);
+    const usedSpeakers = [...rawNodesByTitle.value.values()]
+        .map((node) => tagsToMap(node.tags).get('speaker'));
+    const speaker = speakerForNewNode(projectSpeakers.value, usedSpeakers);
     if (speaker) header.set('speaker', speaker);
     const tags = mapToTags(setPosition(header, x, y));
 
@@ -318,9 +373,31 @@ function addNode(position) {
         });
 }
 
+// A right-click on the canvas opens a menu to add a node there, so a stray right-click doesn't
+// make one; a double-click on the canvas adds it at once, for whoever adds many. (Not
+// Shift+right-click: Firefox keeps that for its own menu.)
+const paneMenu = ref(null); // { x, y } on screen, and the point in the flow it was opened at
+
+const PANE_MENU_ITEMS = [
+    { id: 'add-node', label: 'Add node here', icon: 'fa-solid fa-plus', test: 'pane-menu-add-node' },
+];
+
 function onPaneContextMenu(event) {
     event.preventDefault();
+    const position = screenToFlowCoordinate({ x: event.clientX, y: event.clientY });
+    paneMenu.value = { x: event.clientX, y: event.clientY, position };
+}
+
+// Vue Flow reports no double-click on the canvas itself, so it's caught here: the target is the
+// canvas only on its empty part, not on a node, the map or the buttons. Vue Flow's own zoom on a
+// double-click is off (zoom-on-double-click), so the two don't both happen.
+function onCanvasDoubleClick(event) {
+    if (!event.target?.classList?.contains('vue-flow__pane')) return;
     addNode(screenToFlowCoordinate({ x: event.clientX, y: event.clientY }));
+}
+
+function onPaneMenuSelect(item) {
+    if (item.id === 'add-node' && paneMenu.value) addNode(paneMenu.value.position);
 }
 
 // ---- Node selection / content editing ----
@@ -329,7 +406,10 @@ const selectedNodeTitle = ref(null);
 const selectedNode = computed(() => rawNodesByTitle.value.get(selectedNodeTitle.value) ?? null);
 const nodeEditPanel = useTemplateRef('node-edit-panel');
 
-function onNodeClick({ node }) {
+function onNodeClick({ event, node }) {
+    // A click with Shift, Ctrl or Cmd adds the node to the selection, or takes it out (Vue Flow
+    // does that); it doesn't open the node for editing.
+    if (event?.shiftKey || event?.ctrlKey || event?.metaKey) return;
     // Switching the selected node repopulates NodeEditPanel's form from the new node's data,
     // silently discarding any in-progress edit to the previously selected node — refuse to do
     // that while a save for it is still in flight (re-clicking the same node is always a no-op
@@ -379,7 +459,7 @@ defineExpose({
 </script>
 
 <template>
-    <div class="relative h-full">
+    <div class="relative h-full" @dblclick="onCanvasDoubleClick">
         <div v-if="!dialogueName" class="flex items-center justify-center h-full text-grey-dark font-title text-sm">
             Open a dialogue from the Dialogue Browser to start editing.
         </div>
@@ -388,6 +468,8 @@ defineExpose({
             v-model:nodes="flowNodes"
             v-model:edges="flowEdges"
             class="h-full"
+            :delete-key-code="false"
+            :zoom-on-double-click="false"
             @node-drag-stop="onNodeDragStop"
             @node-click="onNodeClick"
             @nodes-initialized="onNodesInitialized"
@@ -397,13 +479,65 @@ defineExpose({
                 <PreambleBar ref="preamble-bar" :dialogue-name="dialogueName" @saved="emit('dialogueSaved')" />
             </Panel>
 
-            <template #node-dialogueNode="{ data }">
+            <!-- Canvas chrome (#192): a dot grid, zoom / fit / lock buttons, and a map of the whole
+                 dialogue for orientation, styled like Studio's toolbars (see the <style> below). -->
+            <Background variant="dots" :gap="20" :size="1.2" pattern-color="#b4b4b4" />
+            <Controls position="bottom-left" class="dlb-flow-controls" :fit-view-params="{ duration: 300 }" data-test="graph-controls">
+                <ControlButton
+                    title="Mouse and keyboard hints"
+                    :class="{ 'dlb-control-active': showHints }"
+                    data-test="graph-hints-button"
+                    @click="showHints = !showHints"
+                >
+                    <FontAwesomeIcon icon="fa-solid fa-question" />
+                </ControlButton>
+            </Controls>
+            <MiniMap
+                position="bottom-right"
+                class="dlb-flow-minimap"
+                pannable
+                zoomable
+                :node-color="minimapNodeColor"
+                :node-border-radius="4"
+                mask-color="rgba(240, 240, 240, 0.6)"
+                aria-label="Map of the whole dialogue"
+                data-test="graph-minimap"
+            >
+                <template #node-dialogueNode="{ id, position, dimensions, color, borderRadius, selected }">
+                    <g>
+                        <g v-if="id === minimapFirstNodeId" data-test="minimap-edges">
+                            <line
+                                v-for="line in minimapEdgeLines"
+                                :key="line.id"
+                                :x1="line.x1" :y1="line.y1" :x2="line.x2" :y2="line.y2"
+                                :stroke="EDGE_COLOR"
+                                stroke-width="0.75"
+                                stroke-opacity="0.6"
+                                vector-effect="non-scaling-stroke"
+                            />
+                        </g>
+                        <rect
+                            :x="position.x" :y="position.y"
+                            :width="dimensions.width" :height="dimensions.height"
+                            :rx="borderRadius" :ry="borderRadius"
+                            :fill="color"
+                            :stroke="selected ? EDGE_COLOR : null"
+                            :stroke-width="selected ? 2 : null"
+                            vector-effect="non-scaling-stroke"
+                        />
+                    </g>
+                </template>
+            </MiniMap>
+
+            <template #node-dialogueNode="{ data, selected }">
                 <div
                     class="rounded-lg shadow bg-white min-w-[150px] max-w-[210px] overflow-hidden cursor-pointer hover:shadow-md"
                     :class="{
                         'ring-2 ring-offset-1 ring-node-start': data.isStart,
                         'ring-2 ring-offset-1 ring-node-end': data.isEnd,
+                        'dlb-node-selected': selected,
                     }"
+                    :data-selected="selected ? 'true' : null"
                 >
                     <div class="px-3 py-1.5 text-xs font-title font-bold text-white truncate flex items-center gap-1.5" :style="{ backgroundColor: nodeHeaderColor(data) }">
                         <FontAwesomeIcon v-if="data.isStart" icon="fa-solid fa-play" class="text-[10px] shrink-0" title="Start node — the dialogue's entry point" />
@@ -452,6 +586,43 @@ defineExpose({
             </template>
         </VueFlow>
 
+        <div
+            v-if="dialogueName && showHints"
+            class="absolute left-12 bottom-3 z-10 w-80 rounded border border-grey-light bg-white shadow-md text-xs font-title"
+            role="dialog"
+            aria-label="Mouse and keyboard hints"
+            data-test="graph-hints"
+        >
+            <div class="flex items-center justify-between px-3 py-1.5 bg-grey-lighter border-b border-grey-light rounded-t">
+                <span class="font-bold">Mouse and keyboard</span>
+                <button type="button" class="text-grey-dark hover:text-black" title="Close" data-test="graph-hints-close" @click="showHints = false">
+                    <FontAwesomeIcon icon="fa-solid fa-xmark" />
+                </button>
+            </div>
+            <dl class="dlb-hints px-3 py-2">
+                <dt>Click a node</dt><dd>Edit it</dd>
+                <dt>Drag a node</dt><dd>Move it</dd>
+                <dt><kbd>Shift</kbd> + drag the canvas</dt><dd>Select the nodes in the box</dd>
+                <dt><kbd>{{ multiSelectKey }}</kbd> + click a node</dt><dd>Add it to the selection, or take it out</dd>
+                <dt>Drag a selected node</dt><dd>Move all selected nodes together</dd>
+                <dt>Click the canvas</dt><dd>Clear the selection</dd>
+                <dt>Right-click the canvas</dt><dd>A menu to add a node there</dd>
+                <dt>Double-click the canvas</dt><dd>Add a node there at once</dd>
+                <dt>Drag the canvas</dt><dd>Move around</dd>
+                <dt>Scroll</dt><dd>Zoom</dd>
+                <dt>Drag or scroll in the map</dt><dd>Move around, zoom</dd>
+            </dl>
+        </div>
+
+        <ContextMenu
+            v-if="paneMenu"
+            :items="PANE_MENU_ITEMS"
+            :x="paneMenu.x"
+            :y="paneMenu.y"
+            @select="onPaneMenuSelect"
+            @close="paneMenu = null"
+        />
+
         <NodeEditPanel
             v-if="selectedNode"
             ref="node-edit-panel"
@@ -464,3 +635,100 @@ defineExpose({
         />
     </div>
 </template>
+
+<style scoped>
+/* Selecting several nodes (Shift+drag a box, or Shift/Ctrl/Cmd+click): Studio imports only Vue
+   Flow's structural CSS, not its theme, so without these the box and the selected nodes are
+   invisible. Orange, as Studio's lines and highlights are. */
+:deep(.vue-flow__selection) {
+    background: rgba(246, 203, 139, 0.18); /* --color-orange-light */
+    border: 1px dashed var(--color-orange-dark);
+    border-radius: 4px;
+}
+
+:deep(.vue-flow__selection:focus),
+:deep(.vue-flow__selection:focus-visible) {
+    outline: none;
+}
+
+/* After a box selection Vue Flow leaves a rectangle around the selected nodes, to drag them by.
+   It's hidden: the nodes' own outlines show the selection, dragging any selected node moves them
+   all (and is saved, onNodeDragStop), while a drag on that rectangle would be a selection drag,
+   which this editor doesn't save. */
+:deep(.vue-flow__nodesselection-rect) {
+    display: none;
+}
+
+/* An outline rather than a ring, so it shows next to the Start and End nodes' own rings. */
+.dlb-node-selected {
+    outline: 2px solid var(--color-orange-dark);
+    outline-offset: 3px;
+}
+
+/* Vue Flow's Controls and MiniMap, in the look of Studio's toolbar controls (see "UI building
+   blocks" in CLAUDE.md): white, grey border, rounded corners, 24px buttons. */
+:deep(.dlb-flow-controls) {
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+:deep(.dlb-flow-controls .vue-flow__controls-button) {
+    box-sizing: border-box;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: white;
+    border: 1px solid var(--color-grey-light);
+    border-radius: 4px;
+    color: var(--color-orange-darker);
+}
+
+:deep(.dlb-flow-controls .vue-flow__controls-button svg) {
+    max-width: 11px;
+    max-height: 11px;
+    fill: currentColor;
+}
+
+:deep(.dlb-flow-controls .vue-flow__controls-button:hover) {
+    background: var(--color-grey-lighter);
+}
+
+:deep(.dlb-flow-controls .vue-flow__controls-button.dlb-control-active) {
+    background: var(--color-orange-dark);
+    border-color: var(--color-orange-dark);
+    color: white;
+}
+
+.dlb-hints {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 12px;
+    row-gap: 4px;
+}
+
+.dlb-hints dt {
+    color: var(--color-orange-darker);
+    white-space: nowrap;
+}
+
+.dlb-hints kbd {
+    display: inline-block;
+    padding: 0 4px;
+    border: 1px solid var(--color-grey-light);
+    border-bottom-width: 2px;
+    border-radius: 3px;
+    background: var(--color-grey-lighter);
+    font-family: inherit;
+    font-size: 10px;
+    line-height: 14px;
+}
+
+:deep(.dlb-flow-minimap) {
+    background: white;
+    border: 1px solid var(--color-grey-light);
+    border-radius: 4px;
+    overflow: hidden;
+}
+</style>
