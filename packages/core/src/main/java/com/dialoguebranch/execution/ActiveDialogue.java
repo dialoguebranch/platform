@@ -322,10 +322,23 @@ public class ActiveDialogue {
 	 * shorthand for {@link #setLoggedDialogue} with an {@link InMemoryLoggedDialogue}, with a new
 	 * session ID that the logs of the dialogues the conversation enters share. Each of those logs
 	 * points back to the one before it ({@link InMemoryLoggedDialogue#getPrevious()}), so the
-	 * whole conversation can be read from {@link #getLoggedDialogue()}.
+	 * whole conversation can be read from {@link #getLoggedDialogue()}. It starts now, in the time
+	 * zone of the {@link VariableStore}'s user. Call it before the dialogue starts.
+	 *
+	 * @return the log, to read the transcript from.
+	 * @throws IllegalStateException if the dialogue has already started.
+	 */
+	public InMemoryLoggedDialogue keepInMemoryLog() {
+		return keepInMemoryLog(now());
+	}
+
+	/**
+	 * Keeps a log in memory for this conversation, as {@link #keepInMemoryLog()} does, with the
+	 * given start time.
 	 *
 	 * @param startTime when the dialogue starts, in the user's time zone.
 	 * @return the log, to read the transcript from.
+	 * @throws IllegalStateException if the dialogue has already started.
 	 */
 	public InMemoryLoggedDialogue keepInMemoryLog(ZonedDateTime startTime) {
 		InMemoryLoggedDialogue log = new InMemoryLoggedDialogue(variableStore.getUser().getId(),

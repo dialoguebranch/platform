@@ -343,10 +343,28 @@ public class ExecutableProject implements DialogueBranchProject, DialogueResolve
 	public ActiveDialogue startDialogue(String dialogueName, @Nullable String language,
 			VariableStore variableStore, ZonedDateTime eventTime)
 			throws ExecutionException, EvaluationException {
-		ActiveDialogue dialogue = new ActiveDialogue(this, resolve(dialogueName, language),
-				variableStore);
+		ActiveDialogue dialogue = createDialogue(dialogueName, language, variableStore);
 		dialogue.startDialogue(eventTime);
 		return dialogue;
+	}
+
+	/**
+	 * Creates the dialogue with the given name, in the given language, with the given variables,
+	 * as {@link #startDialogue(String, String, VariableStore, ZonedDateTime)} does, but doesn't
+	 * start it yet. Use this to set up what must be in place before the first step, such as a
+	 * log ({@link ActiveDialogue#keepInMemoryLog()}), and then call {@link
+	 * ActiveDialogue#startDialogue()}.
+	 *
+	 * @param dialogueName the dialogue's name, including its folders, such as {@code
+	 *                     "intro/welcome"}.
+	 * @param language the language code, or {@code null} for the source language.
+	 * @param variableStore the variables the dialogue reads and writes.
+	 * @return the dialogue, not started yet.
+	 * @throws ExecutionException if the project has no dialogue with that name.
+	 */
+	public ActiveDialogue createDialogue(String dialogueName, @Nullable String language,
+			VariableStore variableStore) throws ExecutionException {
+		return new ActiveDialogue(this, resolve(dialogueName, language), variableStore);
 	}
 
 	/**
