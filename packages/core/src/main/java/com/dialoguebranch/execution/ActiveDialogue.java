@@ -485,12 +485,19 @@ public class ActiveDialogue {
 	 * @param eventTime the time (in the user's time zone) of the event that triggered this
 	 *                  selection.
 	 * @return the next {@link Node}, or {@code null} if the reply ends the dialogue.
-	 * @throws ExecutionException if the dialogue or node the reply leads to can't be found, or
-	 *                            if the {@link DialogueSwitchListener} stops the switch.
+	 * @throws ExecutionException if the current node has no reply with that ID ({@code
+	 *                            REPLY_NOT_FOUND}), the dialogue has finished ({@code
+	 *                            DIALOGUE_COMPLETED}), its log has been cancelled ({@code
+	 *                            DIALOGUE_CANCELLED}) or completed ({@code DIALOGUE_COMPLETED}),
+	 *                            the dialogue or node the reply leads to can't be found, or the
+	 *                            {@link DialogueSwitchListener} stops the switch. Nothing has
+	 *                            changed then, except when a switch fails.
 	 * @throws EvaluationException if an expression cannot be evaluated.
+	 * @throws IllegalStateException if the dialogue hasn't started.
 	 */
 	public @Nullable Node selectReply(int replyId, ZonedDateTime eventTime)
 			throws ExecutionException, EvaluationException {
+		checkReplyCanBeSelected(replyId);
 		int userInteractionIndex = recordUserReply(replyId, eventTime);
 		NodePointer nodePointer = processReply(replyId, eventTime);
 		if (nodePointer instanceof ExternalNodePointer externalPointer) {
@@ -546,6 +553,34 @@ public class ActiveDialogue {
 		Node next = followInternalPointer((InternalNodePointer) nodePointer, eventTime);
 		recordAgentStep(userInteractionIndex, eventTime);
 		return next;
+	}
+
+	/**
+	 * Checks that the reply with the given ID can be selected now: the dialogue has started and
+	 * not finished, its log (if one is kept) is still open, and the current node has the reply.
+	 */
+	private void checkReplyCanBeSelected(int replyId) throws ExecutionException {
+		if (!started)
+			throw new IllegalStateException("The dialogue hasn't started: there is no reply to select");
+		LoggedDialogue log = loggedDialogue;
+		if (log != null && log.isCancelled()) {
+			throw new ExecutionException(ExecutionException.Type.DIALOGUE_CANCELLED,
+					"Dialogue '" + log.getId() + "' has been cancelled and cannot be progressed.");
+		}
+		Node current = currentNode;
+		boolean executedWithoutReplies = current != null
+				&& current.getBody() instanceof ResolvedNodeBody body && body.getReplies().isEmpty();
+		if (current == null || executedWithoutReplies || (log != null && log.isCompleted())) {
+			throw new ExecutionException(ExecutionException.Type.DIALOGUE_COMPLETED,
+					String.format("Dialogue \"%s\" has finished: there is no reply to select",
+							dialogueDefinition.getDialogueName()));
+		}
+		NodeContent body = Objects.requireNonNull(current.getBody(), "Current node has no body");
+		if (body.findReplyById(replyId) == null) {
+			throw new ExecutionException(ExecutionException.Type.REPLY_NOT_FOUND,
+					String.format("Reply with ID %s not found in dialogue \"%s\", node \"%s\"",
+					replyId, dialogueDefinition.getDialogueName(), current.getTitle()));
+		}
 	}
 
 	/**

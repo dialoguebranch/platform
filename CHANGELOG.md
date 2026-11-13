@@ -85,6 +85,12 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 - Web service: `/dialogue/progress` and `/dialogue/back` with a step that is not in the dialogue's log
   answer `404`, instead of a generic `500`
   ([#483](https://github.com/dialoguebranch/platform/issues/483)).
+- Web service: `/test-session/progress` with a reply that is not in the current step answers
+  `404`, instead of a generic `500`.
+- Core: `ActiveDialogue.selectReply` throws an `ExecutionException` instead of a
+  `NullPointerException` for a reply that is not in the current node (`REPLY_NOT_FOUND`) or a
+  dialogue that has finished (`DIALOGUE_COMPLETED`), and refuses a reply once its log has been
+  cancelled or completed, instead of recording into it; it changes nothing then.
 - Studio: after a reply that led into another dialogue, the Dialogue Workspace kept showing the
   log ID of the first dialogue, and the Dialogue Browser could open an ongoing dialogue in a
   second tab. It now follows the new dialogue's log
