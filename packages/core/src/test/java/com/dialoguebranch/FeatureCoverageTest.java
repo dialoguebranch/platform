@@ -29,6 +29,7 @@
 package com.dialoguebranch;
 
 import com.dialoguebranch.execution.ActiveDialogue;
+import com.dialoguebranch.execution.ResolvedDialogue;
 import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.parser.ProjectParser;
@@ -39,7 +40,6 @@ import com.dialoguebranch.model.execute.Node;
 import com.dialoguebranch.model.execute.Reply;
 import com.dialoguebranch.model.execute.ResourcePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
-import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -122,7 +122,8 @@ public class FeatureCoverageTest {
 										+ "unknown node '" + reply.getNodePointer().getTargetNodeId() + "'",
 								titles.contains(reply.getNodePointer().getTargetNodeId().toLowerCase()));
 
-			ActiveDialogue active = new ActiveDialogue(entry.getKey(), dialogue,
+			ActiveDialogue active = new ActiveDialogue(parseResult.getProject(),
+					new ResolvedDialogue(entry.getKey(), dialogue),
 					new VariableStore(new User("coverage-test")));
 			Node node;
 			try {
@@ -147,9 +148,7 @@ public class FeatureCoverageTest {
 					break;
 				visited.add(step.getNodePointer().getTargetNodeId().toLowerCase());
 				try {
-					NodePointer np = active.processReplyAndGetNodePointer(step.getReplyId(), now);
-					node = (np instanceof InternalNodePointer ip)
-							? active.progressDialogue(ip, now) : null;
+					node = active.selectReply(step.getReplyId(), now);
 				} catch (Exception e) {
 					boolean inputReply = step.getStatement() != null
 							&& step.getStatement().toString().contains("input");
@@ -257,8 +256,8 @@ public class FeatureCoverageTest {
 			}
 		}
 		assertNotNull(language + " '" + dialogueName + "' dialogue should be present", dialogue);
-		ActiveDialogue active = new ActiveDialogue(
-				new ResourcePointer(language, dialogueName, null), dialogue,
+		ActiveDialogue active = new ActiveDialogue(parseResult.getProject(),
+				new ResolvedDialogue(new ResourcePointer(language, dialogueName, null), dialogue),
 				new VariableStore(new User("coverage-test")));
 		Node start = active.startDialogue(ZonedDateTime.now());
 		StringBuilder text = new StringBuilder();

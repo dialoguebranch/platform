@@ -31,6 +31,7 @@ package com.dialoguebranch.execution;
 import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.LoggedDialogue;
 import com.dialoguebranch.model.execute.Node;
+import org.jspecify.annotations.Nullable;
 
 /**
  * An immutable value object returned after executing a node in an {@link ActiveDialogue}. It
@@ -39,7 +40,8 @@ import com.dialoguebranch.model.execute.Node;
  * @param dialogue         the {@link Dialogue} definition that was being executed
  * @param node             the {@link Node} that was executed and returned to the client
  * @param loggedDialogue   the {@link LoggedDialogue} entry recording this interaction in the
- *                         dialogue history
+ *                         dialogue history, or {@code null} if no log is kept (as for a test
+ *                         session, or an {@link ActiveDialogue} on its own)
  * @param interactionIndex the zero-based index of this interaction within the
  *                         {@code loggedDialogue}
  *
@@ -47,4 +49,4 @@ import com.dialoguebranch.model.execute.Node;
  * @author Dennis Hofs
  */
 public record ExecuteNodeResult(Dialogue dialogue, Node node,
-								LoggedDialogue loggedDialogue, int interactionIndex) { }
+								@Nullable LoggedDialogue loggedDialogue, int interactionIndex) { }

@@ -31,11 +31,9 @@ package com.dialoguebranch.web.service.execution;
 import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.execution.ActiveDialogue;
 import com.dialoguebranch.execution.ExecuteNodeResult;
+import com.dialoguebranch.execution.ResolvedDialogue;
 import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.model.execute.*;
-import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
-import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
-import com.dialoguebranch.model.execute.nodepointer.NodePointer;
 import com.dialoguebranch.web.service.DateTimeUtils;
 import com.dialoguebranch.web.service.exception.DatabaseException;
 import com.dialoguebranch.web.service.storage.ServerLoggedDialogue;
@@ -81,8 +79,7 @@ public class DialogueExecutor {
 	 * Starts the dialogue for the specified dialogue definition. If you specify a node ID, it will
 	 * start at that node. Otherwise, it starts at the "Start" node.
 	 *
-	 * @param dialogueDescription the dialogue description.
-	 * @param dialogueDefinition the dialogue definition.
+	 * @param dialogue the dialogue, as found by {@link ApplicationManager#getDialogueResolver}.
 	 * @param nodeId the node ID or {@code null}.
 	 * @param sessionId the unique session identifier to be added to the logs.
 	 * @param sessionStartTime the utc timestamp of when this session was started.
@@ -92,25 +89,17 @@ public class DialogueExecutor {
 	 * @throws IOException if a communication error occurs.
 	 * @throws ExecutionException if the request is invalid.
 	 */
-	public ExecuteNodeResult startDialogue(ResourcePointer dialogueDescription,
-										   Dialogue dialogueDefinition, String nodeId,
+	public ExecuteNodeResult startDialogue(ResolvedDialogue dialogue, String nodeId,
 										   String sessionId, long sessionStartTime,
 										   String projectSlug)
 			throws DatabaseException, IOException, ExecutionException {
 
-		ActiveDialogue dialogue = new ActiveDialogue(dialogueDescription,
-				dialogueDefinition, userService.getVariableStore(projectSlug));
-		// The end user's gender, $dlb.userGender, selects the translation at every step (#400).
-		dialogue.setUserGenderTranslations(userService.getApplicationManager()
-				.getUserGenderTranslations(projectSlug, dialogueDescription));
-
-		// Collects all the Dialogue Branch Variables needed to execute this file and update from an
-		// external variable service (if enabled).
-		Set<String> variablesNeeded = dialogueDefinition.getVariablesNeeded();
-		logger.info("Dialogue '" + dialogue.getDialogueDefinition().getDialogueName() +
-				"' uses the following set of Dialogue Branch Variables: "+variablesNeeded);
-		if(!variablesNeeded.isEmpty())
-			userService.updateVariablesFromExternalService(projectSlug, variablesNeeded);
+		// The dialogues that replies lead into are found by the same resolver (#473), and the end
+		// user's gender, $dlb.userGender, selects the translation at every step (#400).
+		ActiveDialogue activeDialogue = new ActiveDialogue(
+				userService.getApplicationManager().getDialogueResolver(projectSlug), dialogue,
+				userService.getVariableStore(projectSlug));
+		readExternalVariables(projectSlug, dialogue.dialogue());
 
 		// The timestamp of this "start dialogue" trigger will be passed on and used for logging
 		ZonedDateTime eventTime = DateTimeUtils.nowMs(
@@ -118,26 +107,47 @@ public class DialogueExecutor {
 
 		Node startNode;
 		try {
-			startNode = dialogue.startDialogue(nodeId,eventTime);
+			startNode = activeDialogue.startDialogue(nodeId,eventTime);
 		} catch (EvaluationException e) {
 			throw new RuntimeException("Expression evaluation error: " + e.getMessage(), e);
 		}
 
+		ServerLoggedDialogue serverLoggedDialogue = newLoggedDialogue(dialogue, eventTime,
+				sessionId, sessionStartTime, projectSlug);
+		updateLoggedDialogue(activeDialogue, serverLoggedDialogue, -1);
+		userService.getLoggedDialogueStore().saveToSession(serverLoggedDialogue);
+		return new ExecuteNodeResult(dialogue.dialogue(), startNode, serverLoggedDialogue,
+				serverLoggedDialogue.getInteractionList().size() - 1);
+	}
+
+	/**
+	 * Updates the variables the given dialogue uses from the External Variable Service, if one
+	 * is enabled, as at the start of every dialogue.
+	 */
+	private void readExternalVariables(String projectSlug, Dialogue dialogue) {
+		Set<String> variablesNeeded = dialogue.getVariablesNeeded();
+		logger.info("Dialogue '" + dialogue.getDialogueName() +
+				"' uses the following set of Dialogue Branch Variables: "+variablesNeeded);
+		if(!variablesNeeded.isEmpty())
+			userService.updateVariablesFromExternalService(projectSlug, variablesNeeded);
+	}
+
+	/** Creates the log of a dialogue that starts in the given session. */
+	private ServerLoggedDialogue newLoggedDialogue(ResolvedDialogue dialogue,
+			ZonedDateTime eventTime, String sessionId, long sessionStartTime,
+			String projectSlug) {
 		ServerLoggedDialogue serverLoggedDialogue = new ServerLoggedDialogue(
 				userService.getDialogueBranchUser().getId(),
 				eventTime, sessionId, sessionStartTime);
 		serverLoggedDialogue.setProjectName(projectSlug);
-		serverLoggedDialogue.setDialogueName(dialogueDefinition.getDialogueName());
-		serverLoggedDialogue.setLanguage(dialogueDescription.getLanguage());
+		serverLoggedDialogue.setDialogueName(dialogue.dialogue().getDialogueName());
+		serverLoggedDialogue.setLanguage(dialogue.pointer().getLanguage());
 		Integer publishedVersionNumber =
 				userService.getApplicationManager().getProjectVersion(projectSlug);
 		if (publishedVersionNumber != null) {
 			serverLoggedDialogue.setPublishedVersionNumber(publishedVersionNumber);
 		}
-		updateLoggedDialogue(startNode, serverLoggedDialogue, -1);
-		userService.getLoggedDialogueStore().saveToSession(serverLoggedDialogue);
-		return new ExecuteNodeResult(dialogueDefinition, startNode, serverLoggedDialogue,
-				serverLoggedDialogue.getInteractionList().size() - 1);
+		return serverLoggedDialogue;
 	}
 
 	/**
@@ -183,52 +193,45 @@ public class DialogueExecutor {
 
 		int userActionIndex = serverLoggedDialogue.getInteractionList().size() - 1;
 
-		// Find next dialogue node:
-		NodePointer nodePointer;
+		// Entering another dialogue reads its variables from the External Variable Service, as
+		// at a start; its log is made below, once its first node has run (#473). The listener
+		// also tells whether that happened: comparing the dialogue before and after would miss
+		// a reply that links into the start of the same dialogue, which starts a new log too.
+		String projectSlug = serverLoggedDialogue.getProjectName();
+		ResolvedDialogue[] entered = new ResolvedDialogue[1];
+		dialogue.setDialogueSwitchListener((from, to) -> {
+			readExternalVariables(projectSlug, to.dialogue());
+			entered[0] = to;
+		});
+
+		Node nextNode;
 		try {
-			nodePointer = dialogue.processReplyAndGetNodePointer(replyId,progressDialogueEventTime);
+			nextNode = dialogue.selectReply(replyId, progressDialogueEventTime);
 		} catch (EvaluationException ex) {
 			userService.getLoggedDialogueStore().saveToSession(serverLoggedDialogue);
 			throw new RuntimeException("Expression evaluation error: " + ex.getMessage(), ex);
 		}
-		Dialogue dialogueDefinition = state.getDialogueDefinition();
-		Node nextNode;
-		if (nodePointer instanceof InternalNodePointer) {
-			try {
-				nextNode = dialogue.progressDialogue((InternalNodePointer)nodePointer,
-								progressDialogueEventTime);
-			} catch (EvaluationException e) {
-				throw new RuntimeException("Expression evaluation error: " + e.getMessage(), e);
-			}
-			updateLoggedDialogue(nextNode, serverLoggedDialogue, userActionIndex);
+
+		if (entered[0] == null) { // The dialogue continues within the same .dlb script
+			updateLoggedDialogue(dialogue, serverLoggedDialogue, userActionIndex);
 			userService.getLoggedDialogueStore().saveToSession(serverLoggedDialogue);
 			if (nextNode == null)
 				return null;
-			return new ExecuteNodeResult(dialogueDefinition, nextNode, serverLoggedDialogue,
-					serverLoggedDialogue.getInteractionList().size() - 1);
-
-		} else { // The dialogue continues with a pointer to another .dlb script
-			serverLoggedDialogue.setCompleted(true);
-			userService.getLoggedDialogueStore().saveToSession(serverLoggedDialogue);
-			String language = dialogue.getDialogueFileDescription().getLanguage();
-			ExternalNodePointer externalNodePointer = (ExternalNodePointer)nodePointer;
-			String dialogueId = externalNodePointer.getAbsoluteTargetDialogue();
-			String nodeId = externalNodePointer.getTargetNodeId();
-
-			String projectSlug = serverLoggedDialogue.getProjectName();
-			ResourcePointer dialogueDescription =
-					userService.getDialogueDescriptionFromProject(projectSlug, dialogueId, language);
-			if (dialogueDescription == null) {
-				throw new ExecutionException(ExecutionException.Type.DIALOGUE_NOT_FOUND,
-						"Dialogue not found: " + dialogueId);
-			}
-			Dialogue newDialogue = userService.getDialogueDefinitionForProject(projectSlug,
-					dialogueDescription);
-
-			return this.startDialogue(dialogueDescription, newDialogue, nodeId,
-					serverLoggedDialogue.getSessionId(), serverLoggedDialogue.getSessionStartTime(),
-					projectSlug);
+			return new ExecuteNodeResult(state.getDialogueDefinition(), nextNode,
+					serverLoggedDialogue, serverLoggedDialogue.getInteractionList().size() - 1);
 		}
+
+		// The reply led into another .dlb script: its log completes, and a new one starts in the
+		// same session, for the dialogue that was entered.
+		serverLoggedDialogue.setCompleted(true);
+		userService.getLoggedDialogueStore().saveToSession(serverLoggedDialogue);
+		ServerLoggedDialogue enteredLog = newLoggedDialogue(entered[0],
+				progressDialogueEventTime, serverLoggedDialogue.getSessionId(),
+				serverLoggedDialogue.getSessionStartTime(), projectSlug);
+		updateLoggedDialogue(dialogue, enteredLog, -1);
+		userService.getLoggedDialogueStore().saveToSession(enteredLog);
+		return new ExecuteNodeResult(entered[0].dialogue(), nextNode, enteredLog,
+				enteredLog.getInteractionList().size() - 1);
 	}
 
 	/**
@@ -288,18 +291,21 @@ public class DialogueExecutor {
 
 	/**
 	 * This method is called before the current node is returned from startDialogue() or
-	 * progressDialogue(). The node can be null as a result of progressDialogue() with an end reply.
+	 * progressDialogue(). The current node is null after a reply to End.
 	 *
-	 * <p>If the node is not null, this method adds a logged agent interaction for it.</p>
+	 * <p>If there is a current node, this method adds a logged agent interaction for it.</p>
 	 *
-	 * <p>If the node is null or it has no replies, the dialogue is marked as completed.</p>
+	 * <p>If the dialogue has finished ({@link ActiveDialogue#isFinished()}), it is marked as
+	 * completed.</p>
 	 *
-	 * @param node the current node or null
+	 * @param dialogue the dialogue, at its current node.
 	 * @param serverLoggedDialogue the {@link ServerLoggedDialogue} to update.
 	 * @param previousIndex the previous interaction index
 	 */
-	private void updateLoggedDialogue(Node node, ServerLoggedDialogue serverLoggedDialogue,
+	private void updateLoggedDialogue(ActiveDialogue dialogue,
+									  ServerLoggedDialogue serverLoggedDialogue,
 									  int previousIndex) {
+		Node node = dialogue.getCurrentNode();
 		ResolvedNodeBody body = node == null ? null : (ResolvedNodeBody) node.getBody();
 		if (node != null) {
 			StringBuilder agentStatement = new StringBuilder();
@@ -320,7 +326,7 @@ public class DialogueExecutor {
 			);
 
 		}
-		if (node == null || body.getReplies().isEmpty()) {
+		if (dialogue.isFinished()) {
 			serverLoggedDialogue.setCompleted(true);
 		}
 

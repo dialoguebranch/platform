@@ -10,13 +10,40 @@ dependencies {
 }
 ```
 
+## Playing a Dialogue
+
+Load a project from its `dlb-project.xml`, start one of its dialogues, and show each step and select replies until it finishes:
+
+```java
+ExecutableProject project = ExecutableProject.load(Path.of("dlb-project.xml"));
+ActiveDialogue dialogue = project.startDialogue("welcome", new User("sam"));
+
+while (true) {
+    DialogueMessage step = dialogue.getCurrentMessage(); // null only after a reply to End
+    if (step != null) show(step);
+    if (dialogue.isFinished()) break;
+    ReplyMessage reply = chooseReply(step.getReplies()); // e.g. ask the user
+    dialogue.selectReply(reply.getReplyId(), ZonedDateTime.now());
+}
+```
+
+`show` and `chooseReply` stand for your own code.
+
+* `ExecutableProject.load` throws a `ProjectParseException` that lists every parse error, per file; warnings are available from `project.getWarnings()`.
+* `startDialogue` has overloads that take a language, an existing `VariableStore` and the start time. A dialogue that isn't available in the given language runs in the project's source language.
+* `getCurrentMessage` returns the current step as a `DialogueMessage`, the same shape the Web Service sends: the speaker, the statement with its variables filled in, its actions and input fields, and the replies with their IDs. Its `loggedDialogueId` and `loggedInteractionIndex` are only used by the Web Service, which keeps a log of every step.
+* `isFinished` is true once a reply led to `End`, or the dialogue is at a node without replies. That last node still has a statement to show.
+* `selectReply` runs the reply's `set` commands and returns the next node, or `null` when the reply ends the dialogue. When a reply leads into another dialogue, the `ActiveDialogue` switches to it, in the same language and with the same variables; a `DialogueSwitchListener` hears of the switch, before the first node there runs.
+* Where a translation depends on the end user's gender, the dialogue follows the value of `$dlb.userGender` in its variables at every step.
+* To look up a dialogue without starting it, use `project.getDialogue(name)` or `getDialogue(name, language)`.
+
 ## Package Overview
 
 The `com.dialoguebranch` package is organised as follows:
 
 * `model/common` — Shared types used by the execution model, e.g. `ProjectMetaData`, `StorageSource`.
 * `model/execute` — The immutable *runtime* model (`ExecutableProject`, `Dialogue`, `Node`, `NodeHeader`, `NodeBody`, `ResolvedNodeBody`, `Reply`, `VariableString`, `LoggedDialogue`, `DialogueState`), the command types executed within a node body (`SetCommand`, `IfCommand`, `RandomCommand`, `ActionCommand`, the `InputCommand` variants), and the API protocol types used to serialise dialogue state (`DialogueMessage`, `DialogueStatement`, `ReplyMessage`).
-* `execution` — The runtime engine itself: `ActiveDialogue` drives a single live dialogue session, `VariableStore` holds session variables, and `parser/` contains the parsers used at execution time (`DialogueBranchParser`, `BodyParser`, `CommandParser`, `ProjectParser`, `ProjectScriptLoader`, and others).
+* `execution` — The runtime engine itself: `ActiveDialogue` drives a live conversation, following replies into other dialogues through a `DialogueResolver`, `VariableStore` holds session variables, and `parser/` contains the parsers used at execution time (`DialogueBranchParser`, `BodyParser`, `CommandParser`, `ProjectParser`, `ProjectScriptLoader`, and others).
 * `editing` — `ProjectMetaDataWriter`, used to export a project's metadata.
 * `i18n` — Translation support: `Translator` applies a `.json` translation file to a `Dialogue`, and `TranslatableExtractor` walks a node's body to extract translatable segments.
 * `exception` — Typed exceptions used throughout the library (`NodeParseException`, `ExecutionException`, and others).

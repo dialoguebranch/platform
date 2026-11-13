@@ -7,6 +7,69 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ## [Unreleased]
 
+### Added
+
+- Core: `ExecutableProject.load(Path)` loads a project from its `dlb-project.xml` in one call.
+  A project with parse errors fails with a `ProjectParseException` that lists every error per
+  file, instead of a project that is `null`. Parse warnings are available from the new
+  `ExecutableProject.getWarnings()`, also for projects loaded with `ProjectParser`
+  ([#473](https://github.com/dialoguebranch/platform/issues/473)).
+- Core: `ExecutableProject.getDialogue(name)` and `getDialogue(name, language)` look up a dialogue
+  by its name. They use the same language rules as the Web Service: the exact language, otherwise
+  the source language. An unknown dialogue fails with an `ExecutionException` of type
+  `DIALOGUE_NOT_FOUND`. `getDialoguePointer(name, language)` returns the dialogue's
+  `ResourcePointer`, and `getSourceLanguage()` returns the project's source language, also for a
+  project without metadata ([#473](https://github.com/dialoguebranch/platform/issues/473)).
+- Core: an `ActiveDialogue` follows a reply into another dialogue itself. Create it with a
+  `DialogueResolver`, which finds a dialogue by name and language (an `ExecutableProject` is one),
+  and call `selectReply(replyId, eventTime)`: it returns the next node, also when that is in
+  another dialogue, keeps the same `VariableStore` and follows the user's gender there too. A
+  `DialogueSwitchListener` hears of the switch before the first node there runs
+  ([#473](https://github.com/dialoguebranch/platform/issues/473)).
+- Core: `ExecutableProject.startDialogue(name, user)` starts a dialogue of the project for a
+  user, with a new `VariableStore`. Overloads take a language, an existing `VariableStore` and the
+  start time. The dialogue follows replies into the project's other dialogues, and where a
+  translation depends on the user's gender, it follows `$dlb.userGender` at every step
+  ([#473](https://github.com/dialoguebranch/platform/issues/473)).
+- Core: `ActiveDialogue.getCurrentMessage()` returns the current step as a `DialogueMessage`, the
+  same shape the Web Service sends, ready to show: speaker, statement and replies.
+  `ActiveDialogue.isFinished()` says whether the dialogue has finished: after a reply to `End`, or
+  at a node without replies. The Web Service and the command-line tool use this one rule now
+  ([#473](https://github.com/dialoguebranch/platform/issues/473)).
+- Core: `ExecutableProject.generateSummaryString()` describes a loaded project, as
+  `ProjectParserResult.generateSummaryString()` did for a parse without errors
+  ([#473](https://github.com/dialoguebranch/platform/issues/473)).
+
+### Changed
+
+- Core: **Breaking:** an `ActiveDialogue` always has a `DialogueResolver`, and follows replies
+  into other dialogues itself. The constructor `ActiveDialogue(ResourcePointer, Dialogue,
+  VariableStore)` is replaced by `ActiveDialogue(DialogueResolver, ResolvedDialogue,
+  VariableStore)`, or start a dialogue with `ExecutableProject.startDialogue`.
+  `processReplyAndGetNodePointer` and `progressDialogue(InternalNodePointer, ...)` are replaced by
+  `selectReply(replyId, eventTime)`, which returns the next node instead of a pointer, also in
+  another dialogue. `setUserGenderTranslations` is replaced by the user-gender translations of the
+  `ResolvedDialogue` ([#473](https://github.com/dialoguebranch/platform/issues/473)).
+- Core: **Internal API:** `DialogueState` takes only the log, the interaction index and the
+  `ActiveDialogue`; `getDialogueDescription()` and `getDialogueDefinition()` return the dialogue the
+  `ActiveDialogue` is in, also after it followed a reply into another dialogue
+  ([#473](https://github.com/dialoguebranch/platform/issues/473)).
+- Core: the command-line tool (`DialogueBranchCLI`) plays a dialogue that isn't available in the
+  chosen language in the source language, also when a reply links into it, like the Web Service
+  does. It used to stop with an error. For a language the project doesn't have at all,
+  `--execute` prints a warning and plays the source language
+  ([#473](https://github.com/dialoguebranch/platform/issues/473)).
+
+### Fixed
+
+- Studio: after a reply that led into another dialogue, the Dialogue Workspace kept showing the
+  log ID of the first dialogue, and the Dialogue Browser could open an ongoing dialogue in a
+  second tab. It now follows the new dialogue's log
+  ([#473](https://github.com/dialoguebranch/platform/issues/473)).
+- Core: the command-line tool kept no variables when a reply led into another dialogue: a
+  variable set in one dialogue was empty in the next. It now plays them as one run, with the same
+  variables throughout ([#473](https://github.com/dialoguebranch/platform/issues/473)).
+
 ## [0.9.2] - 2026-11-11
 
 ### Added

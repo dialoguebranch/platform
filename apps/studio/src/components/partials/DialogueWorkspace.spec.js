@@ -200,3 +200,47 @@ describe('DialogueWorkspace — simulating a user', () => {
         noRealPlayback();
     });
 });
+
+// #473: a reply that leads into another dialogue gives a new log on the Web Service, and the
+// workspace shows and uses that log from then on.
+describe('DialogueWorkspace — a reply into another dialogue', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        authoring.getProject.mockResolvedValue({ sourceLanguageCode: 'en', draftTranslationLanguages: [] });
+        playback.getOngoingDialogue.mockResolvedValue(null);
+        playback.startDialogue.mockResolvedValue({ ...step([reply]), loggedDialogueId: 'log-main', loggedInteractionIndex: 0 });
+        playback.progressDialogue.mockResolvedValue({ ...step([reply]), dialogueName: 'other', loggedDialogueId: 'log-other', loggedInteractionIndex: 0 });
+    });
+
+    it('shows the new log of the dialogue it led into', async () => {
+        const state = ref({
+            selectedProject: { slug: 'p' },
+            mode: DLB_APP_MODE_LIVE,
+            dialogueWorkspaceStyle: DIALOGUE_WORKSPACE_STYLE_BALLOONS,
+        });
+        const wrapper = mount(DialogueWorkspace, {
+            global: {
+                provide: { state },
+                stubs: {
+                    FontAwesomeIcon: true,
+                    BalloonDialogueComponent: true,
+                    TextDialogueComponent: true,
+                    DialogueEditor: true,
+                    TranslationEditor: true,
+                    teleport: true,
+                },
+            },
+        });
+        await flushPromises();
+        wrapper.vm.openDialogue('main');
+        await flushPromises();
+        expect(wrapper.text()).toContain('Logged Dialogue ID: log-main');
+
+        balloons(wrapper).vm.$emit('selectReply', { ...step([reply]), loggedDialogueId: 'log-main', loggedInteractionIndex: 0 }, reply);
+        await flushPromises();
+
+        expect(playback.progressDialogue).toHaveBeenCalledWith('log-main', 0, 1, null);
+        expect(wrapper.text()).toContain('Logged Dialogue ID: log-other');
+        expect(wrapper.text()).not.toContain('log-main');
+    });
+});

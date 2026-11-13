@@ -37,8 +37,11 @@ import com.dialoguebranch.model.execute.*;
 import com.dialoguebranch.model.execute.command.Command;
 import com.dialoguebranch.model.execute.command.InputCommand;
 import com.dialoguebranch.model.execute.command.SetCommand;
+import com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import com.dialoguebranch.model.execute.nodepointer.NodePointer;
+import com.dialoguebranch.model.execute.protocol.DialogueMessage;
+import com.dialoguebranch.model.execute.protocol.DialogueMessageFactory;
 import org.jspecify.annotations.Nullable;
 
 import java.time.ZonedDateTime;
@@ -52,7 +55,9 @@ import java.util.function.Function;
  * An {@link ActiveDialogue} is a wrapper around a {@link Dialogue}, which contains a static
  * definition of a dialogue (referred to as the {@code dialogueDefinition}). The
  * {@link ActiveDialogue} also contains utility functions to keep track of the state during
- * "execution" of the dialogue.
+ * "execution" of the dialogue. When a reply leads into another dialogue, it switches to that
+ * dialogue itself, found by its {@link DialogueResolver} (see {@link #selectReply}), so one
+ * {@link ActiveDialogue} runs a conversation across dialogues (#473).
  *
  * <p><b>Not thread-safe.</b> {@link #getCurrentNode()}/{@link #setCurrentNode(Node)} and the
  * dialogue-progression methods below mutate {@link #currentNode} with no synchronization — two
@@ -74,17 +79,34 @@ import java.util.function.Function;
  */
 public class ActiveDialogue {
 
-	/** Metadata describing the file from which the dialogue definition was loaded. */
-	private final ResourcePointer dialogueFileDescription;
+	/**
+	 * Metadata describing the file from which the dialogue definition was loaded. Changes when
+	 * a reply leads into another dialogue.
+	 */
+	private ResourcePointer dialogueFileDescription;
+
+	/** Finds the dialogue a reply leads into. */
+	private final DialogueResolver resolver;
+
+	/** Hears when a reply leads into another dialogue, or {@code null}. */
+	private @Nullable DialogueSwitchListener switchListener;
 
 	/** The static dialogue definition containing all nodes and their content. */
 	private Dialogue dialogueDefinition;
 
 	/**
 	 * The dialogue as translated for each gender of the end user (#400), or {@code null} when
-	 * the translation doesn't change with it (see {@link #setUserGenderTranslations}).
+	 * the translation doesn't change with it (see {@link ResolvedDialogue#userGenderTranslations()}).
+	 * Before every step, the value of {@code $dlb.userGender} in the variable store selects the
+	 * definition used for it.
 	 */
 	private @Nullable Function<TranslationContext.Gender, Dialogue> userGenderTranslations;
+
+	/**
+	 * Whether the dialogue has been started (or put at a node with {@link #setCurrentNode}), so
+	 * that a {@code null} {@link #currentNode} means it has ended.
+	 */
+	private boolean started;
 
 	/** The node currently being presented to the user, or {@code null} if not yet started. */
 	private @Nullable Node currentNode;
@@ -99,19 +121,22 @@ public class ActiveDialogue {
 	// -------------------------------------------------------- //
 
 	/**
-	 * Creates an instance of an {@link ActiveDialogue} with a given
-	 * {@link ResourcePointer}, {@link Dialogue} and {@link VariableStore}.
+	 * Creates an {@link ActiveDialogue} for the given dialogue, which follows replies into other
+	 * dialogues by finding them with the given {@link DialogueResolver} (#473). It keeps the same
+	 * {@link VariableStore} throughout.
 	 *
-	 * @param dialogueFileDescription the {@link ResourcePointer} containing metadata
-	 *                                of the dialogue file used in this {@link ActiveDialogue}.
-	 * @param dialogueDefinition the dialogue definition
+	 * @param resolver finds the dialogues that replies lead into, such as the {@link
+	 *                 com.dialoguebranch.model.execute.ExecutableProject} the dialogue is part of.
+	 * @param dialogue the dialogue to run.
 	 * @param variableStore the {@link VariableStore} used to read and write Dialogue Branch
-	 *                      variables while this dialogue runs.
+	 *                      variables while the dialogue runs.
 	 */
-	public ActiveDialogue(ResourcePointer dialogueFileDescription,
-						  Dialogue dialogueDefinition, VariableStore variableStore) {
-		this.dialogueFileDescription = dialogueFileDescription;
-		this.dialogueDefinition = dialogueDefinition;
+	public ActiveDialogue(DialogueResolver resolver, ResolvedDialogue dialogue,
+						  VariableStore variableStore) {
+		this.resolver = resolver;
+		this.dialogueFileDescription = dialogue.pointer();
+		this.dialogueDefinition = dialogue.dialogue();
+		this.userGenderTranslations = dialogue.userGenderTranslations();
 		this.variableStore = variableStore;
 	}
 
@@ -120,16 +145,13 @@ public class ActiveDialogue {
 	// ----------------------------------------------------------- //
 
 	/**
-	 * Lets this dialogue follow the end user's gender (#400): before every step, the value of
-	 * {@code $dlb.userGender} in the variable store selects the dialogue definition used for it,
-	 * given by {@code translations}. Each must be the same dialogue (same nodes), translated for
-	 * that gender.
+	 * Sets the listener that hears when a reply leads into another dialogue, just before the
+	 * first node there is executed.
 	 *
-	 * @param translations the dialogue for each gender of the end user.
+	 * @param switchListener the listener, or {@code null} for none.
 	 */
-	public void setUserGenderTranslations(
-			@Nullable Function<TranslationContext.Gender, Dialogue> translations) {
-		this.userGenderTranslations = translations;
+	public void setDialogueSwitchListener(@Nullable DialogueSwitchListener switchListener) {
+		this.switchListener = switchListener;
 	}
 
 	/** Switches to the definition for the end user's current gender, if this dialogue follows it. */
@@ -174,6 +196,47 @@ public class ActiveDialogue {
 	 */
 	public void setCurrentNode(Node currentNode) {
 		this.currentNode = currentNode;
+		this.started = true;
+	}
+
+	/**
+	 * Returns whether the dialogue has finished: a reply led to its {@code End}, or it is at a
+	 * node without replies, so no reply can be selected any more. A dialogue that hasn't been
+	 * started hasn't finished.
+	 *
+	 * <p>A node without replies still has a statement to show: {@link #getCurrentMessage()}
+	 * returns it. Only after a reply to {@code End} is there nothing left to show.</p>
+	 *
+	 * @return {@code true} if the dialogue has finished.
+	 */
+	public boolean isFinished() {
+		if (!started)
+			return false;
+		return currentNode == null || Objects.requireNonNull(currentNode.getBody(),
+				"The current node has no body").getReplies().isEmpty();
+	}
+
+	/**
+	 * Returns the current step as a {@link DialogueMessage}, ready to show: the speaker, the
+	 * statement with its variables filled in and its actions and input fields, and the replies to
+	 * choose from. This is the same message the Web Service sends for a step. Its {@code
+	 * loggedDialogueId} is {@code null} and its {@code loggedInteractionIndex} is 0 (and has no
+	 * meaning), because an {@link ActiveDialogue} keeps no log of its own.
+	 *
+	 * @return the current step, or {@code null} if the dialogue hasn't started, or a reply led to
+	 *         its {@code End}.
+	 * @throws IllegalStateException if the current node was set with {@link #setCurrentNode} and
+	 *                               hasn't been executed since, so its variables aren't filled in.
+	 */
+	public @Nullable DialogueMessage getCurrentMessage() {
+		if (currentNode == null)
+			return null;
+		if (!(currentNode.getBody() instanceof ResolvedNodeBody)) {
+			throw new IllegalStateException("The current node \"" + currentNode.getTitle()
+					+ "\" hasn't been executed: there is no step to show yet");
+		}
+		return DialogueMessageFactory.generateDialogueMessage(
+				new ExecuteNodeResult(dialogueDefinition, currentNode, null, 0));
 	}
 
 	/**
@@ -254,7 +317,47 @@ public class ActiveDialogue {
 			}
 		}
 		this.currentNode = executeNode(nextNode,eventTime);
+		this.started = true;
 		return currentNode;
+	}
+
+	/**
+	 * Selects the reply with the given {@code replyId} in the current node, and returns the node
+	 * it leads to, executed. Performs the reply's "set" commands first. If the reply leads into
+	 * another dialogue, this {@link ActiveDialogue} switches to that dialogue, found by its
+	 * {@link DialogueResolver} in the language of the current dialogue (or the source language,
+	 * if it isn't available in that one), tells its {@link DialogueSwitchListener}, and starts
+	 * it at the linked node. The {@link VariableStore} stays the same.
+	 *
+	 * @param replyId the ID of the selected reply.
+	 * @param eventTime the time (in the user's time zone) of the event that triggered this
+	 *                  selection.
+	 * @return the next {@link Node}, or {@code null} if the reply ends the dialogue.
+	 * @throws ExecutionException if the dialogue or node the reply leads to can't be found, or
+	 *                            if the {@link DialogueSwitchListener} stops the switch.
+	 * @throws EvaluationException if an expression cannot be evaluated.
+	 */
+	public @Nullable Node selectReply(int replyId, ZonedDateTime eventTime)
+			throws ExecutionException, EvaluationException {
+		NodePointer nodePointer = processReply(replyId, eventTime);
+		if (nodePointer instanceof ExternalNodePointer externalPointer) {
+			ResolvedDialogue target = resolver.resolve(
+					externalPointer.getAbsoluteTargetDialogue(),
+					dialogueFileDescription.getLanguage());
+			if (target.dialogue().getNodeById(externalPointer.getTargetNodeId()) == null) {
+				throw new ExecutionException(ExecutionException.Type.NODE_NOT_FOUND,
+						String.format("Node \"%s\" not found in dialogue \"%s\"",
+								externalPointer.getTargetNodeId(),
+								target.dialogue().getDialogueName()));
+			}
+			if (switchListener != null)
+				switchListener.onDialogueSwitch(dialogueFileDescription, target);
+			this.dialogueFileDescription = target.pointer();
+			this.dialogueDefinition = target.dialogue();
+			this.userGenderTranslations = target.userGenderTranslations();
+			return startDialogue(externalPointer.getTargetNodeId(), eventTime);
+		}
+		return followInternalPointer((InternalNodePointer) nodePointer, eventTime);
 	}
 
 	/**
@@ -268,7 +371,7 @@ public class ActiveDialogue {
 	 * @return The {@link NodePointer} pointing to the next Dialogue Branch Node
 	 * @throws EvaluationException if an expression cannot be evaluated
 	 */
-	public NodePointer processReplyAndGetNodePointer(int replyId, ZonedDateTime eventTime)
+	private NodePointer processReply(int replyId, ZonedDateTime eventTime)
 			throws EvaluationException {
 		Node current = Objects.requireNonNull(currentNode,
 				"Dialogue has not been started");
@@ -301,7 +404,8 @@ public class ActiveDialogue {
 	 * @return the next {@link Node} that follows on the selected reply or {@code null}
 	 * @throws EvaluationException if an expression cannot be evaluated
 	 */
-	public @Nullable Node progressDialogue(InternalNodePointer nodePointer, ZonedDateTime eventTime)
+	private @Nullable Node followInternalPointer(InternalNodePointer nodePointer,
+			ZonedDateTime eventTime)
 			throws EvaluationException {
 		followUserGender();
 		Node nextNode = null;
@@ -316,7 +420,7 @@ public class ActiveDialogue {
 	 * Stores a set of variable values that were captured directly from the user's reply — the
 	 * values entered into the {@code <<input ...>>} fields of the reply option they selected — into
 	 * the {@link VariableStore}, tagged with {@link VariableUpdatedSource#INPUT_REPLY}. Call this
-	 * before {@link #progressDialogue} so the next node's {@code if}/{@code set}/text can already
+	 * before {@link #selectReply} so the next node's {@code if}/{@code set}/text can already
 	 * see the entered values. The {@code INPUT_REPLY} source is what tells these apart from
 	 * script-set ({@link VariableUpdatedSource#DLB_SCRIPT}), external-service, or web-service-set
 	 * values later on.

@@ -29,18 +29,22 @@
 package com.dialoguebranch.model.execute;
 
 import com.dialoguebranch.execution.ActiveDialogue;
+import com.dialoguebranch.execution.StandaloneDialogue;
 import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.model.common.ResourceType;
 import org.junit.Test;
 
+import java.nio.file.Path;
+import java.time.ZonedDateTime;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 
 /**
- * {@link DialogueState} bundles the five pieces of session state; this checks the constructor
- * stores each and the getters return them unchanged. Part of the #90 area-D test hardening
- * (#157).
+ * {@link DialogueState} bundles the session state; this checks the constructor stores each piece
+ * and the getters return them unchanged, and that the dialogue is the one the {@link
+ * ActiveDialogue} is in. Part of the #90 area-D test hardening (#157).
  */
 public class DialogueStateTest {
 
@@ -49,15 +53,31 @@ public class DialogueStateTest {
 		ResourcePointer pointer = new ResourcePointer("en", "flow", ResourceType.SCRIPT);
 		Dialogue definition = new Dialogue("flow");
 		LoggedDialogue log = new TestLoggedDialogue();
-		ActiveDialogue active = new ActiveDialogue(pointer, definition,
+		ActiveDialogue active = StandaloneDialogue.of(pointer, definition,
 				new VariableStore(new User("u")));
 
-		DialogueState state = new DialogueState(pointer, definition, log, 5, active);
+		DialogueState state = new DialogueState(log, 5, active);
 
 		assertSame(pointer, state.getDialogueDescription());
 		assertSame(definition, state.getDialogueDefinition());
 		assertSame(log, state.getLoggedDialogue());
 		assertEquals(5, state.getLoggedInteractionIndex());
 		assertSame(active, state.getActiveDialogue());
+	}
+
+	@Test
+	public void theDialogueIsTheOneTheActiveDialogueIsIn() throws Exception {
+		ExecutableProject project = ExecutableProject.load(Path.of(DialogueStateTest.class
+				.getClassLoader().getResource("project-test/dlb-project.xml").toURI()));
+		ActiveDialogue active = project.startDialogue("menu", new User("u"));
+		DialogueState state = new DialogueState(new TestLoggedDialogue(), 0, active);
+		assertEquals("menu", state.getDialogueDescription().getDialogueName());
+
+		// The first reply of "menu" leads into "basic"
+		active.selectReply(active.getCurrentNode().getBody().getReplies().get(0).getReplyId(),
+				ZonedDateTime.now());
+
+		assertEquals("basic", state.getDialogueDescription().getDialogueName());
+		assertSame(project.getDialogue("basic"), state.getDialogueDefinition());
 	}
 }

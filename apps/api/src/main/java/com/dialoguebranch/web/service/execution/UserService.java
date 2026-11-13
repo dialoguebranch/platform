@@ -31,7 +31,6 @@ package com.dialoguebranch.web.service.execution;
 import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.exception.ParseException;
 import com.dialoguebranch.execution.*;
-import com.dialoguebranch.i18n.TranslationContext;
 import com.dialoguebranch.model.execute.*;
 import com.dialoguebranch.web.service.DateTimeUtils;
 import com.dialoguebranch.web.service.DlbProperties;
@@ -88,8 +87,6 @@ public class UserService {
 	private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 	private final LoggedDialogueStore loggedDialogueStore;
 	private final DialogueExecutor dialogueExecutor;
-
-	private TranslationContext translationContext = null;
 
 	/**
 	 * Epoch millis of the last time this {@link UserService} was resolved for an active request
@@ -166,24 +163,6 @@ public class UserService {
 	 */
 	public DialogueBranchUserId getUserId() {
 		return userId;
-	}
-
-	/**
-	 * Returns the {@link TranslationContext} describing the relevant contextual parameters
-	 * needed to select the right translations.
-	 * @return the {@link TranslationContext}.
-	 */
-	public TranslationContext getTranslationContext() {
-		return translationContext;
-	}
-
-	/**
-	 * Sets the {@link TranslationContext} describing the relevant contextual parameters
-	 * needed to select the right translations.
-	 * @param translationContext the {@link TranslationContext}.
-	 */
-	public void setTranslationContext(TranslationContext translationContext) {
-		this.translationContext = translationContext;
 	}
 
 	/**
@@ -361,17 +340,10 @@ public class UserService {
 					applicationManager.getSourceLanguage(projectSlug));
 		}
 
-		ResourcePointer dialogueDescription =
-				getDialogueDescriptionFromProject(projectSlug, dialogueId, language);
-
-		if (dialogueDescription == null) {
-			throw new ExecutionException(ExecutionException.Type.DIALOGUE_NOT_FOUND,
-					"Dialogue '" + dialogueId + "' not found in project '" + projectSlug + "'.");
-		}
-		Dialogue dialogue = getDialogueDefinitionForProject(projectSlug, dialogueDescription);
-
-		return dialogueExecutor.startDialogue(dialogueDescription, dialogue, nodeId, sessionId,
-				sessionStartTime, projectSlug);
+		ResolvedDialogue dialogue = applicationManager.getDialogueResolver(projectSlug)
+				.resolve(dialogueId, language);
+		return dialogueExecutor.startDialogue(dialogue, nodeId, sessionId, sessionStartTime,
+				projectSlug);
 	}
 
 	/**
@@ -549,77 +521,6 @@ public class UserService {
 	// ----- Methods (Retrieval)
 
 	/**
-	 * Returns the dialogue description for the specified dialogue ID and preferred language,
-	 * searching only within the named project. Dialogue Branch scripts can only reference other
-	 * dialogues via relative paths bounded at their own project root (see {@link
-	 * com.dialoguebranch.model.execute.nodepointer.ExternalNodePointer}), so callers resolving a
-	 * cross-dialogue link always know — and must pass — the originating project's slug.
-	 *
-	 * <p>If no dialogue with the specified ID is found in the project, this method returns
-	 * {@code null}.</p>
-	 *
-	 * @param projectSlug the project folder name / slug.
-	 * @param dialogueId the dialogue ID.
-	 * @param language a language code exactly matching one of the project's declared languages,
-	 *                 or {@code null}.
-	 * @return the dialogue description or null.
-	 */
-	public ResourcePointer getDialogueDescriptionFromProject(String projectSlug, String dialogueId,
-			String language) {
-		List<ResourcePointer> projectDialogues =
-				applicationManager.getDialogueDescriptionsForProject(projectSlug);
-		Map<String, ResourcePointer> langMap = new LinkedHashMap<>();
-		for (ResourcePointer pointer : projectDialogues) {
-			if (pointer.getDialogueName().equals(dialogueId)) {
-				langMap.put(pointer.getLanguage(), pointer);
-			}
-		}
-		return findExactLanguageMatch(langMap, language);
-	}
-
-	/**
-	 * Returns {@code langMap.get(language)} if {@code language} is non-null and exactly matches
-	 * one of {@code langMap}'s keys, otherwise falls back to the source-language entry (the first
-	 * one inserted — see {@link ExecutableProject#getResourcePointers()}, which always lists a
-	 * dialogue's source pointer before its translations).
-	 *
-	 * <p>Deliberately does not do any locale-aware or fuzzy matching (e.g. treating {@code "nl"}
-	 * as a match for a project that only declares {@code "nl-NL"}): a project's supported
-	 * languages are an exact, fixed set, and requesting a language outside that set should fall
-	 * back to the source language rather than guessing at a "closest" translation.</p>
-	 *
-	 * @param langMap map from a project's declared language code to the dialogue available in it.
-	 * @param language a language code to match exactly, or {@code null}.
-	 * @return the matching or source-language {@link ResourcePointer}, or {@code null} if {@code
-	 * langMap} is empty.
-	 */
-	private ResourcePointer findExactLanguageMatch(Map<String, ResourcePointer> langMap,
-			String language) {
-		if (langMap.isEmpty()) return null;
-		if (language != null) {
-			ResourcePointer match = langMap.get(language);
-			if (match != null) return match;
-		}
-		return langMap.values().iterator().next();
-	}
-
-	/**
-	 * Retrieves the dialogue definition from the named project for the specified description, or
-	 * throws a {@link ExecutionException} with
-	 * {@link ExecutionException.Type#DIALOGUE_NOT_FOUND DIALOGUE_NOT_FOUND} if not found.
-	 *
-	 * @param projectSlug the project folder name / slug.
-	 * @param dialogueDescription the sought dialogue description.
-	 * @return the {@link Dialogue} containing the Dialogue Branch dialogue representation.
-	 * @throws ExecutionException if the dialogue definition is not found in the named project.
-	 */
-	public Dialogue getDialogueDefinitionForProject(String projectSlug,
-			ResourcePointer dialogueDescription) throws ExecutionException {
-		return this.applicationManager.getDialogueDefinitionForProject(
-				projectSlug, dialogueDescription, translationContext);
-	}
-
-	/**
 	 * Reconstructs the {@link DialogueState} for the logged dialogue identified by the given
 	 * {@code loggedDialogueId} at the interaction index {@code loggedInteractionIndex}.
 	 *
@@ -663,15 +564,9 @@ public class UserService {
 										  int loggedInteractionIndex) throws ExecutionException {
 		String dialogueName = loggedDialogue.getDialogueName();
 		String projectSlug = loggedDialogue.getProjectName();
-		ResourcePointer dialogueDescription =
-				getDialogueDescriptionFromProject(projectSlug, dialogueName,
-				loggedDialogue.getLanguage());
-		if (dialogueDescription == null) {
-			throw new ExecutionException(ExecutionException.Type.DIALOGUE_NOT_FOUND,
-					"Dialogue '" + dialogueName + "' not found in project '" + projectSlug + "'.");
-		}
-		Dialogue dialogueDefinition = getDialogueDefinitionForProject(projectSlug,
-				dialogueDescription);
+		DialogueResolver resolver = applicationManager.getDialogueResolver(projectSlug);
+		ResolvedDialogue resolved = resolver.resolve(dialogueName, loggedDialogue.getLanguage());
+		Dialogue dialogueDefinition = resolved.dialogue();
 		List<LoggedInteraction> interactions =
 				loggedDialogue.getInteractionList();
 		if (loggedInteractionIndex < 0 || loggedInteractionIndex >= interactions.size()) {
@@ -688,13 +583,10 @@ public class UserService {
 					String.format("Node \"%s\" not found in dialogue \"%s\"",
 							nodeId, dialogueName));
 		}
-		ActiveDialogue activeDialogue = new ActiveDialogue(
-				dialogueDescription, dialogueDefinition, getVariableStore(projectSlug));
-		activeDialogue.setUserGenderTranslations(
-				applicationManager.getUserGenderTranslations(projectSlug, dialogueDescription));
+		ActiveDialogue activeDialogue = new ActiveDialogue(resolver, resolved,
+				getVariableStore(projectSlug));
 		activeDialogue.setCurrentNode(node);
-		return new DialogueState(dialogueDescription, dialogueDefinition,
-				loggedDialogue, loggedInteractionIndex, activeDialogue);
+		return new DialogueState(loggedDialogue, loggedInteractionIndex, activeDialogue);
 	}
 
 	/**

@@ -30,6 +30,7 @@ package com.dialoguebranch.model.execute.protocol;
 
 import com.dialoguebranch.execution.ActiveDialogue;
 import com.dialoguebranch.execution.ExecuteNodeResult;
+import com.dialoguebranch.execution.StandaloneDialogue;
 import com.dialoguebranch.execution.User;
 import com.dialoguebranch.execution.VariableStore;
 import com.dialoguebranch.execution.parser.DialogueBranchParser;
@@ -102,7 +103,7 @@ public class DialogueMessageFactoryTest {
 					result.getParseErrors().isEmpty());
 			dialogue = result.getDialogue();
 		}
-		ActiveDialogue active = new ActiveDialogue(
+		ActiveDialogue active = StandaloneDialogue.of(
 				new ResourcePointer("en", "flow", ResourceType.SCRIPT), dialogue,
 				new VariableStore(new User("u")));
 		executedStart = active.executeNode(dialogue.getNodeById("Start"), NOW);
@@ -210,7 +211,7 @@ public class DialogueMessageFactoryTest {
 					result.getParseErrors().isEmpty());
 			dlg = result.getDialogue();
 		}
-		ActiveDialogue active = new ActiveDialogue(
+		ActiveDialogue active = StandaloneDialogue.of(
 				new ResourcePointer("en", "flow2", ResourceType.SCRIPT), dlg,
 				new VariableStore(new User("u")));
 		Node executed = active.executeNode(dlg.getNodeById("Start"), NOW);

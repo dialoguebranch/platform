@@ -40,7 +40,6 @@ import com.dialoguebranch.model.execute.Dialogue;
 import com.dialoguebranch.model.execute.ExecutableProject;
 import com.dialoguebranch.model.execute.Node;
 import com.dialoguebranch.model.execute.ResourcePointer;
-import com.dialoguebranch.model.execute.nodepointer.InternalNodePointer;
 import org.junit.Test;
 
 import java.io.Reader;
@@ -95,16 +94,15 @@ public class UserGenderTranslationTest {
 	public void theUsersGenderIsReadAtEveryStep() throws Exception {
 		ExecutableProject project = project(DUTCH);
 		VariableStore variables = new VariableStore(new User("test"));
-		ActiveDialogue dialogue = new ActiveDialogue(NL,
-				Objects.requireNonNull(project.getDialogues().get(NL)), variables);
-		dialogue.setUserGenderTranslations((gender) ->
-				project.getDialogueForUserGender(NL, gender));
+		ActiveDialogue dialogue = new ActiveDialogue(project, project.resolve("main", "nl"),
+				variables);
+		assertEquals(NL, dialogue.getDialogueFileDescription());
 
 		Node start = dialogue.startDialogue(ZonedDateTime.now());
 		assertTrue(text(start), text(start).startsWith("Welkom."));
 
 		variables.setValue("dlb.userGender", "female", false, ZonedDateTime.now());
-		Node next = dialogue.progressDialogue(new InternalNodePointer("Start", "Next"),
+		Node next = dialogue.selectReply(start.getBody().getReplies().get(0).getReplyId(),
 				ZonedDateTime.now());
 		assertTrue(text(next), text(Objects.requireNonNull(next)).startsWith("Welkom, mevrouw."));
 	}

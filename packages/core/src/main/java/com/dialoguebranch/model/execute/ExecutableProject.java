@@ -28,6 +28,18 @@
 
 package com.dialoguebranch.model.execute;
 
+import com.dialoguebranch.exception.ExecutionException;
+import com.dialoguebranch.exception.ParseException;
+import com.dialoguebranch.exception.ProjectParseException;
+import com.dialoguebranch.execution.ActiveDialogue;
+import com.dialoguebranch.execution.DialogueResolver;
+import com.dialoguebranch.execution.ResolvedDialogue;
+import com.dialoguebranch.execution.User;
+import com.dialoguebranch.execution.VariableStore;
+import com.dialoguebranch.execution.parser.ProjectParser;
+import com.dialoguebranch.execution.parser.ProjectParserResult;
+import com.dialoguebranch.execution.parser.ProjectScriptLoader;
+import com.dialoguebranch.expression.EvaluationException;
 import com.dialoguebranch.i18n.ContextTranslation;
 import com.dialoguebranch.i18n.Translatable;
 import com.dialoguebranch.i18n.TranslationContext;
@@ -38,6 +50,9 @@ import com.dialoguebranch.model.common.ProjectMetaData;
 import com.dialoguebranch.model.common.Speaker;
 import org.jspecify.annotations.Nullable;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.time.ZonedDateTime;
 import java.util.*;
 
 /**
@@ -48,7 +63,7 @@ import java.util.*;
  * @author Dennis Hofs
  * @author Harm op den Akker
  */
-public class ExecutableProject implements DialogueBranchProject {
+public class ExecutableProject implements DialogueBranchProject, DialogueResolver {
 	private @Nullable ProjectMetaData metaData;
 	private List<Speaker> speakers = List.of();
 	private final Map<ResourcePointer, Map<TranslationContext.Gender, Dialogue>> userGenderDialogues =
@@ -57,6 +72,7 @@ public class ExecutableProject implements DialogueBranchProject {
 	private Map<ResourcePointer, Dialogue> sourceDialogues = new LinkedHashMap<>();
 	private Map<ResourcePointer,
 			Map<Translatable,List<ContextTranslation>>> translations = new LinkedHashMap<>();
+	private Map<String, List<String>> warnings = Map.of();
 
 	// -------------------------------------------------------- //
 	// -------------------- Constructor(s) -------------------- //
@@ -74,6 +90,33 @@ public class ExecutableProject implements DialogueBranchProject {
 	 */
 	public ExecutableProject(ProjectMetaData metaData) {
 		this.metaData = metaData;
+	}
+
+	/**
+	 * Loads and parses the project described by the given project metadata file ({@code
+	 * dlb-project.xml}), with its scripts and translations in the language folders next to it.
+	 *
+	 * <p>Parse warnings don't stop the project from loading; they are available from {@link
+	 * #getWarnings()}. To get the parse errors one by one instead of as an exception, or to load
+	 * a project from somewhere other than a folder on disk, use a {@link ProjectParser}.</p>
+	 *
+	 * @param projectMetadataFile the project's metadata file.
+	 * @return the parsed project.
+	 * @throws IOException if a file of the project can't be read.
+	 * @throws ProjectParseException if any file of the project has parse errors; it lists them
+	 *                               all.
+	 * @throws ParseException if the project metadata file itself is invalid.
+	 */
+	public static ExecutableProject load(Path projectMetadataFile)
+			throws IOException, ParseException {
+		ProjectScriptLoader loader = new ProjectScriptLoader(projectMetadataFile.toFile());
+		ProjectParserResult result = new ProjectParser(loader).parse();
+		ExecutableProject project = result.getProject();
+		if (!result.getParseErrors().isEmpty() || project == null) {
+			throw new ProjectParseException(projectMetadataFile.toString(),
+					result.getParseErrors());
+		}
+		return project;
 	}
 
 	// ----------------------------------------------------------- //
@@ -164,9 +207,201 @@ public class ExecutableProject implements DialogueBranchProject {
 		this.metaData = metaData;
 	}
 
+	/**
+	 * Returns the warnings found while parsing this project, per file. They don't stop the
+	 * project from running, but may point at mistakes, such as a translation that matches no
+	 * text in its dialogue.
+	 *
+	 * @return the parse warnings, per file; empty if there were none.
+	 */
+	public Map<String, List<String>> getWarnings() {
+		return warnings;
+	}
+
+	/**
+	 * Sets the warnings found while parsing this project, per file.
+	 *
+	 * @param warnings the parse warnings, per file.
+	 */
+	public void setWarnings(Map<String, List<String>> warnings) {
+		Map<String, List<String>> copy = new LinkedHashMap<>();
+		warnings.forEach((file, list) -> copy.put(file, List.copyOf(list)));
+		this.warnings = Collections.unmodifiableMap(copy);
+	}
+
 	// ------------------------------------------------------- //
 	// -------------------- Other Methods -------------------- //
 	// ------------------------------------------------------- //
+
+	/**
+	 * Returns the code of the language the project's dialogues are written in: the source
+	 * language from the project's metadata, or, for a project without metadata, the language of
+	 * its source dialogues.
+	 *
+	 * @return the source language code, or {@code null} for a project without metadata and
+	 *         without dialogues.
+	 */
+	public @Nullable String getSourceLanguage() {
+		if (metaData != null && metaData.getSourceLanguageCode() != null)
+			return metaData.getSourceLanguageCode();
+		for (ResourcePointer pointer : sourceDialogues.keySet()) {
+			if (pointer.getLanguage() != null)
+				return pointer.getLanguage();
+		}
+		return null;
+	}
+
+	/**
+	 * Returns the dialogue with the given name, in the project's source language.
+	 *
+	 * @param dialogueName the dialogue's name, including its folders, such as {@code
+	 *                     "intro/welcome"}; a leading {@code "/"} is allowed.
+	 * @return the dialogue.
+	 * @throws ExecutionException ({@link ExecutionException.Type#DIALOGUE_NOT_FOUND}) if the
+	 *                            project has no dialogue with that name.
+	 */
+	public Dialogue getDialogue(String dialogueName) throws ExecutionException {
+		return getDialogue(dialogueName, null);
+	}
+
+	/**
+	 * Returns the dialogue with the given name, in the given language. If the dialogue isn't
+	 * available in that language, or no language is given, it is returned in the project's
+	 * source language. The language must match exactly: {@code "nl"} doesn't select {@code
+	 * "nl-NL"}.
+	 *
+	 * @param dialogueName the dialogue's name, including its folders, such as {@code
+	 *                     "intro/welcome"}; a leading {@code "/"} is allowed.
+	 * @param language the language code, or {@code null} for the source language.
+	 * @return the dialogue.
+	 * @throws ExecutionException ({@link ExecutionException.Type#DIALOGUE_NOT_FOUND}) if the
+	 *                            project has no dialogue with that name.
+	 */
+	public Dialogue getDialogue(String dialogueName, @Nullable String language)
+			throws ExecutionException {
+		return Objects.requireNonNull(dialogues.get(getDialoguePointer(dialogueName, language)));
+	}
+
+	/**
+	 * Starts the dialogue with the given name, in the project's source language, for the given
+	 * user, with a new, empty {@link VariableStore}. See {@link #startDialogue(String, String,
+	 * VariableStore, ZonedDateTime)}.
+	 *
+	 * @param dialogueName the dialogue's name, including its folders, such as {@code
+	 *                     "intro/welcome"}.
+	 * @param user the user the dialogue is played with.
+	 * @return the running dialogue, at its first node ({@link ActiveDialogue#getCurrentNode()}).
+	 * @throws ExecutionException if the project has no dialogue with that name, or it has no
+	 *                            start node.
+	 * @throws EvaluationException if an expression in the first node cannot be evaluated.
+	 */
+	public ActiveDialogue startDialogue(String dialogueName, User user)
+			throws ExecutionException, EvaluationException {
+		return startDialogue(dialogueName, null, new VariableStore(user));
+	}
+
+	/**
+	 * Starts the dialogue with the given name, in the given language, with the given variables,
+	 * now (in the time zone of the variables' user). See {@link #startDialogue(String, String,
+	 * VariableStore, ZonedDateTime)}.
+	 *
+	 * @param dialogueName the dialogue's name, including its folders, such as {@code
+	 *                     "intro/welcome"}.
+	 * @param language the language code, or {@code null} for the source language.
+	 * @param variableStore the variables the dialogue reads and writes.
+	 * @return the running dialogue, at its first node ({@link ActiveDialogue#getCurrentNode()}).
+	 * @throws ExecutionException if the project has no dialogue with that name, or it has no
+	 *                            start node.
+	 * @throws EvaluationException if an expression in the first node cannot be evaluated.
+	 */
+	public ActiveDialogue startDialogue(String dialogueName, @Nullable String language,
+			VariableStore variableStore) throws ExecutionException, EvaluationException {
+		return startDialogue(dialogueName, language, variableStore,
+				ZonedDateTime.now(variableStore.getUser().getTimeZone()));
+	}
+
+	/**
+	 * Starts the dialogue with the given name, in the given language, with the given variables,
+	 * at its start node. The dialogue is found as {@link #getDialogue(String, String)} does: if
+	 * it isn't available in the language, it runs in the source language.
+	 *
+	 * <p>The returned {@link ActiveDialogue} follows replies into the project's other dialogues
+	 * (see {@link ActiveDialogue#selectReply}), in the same language where they are available.
+	 * Where a translation depends on the end user's gender, it follows the value of {@code
+	 * $dlb.userGender} in the variables at every step.</p>
+	 *
+	 * @param dialogueName the dialogue's name, including its folders, such as {@code
+	 *                     "intro/welcome"}.
+	 * @param language the language code, or {@code null} for the source language.
+	 * @param variableStore the variables the dialogue reads and writes.
+	 * @param eventTime the time (in the user's time zone) the dialogue starts.
+	 * @return the running dialogue, at its first node ({@link ActiveDialogue#getCurrentNode()}).
+	 * @throws ExecutionException if the project has no dialogue with that name, or it has no
+	 *                            start node.
+	 * @throws EvaluationException if an expression in the first node cannot be evaluated.
+	 */
+	public ActiveDialogue startDialogue(String dialogueName, @Nullable String language,
+			VariableStore variableStore, ZonedDateTime eventTime)
+			throws ExecutionException, EvaluationException {
+		ActiveDialogue dialogue = new ActiveDialogue(this, resolve(dialogueName, language),
+				variableStore);
+		dialogue.startDialogue(eventTime);
+		return dialogue;
+	}
+
+	/**
+	 * Finds the dialogue with the given name, in the given language, as {@link
+	 * #getDialoguePointer(String, String)} does, together with its translation for each gender
+	 * of the end user (see {@link #getDialogueForUserGender}). This makes the project the {@link
+	 * DialogueResolver} of the dialogues started from it.
+	 *
+	 * @param dialogueName the dialogue's name, including its folders, such as {@code
+	 *                     "intro/welcome"}; a leading {@code "/"} is allowed.
+	 * @param language the language code, or {@code null} for the source language.
+	 * @return the dialogue.
+	 * @throws ExecutionException ({@link ExecutionException.Type#DIALOGUE_NOT_FOUND}) if the
+	 *                            project has no dialogue with that name.
+	 */
+	@Override
+	public ResolvedDialogue resolve(String dialogueName, @Nullable String language)
+			throws ExecutionException {
+		ResourcePointer pointer = getDialoguePointer(dialogueName, language);
+		return new ResolvedDialogue(pointer, Objects.requireNonNull(dialogues.get(pointer)),
+				(gender) -> getDialogueForUserGender(pointer, gender));
+	}
+
+	/**
+	 * Returns the {@link ResourcePointer} of the dialogue with the given name, in the given
+	 * language, chosen as for {@link #getDialogue(String, String)}. Its language is the one the
+	 * dialogue is actually available in.
+	 *
+	 * @param dialogueName the dialogue's name, including its folders, such as {@code
+	 *                     "intro/welcome"}; a leading {@code "/"} is allowed.
+	 * @param language the language code, or {@code null} for the source language.
+	 * @return the dialogue's resource pointer.
+	 * @throws ExecutionException ({@link ExecutionException.Type#DIALOGUE_NOT_FOUND}) if the
+	 *                            project has no dialogue with that name.
+	 */
+	public ResourcePointer getDialoguePointer(String dialogueName, @Nullable String language)
+			throws ExecutionException {
+		String name = dialogueName.startsWith(DialogueBranchConstants.DLB_PATH_SEPARATOR)
+				? dialogueName.substring(DialogueBranchConstants.DLB_PATH_SEPARATOR.length())
+				: dialogueName;
+		ResourcePointer source = null;
+		for (ResourcePointer pointer : dialogues.keySet()) {
+			if (!pointer.getDialogueName().equals(name))
+				continue;
+			if (language != null && language.equals(pointer.getLanguage()))
+				return pointer;
+			if (sourceDialogues.containsKey(pointer))
+				source = pointer;
+		}
+		if (source == null) {
+			throw new ExecutionException(ExecutionException.Type.DIALOGUE_NOT_FOUND,
+					"Dialogue not found: " + dialogueName);
+		}
+		return source;
+	}
 
 	/**
 	 * Returns a list of all supported languages in this {@link ExecutableProject}. In the case of a
@@ -224,6 +459,76 @@ public class ExecutableProject implements DialogueBranchProject {
 			return null;
 		Translator translator = new Translator(context, translations);
 		return translator.translate(dialogue);
+	}
+
+	/**
+	 * Generates a human-readable summary of this project: where it was loaded from, its parse
+	 * warnings, its dialogue and translation files, and the contents of every dialogue.
+	 *
+	 * @return a human-readable summary of this project.
+	 */
+	public String generateSummaryString() {
+		StringBuilder result = new StringBuilder();
+
+		result.append("===== Summary of Results for Parsing Dialogue Branch Project =====\n");
+
+		String projectLocationDescription = "unknown";
+		if (metaData != null && metaData.getBasePath() != null)
+			projectLocationDescription = metaData.getBasePath();
+
+		// First list all warnings
+		if(!this.warnings.isEmpty()) {
+			result.append("Dialogue Branch project at ")
+					.append(projectLocationDescription)
+					.append(" contains ")
+					.append("the following warnings.\n");
+			for (String key : this.warnings.keySet()) {
+				result.append("WARNING: ")
+						.append(key)
+						.append("\n");
+				List<String> warningStrings = this.warnings.get(key);
+				for (String warningString : warningStrings) {
+					result.append("  - ")
+							.append(warningString)
+							.append("\n");
+				}
+			}
+		}
+
+		result.append("Project Summary:\n");
+		result.append("Location: ")
+				.append(projectLocationDescription)
+				.append("\n");
+
+		result.append("Number of Dialogue Scripts: ")
+				.append(sourceDialogues.size())
+				.append("\n");
+		for(ResourcePointer dialogueDescription : sourceDialogues.keySet()) {
+			result.append("  - ")
+					.append(dialogueDescription)
+					.append("\n");
+		}
+
+		result.append("Number of Translation Scripts: ")
+				.append(translations.size())
+				.append("\n");
+		for(ResourcePointer dialogueDescription : translations.keySet()) {
+			result.append("  - ")
+					.append(dialogueDescription)
+					.append("\n");
+		}
+
+		for (ResourcePointer dialogue : dialogues.keySet()) {
+			result.append("----------");
+			result.append("DIALOGUE ")
+					.append(dialogue.getDialogueName())
+					.append(" (")
+					.append(dialogue.getLanguage())
+					.append(")\n");
+			result.append(dialogues.get(dialogue)).append("\n");
+		}
+
+		return result.toString();
 	}
 
 	@Override
