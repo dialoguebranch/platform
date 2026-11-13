@@ -442,6 +442,7 @@ defineExpose({
             v-model:nodes="flowNodes"
             v-model:edges="flowEdges"
             class="h-full"
+            :delete-key-code="false"
             @node-drag-stop="onNodeDragStop"
             @node-click="onNodeClick"
             @nodes-initialized="onNodesInitialized"

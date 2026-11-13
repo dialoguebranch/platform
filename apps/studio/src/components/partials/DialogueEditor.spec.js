@@ -47,7 +47,7 @@ const selectedIds = new Set();
 
 const VueFlowStub = defineComponent({
     name: 'VueFlow',
-    props: ['nodes'],
+    props: ['nodes', 'deleteKeyCode'],
     emits: ['node-drag-stop', 'node-click'],
     setup(props, { slots }) {
         return () => h('div', [
@@ -261,5 +261,14 @@ describe('DialogueEditor mouse and keyboard hints', () => {
         await wrapper.find('[data-test="graph-hints-button"]').trigger('click');
         await wrapper.find('[data-test="graph-hints-button"]').trigger('click');
         expect(wrapper.find('[data-test="graph-hints"]').exists()).toBe(false);
+    });
+});
+
+describe('DialogueEditor keys', () => {
+    // Vue Flow deletes the selected nodes on Backspace by default, but only on screen: they'd come
+    // back on the next load. Until deleting from the canvas is built (#193, #197), the key is off.
+    it('turns off Vue Flow\'s delete key', async () => {
+        const wrapper = await mountEditor();
+        expect(wrapper.findComponent(VueFlowStub).props('deleteKeyCode')).toBe(false);
     });
 });
