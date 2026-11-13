@@ -84,6 +84,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 ### Fixed
 
+- Web service: `/dialogue/progress` and `/dialogue/back` with a step that is not in the dialogue's log
+  answer `404`, instead of a generic `500`.
 - Studio: after a reply that led into another dialogue, the Dialogue Workspace kept showing the
   log ID of the first dialogue, and the Dialogue Browser could open an ongoing dialogue in a
   second tab. It now follows the new dialogue's log
