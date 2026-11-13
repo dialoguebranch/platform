@@ -62,6 +62,7 @@ public class InMemoryLoggedDialogue implements LoggedDialogue {
 	private boolean cancelled;
 	private List<LoggedInteraction> interactionList = new ArrayList<>();
 	private final @Nullable String sessionId;
+	private @Nullable InMemoryLoggedDialogue previous;
 
 	/**
 	 * Creates the log of a dialogue that starts at the given time.
@@ -86,14 +87,20 @@ public class InMemoryLoggedDialogue implements LoggedDialogue {
 
 	/**
 	 * Returns a factory of {@link InMemoryLoggedDialogue}s, which carry on the user and the session
-	 * of the log before them.
+	 * of the log before them, and point back to it ({@link #getPrevious()}), so the whole
+	 * conversation can be read from the log it is in now.
 	 *
 	 * @return the factory, for {@link ActiveDialogue#setLoggedDialogue}.
 	 */
 	public static LoggedDialogueFactory factory() {
-		return (previous, entered, eventTime) -> new InMemoryLoggedDialogue(previous.getUser(),
-				entered, eventTime,
-				previous instanceof InMemoryLoggedDialogue inMemory ? inMemory.sessionId : null);
+		return (previous, entered, eventTime) -> {
+			InMemoryLoggedDialogue before =
+					previous instanceof InMemoryLoggedDialogue inMemory ? inMemory : null;
+			InMemoryLoggedDialogue log = new InMemoryLoggedDialogue(previous.getUser(), entered,
+					eventTime, before == null ? null : before.sessionId);
+			log.previous = before;
+			return log;
+		};
 	}
 
 	/**
@@ -102,6 +109,16 @@ public class InMemoryLoggedDialogue implements LoggedDialogue {
 	 * @return the session identifier, or {@code null} if there is none.
 	 */
 	public @Nullable String getSessionId() { return sessionId; }
+
+	/**
+	 * Returns the log of the dialogue the conversation was in before this one: the one a reply
+	 * led from into this dialogue. Following these from {@link ActiveDialogue#getLoggedDialogue()}
+	 * gives the whole conversation, newest first.
+	 *
+	 * @return the log before this one, or {@code null} for the first log of the conversation, or
+	 *         one made by another factory.
+	 */
+	public @Nullable InMemoryLoggedDialogue getPrevious() { return previous; }
 
 	@Override public String getId() { return id; }
 	@Override public void setId(String id) { this.id = id; }

@@ -240,6 +240,32 @@ public class ActiveDialogueLogTest {
 	}
 
 	@Test
+	public void anInMemoryLogKeepsTheWholeConversationAcrossLinks() throws Exception {
+		ExecutableProject project = ActiveDialogueLinkTest.mainAndOther();
+		ActiveDialogue dialogue = new ActiveDialogue(project, project.resolve("main", null),
+				new VariableStore(new User("test")));
+		InMemoryLoggedDialogue first = dialogue.keepInMemoryLog(NOW);
+		dialogue.startDialogue(NOW);
+
+		reply(dialogue, "On.");   // main -> other
+		reply(dialogue, "Back."); // other -> main
+
+		InMemoryLoggedDialogue third = (InMemoryLoggedDialogue) dialogue.getLoggedDialogue();
+		InMemoryLoggedDialogue second = third.getPrevious();
+		assertEquals("main", third.getDialogueName());
+		assertEquals("other", second.getDialogueName());
+		assertSame(first, second.getPrevious());
+		assertNull(first.getPrevious());
+		// One conversation: the logs share a session ID
+		assertNotNull(first.getSessionId());
+		assertEquals(first.getSessionId(), second.getSessionId());
+		assertEquals(first.getSessionId(), third.getSessionId());
+		assertNotEquals(first.getSessionId(), new ActiveDialogue(project,
+				project.resolve("main", null), new VariableStore(new User("test")))
+				.keepInMemoryLog(NOW).getSessionId());
+	}
+
+	@Test
 	public void aLinkBackIntoTheStartOfTheSameDialogueStartsANewLogToo() throws Exception {
 		ExecutableProject project = ActiveDialogueLinkTest.mainAndOther();
 		ActiveDialogue dialogue = new ActiveDialogue(project, project.resolve("other", null),

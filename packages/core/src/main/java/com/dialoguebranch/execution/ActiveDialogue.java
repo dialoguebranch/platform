@@ -50,6 +50,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.function.Function;
 
 /**
@@ -302,7 +303,10 @@ public class ActiveDialogue {
 
 	/**
 	 * Keeps a log in memory for this conversation, for the dialogue it is in now (#483). A
-	 * shorthand for {@link #setLoggedDialogue} with an {@link InMemoryLoggedDialogue}.
+	 * shorthand for {@link #setLoggedDialogue} with an {@link InMemoryLoggedDialogue}, with a new
+	 * session ID that the logs of the dialogues the conversation enters share. Each of those logs
+	 * points back to the one before it ({@link InMemoryLoggedDialogue#getPrevious()}), so the
+	 * whole conversation can be read from {@link #getLoggedDialogue()}.
 	 *
 	 * @param startTime when the dialogue starts, in the user's time zone.
 	 * @return the log, to read the transcript from.
@@ -310,7 +314,7 @@ public class ActiveDialogue {
 	public InMemoryLoggedDialogue keepInMemoryLog(ZonedDateTime startTime) {
 		InMemoryLoggedDialogue log = new InMemoryLoggedDialogue(variableStore.getUser().getId(),
 				new ResolvedDialogue(dialogueFileDescription, dialogueDefinition), startTime,
-				null);
+				UUID.randomUUID().toString().toLowerCase().replaceAll("-", ""));
 		setLoggedDialogue(log, InMemoryLoggedDialogue.factory());
 		return log;
 	}
