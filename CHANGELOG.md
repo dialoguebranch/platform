@@ -11,6 +11,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 - Web service: `/dialogue/get-ongoing` also returns the `language` the ongoing dialogue runs in;
   in client-js, `OngoingDialogue.language` ([#489](https://github.com/dialoguebranch/platform/issues/489)).
+- Studio: a *Go back a step* button while testing a dialogue in Live Mode
+  ([#490](https://github.com/dialoguebranch/platform/issues/490)).
 - Studio: the graph editor has a dot grid, buttons to zoom, fit the dialogue in view and lock the
   nodes, and a map of the whole dialogue (nodes in their colours and the links between them) to
   move around in ([#192](https://github.com/dialoguebranch/platform/issues/192)). A **?** button

@@ -40,6 +40,7 @@ const playback = {
     cancelDialogue: vi.fn(),
     getOngoingDialogue: vi.fn(),
     setVariable: vi.fn(),
+    back: vi.fn(),
 };
 const authoring = {
     getProject: vi.fn(),
@@ -302,3 +303,101 @@ describe('DialogueWorkspace — resuming a dialogue (#489)', () => {
         expect(playback.startDialogue).not.toHaveBeenCalled();
     });
 });
+
+describe('DialogueWorkspace — going back a step (#490)', () => {
+    async function mountLive() {
+        const state = ref({
+            selectedProject: { slug: 'p' },
+            mode: DLB_APP_MODE_LIVE,
+            dialogueWorkspaceStyle: DIALOGUE_WORKSPACE_STYLE_BALLOONS,
+        });
+        const wrapper = mount(DialogueWorkspace, {
+            global: {
+                provide: { state },
+                stubs: {
+                    FontAwesomeIcon: true, BalloonDialogueComponent: true, TextDialogueComponent: true,
+                    DialogueEditor: true, TranslationEditor: true, teleport: true,
+                },
+            },
+        });
+        await flushPromises();
+        return wrapper;
+    }
+
+    const at = (node, index, replies = [reply], log = 'ld-1') =>
+        ({ ...step(replies), node, loggedDialogueId: log, loggedInteractionIndex: index });
+    const backButton = (wrapper) => wrapper.find('button[data-test="dialogue-back"]');
+    const shownSteps = (wrapper) => balloons(wrapper).props('dialogueSteps');
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        authoring.getProject.mockResolvedValue({ sourceLanguageCode: 'en', sourceLanguageName: 'English' });
+        playback.startDialogue.mockResolvedValue(at('Start', 0));
+    });
+
+    async function startAndReply(wrapper, next) {
+        wrapper.vm.loadDialogue('main');
+        await flushPromises();
+        playback.progressDialogue.mockResolvedValue(next);
+        balloons(wrapper).vm.$emit('selectReply', shownSteps(wrapper).at(-1), reply);
+        await flushPromises();
+    }
+
+    it('goes back to the previous step, whose replies can be chosen again', async () => {
+        const wrapper = await mountLive();
+        await startAndReply(wrapper, at('Second', 2));
+        const before = shownSteps(wrapper)[0];
+        const again = at('Start', 0);
+        playback.back.mockResolvedValue(again);
+
+        await backButton(wrapper).trigger('click');
+        await flushPromises();
+
+        expect(playback.back).toHaveBeenCalledWith('ld-1', 2);
+        const steps = shownSteps(wrapper);
+        expect(steps).toHaveLength(1);
+        expect(steps[0]).toStrictEqual(again);
+        expect(steps[0]).not.toBe(before);
+        expect(wrapper.emitted('newDialogueStep')?.length).toBeGreaterThan(1);
+    });
+
+    it('is off with no earlier step, after the end, and right after a reply into another dialogue', async () => {
+        const wrapper = await mountLive();
+        expect(backButton(wrapper).attributes('disabled')).toBeDefined();
+
+        wrapper.vm.loadDialogue('main');
+        await flushPromises();
+        expect(backButton(wrapper).attributes('disabled')).toBeDefined();
+
+        await startAndReply(wrapper, at('Other', 0, [reply], 'ld-2'));
+        expect(backButton(wrapper).attributes('disabled')).toBeDefined();
+
+        await startAndReply(wrapper, at('Last', 2, []));
+        expect(backButton(wrapper).attributes('disabled')).toBeDefined();
+    });
+
+    it('goes back in a resumed dialogue too, whose earlier steps are only in its log', async () => {
+        const wrapper = await mountLive();
+        playback.continueDialogue.mockResolvedValue(at('Fourth', 6));
+        wrapper.vm.resumeDialogue('main');
+        await flushPromises();
+        const again = at('Third', 4);
+        playback.back.mockResolvedValue(again);
+
+        await backButton(wrapper).trigger('click');
+        await flushPromises();
+
+        expect(playback.back).toHaveBeenCalledWith('ld-1', 6);
+        expect(shownSteps(wrapper)).toStrictEqual([again]);
+    });
+
+    it('is off for a draft test, which keeps no log', async () => {
+        authoring.startTestSession.mockResolvedValue({ testSessionId: 's1', dialogueStep: step([reply]) });
+        const wrapper = await mountWorkspace();
+        authoring.progressTestSession.mockResolvedValue(step([reply]));
+        balloons(wrapper).vm.$emit('selectReply', step([reply]), reply);
+        await flushPromises();
+        expect(backButton(wrapper).attributes('disabled')).toBeDefined();
+    });
+});
+
