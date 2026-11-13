@@ -15,6 +15,10 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   ([#490](https://github.com/dialoguebranch/platform/issues/490)).
 - Studio: each node's card in the graph editor shows the start of its text, without its replies
   and commands ([#200](https://github.com/dialoguebranch/platform/issues/200)).
+- Studio: Delete or Backspace in the graph editor deletes the selected nodes, after a confirmation
+  that warns about replies elsewhere that will be left dangling
+  ([#193](https://github.com/dialoguebranch/platform/issues/193),
+  [#197](https://github.com/dialoguebranch/platform/issues/197)).
 - Studio: the graph editor has a dot grid, buttons to zoom, fit the dialogue in view and lock the
   nodes, and a map of the whole dialogue (nodes in their colours and the links between them) to
   move around in ([#192](https://github.com/dialoguebranch/platform/issues/192)). A **?** button
@@ -39,9 +43,7 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   selected nodes get an outline (also on the map), and a click with Shift, Ctrl or Cmd changes the
   selection without opening the node.
 - Studio: pressing Backspace in the graph editor removed the selected nodes from the screen without
-  deleting them, so they came back on the next load. The key does nothing there now; deleting from
-  the canvas is planned ([#193](https://github.com/dialoguebranch/platform/issues/193),
-  [#197](https://github.com/dialoguebranch/platform/issues/197)).
+  deleting them, so they came back on the next load. It now deletes them, after asking (see Added).
 - Studio: when a dialogue can't be translated because it has errors, the Translate view shows a
   short message with the errors folded away, as the Test views do, instead of every error inline.
   The fold says how many errors there are.
