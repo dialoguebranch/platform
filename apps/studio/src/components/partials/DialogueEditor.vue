@@ -348,9 +348,12 @@ function addNode(position) {
         x = (index % GRID_COLUMNS) * GRID_SPACING_X;
         y = Math.floor(index / GRID_COLUMNS) * GRID_SPACING_Y;
     }
-    // A new node gets the project's default speaker, or else its first one (#396).
+    // A new node gets the project's default speaker, or else its first one (#396); in a project
+    // without speakers, the one used most in this dialogue.
     const header = new Map([['title', title]]);
-    const speaker = speakerForNewNode(projectSpeakers.value);
+    const usedSpeakers = [...rawNodesByTitle.value.values()]
+        .map((node) => tagsToMap(node.tags).get('speaker'));
+    const speaker = speakerForNewNode(projectSpeakers.value, usedSpeakers);
     if (speaker) header.set('speaker', speaker);
     const tags = mapToTags(setPosition(header, x, y));
 

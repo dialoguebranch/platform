@@ -21,6 +21,8 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   canvas adds a node at once; it no longer zooms (the scroll wheel and the zoom buttons do).
 - The example project (`default-test`) defines its speakers, with Martin McOwl as the default, so a
   node added in Studio gets a speaker. A database seeded before this keeps its project as it was.
+- Studio: in a project without speakers, a node added in the graph editor gets the speaker used
+  most in its dialogue, instead of none (a node without a speaker doesn't parse).
 
 ### Fixed
 

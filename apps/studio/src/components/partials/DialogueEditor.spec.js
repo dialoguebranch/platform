@@ -309,6 +309,18 @@ describe('DialogueEditor adding a node from the canvas', () => {
         expect(createdAt()).toEqual(['210,105']);
     });
 
+    it('gives a new node the dialogue\'s speaker when the project has none', async () => {
+        // the test nodes all have the speaker Robin, and the project's speakers aren't loaded
+        const wrapper = await mountEditor();
+        rightClick(wrapper);
+        await flushPromises();
+        await wrapper.find('[data-test="pane-menu-add-node"]').trigger('click');
+        await flushPromises();
+
+        const tags = authoring.createDraftNode.mock.calls[0][2];
+        expect(tags.find((tag) => tag.key === 'speaker')?.value).toBe('Robin');
+    });
+
     it('adds nothing on a double-click on a node', async () => {
         const wrapper = await mountEditor();
         await wrapper.find('[data-node="Next"]').trigger('dblclick');
