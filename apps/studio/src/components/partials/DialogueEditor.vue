@@ -593,12 +593,17 @@ function onNodeContextMenu({ event, node }) {
     paneMenu.value = null;
     const selected = selectedTitles();
     const titles = selected.includes(node.id) ? selected : [node.id];
-    nodeMenu.value = { x: event.clientX, y: event.clientY, titles };
+    nodeMenu.value = { x: event.clientX, y: event.clientY, titles, node: node.id };
 }
 
 const nodeMenuItems = computed(() => {
     const count = nodeMenu.value?.titles.length ?? 0;
     return [{
+        id: 'links',
+        label: 'Show links to this node',
+        icon: 'fa-solid fa-diagram-project',
+        test: 'node-menu-links',
+    }, { separator: true }, {
         id: 'delete',
         label: count > 1 ? `Delete ${count} selected nodes…` : 'Delete node…',
         icon: 'fa-solid fa-trash',
@@ -608,8 +613,47 @@ const nodeMenuItems = computed(() => {
 });
 
 function onNodeMenuSelect(item) {
-    if (item.id === 'delete' && nodeMenu.value) startDeleting(nodeMenu.value.titles);
+    if (!nodeMenu.value) return;
+    if (item.id === 'delete') startDeleting(nodeMenu.value.titles);
+    if (item.id === 'links') showLinksTo(nodeMenu.value.node);
 }
+
+// ---- What links here (#194) ----
+// The replies that lead to a node, found by the Web Service (find-node-references, the look-up a
+// rename and a delete use): in this dialogue they're highlighted like search matches, and their
+// lines drawn bold; the panel under the search names them, with those in other dialogues. A
+// search and this clear each other, so only one set of highlights shows.
+
+const linksView = ref(null); // { target, here: [titles], elsewhere: [{ dialogueName, nodeTitle }] }
+
+function showLinksTo(title) {
+    searchQuery.value = '';
+    dismissError();
+    client.findNodeReferences(state.value.selectedProject?.slug, props.dialogueName, title)
+        .then((references) => {
+            const here = [...new Set(references.filter((r) => r.dialogueName === props.dialogueName)
+                .map((r) => r.nodeTitle))];
+            const elsewhere = references.filter((r) => r.dialogueName !== props.dialogueName);
+            linksView.value = { target: title, here, elsewhere };
+            centreOn(title);
+        })
+        .catch((error) => showError(describeError(error)));
+}
+
+const linkSourceIds = computed(() => new Set(linksView.value?.here ?? []));
+
+function isHighlightedEdge(sourceNode, targetNode) {
+    return !!linksView.value && targetNode?.id === linksView.value.target
+        && linkSourceIds.value.has(sourceNode?.id);
+}
+
+watch(searchQuery, (query) => {
+    if (query) linksView.value = null;
+});
+watch(() => props.dialogueName, () => {
+    linksView.value = null;
+    searchQuery.value = '';
+});
 
 function isTyping(target) {
     const tag = target?.tagName;
@@ -623,6 +667,10 @@ function onKeyDown(event) {
             searchInput.value?.focus();
             searchInput.value?.select();
         }
+        return;
+    }
+    if (event.key === 'Escape' && linksView.value && !isTyping(event.target)) {
+        linksView.value = null;
         return;
     }
     if (event.key !== 'Delete' && event.key !== 'Backspace') return;
@@ -685,7 +733,7 @@ defineExpose({
                 <PreambleBar ref="preamble-bar" :dialogue-name="dialogueName" @saved="emit('dialogueSaved')" />
             </Panel>
 
-            <Panel position="top-right">
+            <Panel position="top-right" class="flex flex-col items-end gap-1.5">
                 <div class="flex items-center gap-1 font-title text-xs" data-test="graph-search">
                     <div class="relative">
                         <FontAwesomeIcon icon="fa-solid fa-magnifying-glass" class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-grey-dark pointer-events-none" />
@@ -705,6 +753,25 @@ defineExpose({
                         <ToolbarButton icon="fa-solid fa-caret-up" title="Previous match (Shift+Enter)" :disabled="!searchMatches.length" data-test="graph-search-previous" @click="goToMatch(-1)" />
                         <ToolbarButton icon="fa-solid fa-caret-down" title="Next match (Enter)" :disabled="!searchMatches.length" data-test="graph-search-next" @click="goToMatch(1)" />
                     </template>
+                </div>
+                <div v-if="linksView" class="w-64 rounded-lg border border-grey-light bg-white shadow-sm font-title text-xs" data-test="graph-links">
+                    <div class="flex items-center justify-between gap-2 px-2.5 py-1 bg-grey-lighter border-b border-grey-light rounded-t-lg">
+                        <span class="font-bold truncate">Links to {{ linksView.target }}</span>
+                        <button type="button" class="text-grey-dark hover:text-black" title="Close (Escape)" data-test="graph-links-close" @click="linksView = null">
+                            <FontAwesomeIcon icon="fa-solid fa-xmark" />
+                        </button>
+                    </div>
+                    <div class="px-2.5 py-1.5 flex flex-col gap-1">
+                        <div v-if="!linksView.here.length && !linksView.elsewhere.length" class="italic text-grey-dark">No reply links to this node.</div>
+                        <div v-if="linksView.here.length" data-test="graph-links-here">
+                            From this dialogue:
+                            <template v-for="(title, i) in linksView.here" :key="title"><button type="button" class="text-orange-darker hover:underline" @click="centreOn(title)">{{ title }}</button><template v-if="i < linksView.here.length - 1">, </template></template>
+                        </div>
+                        <div v-if="linksView.elsewhere.length" class="text-grey-dark" data-test="graph-links-elsewhere">
+                            From other dialogues:
+                            <span v-for="(ref, i) in linksView.elsewhere" :key="ref.dialogueName + '.' + ref.nodeTitle">{{ ref.dialogueName }}.{{ ref.nodeTitle }}<template v-if="i < linksView.elsewhere.length - 1">, </template></span>
+                        </div>
+                    </div>
                 </div>
             </Panel>
 
@@ -765,10 +832,11 @@ defineExpose({
                         'ring-2 ring-offset-1 ring-node-start': data.isStart,
                         'ring-2 ring-offset-1 ring-node-end': data.isEnd,
                         'dlb-node-selected': selected,
-                        'dlb-node-match': searchMatchIds.has(id) && id !== currentMatchId,
-                        'dlb-node-current-match': id === currentMatchId,
+                        'dlb-node-match': (searchMatchIds.has(id) && id !== currentMatchId) || linkSourceIds.has(id),
+                        'dlb-node-current-match': id === currentMatchId || id === linksView?.target,
                     }"
                     :data-search="id === currentMatchId ? 'current' : searchMatchIds.has(id) ? 'match' : null"
+                    :data-links="id === linksView?.target ? 'target' : linkSourceIds.has(id) ? 'source' : null"
                     :data-selected="selected ? 'true' : null"
                 >
                     <div class="px-3 py-1.5 text-xs font-title font-bold text-white truncate flex items-center gap-1.5" :style="{ backgroundColor: nodeHeaderColor(data) }">
@@ -814,7 +882,7 @@ defineExpose({
                     :label-bg-padding="labelBgPadding"
                     :label-bg-border-radius="labelBgBorderRadius"
                     :marker-end="markerEnd"
-                    :style="style"
+                    :style="isHighlightedEdge(sourceNode, targetNode) ? { ...style, strokeWidth: 3.5 } : style"
                 />
             </template>
         </VueFlow>
@@ -841,7 +909,7 @@ defineExpose({
                 <dt>Drag a selected node</dt><dd>Move all selected nodes together</dd>
                 <dt>Click the canvas</dt><dd>Clear the selection</dd>
                 <dt><kbd>Delete</kbd> or <kbd>Backspace</kbd></dt><dd>Delete the selected nodes, after asking</dd>
-                <dt>Right-click a node</dt><dd>Delete it, or the selection it's part of</dd>
+                <dt>Right-click a node</dt><dd>Show the links to it; delete it, or the selection it's part of</dd>
                 <dt>Right-click the canvas</dt><dd>A menu to add a node there</dd>
                 <dt>Double-click the canvas</dt><dd>Add a node there at once</dd>
                 <dt>Drag the canvas</dt><dd>Move around</dd>

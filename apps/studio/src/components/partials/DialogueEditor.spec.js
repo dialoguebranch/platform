@@ -588,3 +588,63 @@ describe('DialogueEditor search (#190)', () => {
     });
 });
 
+describe('DialogueEditor links to a node (#194)', () => {
+    const rightClickNode = async (wrapper, id) => {
+        wrapper.findComponent(VueFlowStub).vm.$emit('node-context-menu',
+            { event: { preventDefault: () => {}, clientX: 10, clientY: 10 }, node: { id } });
+        await flushPromises();
+    };
+    const showLinks = async (wrapper, id) => {
+        await rightClickNode(wrapper, id);
+        await wrapper.find('[data-test="node-menu-links"]').trigger('click');
+        await flushPromises();
+    };
+    const marked = (wrapper, kind) =>
+        wrapper.findAll(`[data-links="${kind}"]`).map((el) => el.element.closest('[data-node]').dataset.node);
+
+    beforeEach(() => {
+        authoring.findNodeReferences.mockResolvedValue([
+            { dialogueName: 'main', nodeTitle: 'Start', snippet: '[[Go|Next]]' },
+            { dialogueName: 'main', nodeTitle: 'Start', snippet: '[[Again|Next]]' },
+            { dialogueName: 'other', nodeTitle: 'Hub', snippet: '[[On|main.Next]]' },
+        ]);
+    });
+
+    it('marks the node and the nodes here that link to it, and names the ones elsewhere', async () => {
+        const wrapper = await mountEditor();
+        await showLinks(wrapper, 'Next');
+
+        expect(authoring.findNodeReferences).toHaveBeenCalledWith('p', 'main', 'Next');
+        expect(marked(wrapper, 'target')).toEqual(['Next']);
+        expect(marked(wrapper, 'source')).toEqual(['Start']);
+        expect(wrapper.find('[data-test="graph-links-here"]').text()).toBe('From this dialogue: Start');
+        expect(wrapper.find('[data-test="graph-links-elsewhere"]').text()).toBe('From other dialogues: other.Hub');
+        expect(flowView.setCenter).toHaveBeenCalled();
+    });
+
+    it('says so when nothing links to the node', async () => {
+        authoring.findNodeReferences.mockResolvedValue([]);
+        const wrapper = await mountEditor();
+        await showLinks(wrapper, 'Start');
+        expect(wrapper.find('[data-test="graph-links"]').text()).toContain('No reply links to this node.');
+    });
+
+    it('closes with its button, with Escape, and when searching', async () => {
+        const wrapper = await mountEditor();
+        await showLinks(wrapper, 'Next');
+        await wrapper.find('[data-test="graph-links-close"]').trigger('click');
+        expect(wrapper.find('[data-test="graph-links"]').exists()).toBe(false);
+
+        await showLinks(wrapper, 'Next');
+        document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        await flushPromises();
+        expect(wrapper.find('[data-test="graph-links"]').exists()).toBe(false);
+
+        await showLinks(wrapper, 'Next');
+        await wrapper.find('[data-test="graph-search-input"]').setValue('owl');
+        await flushPromises();
+        expect(wrapper.find('[data-test="graph-links"]').exists()).toBe(false);
+        expect(marked(wrapper, 'source')).toEqual([]);
+    });
+});
+
