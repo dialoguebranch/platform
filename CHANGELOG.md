@@ -11,7 +11,7 @@ and this project adheres to a single monorepo-wide version declared in `global.j
 
 - Web service: `/dialogue/get-ongoing` also returns the `language` the ongoing dialogue runs in;
   in client-js, `OngoingDialogue.language` ([#489](https://github.com/dialoguebranch/platform/issues/489)).
-- Studio: a *Go back a step* button while testing a dialogue in Live Mode
+- Studio: a *Go back a step* button while testing a dialogue, in Live Mode and in draft tests
   ([#490](https://github.com/dialoguebranch/platform/issues/490)).
 - Web service: **Internal API:** `POST /test-session/back` goes back a step in a test session, as
   `/dialogue/back` does in live playback. A test session keeps its conversation log in memory, so
