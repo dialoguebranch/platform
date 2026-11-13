@@ -3,6 +3,7 @@ import { computed, inject, ref, watch } from 'vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { useAuthoringClient } from '@/composables/client.js';
 import { describeError } from '@/composables/error-message.js';
+import CollapsibleErrorList from '../widgets/CollapsibleErrorList.vue';
 import { showError, dismissError } from '@/composables/error-toast.js';
 import { useLatestRequest } from '@/composables/latest-request.js';
 import {
@@ -346,19 +347,11 @@ defineExpose({
         <div v-if="!dialogueName" class="flex items-center justify-center h-full text-grey-dark font-title text-sm p-2">
             Open a dialogue from the Dialogue Browser to start translating.
         </div>
-        <div v-else-if="loadError" class="p-3 font-title text-sm">
-            <div class="flex items-start gap-2 border border-red-dark/40 bg-red-dark/10 text-red-dark rounded-lg px-3 py-2.5">
-                <FontAwesomeIcon icon="fa-solid fa-circle-exclamation" class="shrink-0 mt-0.5" />
-                <div>
-                    <div class="font-semibold">{{ loadError.message }}</div>
-                    <ul class="mt-1 list-disc list-inside">
-                        <li v-for="(messages, dialogue) in loadError.errors" :key="dialogue">
-                            <span class="font-mono">{{ dialogue }}</span>:
-                            <span v-for="(m, i) in messages" :key="i">{{ m }}<template v-if="i < messages.length - 1">; </template></span>
-                        </li>
-                    </ul>
-                </div>
-            </div>
+        <!-- The same compact error as the Test views: the message, and the errors folded away. -->
+        <div v-else-if="loadError" class="flex flex-col items-center justify-center h-full gap-3 font-title text-sm text-grey-dark px-8 py-10 text-center" data-test="translation-load-error">
+            <FontAwesomeIcon icon="fa-solid fa-triangle-exclamation" class="text-red-dark text-2xl" />
+            <span>{{ loadError.message }}</span>
+            <CollapsibleErrorList :errors="loadError.errors" />
         </div>
         <div v-else-if="loading && groups.length === 0" class="flex items-center justify-center h-full text-grey-dark font-title text-sm gap-2 p-2">
             <FontAwesomeIcon icon="fa-solid fa-circle-notch" class="animate-spin" />

@@ -23,6 +23,9 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   deleting them, so they came back on the next load. The key does nothing there now; deleting from
   the canvas is planned ([#193](https://github.com/dialoguebranch/platform/issues/193),
   [#197](https://github.com/dialoguebranch/platform/issues/197)).
+- Studio: when a dialogue can't be translated because it has errors, the Translate view shows a
+  short message with the errors folded away, as the Test views do, instead of every error inline.
+  The fold says how many errors there are.
 - Core: `./gradlew publishToMavenLocal` works without a GPG key; signing is only required when
   publishing to Maven Central. The 0.x releases aren't on Maven Central (it has older versions up
   to 1.3.0), so the Core Java documentation now explains how to install a release locally.
