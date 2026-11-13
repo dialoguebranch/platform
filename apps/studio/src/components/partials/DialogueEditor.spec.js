@@ -470,3 +470,43 @@ describe('DialogueEditor deleting the selected nodes (#193, #197)', () => {
     });
 });
 
+describe('DialogueEditor moving nodes with the arrow keys (#193)', () => {
+    // Vue Flow moves the selected nodes itself, through the nodes' v-model, without a drag-stop.
+    async function moveSelected(wrapper, titles, dx) {
+        const flow = wrapper.findComponent(VueFlowStub);
+        flow.vm.$emit('update:nodes', flow.props('nodes').map((n) => titles.includes(n.id)
+            ? { ...n, selected: true, position: { x: n.position.x + dx, y: n.position.y } }
+            : { ...n, selected: false }));
+        await flushPromises();
+    }
+    const release = async (key, target = document.body) => {
+        target.dispatchEvent(new KeyboardEvent('keyup', { key, bubbles: true }));
+        await flushPromises();
+    };
+
+    it('saves the moved nodes when the key is let go', async () => {
+        const wrapper = await mountEditor();
+        await moveSelected(wrapper, ['Next', 'End'], 20);
+        await release('ArrowRight');
+
+        expect(savedPositions()).toEqual([['Next', '220,0'], ['End', '420,0']]);
+        expect(wrapper.emitted('dialogueSaved')).toHaveLength(1);
+
+        // nothing more to save on the next key, since the stored positions now match
+        await release('ArrowRight');
+        expect(authoring.updateDraftNode).toHaveBeenCalledTimes(2);
+    });
+
+    it('saves nothing for other keys, while typing, or when nothing moved', async () => {
+        const wrapper = await mountEditor();
+        await release('ArrowLeft');
+        await moveSelected(wrapper, ['Next'], 5);
+        await release('a');
+        const input = document.createElement('input');
+        document.body.appendChild(input);
+        await release('ArrowLeft', input);
+        input.remove();
+        expect(authoring.updateDraftNode).not.toHaveBeenCalled();
+    });
+});
+

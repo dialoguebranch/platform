@@ -683,6 +683,29 @@ export class DialogueBranchAuthoringClient extends BaseClient {
     }
 
     /**
+     * Goes back a step in a test session (#490), as {@link DialogueBranchClient#back} does in live
+     * playback: the previous step of the current dialogue is shown again, and its node executed
+     * again (its `set` commands too). At the first step, that step comes back. Nothing is added to
+     * the session's log, so a later {@link progressTestSession} continues from the returned step.
+     *
+     * @param {Object} options
+     * @param {string} options.testSessionId The test session's id.
+     * @param {string} [options.timeZone] The caller's IANA time zone (e.g. `"Europe/Lisbon"`).
+     * @returns {Promise<DialogueStep>} The step gone back to.
+     */
+    backTestSession({ testSessionId, timeZone }) {
+        let url = this._baseUrl + "/test-session/back?testSessionId=" + encodeURIComponent(testSessionId);
+        if (timeZone) url += "&timeZone=" + encodeURIComponent(timeZone);
+
+        return this._fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" }
+        })
+        .then((response) => this._handleResponse(response))
+        .then((json) => DialogueStep.fromJSON(json));
+    }
+
+    /**
      * Ends a test session started via {@link startTestSession}. Its copy of the variables stays,
      * for the caller's other test sessions in the project.
      *

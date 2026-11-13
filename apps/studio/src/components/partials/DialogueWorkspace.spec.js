@@ -47,6 +47,7 @@ const authoring = {
     startTestSession: vi.fn(),
     progressTestSession: vi.fn(),
     cancelTestSession: vi.fn(),
+    backTestSession: vi.fn(),
 };
 
 vi.mock('@/composables/client.js', () => ({
@@ -391,13 +392,39 @@ describe('DialogueWorkspace — going back a step (#490)', () => {
         expect(shownSteps(wrapper)).toStrictEqual([again]);
     });
 
-    it('is off for a draft test, which keeps no log', async () => {
-        authoring.startTestSession.mockResolvedValue({ testSessionId: 's1', dialogueStep: step([reply]) });
+    it('goes back in a draft test too, through its test session', async () => {
+        const first = { ...step([reply]), loggedDialogueId: 'mem-1', loggedInteractionIndex: 0 };
+        authoring.startTestSession.mockResolvedValue({ testSessionId: 's1', dialogueStep: first });
         const wrapper = await mountWorkspace();
-        authoring.progressTestSession.mockResolvedValue(step([reply]));
-        balloons(wrapper).vm.$emit('selectReply', step([reply]), reply);
-        await flushPromises();
         expect(backButton(wrapper).attributes('disabled')).toBeDefined();
+
+        authoring.progressTestSession.mockResolvedValue({ ...step([reply]), node: 'Two', loggedDialogueId: 'mem-1', loggedInteractionIndex: 2 });
+        balloons(wrapper).vm.$emit('selectReply', shownSteps(wrapper).at(-1), reply);
+        await flushPromises();
+        const again = { ...first };
+        authoring.backTestSession.mockResolvedValue(again);
+
+        await backButton(wrapper).trigger('click');
+        await flushPromises();
+
+        expect(authoring.backTestSession).toHaveBeenCalledWith({ testSessionId: 's1', timeZone: 'UTC' });
+        expect(playback.back).not.toHaveBeenCalled();
+        expect(shownSteps(wrapper)).toStrictEqual([again]);
+    });
+
+    it('shows that a draft test expired when going back finds no session', async () => {
+        authoring.startTestSession.mockResolvedValue({ testSessionId: 's1',
+            dialogueStep: { ...step([reply]), loggedDialogueId: 'mem-1', loggedInteractionIndex: 0 } });
+        const wrapper = await mountWorkspace();
+        authoring.progressTestSession.mockResolvedValue({ ...step([reply]), loggedDialogueId: 'mem-1', loggedInteractionIndex: 2 });
+        balloons(wrapper).vm.$emit('selectReply', shownSteps(wrapper).at(-1), reply);
+        await flushPromises();
+        authoring.backTestSession.mockRejectedValue({ status: 404, message: 'Test session not found' });
+
+        await backButton(wrapper).trigger('click');
+        await flushPromises();
+
+        expect(balloons(wrapper).props('startError')).toBeTruthy();
     });
 });
 

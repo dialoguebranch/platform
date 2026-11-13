@@ -271,6 +271,44 @@ public class TestSessionController {
 	}
 
 	/**
+	 * Goes back a step in a test session (#490), as {@code /dialogue/back} does in live playback:
+	 * the previous step of the current dialogue is shown again, and its node executed again.
+	 *
+	 * @param response the HTTP response (to add header WWW-Authenticate in case of a 401
+	 *                 Unauthorized error).
+	 * @param version the API version to use, e.g. '1'.
+	 * @param testSessionId the id of the test session, as returned by {@link #start}.
+	 * @param timeZone the current time zone of the tester (as IANA, e.g. 'Europe/Lisbon').
+	 * @return the step gone back to.
+	 * @throws HttpException if the session does not exist, belongs to another tester, has ended,
+	 * or the user is not authorized.
+	 */
+	@Operation(summary = "Go back a step in a test session.")
+	@Parameter(name = "version", hidden = true)
+	@PostMapping("/back")
+	public DialogueMessage back(
+			HttpServletResponse response,
+			@Parameter(hidden = true) @PathVariable(value = "version") String version,
+			@RequestParam(value = "testSessionId") String testSessionId,
+			@RequestParam(value = "timeZone") String timeZone
+	) throws HttpException {
+		return QueryRunner.runQuery(
+				(protocolVersion, user) -> {
+					logger.info("POST /v{}/test-session/back [user: {}]", version, user);
+					TestSession session = testSessionService.getSession(testSessionId, user);
+					ZonedDateTime eventTime =
+							DateTimeUtils.nowMs(ControllerFunctions.parseTimeZone(timeZone));
+					try {
+						return DialogueMessageFactory.generateDialogueMessage(
+								testSessionService.backSession(session, eventTime));
+					} catch (ExecutionException e) {
+						throw ControllerFunctions.createHttpException(e);
+					}
+				},
+				version, response, "", Permission.DIALOGUE_TEST);
+	}
+
+	/**
 	 * Ends a test session. Its copy of the variables is kept, for the tester's other sessions.
 	 *
 	 * @param request the HTTP request (to retrieve authentication headers).

@@ -605,8 +605,8 @@ const reloadStep = () => {
 };
 
 // ---- Going back a step (#490) ----
-// Live Mode only: the Web Service goes back in the dialogue's log (/dialogue/back), and test
-// sessions keep no log. It goes to the agent's previous step in the same dialogue, runs that node
+// The Web Service goes back in the dialogue's log: /dialogue/back in Live Mode, and for a test
+// session (a draft test, or a simulation) /test-session/back, in the log it keeps in memory. It goes to the agent's previous step in the same dialogue, runs that node
 // again (its `set` commands too) and logs nothing, so a later reply continues from there. Here the
 // last step is dropped and the previous one is replaced by the step that comes back, a new object,
 // so its replies can be chosen again. Whether there is a step to go back to is the log's business:
@@ -618,7 +618,7 @@ const goingBack = ref(false);
 const backBlockedReason = computed(() => {
     const tab = activeTab.value;
     if (!tab.dialogueName) return 'no dialogue active';
-    if (tab.isDraftTest) return 'not available for draft tests';
+    if (tab.isDraftTest && !tab.testSessionId) return 'the test session has ended';
     if (tab.dialogueEnded) return 'the dialogue has ended';
     const last = tab.dialogueSteps.at(-1);
     if (!last) return 'no dialogue active';
@@ -632,7 +632,10 @@ const goBack = () => {
     const last = tab.dialogueSteps.at(-1);
     goingBack.value = true;
     dismissError();
-    client.back(last.loggedDialogueId, last.loggedInteractionIndex)
+    const request = tab.isDraftTest
+        ? authoringClient.backTestSession({ testSessionId: tab.testSessionId, timeZone: getBrowserTimeZone() })
+        : client.back(last.loggedDialogueId, last.loggedInteractionIndex);
+    request
     .then((previous) => {
         if (tab.dialogueCancelled) return;
         // The step it replaces is the one before, if this tab shows it (a resumed tab doesn't).
@@ -645,7 +648,12 @@ const goBack = () => {
         scrollTextToBottom();
     })
     .catch((error) => {
-        showError(describeError(error));
+        // A test session that ended or was evicted answers 404, as for a reply (#218).
+        if (tab.isDraftTest && error?.status === 404) {
+            showExpired(tab);
+        } else {
+            showError(describeError(error));
+        }
     })
     .finally(() => {
         goingBack.value = false;

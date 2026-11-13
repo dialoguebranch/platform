@@ -111,6 +111,18 @@ describe('DialogueBranchAuthoringClient test-session methods: timeZone', () => {
 });
 
 describe('DialogueBranchAuthoringClient test-session methods: sessions and the copy', () => {
+    it('backTestSession() goes back a step and parses the step (#490)', async () => {
+        const fetchMock = vi.fn().mockResolvedValue(jsonResponse(START_RESPONSE.dialogueMessage));
+        vi.stubGlobal('fetch', fetchMock);
+
+        const step = await client().backTestSession({ testSessionId: 'session 1', timeZone: 'Europe/Lisbon' });
+
+        expect(fetchMock.mock.calls[0][0])
+            .toBe('/api/v1/test-session/back?testSessionId=session%201&timeZone=Europe%2FLisbon');
+        expect(fetchMock.mock.calls[0][1].method).toBe('POST');
+        expect(step).toBeInstanceOf(DialogueStep);
+    });
+
     it('startTestSession() returns the test session id', async () => {
         const fetchMock = vi.fn().mockResolvedValue(jsonResponse(START_RESPONSE));
         vi.stubGlobal('fetch', fetchMock);
