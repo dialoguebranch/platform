@@ -28,6 +28,7 @@
 
 package com.dialoguebranch.model.execute;
 
+import com.dialoguebranch.exception.ExecutionException;
 import com.dialoguebranch.exception.ParseException;
 import com.dialoguebranch.exception.ProjectParseException;
 import com.dialoguebranch.execution.parser.ProjectParser;
@@ -224,6 +225,88 @@ public class ExecutableProject implements DialogueBranchProject {
 	// ------------------------------------------------------- //
 	// -------------------- Other Methods -------------------- //
 	// ------------------------------------------------------- //
+
+	/**
+	 * Returns the code of the language the project's dialogues are written in: the source
+	 * language from the project's metadata, or, for a project without metadata, the language of
+	 * its source dialogues.
+	 *
+	 * @return the source language code, or {@code null} for a project without metadata and
+	 *         without dialogues.
+	 */
+	public @Nullable String getSourceLanguage() {
+		if (metaData != null && metaData.getSourceLanguageCode() != null)
+			return metaData.getSourceLanguageCode();
+		for (ResourcePointer pointer : sourceDialogues.keySet()) {
+			if (pointer.getLanguage() != null)
+				return pointer.getLanguage();
+		}
+		return null;
+	}
+
+	/**
+	 * Returns the dialogue with the given name, in the project's source language.
+	 *
+	 * @param dialogueName the dialogue's name, including its folders, such as {@code
+	 *                     "intro/welcome"}; a leading {@code "/"} is allowed.
+	 * @return the dialogue.
+	 * @throws ExecutionException ({@link ExecutionException.Type#DIALOGUE_NOT_FOUND}) if the
+	 *                            project has no dialogue with that name.
+	 */
+	public Dialogue getDialogue(String dialogueName) throws ExecutionException {
+		return getDialogue(dialogueName, null);
+	}
+
+	/**
+	 * Returns the dialogue with the given name, in the given language. If the dialogue isn't
+	 * available in that language, or no language is given, it is returned in the project's
+	 * source language. The language must match exactly: {@code "nl"} doesn't select {@code
+	 * "nl-NL"}.
+	 *
+	 * @param dialogueName the dialogue's name, including its folders, such as {@code
+	 *                     "intro/welcome"}; a leading {@code "/"} is allowed.
+	 * @param language the language code, or {@code null} for the source language.
+	 * @return the dialogue.
+	 * @throws ExecutionException ({@link ExecutionException.Type#DIALOGUE_NOT_FOUND}) if the
+	 *                            project has no dialogue with that name.
+	 */
+	public Dialogue getDialogue(String dialogueName, @Nullable String language)
+			throws ExecutionException {
+		return Objects.requireNonNull(dialogues.get(getDialoguePointer(dialogueName, language)));
+	}
+
+	/**
+	 * Returns the {@link ResourcePointer} of the dialogue with the given name, in the given
+	 * language, chosen as for {@link #getDialogue(String, String)}. Its language is the one the
+	 * dialogue is actually available in.
+	 *
+	 * @param dialogueName the dialogue's name, including its folders, such as {@code
+	 *                     "intro/welcome"}; a leading {@code "/"} is allowed.
+	 * @param language the language code, or {@code null} for the source language.
+	 * @return the dialogue's resource pointer.
+	 * @throws ExecutionException ({@link ExecutionException.Type#DIALOGUE_NOT_FOUND}) if the
+	 *                            project has no dialogue with that name.
+	 */
+	public ResourcePointer getDialoguePointer(String dialogueName, @Nullable String language)
+			throws ExecutionException {
+		String name = dialogueName.startsWith(DialogueBranchConstants.DLB_PATH_SEPARATOR)
+				? dialogueName.substring(DialogueBranchConstants.DLB_PATH_SEPARATOR.length())
+				: dialogueName;
+		ResourcePointer source = null;
+		for (ResourcePointer pointer : dialogues.keySet()) {
+			if (!pointer.getDialogueName().equals(name))
+				continue;
+			if (language != null && language.equals(pointer.getLanguage()))
+				return pointer;
+			if (sourceDialogues.containsKey(pointer))
+				source = pointer;
+		}
+		if (source == null) {
+			throw new ExecutionException(ExecutionException.Type.DIALOGUE_NOT_FOUND,
+					"Dialogue not found: " + dialogueName);
+		}
+		return source;
+	}
 
 	/**
 	 * Returns a list of all supported languages in this {@link ExecutableProject}. In the case of a

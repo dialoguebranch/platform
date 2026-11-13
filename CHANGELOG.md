@@ -14,6 +14,12 @@ and this project adheres to a single monorepo-wide version declared in `global.j
   file, instead of a project that is `null`. Parse warnings are available from the new
   `ExecutableProject.getWarnings()`, also for projects loaded with `ProjectParser`
   ([#473](https://github.com/dialoguebranch/platform/issues/473)).
+- Core: `ExecutableProject.getDialogue(name)` and `getDialogue(name, language)` look up a dialogue
+  by its name. They use the same language rules as the Web Service: the exact language, otherwise
+  the source language. An unknown dialogue fails with an `ExecutionException` of type
+  `DIALOGUE_NOT_FOUND`. `getDialoguePointer(name, language)` returns the dialogue's
+  `ResourcePointer`, and `getSourceLanguage()` returns the project's source language, also for a
+  project without metadata ([#473](https://github.com/dialoguebranch/platform/issues/473)).
 
 ## [0.9.2] - 2026-11-11
 
