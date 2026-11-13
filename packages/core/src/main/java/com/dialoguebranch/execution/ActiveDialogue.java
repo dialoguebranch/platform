@@ -292,12 +292,17 @@ public class ActiveDialogue {
 	 * @param loggedDialogue the log to record into, or {@code null} to keep none.
 	 * @param factory makes the log of a dialogue the conversation enters; required with a log.
 	 * @throws IllegalArgumentException if a log is given without a factory.
+	 * @throws IllegalStateException if a log is given and the dialogue has already started: its
+	 *                               steps so far wouldn't be in the log, and going back would
+	 *                               stop at the first step that is.
 	 */
 	public void setLoggedDialogue(@Nullable LoggedDialogue loggedDialogue,
 			@Nullable LoggedDialogueFactory factory) {
 		if (loggedDialogue != null && factory == null)
 			throw new IllegalArgumentException("A log needs a factory for the logs of the "
 					+ "dialogues a reply leads into");
+		if (loggedDialogue != null && started)
+			throw new IllegalStateException("A log must be set before the dialogue starts");
 		this.loggedDialogue = loggedDialogue;
 		this.logFactory = loggedDialogue == null ? null : factory;
 		this.loggedInteractionIndex = -1;

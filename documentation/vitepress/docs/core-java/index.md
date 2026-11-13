@@ -45,9 +45,11 @@ An `ActiveDialogue` can keep a log of the conversation, as the Web Service does:
 ```java
 ActiveDialogue dialogue = new ActiveDialogue(project, project.resolve("welcome", null),
         new VariableStore(new User("sam")));
-LoggedDialogue log = dialogue.keepInMemoryLog(ZonedDateTime.now());   // before starting
+InMemoryLoggedDialogue log = dialogue.keepInMemoryLog(ZonedDateTime.now()); // before starting
 dialogue.startDialogue();
-// ... select replies; every step is recorded in log.getInteractionList()
+// ... select replies; every step is recorded. A reply into another dialogue starts a new log in
+// the same session: the current one is dialogue.getLoggedDialogue(), and each in-memory log
+// points back to the one before it with getPrevious().
 
 dialogue.back();      // the previous agent step, shown again: nothing is added to the log
 dialogue.cancel();    // marks the log cancelled

@@ -244,11 +244,28 @@ public class ActiveDialogueLogTest {
 		ExecutableProject project = chain();
 		ActiveDialogue dialogue = new ActiveDialogue(project, project.resolve("chain", null),
 				variables());
-		dialogue.startDialogue(NOW);
 		dialogue.keepInMemoryLog(NOW);
+		// Put at a step directly, so it isn't recorded
+		Node start = dialogue.getDialogueDefinition().getNodeById("Start");
+		dialogue.setCurrentNode(dialogue.executeNode(start, NOW));
 
 		assertNull(dialogue.getCurrentMessage().getLoggedDialogueId());
 		assertEquals(-1, dialogue.getLoggedInteractionIndex());
+	}
+
+	@Test
+	public void aLogCantBeSetOnceTheDialogueHasStarted() throws Exception {
+		ExecutableProject project = chain();
+		ActiveDialogue dialogue = new ActiveDialogue(project, project.resolve("chain", null),
+				variables());
+		dialogue.startDialogue(NOW);
+
+		IllegalStateException e = assertThrows(IllegalStateException.class,
+				() -> dialogue.keepInMemoryLog(NOW));
+		assertEquals("A log must be set before the dialogue starts", e.getMessage());
+		assertNull(dialogue.getLoggedDialogue());
+		// Turning logging off is always allowed
+		dialogue.setLoggedDialogue(null, null);
 	}
 
 	@Test
